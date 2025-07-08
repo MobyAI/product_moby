@@ -1,0 +1,50 @@
+export const runtime = 'nodejs';
+
+import { NextRequest, NextResponse } from 'next/server';
+import { extractTextFromPDF } from '@/lib/extractPDF';
+import { extractTextFromDOCX } from '@/lib/extractDOCX';
+
+export async function POST(req: NextRequest) {
+    const formData = await req.formData();
+    const file = formData.get('file') as File;
+
+    if (!file) {
+        return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+    }
+
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const buffer = Buffer.from(await file.arrayBuffer());
+
+    try {
+        let text = '';
+
+        if (ext === 'pdf') {
+            try {
+                // console.log('Extracting text...');
+                text = await extractTextFromPDF(buffer);
+                // console.log('Extracted text:', text.slice(0, 200));
+            } catch (err) {
+                console.error('Error inside extractTextFromPDF:', err);
+            }
+        } else if (ext === 'docx') {
+            try {
+                // console.log('Extracting text...');
+                text = await extractTextFromDOCX(buffer);
+                // console.log('Extracted text:', text.slice(0, 200));
+            } catch (err) {
+                console.error('Error inside extractTextFromDOCX:', err);
+            }
+        } else {
+            return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
+        }
+
+        console.log('extracted text: ', text);
+
+        // You can now call GPT/Claude here if needed
+        // return NextResponse.json({ text });
+
+    } catch (error) {
+        console.error(error);
+        return NextResponse.json({ error: 'Failed to extract text from file' }, { status: 500 });
+    }
+}
