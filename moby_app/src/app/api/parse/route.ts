@@ -3,6 +3,8 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { extractTextFromPDF } from '@/lib/extractPDF';
 import { extractTextFromDOCX } from '@/lib/extractDOCX';
+import { parseWithGPT } from '@/lib/parseWithGPT';
+import { parseWithClaude } from '@/lib/parseWithClaude';
 
 export async function POST(req: NextRequest) {
     const formData = await req.formData();
@@ -38,11 +40,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
         }
 
-        console.log('extracted text: ', text);
+        // console.log('extracted text: ', text);
 
-        // You can now call GPT/Claude here if needed
-        // return NextResponse.json({ text });
+        // const response = await parseWithGPT(text);
+        const response = await parseWithClaude(text);
 
+        console.log('parsed script: ', response);
+
+        return NextResponse.json({ parsed: response });
     } catch (error) {
         console.error(error);
         return NextResponse.json({ error: 'Failed to extract text from file' }, { status: 500 });

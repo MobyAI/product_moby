@@ -9,8 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.56.0",
     "mammoth": "^1.9.1",
     "next": "15.3.5",
+    "openai": "^5.8.2",
     "pdf-parse": "^1.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
