@@ -22,17 +22,13 @@ export async function POST(req: NextRequest) {
 
         if (ext === 'pdf') {
             try {
-                // console.log('Extracting text...');
                 text = await extractTextFromPDF(buffer);
-                // console.log('Extracted text:', text.slice(0, 200));
             } catch (err) {
                 console.error('Error inside extractTextFromPDF:', err);
             }
         } else if (ext === 'docx') {
             try {
-                // console.log('Extracting text...');
                 text = await extractTextFromDOCX(buffer);
-                // console.log('Extracted text:', text.slice(0, 200));
             } catch (err) {
                 console.error('Error inside extractTextFromDOCX:', err);
             }
@@ -40,10 +36,8 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
         }
 
-        // console.log('extracted text: ', text);
-
-        // const response = await parseWithGPT(text);
-        const response = await parseWithClaude(text);
+        const response = await parseWithGPT(text);
+        // const response = await parseWithClaude(text);
 
         console.log('parsed script: ', response);
 

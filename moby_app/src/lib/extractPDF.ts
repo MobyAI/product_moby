@@ -5,6 +5,5 @@ const pdfParse = require('pdf-parse/lib/pdf-parse.js');
 
 export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
     const data = await pdfParse(buffer);
-    console.log('data', data);
     return data.text;
 }

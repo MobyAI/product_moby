@@ -9,7 +9,7 @@ export async function parseWithGPT(scriptText: string) {
 Parse the script into JSON. Each object must include:
 - "type": "scene", "line", or "direction"
 - "index": original order in script
-- For "line": include "character" and inferred "tone"
+- For "line": include "character", "gender", and inferred "tone"
 - Focus on inferring tone accurately from context; two word description is okay
 Do not rewrite anything.
 
@@ -23,7 +23,7 @@ YOUR RESPONSE MUST BE:
 Example format:
 [
   { "index": 0, "type": "scene", "text": "INT. KITCHEN – DAY" },
-  { "index": 1, "type": "line", "character": "JANE", "text": "What are you doing here?", "tone": "suspicious" },
+  { "index": 1, "type": "line", "character": "JANE", "gender", "text": "What are you doing here?", "tone": "suspicious" },
   { "index": 2, "type": "direction", "text": "He steps back cautiously." }
 ]
 
