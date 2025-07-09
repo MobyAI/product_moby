@@ -36,8 +36,8 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
         }
 
-        const response = await parseWithGPT(text);
-        // const response = await parseWithClaude(text);
+        // const response = await parseWithGPT(text);
+        const response = await parseWithClaude(text);
 
         console.log('parsed script: ', response);
 
