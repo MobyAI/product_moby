@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { addScript, getAllScripts } from '@/server/scripts';
+import { addScript, getAllScripts } from '@/server/script';
 
 // Additional next step: Add security rules
 // match / users / { userId } / scripts / { scriptId } {

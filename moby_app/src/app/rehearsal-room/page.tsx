@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { fetchScriptByID } from '@/lib/dbFunctions/scripts';
 import type { ScriptElement } from '@/types/script';
 
 export default function RehearsalRoomPage() {
@@ -9,6 +10,7 @@ export default function RehearsalRoomPage() {
     const userID = searchParams.get('userID');
     const scriptID = searchParams.get('scriptID');
 
+    const [loading, setLoading] = useState(false);
     const [script, setScript] = useState<ScriptElement[] | null>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -20,12 +22,13 @@ export default function RehearsalRoomPage() {
 
         const fetchScript = async () => {
             try {
-                const res = await fetch(`/api/scripts/${scriptID}?userID=${userID}`);
-                if (!res.ok) throw new Error('Failed to fetch script');
-                const data = await res.json();
+                setLoading(true);
+                const data = await fetchScriptByID(userID, scriptID);
                 setScript(data.script);
             } catch (err) {
                 console.error('Error loading script:', err);
+            } finally {
+                setLoading(false);
             }
         };
 
@@ -68,11 +71,20 @@ export default function RehearsalRoomPage() {
         setCurrentIndex((i) => Math.min(i + 1, (script?.length ?? 1) - 1));
     };
 
-    if (!script) {
+    if (loading) {
         return (
             <div className="p-6">
                 <h1 className="text-xl font-bold">🎭 Rehearsal Room</h1>
                 <p className="text-gray-500">Loading script...</p>
+            </div>
+        );
+    }
+    
+    if (!script) {
+        return (
+            <div className="p-6">
+                <h1 className="text-xl font-bold">🎭 Rehearsal Room</h1>
+                <p className="text-gray-500">Select a script from db</p>
             </div>
         );
     }

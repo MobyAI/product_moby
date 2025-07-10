@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getScript, updateScript, deleteScript } from '@/server/scripts';
+import { getScript, updateScript, deleteScript } from '@/server/script';
 
 // userID sent in URL:
 //
