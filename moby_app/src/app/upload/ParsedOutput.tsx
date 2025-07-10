@@ -1,11 +1,10 @@
 export default function ParsedOutput({ data }: { data: any }) {
-    const parsedData = JSON.parse(data);
 
     return (
         <div className="mt-6">
             <h2 className="text-lg font-semibold mb-4">Parsed Script:</h2>
             <div className="bg-white border border-gray-300 rounded-lg p-8 max-w-4xl mx-auto font-mono text-sm leading-relaxed">
-                {parsedData.map((item: any, index: number) => {
+                {data.map((item: any, index: number) => {
                     switch (item.type) {
                         case 'scene':
                             return (

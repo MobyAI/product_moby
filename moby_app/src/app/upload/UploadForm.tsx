@@ -27,7 +27,8 @@ export default function UploadForm({ onParsed }: { onParsed: (data: any) => void
 
             if (res.ok) {
                 setMessage('Script parsed successfully!');
-                onParsed(data.parsed);
+                const parsedScript = JSON.parse(data.parsed);
+                onParsed(parsedScript);
             } else {
                 setMessage(`Error: ${data.error}`);
             }
@@ -51,8 +52,8 @@ export default function UploadForm({ onParsed }: { onParsed: (data: any) => void
                 type="submit"
                 disabled={!file || isLoading}
                 className={`px-4 py-2 rounded font-medium transition-colors ${!file || isLoading
-                        ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
                     }`}
             >
                 {isLoading ? (

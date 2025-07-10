@@ -10,13 +10,13 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.56.0",
+    "firebase": "^11.10.0",
     "mammoth": "^1.9.1",
     "next": "15.3.5",
     "openai": "^5.8.2",
     "pdf-parse": "^1.1.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "zustand": "^5.0.6"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
