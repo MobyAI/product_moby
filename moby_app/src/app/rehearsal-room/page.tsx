@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { fetchScriptByID } from '@/lib/dbFunctions/scripts';
 import type { ScriptElement } from '@/types/script';
+import Deepgram from './deepgram';
 
 export default function RehearsalRoomPage() {
     const searchParams = useSearchParams();
@@ -79,7 +80,7 @@ export default function RehearsalRoomPage() {
             </div>
         );
     }
-    
+
     if (!script) {
         return (
             <div className="p-6">
@@ -112,6 +113,20 @@ export default function RehearsalRoomPage() {
                 <button onClick={handlePause} className="px-4 py-2 bg-yellow-500 text-white rounded">Pause</button>
                 <button onClick={handlePrev} className="px-4 py-2 bg-blue-500 text-white rounded">Back</button>
                 <button onClick={handleNext} className="px-4 py-2 bg-blue-500 text-white rounded">Next</button>
+            </div>
+            <div>
+                {
+                    current?.type === 'line' &&
+                    typeof current.character === 'string' &&
+                    typeof current.text === 'string' && (
+                        <Deepgram
+                            character={current.character}
+                            text={current.text}
+                            lineEndKeywords={["advance", "salary"]}
+                            onLineMatched={onUserLineMatched}
+                        />
+                    )
+                }
             </div>
         </div>
     );
