@@ -117,7 +117,7 @@ export function useDeepgramSTT({
                 console.log('🟡 [speech_final=true] received.');
                 stopSTT();
                 // Placeholder: Add semantic similarity comparison here
-                // e.g., compare lastFinalTranscript.current to expected script line
+                // IMPORTANT: For openAI embedding: choose server near openAI's server for lower latency
             }
 
             if (data.type === 'UtteranceEnd') {
@@ -127,7 +127,7 @@ export function useDeepgramSTT({
                 console.log('🟣 [UtteranceEnd] received at', data.last_word_end, 's');
                 stopSTT();
                 // Placeholder: Add semantic similarity comparison here
-                // e.g., compare lastFinalTranscript.current to expected script line
+                // IMPORTANT: For openAI embedding: choose server near openAI's server for lower latency
             }
         };
 

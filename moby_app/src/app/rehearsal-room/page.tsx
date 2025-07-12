@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { fetchScriptByID } from '@/lib/dbFunctions/scripts';
+import { fetchScriptByID } from '@/lib/api/dbFunctions/scripts';
 import type { ScriptElement } from '@/types/script';
 import Deepgram from './deepgram';
 

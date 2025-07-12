@@ -4,7 +4,7 @@ import { useState } from 'react';
 import UploadForm from './UploadForm';
 import ParsedOutput from './ParsedOutput';
 import { useRouter } from 'next/navigation';
-import { saveScript } from '@/lib/dbFunctions/scripts';
+import { saveScript } from '@/lib/api/dbFunctions/scripts';
 import type { ScriptElement } from '@/types/script';
 
 export default function UploadPage() {
