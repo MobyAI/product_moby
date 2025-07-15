@@ -1,10 +1,10 @@
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { extractTextFromPDF } from '@/lib/extractPDF';
-import { extractTextFromDOCX } from '@/lib/extractDOCX';
-import { parseWithGPT } from '@/lib/parseWithGPT';
-import { parseWithClaude } from '@/lib/parseWithClaude';
+import { extractTextFromPDF } from '@/lib/extract/pdf';
+import { extractTextFromDOCX } from '@/lib/extract/docx';
+import { parseWithGPT } from '@/lib/openai/parse';
+import { parseWithClaude } from '@/lib/claude/parse';
 
 export async function POST(req: NextRequest) {
     const formData = await req.formData();

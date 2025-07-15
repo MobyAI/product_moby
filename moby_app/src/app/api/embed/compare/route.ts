@@ -3,15 +3,16 @@ import { embedText, cosineSimilarity } from "@/lib/openai/embed";
 
 export async function POST(req: Request) {
     try {
-        const { expectedLine } = await req.json();
+        const { spokenLine, expectedEmbedding } = await req.json();
 
-        if (!expectedLine) {
+        if (!spokenLine || !expectedEmbedding) {
             return NextResponse.json({ error: "Missing inputs" }, { status: 400 });
         }
 
-        const expectedEmbedding = await embedText(expectedLine);
+        const spokenEmbedding = await embedText(spokenLine);
+        const similarity = cosineSimilarity(spokenEmbedding, expectedEmbedding);
 
-        return NextResponse.json({ expectedEmbedding });
+        return NextResponse.json({ similarity });
     } catch (error) {
         console.error("Embedding error:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

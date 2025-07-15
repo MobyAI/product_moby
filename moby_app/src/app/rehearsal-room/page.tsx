@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { fetchScriptByID } from '@/lib/api/dbFunctions/scripts';
+import { fetchEmbedding } from '@/lib/api/embed';
 import type { ScriptElement } from '@/types/script';
 import Deepgram from './deepgram';
 
@@ -16,6 +17,9 @@ export default function RehearsalRoomPage() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isWaitingForUser, setIsWaitingForUser] = useState(false);
+
+    // TEMP for testing
+    const [expectedEmbedding, setExpectedEmbedding] = useState<number[] | null>(null);
 
     // Fetch script
     useEffect(() => {
@@ -36,8 +40,10 @@ export default function RehearsalRoomPage() {
         fetchScript();
     }, [userID, scriptID]);
 
+    // Current script element
     const current = script?.find((el) => el.index === currentIndex) ?? null;
 
+    // Handle script flow
     useEffect(() => {
         if (!isPlaying || isWaitingForUser || !current) return;
 
@@ -71,6 +77,23 @@ export default function RehearsalRoomPage() {
         setIsWaitingForUser(false);
         setCurrentIndex((i) => Math.min(i + 1, (script?.length ?? 1) - 1));
     };
+
+    async function handleEmbedCurrentLine(current: { type: string; text: string }) {
+        if (current?.type !== "line") {
+            console.log("🟡 Current item is not a line.");
+            return;
+        }
+
+        const expectedLine = current.text;
+        const embedding = await fetchEmbedding(expectedLine);
+
+        if (embedding) {
+            console.log("📐 Embedding for current line:", embedding);
+            setExpectedEmbedding(embedding);
+        } else {
+            console.error("❌ Failed to fetch embedding for:", expectedLine);
+        }
+    }
 
     if (loading) {
         return (
@@ -118,13 +141,20 @@ export default function RehearsalRoomPage() {
                 {
                     current?.type === 'line' &&
                     typeof current.character === 'string' &&
-                    typeof current.text === 'string' && (
-                        <Deepgram
-                            character={current.character}
-                            text={current.text}
-                            lineEndKeywords={["advance", "salary"]}
-                            onLineMatched={onUserLineMatched}
-                        />
+                    typeof current.text === 'string' &&
+                    Array.isArray(current.lineEndKeywords) && (
+                        <>
+                            <button onClick={() => handleEmbedCurrentLine(current)}>
+                                🔍 Get Embedding
+                            </button>
+                            <Deepgram
+                                character={current.character}
+                                text={current.text}
+                                lineEndKeywords={current.lineEndKeywords}
+                                onLineMatched={onUserLineMatched}
+                                expectedEmbedding={expectedEmbedding}
+                            />
+                        </>
                     )
                 }
             </div>

@@ -22,8 +22,9 @@ wss.on('connection', (clientSocket) => {
         '&interim_results=true' +
         '&encoding=linear16' +
         '&sample_rate=44100' +
-        '&endpointing=3000' +
-        '&utterance_end_ms=3500',
+        '&endpointing=1000' +
+        '&utterance_end_ms=1000' +
+        '&model=general-enhanced',
         {
             headers: {
                 Authorization: `Token ${DEEPGRAM_API_KEY}`,

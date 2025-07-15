@@ -6,4 +6,5 @@ export type ScriptElement = {
     gender?: string;
     tone?: string;
     role?: 'user' | 'ai';
+    lineEndKeywords?: string[];
 };

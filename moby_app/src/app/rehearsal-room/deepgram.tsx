@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useDeepgramSTT } from '@/lib/useDeepgramSTT';
+import { useDeepgramSTT } from '@/lib/deepgram/speechToText';
 
 interface DeepgramProps {
     character: string;
     text: string;
     lineEndKeywords: string[];
     onLineMatched: (transcript: string) => void;
+    expectedEmbedding: number[] | null;
 }
 
 const Deepgram: React.FC<DeepgramProps> = ({
@@ -15,9 +16,15 @@ const Deepgram: React.FC<DeepgramProps> = ({
     text,
     lineEndKeywords,
     onLineMatched,
+    expectedEmbedding,
 }) => {
     const [log, setLog] = useState<string[]>([]);
     const [hasTimedOut, setHasTimedOut] = useState(false);
+
+    // Add check for expected embedding and if it isn't available warn user that cue detection may fail
+    if (!expectedEmbedding) {
+        console.warn("⚠️ No expected embedding provided. Cue detection may fail.");
+    }
 
     const { startSTT, stopSTT } = useDeepgramSTT({
         lineEndKeywords,
@@ -30,6 +37,7 @@ const Deepgram: React.FC<DeepgramProps> = ({
             setLog((prev) => [...prev, '🛑 Silence timeout — session ended.']);
             setHasTimedOut(true);
         },
+        expectedEmbedding: expectedEmbedding ?? [],
     });
 
     const handleRetry = () => {

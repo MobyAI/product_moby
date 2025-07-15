@@ -1,15 +1,18 @@
 import { useRef, RefObject } from 'react';
+import { fetchSimilarity } from '@/lib/api/embed';
 
 interface UseDeepgramSTTProps {
     lineEndKeywords: string[];
     onCueDetected: (transcript: string) => void;
     onSilenceTimeout?: () => void;
+    expectedEmbedding: number[];
 }
 
 export function useDeepgramSTT({
     lineEndKeywords,
     onCueDetected,
     onSilenceTimeout,
+    expectedEmbedding,
 }: UseDeepgramSTTProps) {
     const wsRef = useRef<WebSocket | null>(null);
     const isActiveRef = useRef(false);
@@ -18,6 +21,7 @@ export function useDeepgramSTT({
     const audioCtxRef = useRef<AudioContext | null>(null);
     const fullTranscript = useRef<string[]>([]);
     const nextLineTriggeredRef = useRef(false);
+    const lastSpokenLineRef = useRef<string | null>(null);
 
     const resetSilenceTimer = () => {
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
@@ -30,12 +34,13 @@ export function useDeepgramSTT({
 
     const streamMic = async (wsRef: RefObject<WebSocket | null>) => {
         if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
-            audioCtxRef.current = new AudioContext();
+            audioCtxRef.current = new AudioContext({ sampleRate: 44100 });
             await audioCtxRef.current.audioWorklet.addModule('/linearPCMProcessor.js');
         }
 
         const audioCtx = audioCtxRef.current!;
-        console.log('🎛️ Sample Rate:', audioCtx.sampleRate);
+        // const actualSampleRate = audioCtx.sampleRate;
+        // console.log('🎛️ Actual Sample Rate:', actualSampleRate);
 
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const source = audioCtx.createMediaStreamSource(stream);
@@ -43,7 +48,7 @@ export function useDeepgramSTT({
 
         const onWorkletMessage = (e: MessageEvent<Float32Array>) => {
             const floatInput = e.data;
-            console.log('📦 Sending buffered chunk:', floatInput.length);
+            // console.log('📦 Sending buffered chunk:', floatInput.length);
             const buffer = convertFloat32ToInt16(floatInput);
             if (wsRef.current?.readyState === WebSocket.OPEN) {
                 wsRef.current.send(buffer);
@@ -71,12 +76,60 @@ export function useDeepgramSTT({
         }
     };
 
+    const handleFinalization = async (triggerSource: string) => {
+        const spokenLine = fullTranscript.current.join(' ');
+
+        if (spokenLine === lastSpokenLineRef.current) {
+            console.log("🔁 Duplicate spoken line detected. Skipping re-evaluation.");
+            return;
+        }
+
+        lastSpokenLineRef.current = spokenLine;
+        const start = performance.now();
+
+        console.log(`${triggerSource} received. Running match test now!`);
+
+        if (matchesEndPhrase(spokenLine, lineEndKeywords)) {
+            const end = performance.now();
+            console.log(`⚡ Total latency: ${(end - start).toFixed(2)}ms`);
+
+            console.log("🔑 Keyword match detected!");
+            nextLineTriggeredRef.current = true;
+            stopSTT();
+            onCueDetected(spokenLine);
+            return;
+        } else {
+            console.log("Keyword match failed. Trying similarity test.")
+        }
+
+        //
+        // IMPORTANT: For openAI embedding: choose server near openAI's server for lower latency
+        //
+
+        const similarity = await fetchSimilarity(spokenLine, expectedEmbedding);
+        const end = performance.now();
+
+        console.log(`🧠 Similarity: ${similarity}`);
+        console.log(`⚡ Total latency: ${(end - start).toFixed(2)}ms`);
+
+        if (similarity && similarity > 0.8) {
+            console.log("✅ Similarity test passed!");
+            nextLineTriggeredRef.current = true;
+            stopSTT();
+            onCueDetected(spokenLine);
+        } else {
+            console.log("🔁 Similarity too low, not triggering cue.");
+        }
+    };
+
     const startSTT = async () => {
         if (isActiveRef.current) return;
         isActiveRef.current = true;
         fullTranscript.current = [];
         nextLineTriggeredRef.current = false;
 
+        // const sampleRate = audioCtxRef.current?.sampleRate ?? 44100;
+        // const ws = new WebSocket(`ws://localhost:3001?sample_rate=${sampleRate}`);
         const ws = new WebSocket('ws://localhost:3001');
         wsRef.current = ws;
 
@@ -95,40 +148,121 @@ export function useDeepgramSTT({
             const transcript: string = data.channel?.alternatives?.[0]?.transcript || '';
 
             if (transcript) {
-                console.log('🎙️ Transcript:', transcript);
+                console.log(`[🎙️] Transcript chunk at ${performance.now().toFixed(2)}ms:`, transcript);
                 resetSilenceTimer();
             }
 
             if (data.is_final && transcript) {
                 fullTranscript.current.push(transcript);
-                console.log("Full transcription: ", fullTranscript);
-                if (matchesEndPhrase(transcript, lineEndKeywords)) {
-                    if (nextLineTriggeredRef.current) return;
-                    nextLineTriggeredRef.current = true;
-                    stopSTT();
-                    onCueDetected(fullTranscript.current.join(' '));
-                }
+                console.log(`[🎙️] FULL transcript at ${performance.now().toFixed(2)}ms::`, fullTranscript);
+                await handleFinalization(`🟡 [data.is_final] @ ${performance.now().toFixed(2)}ms`);
             }
 
-            if (data.speech_final) {
-                if (nextLineTriggeredRef.current) return;
-                nextLineTriggeredRef.current = true;
+            if (data.speech_final && !nextLineTriggeredRef.current) {
+                await handleFinalization(`🟡 [speech_final=true] @ ${performance.now().toFixed(2)}ms`);
 
-                console.log('🟡 [speech_final=true] received.');
-                stopSTT();
-                // Placeholder: Add semantic similarity comparison here
-                // IMPORTANT: For openAI embedding: choose server near openAI's server for lower latency
             }
 
-            if (data.type === 'UtteranceEnd') {
-                if (nextLineTriggeredRef.current) return;
-                nextLineTriggeredRef.current = true;
+            if (data.type === "UtteranceEnd" && !nextLineTriggeredRef.current) {
+                await handleFinalization(`🟣 [UtteranceEnd] @ ${performance.now().toFixed(2)}ms`);
 
-                console.log('🟣 [UtteranceEnd] received at', data.last_word_end, 's');
-                stopSTT();
-                // Placeholder: Add semantic similarity comparison here
-                // IMPORTANT: For openAI embedding: choose server near openAI's server for lower latency
             }
+
+            // if (data.speech_final) {
+            //     if (nextLineTriggeredRef.current) return;
+            //     nextLineTriggeredRef.current = true;
+
+            //     const spokenLine = fullTranscript.current.join(' ');
+
+            //     // ✅ Prevent duplicate processing
+            //     if (spokenLine === lastSpokenLineRef.current) {
+            //         console.log("🔁 Duplicate spoken line detected. Skipping re-evaluation.");
+            //         return;
+            //     }
+
+            //     lastSpokenLineRef.current = spokenLine;
+            //     const start = performance.now();
+
+            //     console.log('🟡 [speech_final=true] received.');
+
+            //     if (matchesEndPhrase(spokenLine, lineEndKeywords)) {
+            //         console.log("🔑 Keyword match detected!");
+            //         stopSTT();
+            //         onCueDetected(spokenLine);
+            //         return;
+            //     }
+
+            //     //
+            //     // IMPORTANT: For openAI embedding: choose server near openAI's server for lower latency
+            //     //
+
+            //     const similarity = await fetchSimilarity(spokenLine, expectedEmbedding);
+
+            //     const end = performance.now();
+            //     console.log('🟣 [Speech Final] received at', data.last_word_end, 's');
+            //     console.log(`⚡ Total latency in this block: ${(end - start).toFixed(2)}ms`);
+            //     console.log(`⚡ Total latency since last word: ${(end - (data.last_word_end * 1000)).toFixed(2)}ms`);
+
+            //     console.log('🟡 spoken line:', spokenLine);
+            //     console.log('🟡 [speech_final=true] received. Similarity:', similarity);
+
+            //     if (similarity && similarity > 0.8) {
+            //         console.log("Similarity test passed!");
+
+            //         stopSTT();
+            //         onCueDetected(spokenLine);
+            //     } else {
+            //         console.log("🔁 Similarity too low, not triggering cue.");
+            //     }
+            // }
+
+            // if (data.type === 'UtteranceEnd') {
+            //     if (nextLineTriggeredRef.current) return;
+            //     nextLineTriggeredRef.current = true;
+
+            //     const spokenLine = fullTranscript.current.join(' ');
+
+            //     // ✅ Prevent duplicate processing
+            //     if (spokenLine === lastSpokenLineRef.current) {
+            //         console.log("🔁 Duplicate spoken line detected. Skipping re-evaluation.");
+            //         return;
+            //     }
+
+            //     lastSpokenLineRef.current = spokenLine;
+            //     const start = performance.now();
+
+            //     console.log('🟡 [speech_final=true] received.');
+
+            //     if (matchesEndPhrase(spokenLine, lineEndKeywords)) {
+            //         console.log("🔑 Keyword match detected!");
+            //         stopSTT();
+            //         onCueDetected(spokenLine);
+            //         return;
+            //     }
+
+            //     //
+            //     // IMPORTANT: For openAI embedding: choose server near openAI's server for lower latency
+            //     //
+
+            //     const similarity = await fetchSimilarity(spokenLine, expectedEmbedding);
+
+            //     const end = performance.now();
+            //     console.log('🟣 [Speech Final] received at', data.last_word_end, 's');
+            //     console.log(`⚡ Total latency in this block: ${(end - start).toFixed(2)}ms`);
+            //     console.log(`⚡ Total latency since last word: ${(end - (data.last_word_end * 1000)).toFixed(2)}ms`);
+
+            //     console.log('🟡 spoken line:', spokenLine);
+            //     console.log('🟡 [speech_final=true] received. Similarity:', similarity);
+
+            //     if (similarity && similarity > 0.8) {
+            //         console.log("Similarity test passed!");
+
+            //         stopSTT();
+            //         onCueDetected(spokenLine);
+            //     } else {
+            //         console.log("🔁 Similarity too low, not triggering cue.");
+            //     }
+            // }
         };
 
         ws.onopen = async () => {
@@ -153,9 +287,39 @@ function normalize(text: string) {
     return text.toLowerCase().replace(/[.,!?']/g, '').trim();
 }
 
-function matchesEndPhrase(transcript: string, keywords: string[]) {
+function splitIntoSentences(text: string): string[] {
+    const abbreviations = /\b(Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|Mt|etc)\.$/;
+    const parts = text
+        .split(/(?<=[.?!])\s+(?=[A-Z])/)
+        .filter(Boolean)
+        .map((s) => s.trim());
+
+    const sentences: string[] = [];
+    for (let i = 0; i < parts.length; i++) {
+        if (i > 0 && abbreviations.test(parts[i - 1])) {
+            sentences[sentences.length - 1] += ' ' + parts[i];
+        } else {
+            sentences.push(parts[i]);
+        }
+    }
+
+    return sentences;
+}
+
+function matchesEndPhrase(transcript: string, keywords: string[]): boolean {
+    const normalize = (text: string) =>
+        text.toLowerCase().replace(/[\s.,!?'"“”\-]+/g, ' ').trim();
+
     const normTranscript = normalize(transcript);
-    return keywords.some((kw) => normTranscript.endsWith(normalize(kw)));
+
+    // Split into sentences and grab the last one
+    const sentences = splitIntoSentences(normTranscript);
+    const lastSentence = sentences[sentences.length - 1]?.trim();
+
+    if (!lastSentence) return false;
+
+    // Check that all keywords appear somewhere in the last sentence
+    return keywords.every((kw) => lastSentence.includes(normalize(kw)));
 }
 
 function convertFloat32ToInt16(float32Array: Float32Array): ArrayBuffer {
