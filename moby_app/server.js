@@ -18,13 +18,13 @@ wss.on('connection', (clientSocket) => {
     // Open Deepgram WS
     const dgSocket = new WebSocket(
         'wss://api.deepgram.com/v1/listen' +
-        '?punctuate=true' +
+        '?model=nova-3' +
         '&interim_results=true' +
         '&encoding=linear16' +
         '&sample_rate=44100' +
-        '&endpointing=1000' +
+        '&endpointing=20' +
         '&utterance_end_ms=1000' +
-        '&model=general-enhanced',
+        '&punctuate=true' ,
         {
             headers: {
                 Authorization: `Token ${DEEPGRAM_API_KEY}`,
@@ -55,7 +55,7 @@ wss.on('connection', (clientSocket) => {
     // Forward Deepgram transcripts to browser
     dgSocket.on('message', (data) => {
         const message = data.toString();
-        console.log('🧠 Deepgram -> Server:', message.slice(0, 300));
+        console.log('🧠 Deepgram -> Server:', JSON.stringify(message, null, 2));
         clientSocket.send(data);
     });
 

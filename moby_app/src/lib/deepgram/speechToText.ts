@@ -22,6 +22,9 @@ export function useDeepgramSTT({
     const fullTranscript = useRef<string[]>([]);
     const nextLineTriggeredRef = useRef(false);
     const lastSpokenLineRef = useRef<string | null>(null);
+    const finalStartTimeRef = useRef<number | null>(null);
+    const finalizationIdRef = useRef(0);
+    const triggerDelay = 0;
 
     const resetSilenceTimer = () => {
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
@@ -79,42 +82,59 @@ export function useDeepgramSTT({
     const handleFinalization = async (triggerSource: string) => {
         const spokenLine = fullTranscript.current.join(' ');
 
+        if (!spokenLine) {
+            console.warn("⚠️ Missing spoken line!");
+            return;
+        }
+
         if (spokenLine === lastSpokenLineRef.current) {
             console.log("🔁 Duplicate spoken line detected. Skipping re-evaluation.");
             return;
         }
 
         lastSpokenLineRef.current = spokenLine;
+
         const start = performance.now();
 
         console.log(`${triggerSource} received. Running match test now!`);
 
+        const currentFinalizationId = finalizationIdRef.current;
+        console.log('current finalization ID: ', currentFinalizationId);
+
+        await new Promise(res => setTimeout(res, triggerDelay));
+        if (currentFinalizationId !== finalizationIdRef.current) {
+            console.log("🛑 New speech detected during delay — canceling trigger.");
+            return;
+        }
+
         if (matchesEndPhrase(spokenLine, lineEndKeywords)) {
             const end = performance.now();
-            console.log(`⚡ Total latency: ${(end - start).toFixed(2)}ms`);
+            console.log(`⚡ Total latency in this block: ${(end - start).toFixed(2)}ms`);
 
             console.log("🔑 Keyword match detected!");
-            nextLineTriggeredRef.current = true;
             stopSTT();
             onCueDetected(spokenLine);
             return;
-        } else {
-            console.log("Keyword match failed. Trying similarity test.")
         }
 
         //
         // IMPORTANT: For openAI embedding: choose server near openAI's server for lower latency
         //
 
+        if (!expectedEmbedding || expectedEmbedding.length === 0) {
+            console.warn("⚠️ Missing expected embedding — skipping similarity check.");
+            return;
+        }
+
         const similarity = await fetchSimilarity(spokenLine, expectedEmbedding);
         const end = performance.now();
 
         console.log(`🧠 Similarity: ${similarity}`);
-        console.log(`⚡ Total latency: ${(end - start).toFixed(2)}ms`);
+        console.log(`⚡ Total latency in this block: ${(end - start).toFixed(2)}ms`);
 
-        if (similarity && similarity > 0.8) {
+        if (similarity && similarity > 0.80) {
+
             console.log("✅ Similarity test passed!");
-            nextLineTriggeredRef.current = true;
             stopSTT();
             onCueDetected(spokenLine);
         } else {
@@ -126,7 +146,6 @@ export function useDeepgramSTT({
         if (isActiveRef.current) return;
         isActiveRef.current = true;
         fullTranscript.current = [];
-        nextLineTriggeredRef.current = false;
 
         // const sampleRate = audioCtxRef.current?.sampleRate ?? 44100;
         // const ws = new WebSocket(`ws://localhost:3001?sample_rate=${sampleRate}`);
@@ -150,23 +169,30 @@ export function useDeepgramSTT({
             if (transcript) {
                 console.log(`[🎙️] Transcript chunk at ${performance.now().toFixed(2)}ms:`, transcript);
                 resetSilenceTimer();
+                finalizationIdRef.current += 1;
+                console.log('finalization ID: ', finalizationIdRef);
             }
 
             if (data.is_final && transcript) {
                 fullTranscript.current.push(transcript);
                 console.log(`[🎙️] FULL transcript at ${performance.now().toFixed(2)}ms::`, fullTranscript);
-                await handleFinalization(`🟡 [data.is_final] @ ${performance.now().toFixed(2)}ms`);
+                // await handleFinalization(`🟡 [data.is_final] @ ${performance.now().toFixed(2)}ms`);
+                finalStartTimeRef.current = performance.now();
             }
 
             if (data.speech_final && !nextLineTriggeredRef.current) {
+                const start = finalStartTimeRef.current ?? performance.now();
                 await handleFinalization(`🟡 [speech_final=true] @ ${performance.now().toFixed(2)}ms`);
-
+                const end = performance.now();
+                console.log(`⏱️ Time from is_final to post-finalization: ${(end - start).toFixed(2)}ms`);
             }
 
-            if (data.type === "UtteranceEnd" && !nextLineTriggeredRef.current) {
-                await handleFinalization(`🟣 [UtteranceEnd] @ ${performance.now().toFixed(2)}ms`);
-
-            }
+            //
+            // Utterance end too slow. Minimum 1000ms threshold.
+            //
+            // if (data.type === "UtteranceEnd" && !nextLineTriggeredRef.current) {
+            //     await handleFinalization(`🟣 [UtteranceEnd] @ ${performance.now().toFixed(2)}ms`);
+            // }
 
             // if (data.speech_final) {
             //     if (nextLineTriggeredRef.current) return;
@@ -277,6 +303,7 @@ export function useDeepgramSTT({
         if (micCleanupRef.current) micCleanupRef.current();
         destroyAudioContext();
         isActiveRef.current = false;
+        finalizationIdRef.current = 0;
     };
 
     return { startSTT, stopSTT };
@@ -322,12 +349,23 @@ function matchesEndPhrase(transcript: string, keywords: string[]): boolean {
     return keywords.every((kw) => lastSentence.includes(normalize(kw)));
 }
 
+// function convertFloat32ToInt16(float32Array: Float32Array): ArrayBuffer {
+//     const len = float32Array.length;
+//     const int16Array = new Int16Array(len);
+//     for (let i = 0; i < len; i++) {
+//         let s = Math.max(-1, Math.min(1, float32Array[i]));
+//         int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+//     }
+//     return int16Array.buffer;
+// }
+
+// Testing Math.round for better accuracy
 function convertFloat32ToInt16(float32Array: Float32Array): ArrayBuffer {
     const len = float32Array.length;
     const int16Array = new Int16Array(len);
     for (let i = 0; i < len; i++) {
         let s = Math.max(-1, Math.min(1, float32Array[i]));
-        int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        int16Array[i] = Math.round(s * 32767);
     }
     return int16Array.buffer;
 }
