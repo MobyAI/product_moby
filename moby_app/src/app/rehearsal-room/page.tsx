@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { fetchScriptByID } from '@/lib/api/dbFunctions/scripts';
 import { fetchEmbedding, addEmbeddingsToScript } from '@/lib/api/embed';
+import { useTextToSpeech } from '@/lib/api/textToSpeech';
 import type { ScriptElement } from '@/types/script';
 import Deepgram from './deepgram';
 
@@ -98,6 +99,18 @@ export default function RehearsalRoomPage() {
         }
     };
 
+    async function loadTTS(text: string, voiceId: string) {
+        try {
+            const blob = await useTextToSpeech({ text, voiceId });
+
+            const url = URL.createObjectURL(blob);
+            const audio = new Audio(url);
+            audio.play();
+        } catch (err) {
+            console.error('❌ Failed to fetch TTS:', err);
+        }
+    }
+
     if (loading) {
         return (
             <div className="p-6">
@@ -148,6 +161,24 @@ export default function RehearsalRoomPage() {
                     Array.isArray(current.lineEndKeywords) &&
                     /* Array.isArray(current.expectedEmbedding) && */ (
                         <>
+                            <button
+                                onClick={() => {
+                                    const tonePrefix =
+                                        typeof current.tone === 'string' && current.tone.trim().length > 0
+                                            ? current.tone
+                                                .trim()
+                                                .split(/\s+/)
+                                                .map((t) => `[${t}]`)
+                                                .join(' ') + ' '
+                                            : '';
+
+                                    const textWithTone = tonePrefix + current.text;
+                                    loadTTS(textWithTone, 'JBFqnCBsd6RMkjVDRZzb');
+                                }}
+                            >
+                                🔊 Play TTS Audio
+                            </button>
+                            <br />
                             <button onClick={() => handleEmbedCurrentLine(current)}>
                                 🔍 Get Embedding
                             </button>

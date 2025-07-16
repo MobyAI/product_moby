@@ -1,5 +1,9 @@
 'use client';
 
+//
+// Rename deepgram to just SST once finalized
+//
+
 import React, { useState } from 'react';
 import { useDeepgramSTT } from '@/lib/deepgram/speechToText';
 

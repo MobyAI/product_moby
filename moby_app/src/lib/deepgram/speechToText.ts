@@ -420,6 +420,8 @@ export function useDeepgramSTT({
     };
 
     const stopSTT = () => {
+        const end = performance.now();
+        console.log(`Stop STT triggered @ ${end}`);
         if (wsRef.current) wsRef.current.close();
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
         if (micCleanupRef.current) micCleanupRef.current();
