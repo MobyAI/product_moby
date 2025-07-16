@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { fetchScriptByID } from '@/lib/api/dbFunctions/scripts';
-import { fetchEmbedding } from '@/lib/api/embed';
+import { fetchEmbedding, addEmbeddingsToScript } from '@/lib/api/embed';
 import type { ScriptElement } from '@/types/script';
 import Deepgram from './deepgram';
 
@@ -29,6 +29,9 @@ export default function RehearsalRoomPage() {
             try {
                 setLoading(true);
                 const data = await fetchScriptByID(userID, scriptID);
+                // const modifiedScript = await addEmbeddingsToScript(data.script);
+                // console.log('modifiedScript: ', JSON.stringify(modifiedScript, null, 2));
+                // setScript(modifiedScript);
                 setScript(data.script);
             } catch (err) {
                 console.error('Error loading script:', err);
@@ -93,7 +96,7 @@ export default function RehearsalRoomPage() {
         } else {
             console.error("❌ Failed to fetch embedding for:", expectedLine);
         }
-    }
+    };
 
     if (loading) {
         return (
@@ -102,7 +105,7 @@ export default function RehearsalRoomPage() {
                 <p className="text-gray-500">Loading script...</p>
             </div>
         );
-    }
+    };
 
     if (!script) {
         return (
@@ -111,7 +114,7 @@ export default function RehearsalRoomPage() {
                 <p className="text-gray-500">Select a script from db</p>
             </div>
         );
-    }
+    };
 
     return (
         <div className="p-6 space-y-4">
@@ -142,7 +145,8 @@ export default function RehearsalRoomPage() {
                     current?.type === 'line' &&
                     typeof current.character === 'string' &&
                     typeof current.text === 'string' &&
-                    Array.isArray(current.lineEndKeywords) && (
+                    Array.isArray(current.lineEndKeywords) &&
+                    /* Array.isArray(current.expectedEmbedding) && */ (
                         <>
                             <button onClick={() => handleEmbedCurrentLine(current)}>
                                 🔍 Get Embedding
@@ -152,7 +156,8 @@ export default function RehearsalRoomPage() {
                                 text={current.text}
                                 lineEndKeywords={current.lineEndKeywords}
                                 onLineMatched={onUserLineMatched}
-                                expectedEmbedding={expectedEmbedding}
+                                // expectedEmbedding={expectedEmbedding}
+                                expectedEmbedding={current.expectedEmbedding || expectedEmbedding}
                             />
                         </>
                     )

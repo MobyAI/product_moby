@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { parseScriptFile } from '@/lib/api/parse';
 
 export default function UploadForm({ onParsed }: { onParsed: (data: any) => void }) {
     const [file, setFile] = useState<File | null>(null);
@@ -15,22 +16,12 @@ export default function UploadForm({ onParsed }: { onParsed: (data: any) => void
         setMessage('');
 
         try {
-            const formData = new FormData();
-            formData.append('file', file);
-
-            const res = await fetch('/api/parse', {
-                method: 'POST',
-                body: formData,
-            });
-
-            const data = await res.json();
-
-            if (res.ok) {
+            const parsedScript = await parseScriptFile(file);
+            if (parsedScript) {
                 setMessage('Script parsed successfully!');
-                const parsedScript = JSON.parse(data.parsed);
                 onParsed(parsedScript);
             } else {
-                setMessage(`Error: ${data.error}`);
+                setMessage('Error: Failed to parse script.');
             }
         } catch (error) {
             setMessage('Error: Failed to parse script');

@@ -7,4 +7,5 @@ export type ScriptElement = {
     tone?: string;
     role?: 'user' | 'ai';
     lineEndKeywords?: string[];
+    expectedEmbedding?: number[];
 };

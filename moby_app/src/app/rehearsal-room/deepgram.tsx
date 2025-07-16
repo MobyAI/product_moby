@@ -24,7 +24,7 @@ const Deepgram: React.FC<DeepgramProps> = ({
     // Add check for expected embedding and if it isn't available warn user that cue detection may fail
     if (!expectedEmbedding) {
         console.warn("⚠️ No expected embedding provided. Cue detection may fail.");
-    }
+    };
 
     const { startSTT, stopSTT } = useDeepgramSTT({
         lineEndKeywords,

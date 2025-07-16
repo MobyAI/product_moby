@@ -5,6 +5,7 @@ import UploadForm from './UploadForm';
 import ParsedOutput from './ParsedOutput';
 import { useRouter } from 'next/navigation';
 import { saveScript } from '@/lib/api/dbFunctions/scripts';
+import { fetchEmbedding } from '@/lib/api/embed';
 import type { ScriptElement } from '@/types/script';
 
 export default function UploadPage() {
@@ -14,9 +15,34 @@ export default function UploadPage() {
     const router = useRouter();
     const userID = 'demo-user'; // Replace with real auth ID later
 
+    async function addEmbeddingsToScript(script: any[]): Promise<any[]> {
+        const modifiedScript = await Promise.all(
+            script.map(async (item) => {
+                if (item.type === 'line') {
+                    const embedding = await fetchEmbedding(item.text);
+                    if (!embedding) {
+                        throw new Error(`Failed to fetch embedding for: "${item.text}"`);
+                    }
+                    return {
+                        ...item,
+                        expectedEmbedding: embedding,
+                    };
+                }
+                return item;
+            })
+        );
+
+        return modifiedScript;
+    };
+
     async function handleParsedScript(script: ScriptElement[]) {
         try {
             setLoading(true);
+            // const modifiedScript = await addEmbeddingsToScript(script);
+            // console.log('modifiedScript: ', JSON.stringify(modifiedScript, null, 2));
+            // const scriptID = await saveScript(modifiedScript, userID);
+            // router.push(`/rehearsal-room?userID=${userID}&scriptID=${scriptID}`);
+
             const scriptID = await saveScript(script, userID);
             router.push(`/rehearsal-room?userID=${userID}&scriptID=${scriptID}`);
         } catch (err) {
@@ -25,7 +51,7 @@ export default function UploadPage() {
         } finally {
             setLoading(false);
         }
-    }
+    };
 
     return (
         <div className="p-6 space-y-6">

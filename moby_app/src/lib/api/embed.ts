@@ -29,3 +29,23 @@ export async function fetchEmbedding(expectedLine: string): Promise<number[] | n
     const { expectedEmbedding } = await res.json();
     return expectedEmbedding as number[];
 }
+
+export async function addEmbeddingsToScript(script: any[]): Promise<any[]> {
+    const modifiedScript = await Promise.all(
+        script.map(async (item) => {
+            if (item.type === 'line') {
+                const embedding = await fetchEmbedding(item.text);
+                if (!embedding) {
+                    throw new Error(`Failed to fetch embedding for: "${item.text}"`);
+                }
+                return {
+                    ...item,
+                    expectedEmbedding: embedding,
+                };
+            }
+            return item;
+        })
+    );
+
+    return modifiedScript;
+}

@@ -18,7 +18,7 @@ Guidelines:
 - Choose words that reflect the meaning or emotional intent of the final thought
 - Pick words that are unlikely to be skipped or altered, even if the actor paraphrases
 - Avoid names, rare words, or anything that speech-to-text systems often mishear
-- Avoid repeating words that also occur earlier in the line, if possible
+- Do not choose words that also occur earlier in the line! Must be unique
 
 Do not rewrite anything. Do not add commentary.
 
