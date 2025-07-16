@@ -7,6 +7,7 @@ import { fetchEmbedding, addEmbeddingsToScript } from '@/lib/api/embed';
 import { useTextToSpeech } from '@/lib/api/textToSpeech';
 import type { ScriptElement } from '@/types/script';
 import Deepgram from './deepgram';
+import GoogleSTT from './google';
 
 export default function RehearsalRoomPage() {
     const searchParams = useSearchParams();
@@ -182,6 +183,14 @@ export default function RehearsalRoomPage() {
                             <button onClick={() => handleEmbedCurrentLine(current)}>
                                 🔍 Get Embedding
                             </button>
+                            <GoogleSTT
+                                character={current.character}
+                                text={current.text}
+                                lineEndKeywords={current.lineEndKeywords}
+                                onLineMatched={onUserLineMatched}
+                                // expectedEmbedding={expectedEmbedding}
+                                expectedEmbedding={current.expectedEmbedding || expectedEmbedding}
+                            />
                             <Deepgram
                                 character={current.character}
                                 text={current.text}
