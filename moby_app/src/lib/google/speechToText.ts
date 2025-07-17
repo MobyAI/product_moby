@@ -24,14 +24,24 @@ export function useGoogleSTT({
     const lastTranscriptRef = useRef<string | null>(null);
     const repeatCountRef = useRef<number>(0);
     const repeatStartTimeRef = useRef<number | null>(null);
+    const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const resetSilenceTimer = () => {
+    const resetSilenceTimeout = () => {
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
         silenceTimeoutRef.current = setTimeout(() => {
             console.log('🛑 Silence timeout — stopping Google STT to save usage.');
             stopSTT();
             onSilenceTimeout?.();
         }, 10000);
+    };
+
+    const resetSilenceTimer = (spokenLine: string) => {
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+
+        silenceTimerRef.current = setTimeout(() => {
+            console.log('⏳ Silence timer triggered. Running finalization...');
+            handleFinalization(spokenLine);
+        }, 800);
     };
 
     const streamMic = async (wsRef: RefObject<WebSocket | null>) => {
@@ -165,7 +175,8 @@ export function useGoogleSTT({
 
             if (transcript) {
                 console.log(`[🎙️] Transcript chunk at ${performance.now().toFixed(2)}ms:`, transcript);
-                resetSilenceTimer();
+                resetSilenceTimeout();
+                resetSilenceTimer(transcript);
 
                 if (transcript === lastTranscriptRef.current) {
                     repeatCountRef.current += 1;
@@ -178,7 +189,7 @@ export function useGoogleSTT({
                 }
 
                 lastTranscriptRef.current = transcript;
-                resetSilenceTimer();
+                resetSilenceTimeout();
 
                 const now = performance.now();
                 const repeatDuration = repeatStartTimeRef.current
@@ -207,7 +218,7 @@ export function useGoogleSTT({
 
         ws.onopen = async () => {
             micCleanupRef.current = await streamMic(wsRef);
-            resetSilenceTimer();
+            resetSilenceTimeout();
         };
     };
 

@@ -2,7 +2,8 @@ class LinearPCMProcessor extends AudioWorkletProcessor {
     constructor() {
         super();
         this._buffer = [];
-        this._samplesPerMessage = 2048;
+        this._samplesPerMessage = 512;
+        // this._samplesPerMessage = 2048;
     }
 
     process(inputs) {

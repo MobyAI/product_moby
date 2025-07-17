@@ -8,41 +8,98 @@ import { useTextToSpeech } from '@/lib/api/textToSpeech';
 import type { ScriptElement } from '@/types/script';
 import Deepgram from './deepgram';
 import GoogleSTT from './google';
+import { get, set, clear } from 'idb-keyval';
 
 export default function RehearsalRoomPage() {
     const searchParams = useSearchParams();
     const userID = searchParams.get('userID');
     const scriptID = searchParams.get('scriptID');
 
+    if (!userID || !scriptID) {
+        console.log('no user or script id: ', userID, scriptID);
+    }
+
     const [loading, setLoading] = useState(false);
     const [script, setScript] = useState<ScriptElement[] | null>(null);
-    const [currentIndex, setCurrentIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isWaitingForUser, setIsWaitingForUser] = useState(false);
+    const [storageError, setStorageError] = useState(false);
+    const [embeddingError, setEmbeddingError] = useState(false);
+
+    // Session storage to track current index
+    const storageKey = `rehearsal-cache:${scriptID}:index`;
+
+    const [currentIndex, setCurrentIndex] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = sessionStorage.getItem(storageKey);
+            return saved ? parseInt(saved, 10) : 0;
+        }
+        return 0;
+    });
+
+    // Stability check before storing current index
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            sessionStorage.setItem(storageKey, currentIndex.toString());
+        }, 300);
+
+        return () => clearTimeout(timeout);
+    }, [currentIndex, scriptID]);
 
     // TEMP for testing
     const [expectedEmbedding, setExpectedEmbedding] = useState<number[] | null>(null);
 
     // Fetch script
-    useEffect(() => {
+    const loadScript = async () => {
         if (!userID || !scriptID) return;
 
-        const fetchScript = async () => {
-            try {
-                setLoading(true);
-                const data = await fetchScriptByID(userID, scriptID);
-                // const modifiedScript = await addEmbeddingsToScript(data.script);
-                // console.log('modifiedScript: ', JSON.stringify(modifiedScript, null, 2));
-                // setScript(modifiedScript);
-                setScript(data.script);
-            } catch (err) {
-                console.error('Error loading script:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
+        setLoading(true);
+        setEmbeddingError(false);
+        const cacheKey = `script-cache:${userID}:${scriptID}`;
 
-        fetchScript();
+        try {
+            const cached = await get(cacheKey);
+
+            if (cached) {
+                console.log('📦 Loaded script from IndexedDB cache');
+                setScript(cached);
+            } else {
+                console.log('🌐 Fetching script from API');
+                const data = await fetchScriptByID(userID, scriptID);
+                const script = data.script;
+
+                // Embed all user lines
+                let embedded: any[];
+                try {
+                    embedded = await addEmbeddingsToScript(script);
+                } catch (embedErr) {
+                    console.error('❌ Failed to embed script:', embedErr);
+                    setEmbeddingError(true);
+                    return;
+                }
+
+                // Try storing
+                try {
+                    await set(cacheKey, embedded);
+                    console.log('💾 Script cached successfully');
+                } catch (err) {
+                    console.warn('⚠️ Failed to store script in IndexedDB:', err);
+                    if (isQuotaExceeded(err)) {
+                        setStorageError(true);
+                    }
+                }
+
+                setScript(embedded);
+            }
+        } catch (err) {
+            console.error('❌ Error loading script:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadScript();
     }, [userID, scriptID]);
 
     // Current script element
@@ -78,12 +135,13 @@ export default function RehearsalRoomPage() {
     const handlePause = () => setIsPlaying(false);
     const handleNext = () => setCurrentIndex((i) => Math.min(i + 1, (script?.length ?? 1) - 1));
     const handlePrev = () => setCurrentIndex((i) => Math.max(i - 1, 0));
+    const handleRestart = () => setCurrentIndex(0);
     const onUserLineMatched = () => {
         setIsWaitingForUser(false);
         setCurrentIndex((i) => Math.min(i + 1, (script?.length ?? 1) - 1));
     };
 
-    async function handleEmbedCurrentLine(current: { type: string; text: string }) {
+    const handleEmbedCurrentLine = async (current: { type: string; text: string }) => {
         if (current?.type !== "line") {
             console.log("🟡 Current item is not a line.");
             return;
@@ -100,7 +158,7 @@ export default function RehearsalRoomPage() {
         }
     };
 
-    async function loadTTS(text: string, voiceId: string) {
+    const loadTTS = async (text: string, voiceId: string) => {
         try {
             const blob = await useTextToSpeech({ text, voiceId });
 
@@ -110,7 +168,16 @@ export default function RehearsalRoomPage() {
         } catch (err) {
             console.error('❌ Failed to fetch TTS:', err);
         }
-    }
+    };
+
+    const isQuotaExceeded = (error: any) => {
+        return (
+            error &&
+            (error.name === 'QuotaExceededError' ||
+                error.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+                error.message?.includes('maximum size'))
+        );
+    };
 
     if (loading) {
         return (
@@ -133,7 +200,33 @@ export default function RehearsalRoomPage() {
     return (
         <div className="p-6 space-y-4">
             <h1 className="text-2xl font-bold">🎭 Rehearsal Room</h1>
-
+            {embeddingError && (
+                <div className="mt-4 text-red-600">
+                    Failed to embed all lines. Some lines may be missing expected match behavior.
+                    <br />
+                    <button
+                        className="mt-2 px-4 py-2 bg-red-600 text-white rounded"
+                        onClick={() => window.location.reload()}
+                    >
+                        🔁 Retry Embedding All Lines
+                    </button>
+                </div>
+            )}
+            {storageError && (
+                <div className="mt-4">
+                    <p className="text-red-600">🚫 Not enough space to store rehearsal data.</p>
+                    <button
+                        onClick={async () => {
+                            await clear();
+                            setStorageError(false);
+                            window.location.reload();
+                        }}
+                        className="mt-2 px-4 py-2 bg-red-600 text-white rounded"
+                    >
+                        Clear Local Storage & Retry
+                    </button>
+                </div>
+            )}
             <div className="border p-4 rounded bg-gray-100 min-h-[120px]">
                 {current ? (
                     <div>
@@ -147,12 +240,14 @@ export default function RehearsalRoomPage() {
                     <p>🎉 End of script!</p>
                 )}
             </div>
-
             <div className="flex items-center gap-4">
                 <button onClick={handlePlay} className="px-4 py-2 bg-green-600 text-white rounded">Play</button>
                 <button onClick={handlePause} className="px-4 py-2 bg-yellow-500 text-white rounded">Pause</button>
                 <button onClick={handlePrev} className="px-4 py-2 bg-blue-500 text-white rounded">Back</button>
                 <button onClick={handleNext} className="px-4 py-2 bg-blue-500 text-white rounded">Next</button>
+                {currentIndex != 0 &&
+                    <button onClick={handleRestart} className="px-4 py-2 bg-blue-500 text-white rounded">Restart</button>
+                }
             </div>
             <div>
                 {
