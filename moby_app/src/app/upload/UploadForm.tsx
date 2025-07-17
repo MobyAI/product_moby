@@ -28,7 +28,7 @@ export default function UploadForm({ onParsed }: { onParsed: (data: any) => void
         } finally {
             setIsLoading(false);
         }
-    };
+    }
 
     return (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

@@ -116,8 +116,8 @@ export default function RehearsalRoomPage() {
         }
 
         if (current.type === 'line') {
-            if (current.role === 'ai') {
-                console.log(`[AI LINE]`, current.text);
+            if (current.role === 'scene-partner') {
+                console.log(`[SCENE PARTNER LINE]`, current.text);
                 autoAdvance(1500);
             } else if (current.role === 'user') {
                 console.log(`[USER LINE]`, current.text);
@@ -142,7 +142,7 @@ export default function RehearsalRoomPage() {
         setCurrentIndex((i) => Math.min(i + 1, (script?.length ?? 1) - 1));
     };
 
-    // Manual embedding
+    // Manual Embedding
     // const handleEmbedCurrentLine = async (current: { type: string; text: string }) => {
     //     if (current?.type !== "line") {
     //         console.log("🟡 Current item is not a line.");
@@ -254,6 +254,7 @@ export default function RehearsalRoomPage() {
             <div>
                 {
                     current?.type === 'line' &&
+                    current?.role === 'user' &&
                     typeof current.character === 'string' &&
                     typeof current.text === 'string' &&
                     Array.isArray(current.lineEndKeywords) &&

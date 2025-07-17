@@ -15,33 +15,9 @@ export default function UploadPage() {
     const router = useRouter();
     const userID = 'demo-user'; // Replace with real auth ID later
 
-    // async function addEmbeddingsToScript(script: any[]): Promise<any[]> {
-    //     const modifiedScript = await Promise.all(
-    //         script.map(async (item) => {
-    //             if (item.type === 'line') {
-    //                 const embedding = await fetchEmbedding(item.text);
-    //                 if (!embedding) {
-    //                     throw new Error(`Failed to fetch embedding for: "${item.text}"`);
-    //                 }
-    //                 return {
-    //                     ...item,
-    //                     expectedEmbedding: embedding,
-    //                 };
-    //             }
-    //             return item;
-    //         })
-    //     );
-
-    //     return modifiedScript;
-    // };
-
     async function handleParsedScript(script: ScriptElement[]) {
         try {
             setLoading(true);
-            // const modifiedScript = await addEmbeddingsToScript(script);
-            // console.log('modifiedScript: ', JSON.stringify(modifiedScript, null, 2));
-            // const scriptID = await saveScript(modifiedScript, userID);
-            // router.push(`/rehearsal-room?userID=${userID}&scriptID=${scriptID}`);
 
             const scriptID = await saveScript(script, userID);
             router.push(`/rehearsal-room?userID=${userID}&scriptID=${scriptID}`);
@@ -51,12 +27,35 @@ export default function UploadPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }
+
+    function assignDefaultRoles(script: ScriptElement[]): ScriptElement[] {
+        return script.map((item) =>
+            item.type === 'line' && !item.role
+                ? { ...item, role: 'scene-partner' }
+                : item
+        );
+    }
+
+    function handleRoleChange(index: number, role: 'user' | 'scene-partner') {
+        if (!parsedData) return;
+        const updated = parsedData.map((item, i) =>
+            i === index && item.type === 'line'
+                ? { ...item, role }
+                : item
+        );
+        setParsedData(updated);
+    }
 
     return (
         <div className="p-6 space-y-6">
             <h1 className="text-xl font-bold">Upload Your Script</h1>
-            <UploadForm onParsed={setParsedData} />
+            <UploadForm
+                onParsed={(rawScript: ScriptElement[]) => {
+                    const initialized = assignDefaultRoles(rawScript);
+                    setParsedData(initialized);
+                }}
+            />
             {parsedData && (
                 <div className="space-y-4">
                     <button
@@ -66,7 +65,10 @@ export default function UploadPage() {
                     >
                         {loading ? 'Saving...' : 'Save and Rehearse'}
                     </button>
-                    <ParsedOutput data={parsedData} />
+                    <ParsedOutput
+                        data={parsedData}
+                        onRoleChange={handleRoleChange}
+                    />
                 </div>
             )}
         </div>

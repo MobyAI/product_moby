@@ -5,7 +5,7 @@ export type ScriptElement = {
     character?: string;
     gender?: string;
     tone?: string;
-    role?: 'user' | 'ai';
+    role?: 'user' | 'scene-partner';
     lineEndKeywords?: string[];
     expectedEmbedding?: number[];
 };
