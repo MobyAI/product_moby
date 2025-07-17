@@ -47,7 +47,7 @@ const GoogleSTT: React.FC<GoogleSTTProps> = ({
 
     return (
         <div className="p-4 space-y-2">
-            <h2 className="text-xl font-bold">🎙️ Google STT Listening</h2>
+            <h2 className="text-xl font-bold">🎙️ Google Listening</h2>
             <p className="text-base">
                 Your line: <strong>{text}</strong>
             </p>

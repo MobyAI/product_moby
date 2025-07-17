@@ -20,11 +20,20 @@ export function useGoogleSTT({
     const micCleanupRef = useRef<(() => void) | null>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
     const fullTranscript = useRef<string[]>([]);
-    const nextLineTriggeredRef = useRef(false);
     const lastTranscriptRef = useRef<string | null>(null);
     const repeatCountRef = useRef<number>(0);
     const repeatStartTimeRef = useRef<number | null>(null);
     const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const hasTriggeredRef = useRef(false);
+
+    const triggerNextLine = (transcript: string) => {
+        if (hasTriggeredRef.current) return false;
+        hasTriggeredRef.current = true;
+
+        stopSTT();
+        onCueDetected(transcript);
+        return true;
+    };
 
     const resetSilenceTimeout = () => {
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
@@ -39,9 +48,10 @@ export function useGoogleSTT({
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
 
         silenceTimerRef.current = setTimeout(() => {
+            if (hasTriggeredRef.current) return;
             console.log('⏳ Silence timer triggered. Running finalization...');
             handleFinalization(spokenLine);
-        }, 800);
+        }, 1000);
     };
 
     const streamMic = async (wsRef: RefObject<WebSocket | null>) => {
@@ -75,6 +85,9 @@ export function useGoogleSTT({
     };
 
     const stopSTT = () => {
+        const end = performance.now();
+        console.log(`Stop STT triggered @ ${end}`);
+        
         if (wsRef.current) wsRef.current.close();
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
         if (micCleanupRef.current) micCleanupRef.current();
@@ -99,11 +112,9 @@ export function useGoogleSTT({
             const end = performance.now();
             console.log(`⚡ Total latency in this block: ${(end - start).toFixed(2)}ms`);
             console.log(`End timestamp: ${end.toFixed(2)}ms`);
-
             console.log("🔑 Keyword match detected (Google)!");
-            nextLineTriggeredRef.current = true;
-            stopSTT();
-            onCueDetected(spokenLine);
+
+            triggerNextLine(spokenLine);
             return;
         } else {
             console.log('🔑 Keyword match failed');
@@ -112,16 +123,15 @@ export function useGoogleSTT({
         if (expectedEmbedding?.length) {
             const similarity = await fetchSimilarity(spokenLine, expectedEmbedding);
 
-            const end = performance.now();
-            console.log(`⚡ Total latency in this block: ${(end - start).toFixed(2)}ms`);
-            console.log(`End timestamp: ${end.toFixed(2)}ms`);
-
-            console.log(`🧠 Google Similarity: ${similarity}`);
             if (similarity && similarity > 0.80) {
                 console.log("✅ Similarity test passed (Google)!");
-                nextLineTriggeredRef.current = true;
-                stopSTT();
-                onCueDetected(spokenLine);
+                console.log(`🧠 Google Similarity: ${similarity}`);
+                const end = performance.now();
+                console.log(`⚡ Total latency in this block: ${(end - start).toFixed(2)}ms`);
+                console.log(`End timestamp: ${end.toFixed(2)}ms`);
+
+                triggerNextLine(spokenLine);
+                return;
             } else {
                 console.log("🔁 Similarity too low, not triggering cue.");
             }
@@ -132,14 +142,12 @@ export function useGoogleSTT({
         const start = performance.now();
 
         if (matchesEndPhrase(spokenLine, lineEndKeywords)) {
+            console.log("🔑 Keyword match detected (Google)!");
             const end = performance.now();
             console.log(`⚡ Total latency in this block: ${(end - start).toFixed(2)}ms`);
             console.log(`End timestamp: ${end.toFixed(2)}ms`);
 
-            console.log("🔑 Keyword match detected (Google)!");
-            nextLineTriggeredRef.current = true;
-            stopSTT();
-            onCueDetected(spokenLine);
+            triggerNextLine(spokenLine);
             return;
         } else {
             console.log('🔑 Keyword match failed')
@@ -149,14 +157,17 @@ export function useGoogleSTT({
     const startSTT = async () => {
         if (isActiveRef.current) return;
         isActiveRef.current = true;
+        hasTriggeredRef.current = false;
         fullTranscript.current = [];
-        nextLineTriggeredRef.current = false;
 
-        const ws = new WebSocket('ws://localhost:3001');
+        const ws = new WebSocket('ws://localhost:3002');
         wsRef.current = ws;
 
         ws.onmessage = async (event: MessageEvent) => {
-            if (nextLineTriggeredRef.current) return;
+            if (hasTriggeredRef.current) {
+                console.log('⛔ Cue already triggered — skipping further STT events');
+                return;
+            }
 
             const raw = event.data;
             let data: any;
@@ -189,7 +200,6 @@ export function useGoogleSTT({
                 }
 
                 lastTranscriptRef.current = transcript;
-                resetSilenceTimeout();
 
                 const now = performance.now();
                 const repeatDuration = repeatStartTimeRef.current
@@ -198,8 +208,7 @@ export function useGoogleSTT({
 
                 if (
                     repeatCountRef.current >= 2 &&
-                    repeatDuration >= 400 &&
-                    !nextLineTriggeredRef.current
+                    repeatDuration >= 400
                 ) {
                     console.log('🟡 Google: Stable interim — forcing early match');
                     await handleKeywordMatch(transcript);
@@ -212,7 +221,7 @@ export function useGoogleSTT({
                 fullTranscript.current.push(transcript);
                 console.log(`!!!! Is Final detected !!!! @ ${performance.now().toFixed(2)}ms`);
                 console.log(`🎯 Google Final transcript: ${transcript}`);
-                handleFinalization(transcript);
+                await handleFinalization(transcript);
             }
         };
 

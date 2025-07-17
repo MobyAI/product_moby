@@ -4,8 +4,8 @@ require('dotenv').config();
 
 const speechClient = new SpeechClient();
 
-const wss = new WebSocket.Server({ port: 3001 });
-console.log('🎤 Google STT proxy WebSocket server running on ws://localhost:3001');
+const wss = new WebSocket.Server({ port: 3002 });
+console.log('🎤 Google STT proxy WebSocket server running on ws://localhost:3002');
 
 wss.on('connection', async (socket) => {
     console.log('🎧 Client connected to STT proxy');

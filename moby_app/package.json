@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "dev:full": "concurrently \"npm run dev\" \"node googleServer.js\" \"node deepgramServer.js\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.56.0",
@@ -31,6 +32,7 @@
     "@types/pdf-parse": "^1.1.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.2.0",
     "eslint": "^9",
     "eslint-config-next": "15.3.5",
     "tailwindcss": "^4",

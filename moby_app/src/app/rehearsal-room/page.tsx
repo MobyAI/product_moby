@@ -25,6 +25,7 @@ export default function RehearsalRoomPage() {
     const [isWaitingForUser, setIsWaitingForUser] = useState(false);
     const [storageError, setStorageError] = useState(false);
     const [embeddingError, setEmbeddingError] = useState(false);
+    const [sttProvider, setSttProvider] = useState<'google' | 'deepgram'>('google');
 
     // Session storage to track current index
     const storageKey = `rehearsal-cache:${scriptID}:index`;
@@ -46,8 +47,8 @@ export default function RehearsalRoomPage() {
         return () => clearTimeout(timeout);
     }, [currentIndex, scriptID]);
 
-    // TEMP for testing
-    const [expectedEmbedding, setExpectedEmbedding] = useState<number[] | null>(null);
+    // Manual embedding storage
+    // const [expectedEmbedding, setExpectedEmbedding] = useState<number[] | null>(null);
 
     // Fetch script
     const loadScript = async () => {
@@ -141,22 +142,23 @@ export default function RehearsalRoomPage() {
         setCurrentIndex((i) => Math.min(i + 1, (script?.length ?? 1) - 1));
     };
 
-    const handleEmbedCurrentLine = async (current: { type: string; text: string }) => {
-        if (current?.type !== "line") {
-            console.log("🟡 Current item is not a line.");
-            return;
-        }
+    // Manual embedding
+    // const handleEmbedCurrentLine = async (current: { type: string; text: string }) => {
+    //     if (current?.type !== "line") {
+    //         console.log("🟡 Current item is not a line.");
+    //         return;
+    //     }
 
-        const expectedLine = current.text;
-        const embedding = await fetchEmbedding(expectedLine);
+    //     const expectedLine = current.text;
+    //     const embedding = await fetchEmbedding(expectedLine);
 
-        if (embedding) {
-            console.log("📐 Embedding for current line:", embedding);
-            setExpectedEmbedding(embedding);
-        } else {
-            console.error("❌ Failed to fetch embedding for:", expectedLine);
-        }
-    };
+    //     if (embedding) {
+    //         console.log("📐 Embedding for current line:", embedding);
+    //         setExpectedEmbedding(embedding);
+    //     } else {
+    //         console.error("❌ Failed to fetch embedding for:", expectedLine);
+    //     }
+    // };
 
     const loadTTS = async (text: string, voiceId: string) => {
         try {
@@ -246,7 +248,7 @@ export default function RehearsalRoomPage() {
                 <button onClick={handlePrev} className="px-4 py-2 bg-blue-500 text-white rounded">Back</button>
                 <button onClick={handleNext} className="px-4 py-2 bg-blue-500 text-white rounded">Next</button>
                 {currentIndex != 0 &&
-                    <button onClick={handleRestart} className="px-4 py-2 bg-blue-500 text-white rounded">Restart</button>
+                    <button onClick={handleRestart} className="px-4 py-2 bg-red-500 text-white rounded">Restart</button>
                 }
             </div>
             <div>
@@ -255,7 +257,7 @@ export default function RehearsalRoomPage() {
                     typeof current.character === 'string' &&
                     typeof current.text === 'string' &&
                     Array.isArray(current.lineEndKeywords) &&
-                    /* Array.isArray(current.expectedEmbedding) && */ (
+                    Array.isArray(current.expectedEmbedding) && (
                         <>
                             <button
                                 onClick={() => {
@@ -275,25 +277,44 @@ export default function RehearsalRoomPage() {
                                 🔊 Play TTS Audio
                             </button>
                             <br />
-                            <button onClick={() => handleEmbedCurrentLine(current)}>
+                            <br />
+                            {/* <button onClick={() => handleEmbedCurrentLine(current)}>
                                 🔍 Get Embedding
-                            </button>
-                            <GoogleSTT
-                                character={current.character}
-                                text={current.text}
-                                lineEndKeywords={current.lineEndKeywords}
-                                onLineMatched={onUserLineMatched}
-                                // expectedEmbedding={expectedEmbedding}
-                                expectedEmbedding={current.expectedEmbedding || expectedEmbedding}
-                            />
-                            <Deepgram
-                                character={current.character}
-                                text={current.text}
-                                lineEndKeywords={current.lineEndKeywords}
-                                onLineMatched={onUserLineMatched}
-                                // expectedEmbedding={expectedEmbedding}
-                                expectedEmbedding={current.expectedEmbedding || expectedEmbedding}
-                            />
+                            </button> */}
+                            <div className="flex items-center gap-4 mb-4">
+                                <label className="text-sm font-medium">STT Provider:</label>
+                                <div className="flex border rounded overflow-hidden">
+                                    <button
+                                        onClick={() => setSttProvider('google')}
+                                        className={`px-4 py-1 text-sm ${sttProvider === 'google' ? 'bg-green-600 text-white' : 'bg-white text-gray-600'}`}
+                                    >
+                                        Google
+                                    </button>
+                                    <button
+                                        onClick={() => setSttProvider('deepgram')}
+                                        className={`px-4 py-1 text-sm ${sttProvider === 'deepgram' ? 'bg-green-600 text-white' : 'bg-white text-gray-600'}`}
+                                    >
+                                        Deepgram
+                                    </button>
+                                </div>
+                            </div>
+                            {sttProvider === 'google' ? (
+                                <GoogleSTT
+                                    character={current.character}
+                                    text={current.text}
+                                    lineEndKeywords={current.lineEndKeywords}
+                                    onLineMatched={onUserLineMatched}
+                                    expectedEmbedding={current.expectedEmbedding}
+                                />
+                            ) : (
+                                <Deepgram
+                                    character={current.character}
+                                    text={current.text}
+                                    lineEndKeywords={current.lineEndKeywords}
+                                    onLineMatched={onUserLineMatched}
+                                    expectedEmbedding={current.expectedEmbedding}
+                                />
+                            )}
                         </>
                     )
                 }

@@ -5,7 +5,7 @@ import UploadForm from './UploadForm';
 import ParsedOutput from './ParsedOutput';
 import { useRouter } from 'next/navigation';
 import { saveScript } from '@/lib/api/dbFunctions/scripts';
-import { fetchEmbedding } from '@/lib/api/embed';
+// import { fetchEmbedding } from '@/lib/api/embed';
 import type { ScriptElement } from '@/types/script';
 
 export default function UploadPage() {
@@ -15,25 +15,25 @@ export default function UploadPage() {
     const router = useRouter();
     const userID = 'demo-user'; // Replace with real auth ID later
 
-    async function addEmbeddingsToScript(script: any[]): Promise<any[]> {
-        const modifiedScript = await Promise.all(
-            script.map(async (item) => {
-                if (item.type === 'line') {
-                    const embedding = await fetchEmbedding(item.text);
-                    if (!embedding) {
-                        throw new Error(`Failed to fetch embedding for: "${item.text}"`);
-                    }
-                    return {
-                        ...item,
-                        expectedEmbedding: embedding,
-                    };
-                }
-                return item;
-            })
-        );
+    // async function addEmbeddingsToScript(script: any[]): Promise<any[]> {
+    //     const modifiedScript = await Promise.all(
+    //         script.map(async (item) => {
+    //             if (item.type === 'line') {
+    //                 const embedding = await fetchEmbedding(item.text);
+    //                 if (!embedding) {
+    //                     throw new Error(`Failed to fetch embedding for: "${item.text}"`);
+    //                 }
+    //                 return {
+    //                     ...item,
+    //                     expectedEmbedding: embedding,
+    //                 };
+    //             }
+    //             return item;
+    //         })
+    //     );
 
-        return modifiedScript;
-    };
+    //     return modifiedScript;
+    // };
 
     async function handleParsedScript(script: ScriptElement[]) {
         try {

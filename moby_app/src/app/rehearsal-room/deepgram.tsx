@@ -52,7 +52,7 @@ const Deepgram: React.FC<DeepgramProps> = ({
 
     return (
         <div className="p-4 space-y-2">
-            <h2 className="text-xl font-bold">🎭 STT Listening</h2>
+            <h2 className="text-xl font-bold">🎙️ Deepgram Listening</h2>
             <p className="text-base">
                 Your line: <strong>{text}</strong>
             </p>
