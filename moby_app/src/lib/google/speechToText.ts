@@ -160,6 +160,8 @@ export function useGoogleSTT({
         hasTriggeredRef.current = false;
         fullTranscript.current = [];
 
+        console.log('startSTT triggered');
+
         const ws = new WebSocket('ws://localhost:3002');
         wsRef.current = ws;
 

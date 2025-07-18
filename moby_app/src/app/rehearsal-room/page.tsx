@@ -1,36 +1,43 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { fetchScriptByID } from '@/lib/api/dbFunctions/scripts';
 import { fetchEmbedding, addEmbeddingsToScript } from '@/lib/api/embed';
 import { useTextToSpeech } from '@/lib/api/textToSpeech';
 import type { ScriptElement } from '@/types/script';
 import Deepgram from './deepgram';
-import GoogleSTT from './google';
+import GoogleSTT, { GoogleSTTHandle } from './google';
 import { get, set, clear } from 'idb-keyval';
 
 export default function RehearsalRoomPage() {
     const searchParams = useSearchParams();
     const userID = searchParams.get('userID');
     const scriptID = searchParams.get('scriptID');
+    const sttRef = useRef<GoogleSTTHandle>(null);
+    const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     if (!userID || !scriptID) {
         console.log('no user or script id: ', userID, scriptID);
     }
 
+    // Page setup
     const [loading, setLoading] = useState(false);
     const [loadStage, setLoadStage] = useState<string | null>(null);
     const [script, setScript] = useState<ScriptElement[] | null>(null);
+    const [sttProvider, setSttProvider] = useState<'google' | 'deepgram'>('google');
+
+    // Rehearsal flow
     const [isPlaying, setIsPlaying] = useState(false);
     const [isWaitingForUser, setIsWaitingForUser] = useState(false);
+
+    // Error handling
     const [storageError, setStorageError] = useState(false);
     const [embeddingError, setEmbeddingError] = useState(false);
     const [ttsLoadError, setTTSLoadError] = useState(false);
     const [ttsFailedLines, setTTSFailedLines] = useState<number[]>([]);
-    const [sttProvider, setSttProvider] = useState<'google' | 'deepgram'>('google');
 
-    // Session storage to track current index
+    // Track current index in session storage
     const storageKey = `rehearsal-cache:${scriptID}:index`;
 
     const [currentIndex, setCurrentIndex] = useState(() => {
@@ -259,45 +266,6 @@ export default function RehearsalRoomPage() {
         loadScript();
     }, [userID, scriptID]);
 
-    // Current script element
-    const current = script?.find((el) => el.index === currentIndex) ?? null;
-
-    // Handle script flow
-    useEffect(() => {
-        if (!isPlaying || isWaitingForUser || !current) return;
-
-        if (current.type === 'scene' || current.type === 'direction') {
-            console.log(`[${current.type.toUpperCase()}]`, current.text);
-            autoAdvance(1500);
-        }
-
-        if (current.type === 'line') {
-            if (current.role === 'scene-partner') {
-                console.log(`[SCENE PARTNER LINE]`, current.text);
-                autoAdvance(1500);
-            } else if (current.role === 'user') {
-                console.log(`[USER LINE]`, current.text);
-                setIsWaitingForUser(true);
-            }
-        }
-    }, [currentIndex, isPlaying, isWaitingForUser, current]);
-
-    const autoAdvance = (delay = 1000) => {
-        setTimeout(() => {
-            setCurrentIndex((i) => Math.min(i + 1, (script?.length ?? 1) - 1));
-        }, delay);
-    };
-
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-    const handleNext = () => setCurrentIndex((i) => Math.min(i + 1, (script?.length ?? 1) - 1));
-    const handlePrev = () => setCurrentIndex((i) => Math.max(i - 1, 0));
-    const handleRestart = () => setCurrentIndex(0);
-    const onUserLineMatched = () => {
-        setIsWaitingForUser(false);
-        setCurrentIndex((i) => Math.min(i + 1, (script?.length ?? 1) - 1));
-    };
-
     const isQuotaExceeded = (error: any) => {
         return (
             error &&
@@ -371,6 +339,113 @@ export default function RehearsalRoomPage() {
         setScript(updatedScript);
         setTTSFailedLines(stillFailed);
         setTTSLoadError(stillFailed.length > 0);
+    };
+
+    // Handle script flow
+    //
+    // Current script element
+    const current = script?.find((el) => el.index === currentIndex) ?? null;
+
+    useEffect(() => {
+        if (!current || !isPlaying || isWaitingForUser) return;
+
+        switch (current.type) {
+            case 'scene':
+            case 'direction':
+                console.log(`[${current.type.toUpperCase()}]`, current.text);
+                autoAdvance(2000);
+                break;
+
+            case 'line':
+                if (current.role === 'user') {
+                    console.log(`[USER LINE]`, current.text);
+                    setIsWaitingForUser(true);
+                }
+                break;
+        }
+    }, [current, currentIndex, isPlaying, isWaitingForUser]);
+
+    useEffect(() => {
+        if (
+            !current ||
+            !isPlaying ||
+            isWaitingForUser ||
+            current.type !== 'line' ||
+            current.role !== 'scene-partner' ||
+            !current.ttsUrl
+        ) {
+            return;
+        }
+
+        const audio = new Audio(current.ttsUrl);
+        console.log(`[SCENE PARTNER LINE]`, current.text);
+
+        audio.play().catch((err) => {
+            console.warn('⚠️ Failed to play TTS audio', err);
+            autoAdvance(1000);
+        });
+
+        audio.onended = () => {
+            autoAdvance(250);
+        };
+
+        return () => {
+            audio.pause();
+            audio.src = '';
+        };
+    }, [current, isPlaying, isWaitingForUser]);
+
+    useEffect(() => {
+        if (
+            current?.type === 'line' &&
+            current?.role === 'user' &&
+            isPlaying &&
+            !isWaitingForUser &&
+            sttRef.current
+        ) {
+            sttRef.current.start();
+        }
+    }, [current, isPlaying, isWaitingForUser]);
+
+    const autoAdvance = (delay = 1000) => {
+        if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
+        advanceTimeoutRef.current = setTimeout(() => {
+            setCurrentIndex((i) => Math.min(i + 1, (script?.length ?? 1) - 1));
+            advanceTimeoutRef.current = null;
+        }, delay);
+    };
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => {
+        sttRef.current?.stop?.();
+        setIsWaitingForUser(false);
+        setIsPlaying(false);
+
+        if (advanceTimeoutRef.current) {
+            clearTimeout(advanceTimeoutRef.current);
+            advanceTimeoutRef.current = null;
+        }
+    };
+    const handleNext = () => {
+        setIsWaitingForUser(false);
+        setCurrentIndex((i) => Math.min(i + 1, (script?.length ?? 1) - 1));
+        setIsPlaying(false);
+    };
+    const handlePrev = () => {
+        setIsWaitingForUser(false);
+        setCurrentIndex((i) => Math.max(i - 1, 0));
+        setIsPlaying(false);
+    };
+    const handleRestart = () => {
+        sttRef.current?.stop?.();
+        setIsWaitingForUser(false);
+        setCurrentIndex(0);
+        setIsPlaying(false);
+    };
+
+    const onUserLineMatched = () => {
+        setIsWaitingForUser(false);
+        setCurrentIndex((i) => Math.min(i + 1, (script?.length ?? 1) - 1));
     };
 
     if (loading) {
@@ -514,6 +589,7 @@ export default function RehearsalRoomPage() {
                             </div>
                             {sttProvider === 'google' ? (
                                 <GoogleSTT
+                                    ref={sttRef}
                                     character={current.character}
                                     text={current.text}
                                     lineEndKeywords={current.lineEndKeywords}
