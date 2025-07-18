@@ -1,18 +1,23 @@
-export async function useTextToSpeech({
+export async function useElevenTTS({
     text,
     voiceId,
     modelId,
+    voiceSettings,
 }: {
     text: string;
     voiceId: string;
     modelId?: string;
+    voiceSettings?: {
+        stability?: number;
+        similarityBoost?: number;
+    };
 }): Promise<Blob> {
-    const res = await fetch('/api/TTS', {
+    const res = await fetch('/api/TTS/elevenlabs', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text, voiceId, modelId }),
+        body: JSON.stringify({ text, voiceId, modelId, voiceSettings }),
     });
 
     if (!res.ok) {

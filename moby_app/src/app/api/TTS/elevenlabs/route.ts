@@ -3,13 +3,13 @@ import { fetchTTSBlob } from '@/lib/elevenlabs/textToSpeech';
 
 export async function POST(req: Request) {
     try {
-        const { text, voiceId, modelId } = await req.json();
+        const { text, voiceId, modelId, voiceSettings } = await req.json();
 
         if (!text || !voiceId) {
             return NextResponse.json({ error: 'Missing required parameters: text, voiceId' }, { status: 400 });
         }
 
-        const blob = await fetchTTSBlob({ text, voiceId, modelId });
+        const blob = await fetchTTSBlob({ text, voiceId, modelId, voiceSettings });
         const arrayBuffer = await blob.arrayBuffer();
 
         return new Response(arrayBuffer, {

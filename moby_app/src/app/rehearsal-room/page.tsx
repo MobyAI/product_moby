@@ -4,7 +4,8 @@ import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { fetchScriptByID } from '@/lib/api/dbFunctions/scripts';
 import { fetchEmbedding, addEmbeddingsToScript } from '@/lib/api/embed';
-import { useTextToSpeech } from '@/lib/api/textToSpeech';
+import { useElevenTTS } from '@/lib/api/elevenTTS';
+import { useGoogleTTS } from '@/lib/api/googleTTS';
 import { useGoogleSTT } from '@/lib/google/speechToText';
 import { useDeepgramSTT } from '@/lib/deepgram/speechToText';
 import type { ScriptElement } from '@/types/script';
@@ -26,7 +27,7 @@ export default function RehearsalRoomPage() {
     const [loading, setLoading] = useState(false);
     const [loadStage, setLoadStage] = useState<string | null>(null);
     const [script, setScript] = useState<ScriptElement[] | null>(null);
-    const [sttProvider, setSttProvider] = useState<'google' | 'deepgram'>('google');
+    const [sttProvider, setSttProvider] = useState<'google' | 'deepgram'>('deepgram');
 
     // Rehearsal flow
     const [isPlaying, setIsPlaying] = useState(false);
@@ -66,39 +67,6 @@ export default function RehearsalRoomPage() {
         setEmbeddingError(false);
         setTTSLoadError(false);
 
-        // Faster but may run into concurrency limit issues
-        // const addTTS = async (script: ScriptElement[]): Promise<[ScriptElement[], number[]]> => {
-        //     const failedIndexes: number[] = [];
-
-        //     const withTTS = await Promise.all(
-        //         script.map(async (line) => {
-        //             if (line.type === 'line' && line.role === 'scene-partner') {
-        //                 try {
-        //                     const ttsCacheKey = `tts:${userID}:${scriptID}:${line.index}`;
-        //                     const cachedAudio = await get(ttsCacheKey);
-        //                     if (cachedAudio) {
-        //                         const url = URL.createObjectURL(cachedAudio);
-        //                         return { ...line, ttsUrl: url };
-        //                     }
-
-        //                     const blob = await useTextToSpeech({ text: line.text, voiceId: 'JBFqnCBsd6RMkjVDRZzb' });
-        //                     await set(ttsCacheKey, blob);
-        //                     const url = URL.createObjectURL(blob);
-        //                     return { ...line, ttsUrl: url };
-        //                 } catch (err) {
-        //                     // Retry method needed
-        //                     console.warn(`⚠️ Failed to preload TTS for line ${line.index}`, err);
-        //                     failedIndexes.push(line.index);
-        //                     return line;
-        //                 }
-        //             }
-        //             return line;
-        //         })
-        //     );
-
-        //     return [withTTS, failedIndexes];
-        // };
-
         // Limited to 1 request at a time
         const addTTS = async (script: ScriptElement[]): Promise<[ScriptElement[], number[]]> => {
             const failedIndexes: number[] = [];
@@ -116,7 +84,14 @@ export default function RehearsalRoomPage() {
                             continue;
                         }
 
-                        const blob = await useTextToSpeech({ text: element.text, voiceId: 'JBFqnCBsd6RMkjVDRZzb' });
+                        const blob = await useElevenTTS({
+                            text: element.text,
+                            voiceId: 'JBFqnCBsd6RMkjVDRZzb',
+                            voiceSettings: {
+                                stability: 0.1,
+                                similarityBoost: 0.7,
+                            }
+                        });
 
                         // Try storing the blob
                         try {
@@ -163,9 +138,13 @@ export default function RehearsalRoomPage() {
                         // If no blob, regenerate
                         if (!blob) {
                             console.warn(`💡 TTS blob missing for line ${element.index}, regenerating...`);
-                            blob = await useTextToSpeech({
+                            blob = await useElevenTTS({
                                 text: element.text,
                                 voiceId: 'JBFqnCBsd6RMkjVDRZzb',
+                                voiceSettings: {
+                                    stability: 0.1,
+                                    similarityBoost: 0.7,
+                                }
                             });
 
                             // Try to cache regenerated blob
@@ -308,9 +287,13 @@ export default function RehearsalRoomPage() {
                         console.warn(`🔁 No blob available for line ${element.index}, regenerating...`);
 
                         try {
-                            blob = await useTextToSpeech({
+                            blob = await useElevenTTS({
                                 text: element.text,
                                 voiceId: 'JBFqnCBsd6RMkjVDRZzb',
+                                voiceSettings: {
+                                    stability: 0.1,
+                                    similarityBoost: 0.7,
+                                }
                             });
                         } catch (ttsErr) {
                             console.warn(`❌ TTS generation failed for line ${element.index}`, ttsErr);
@@ -522,6 +505,82 @@ export default function RehearsalRoomPage() {
         };
     }, []);
 
+    // Testing TTS audio manually
+    const loadElevenTTS = async ({
+        text,
+        voiceId = 'JBFqnCBsd6RMkjVDRZzb',
+        stability = 0.2,
+        similarityBoost = 0.6,
+    }: {
+        text: string;
+        voiceId?: string;
+        stability?: number;
+        similarityBoost?: number;
+    }) => {
+        try {
+            const blob = await useElevenTTS({
+                text,
+                voiceId,
+                voiceSettings: {
+                    stability,
+                    similarityBoost,
+                },
+            });
+
+            const url = URL.createObjectURL(blob);
+            const audio = new Audio(url);
+            await audio.play();
+
+            audio.onended = () => {
+                URL.revokeObjectURL(url);
+            };
+        } catch (err) {
+            console.error('❌ Failed to load or play TTS audio:', err);
+        }
+    };
+
+    const getDefaultGoogleVoice = (gender: 'MALE' | 'FEMALE' | 'NEUTRAL' = 'MALE') => {
+        switch (gender) {
+            case 'FEMALE':
+                return 'en-US-Wavenet-F';
+            case 'NEUTRAL':
+                return 'en-US-Wavenet-C';
+            case 'MALE':
+            default:
+                return 'en-US-Wavenet-D';
+        }
+    };
+
+    const normalizedGender = (current?.gender?.toUpperCase?.() || 'MALE') as 'MALE' | 'FEMALE' | 'NEUTRAL';
+
+    const loadGoogleTTS = async ({
+        text,
+        voiceId = 'en-US-Wavenet-D',
+        gender = 'NEUTRAL',
+    }: {
+        text: string;
+        voiceId?: string;
+        gender?: 'MALE' | 'FEMALE' | 'NEUTRAL';
+    }) => {
+        try {
+            const blob = await useGoogleTTS({
+                text,
+                voiceId,
+                gender,
+            });
+
+            const url = URL.createObjectURL(blob);
+            const audio = new Audio(url);
+            await audio.play();
+
+            audio.onended = () => {
+                URL.revokeObjectURL(url);
+            };
+        } catch (err) {
+            console.error('❌ Failed to load or play TTS audio:', err);
+        }
+    };
+
     if (loading) {
         return (
             <div className="p-6">
@@ -606,6 +665,58 @@ export default function RehearsalRoomPage() {
                 ) : (
                     <p>🎉 End of script!</p>
                 )}
+                {
+                    current?.type === 'line' && (
+                        <>
+                            <button
+                                onClick={() => {
+                                    const tonePrefix =
+                                        typeof current.tone === 'string' && current.tone.trim().length > 0
+                                            ? current.tone
+                                                .trim()
+                                                .split(/\s+/)
+                                                .map((t) => `[${t}]`)
+                                                .join(' ') + ' '
+                                            : '';
+
+                                    const textWithTone = tonePrefix + current.text;
+
+                                    loadElevenTTS({
+                                        text: current.text,
+                                        voiceId:
+                                            current.gender === 'male'
+                                                ? '1t1EeRixsJrKbiF1zwM6'
+                                                : 'uYXf8XasLslADfZ2MB4u',
+                                    });
+                                }}
+                            >
+                                🔊 Generate Eleven TTS
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const tonePrefix =
+                                        typeof current.tone === 'string' && current.tone.trim().length > 0
+                                            ? current.tone
+                                                .trim()
+                                                .split(/\s+/)
+                                                .map((t) => `[${t}]`)
+                                                .join(' ') + ' '
+                                            : '';
+
+                                    const textWithTone = tonePrefix + current.text;
+
+                                    loadGoogleTTS({
+                                        text: current.text,
+                                        voiceId: getDefaultGoogleVoice(normalizedGender),
+                                        gender: normalizedGender,
+                                    });
+                                }}
+                            >
+                                🔊 Generate Google TTS
+                            </button>
+                        </>
+                    )
+                }
             </div>
             <div className="flex items-center gap-4">
                 <button onClick={handlePlay} className="px-4 py-2 bg-green-600 text-white rounded">Play</button>
@@ -625,23 +736,6 @@ export default function RehearsalRoomPage() {
                     Array.isArray(current.lineEndKeywords) &&
                     Array.isArray(current.expectedEmbedding) && (
                         <>
-                            {/* <button
-                                onClick={() => {
-                                    const tonePrefix =
-                                        typeof current.tone === 'string' && current.tone.trim().length > 0
-                                            ? current.tone
-                                                .trim()
-                                                .split(/\s+/)
-                                                .map((t) => `[${t}]`)
-                                                .join(' ') + ' '
-                                            : '';
-
-                                    const textWithTone = tonePrefix + current.text;
-                                    loadTTS(textWithTone, 'JBFqnCBsd6RMkjVDRZzb');
-                                }}
-                            >
-                                🔊 Play TTS Audio
-                            </button> */}
                             {/* <div className="flex items-center gap-4 mb-4">
                                 <label className="text-sm font-medium">STT Provider:</label>
                                 <div className="flex border rounded overflow-hidden">

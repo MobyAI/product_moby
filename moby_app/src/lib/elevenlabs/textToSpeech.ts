@@ -22,15 +22,21 @@ export async function fetchTTSBlob({
     text,
     voiceId,
     modelId = 'eleven_multilingual_v2',
+    voiceSettings,
 }: {
     text: string;
     voiceId: string;
     modelId?: string;
+    voiceSettings?: {
+        stability?: number;
+        similarityBoost?: number;
+    };
 }): Promise<Blob> {
     const stream = await elevenlabs.textToSpeech.convert(voiceId, {
         text,
         modelId,
         outputFormat: 'mp3_44100_128',
+        voiceSettings,
     });
 
     return await streamToBlob(stream);
