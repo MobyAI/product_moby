@@ -5,16 +5,17 @@ import { useSearchParams } from 'next/navigation';
 import { fetchScriptByID } from '@/lib/api/dbFunctions/scripts';
 import { fetchEmbedding, addEmbeddingsToScript } from '@/lib/api/embed';
 import { useTextToSpeech } from '@/lib/api/textToSpeech';
+import { useGoogleSTT } from '@/lib/google/speechToText';
+import { useDeepgramSTT } from '@/lib/deepgram/speechToText';
 import type { ScriptElement } from '@/types/script';
 import Deepgram from './deepgram';
-import GoogleSTT, { GoogleSTTHandle } from './google';
+import GoogleSTT from './google';
 import { get, set, clear } from 'idb-keyval';
 
 export default function RehearsalRoomPage() {
     const searchParams = useSearchParams();
     const userID = searchParams.get('userID');
     const scriptID = searchParams.get('scriptID');
-    const sttRef = useRef<GoogleSTTHandle>(null);
     const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     if (!userID || !scriptID) {
@@ -342,8 +343,6 @@ export default function RehearsalRoomPage() {
     };
 
     // Handle script flow
-    //
-    // Current script element
     const current = script?.find((el) => el.index === currentIndex) ?? null;
 
     useEffect(() => {
@@ -400,24 +399,40 @@ export default function RehearsalRoomPage() {
             current?.type === 'line' &&
             current?.role === 'user' &&
             isPlaying &&
-            !isWaitingForUser &&
-            sttRef.current
+            !isWaitingForUser
         ) {
-            sttRef.current.start();
+            startSTT();
         }
     }, [current, isPlaying, isWaitingForUser]);
 
     const autoAdvance = (delay = 1000) => {
         if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
+
         advanceTimeoutRef.current = setTimeout(() => {
-            setCurrentIndex((i) => Math.min(i + 1, (script?.length ?? 1) - 1));
+            setCurrentIndex((i) => {
+                const nextIndex = i + 1;
+                const endOfScript = nextIndex >= (script?.length ?? 0);
+
+                if (endOfScript) {
+                    console.log('🎬 Rehearsal complete — cleaning up STT');
+                    cleanupSTT();
+                    setIsPlaying(false);
+                    return i;
+                }
+
+                return nextIndex;
+            });
+
             advanceTimeoutRef.current = null;
         }, delay);
     };
 
-    const handlePlay = () => setIsPlaying(true);
+    const handlePlay = async () => {
+        await initializeSTT();
+        setIsPlaying(true);
+    };
     const handlePause = () => {
-        sttRef.current?.stop?.();
+        pauseSTT();
         setIsWaitingForUser(false);
         setIsPlaying(false);
 
@@ -437,7 +452,7 @@ export default function RehearsalRoomPage() {
         setIsPlaying(false);
     };
     const handleRestart = () => {
-        sttRef.current?.stop?.();
+        cleanupSTT();
         setIsWaitingForUser(false);
         setCurrentIndex(0);
         setIsPlaying(false);
@@ -445,8 +460,67 @@ export default function RehearsalRoomPage() {
 
     const onUserLineMatched = () => {
         setIsWaitingForUser(false);
-        setCurrentIndex((i) => Math.min(i + 1, (script?.length ?? 1) - 1));
+
+        setCurrentIndex((i) => {
+            const nextIndex = i + 1;
+            const endOfScript = nextIndex >= (script?.length ?? 0);
+
+            if (endOfScript) {
+                console.log('🎬 User finished final line — cleaning up STT');
+                cleanupSTT();
+                setIsPlaying(false);
+                return i;
+            }
+
+            return nextIndex;
+        });
     };
+
+    const {
+        initializeSTT,
+        startSTT,
+        pauseSTT,
+        cleanupSTT,
+    } = useGoogleSTT({
+        lineEndKeywords: current?.lineEndKeywords ?? [],
+        expectedEmbedding: current?.expectedEmbedding ?? [],
+        onCueDetected: onUserLineMatched,
+        onSilenceTimeout: () => {
+            console.log('⏱️ Timeout reached');
+            setIsWaitingForUser(false);
+        },
+    });
+
+    // Deepgram useSTT import
+    // const {
+    //     initializeSTT,
+    //     startSTT,
+    //     pauseSTT,
+    //     cleanupSTT,
+    // } = useDeepgramSTT({
+    //     lineEndKeywords: current?.lineEndKeywords ?? [],
+    //     expectedEmbedding: current?.expectedEmbedding ?? [],
+    //     onCueDetected: onUserLineMatched,
+    //     onSilenceTimeout: () => {
+    //         console.log('⏱️ Timeout reached');
+    //         setIsWaitingForUser(false);
+    //     },
+    // });
+
+    useEffect(() => {
+        const handleUnload = () => {
+            cleanupSTT();
+            console.log('🧹 STT cleaned up on unload');
+        };
+
+        window.addEventListener('beforeunload', handleUnload);
+
+        return () => {
+            cleanupSTT();
+            window.removeEventListener('beforeunload', handleUnload);
+            console.log('🧹 STT cleaned up on unmount');
+        };
+    }, []);
 
     if (loading) {
         return (
@@ -515,20 +589,18 @@ export default function RehearsalRoomPage() {
                 {current ? (
                     <div>
                         <p className="text-gray-600 text-sm">#{current.index} — {current.type}</p>
+                        {current.type === 'line' && (
+                            <p className="text-green-600 text-xl font-bold mt-2">
+                                {current.role === 'user'
+                                    ? 'User Reading'
+                                    : current.role === 'scene-partner'
+                                        ? 'Scene Partner Speaking'
+                                        : current.role}
+                            </p>
+                        )}
                         <p className="text-xl mt-2">{current.text}</p>
                         {current.type === 'line' && current.character && (
                             <p className="text-sm text-gray-500">– {current.character} ({current.tone})</p>
-                        )}
-                        {current.type === 'line' && current.role === 'scene-partner' && current.ttsUrl && (
-                            <button
-                                onClick={() => {
-                                    const audio = new Audio(current.ttsUrl);
-                                    audio.play();
-                                }}
-                                className="mt-2 px-4 py-2 bg-purple-600 text-white rounded"
-                            >
-                                🔊 Play TTS Audio
-                            </button>
                         )}
                     </div>
                 ) : (
@@ -570,7 +642,7 @@ export default function RehearsalRoomPage() {
                             >
                                 🔊 Play TTS Audio
                             </button> */}
-                            <div className="flex items-center gap-4 mb-4">
+                            {/* <div className="flex items-center gap-4 mb-4">
                                 <label className="text-sm font-medium">STT Provider:</label>
                                 <div className="flex border rounded overflow-hidden">
                                     <button
@@ -586,23 +658,22 @@ export default function RehearsalRoomPage() {
                                         Deepgram
                                     </button>
                                 </div>
-                            </div>
+                            </div> */}
                             {sttProvider === 'google' ? (
                                 <GoogleSTT
-                                    ref={sttRef}
                                     character={current.character}
                                     text={current.text}
-                                    lineEndKeywords={current.lineEndKeywords}
-                                    onLineMatched={onUserLineMatched}
                                     expectedEmbedding={current.expectedEmbedding}
+                                    start={startSTT}
+                                    stop={pauseSTT}
                                 />
                             ) : (
                                 <Deepgram
                                     character={current.character}
                                     text={current.text}
-                                    lineEndKeywords={current.lineEndKeywords}
-                                    onLineMatched={onUserLineMatched}
                                     expectedEmbedding={current.expectedEmbedding}
+                                    start={startSTT}
+                                    stop={pauseSTT}
                                 />
                             )}
                         </>

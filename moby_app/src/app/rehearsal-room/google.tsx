@@ -1,28 +1,22 @@
 'use client';
 
-import React, { useState, useImperativeHandle, forwardRef } from 'react';
-import { useGoogleSTT } from '@/lib/google/speechToText';
-
-export interface GoogleSTTHandle {
-    start: () => void;
-    stop: () => void;
-}
+import React, { useState } from 'react';
 
 interface GoogleSTTProps {
     character: string;
     text: string;
-    lineEndKeywords: string[];
-    onLineMatched: (transcript: string) => void;
     expectedEmbedding: number[] | null;
+    start: () => void;
+    stop: () => void;
 }
 
-const GoogleSTT = forwardRef<GoogleSTTHandle, GoogleSTTProps>(({
+export default function GoogleSTT({
     character,
     text,
-    lineEndKeywords,
-    onLineMatched,
     expectedEmbedding,
-}, ref) => {
+    start,
+    stop,
+}: GoogleSTTProps) {
     const [log, setLog] = useState<string[]>([]);
     const [hasTimedOut, setHasTimedOut] = useState(false);
 
@@ -30,37 +24,16 @@ const GoogleSTT = forwardRef<GoogleSTTHandle, GoogleSTTProps>(({
         console.warn("⚠️ No expected embedding provided. Cue detection may fail.");
     }
 
-    const { startSTT, stopSTT } = useGoogleSTT({
-        lineEndKeywords,
-        onCueDetected: (transcript: string) => {
-            setLog((prev) => [...prev, `✅ Cue detected: ${transcript}`]);
-            setHasTimedOut(false);
-            onLineMatched(transcript);
-        },
-        onSilenceTimeout: () => {
-            setLog((prev) => [...prev, '🛑 Silence timeout — session ended.']);
-            setHasTimedOut(true);
-        },
-        expectedEmbedding: expectedEmbedding ?? [],
-    });
-
-    useImperativeHandle(ref, () => ({
-        start: startSTT,
-        stop: stopSTT,
-    }));
-
     return (
         <div className="p-4 space-y-2">
             <h2 className="text-xl font-bold">🎙️ Google Listening</h2>
             <p className="text-base">Your line: <strong>{text}</strong></p>
             <p className="text-sm text-gray-500">Character: {character}</p>
             <div className="flex gap-2 mt-4">
-                <button onClick={startSTT} className="px-4 py-2 bg-green-600 text-white rounded">▶️ Start STT</button>
-                <button onClick={stopSTT} className="px-4 py-2 bg-red-600 text-white rounded">⏹ Stop STT</button>
+                <button onClick={start} className="px-4 py-2 bg-green-600 text-white rounded">▶️ Start STT</button>
+                <button onClick={stop} className="px-4 py-2 bg-red-600 text-white rounded">⏹ Stop STT</button>
                 {hasTimedOut && (
-                    <>
-                        <button onClick={startSTT} className="px-4 py-2 bg-blue-600 text-white rounded">🔄 Resume</button>
-                    </>
+                    <button onClick={start} className="px-4 py-2 bg-blue-600 text-white rounded">🔄 Resume</button>
                 )}
             </div>
             <div className="bg-gray-100 p-2 mt-4 rounded">
@@ -69,6 +42,4 @@ const GoogleSTT = forwardRef<GoogleSTTHandle, GoogleSTTProps>(({
             </div>
         </div>
     );
-});
-
-export default GoogleSTT;
+}
