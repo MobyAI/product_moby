@@ -50,9 +50,6 @@ export default function RehearsalRoomPage() {
         return () => clearTimeout(timeout);
     }, [currentIndex, scriptID]);
 
-    // Manual embedding storage
-    // const [expectedEmbedding, setExpectedEmbedding] = useState<number[] | null>(null);
-
     // Fetch script
     const loadScript = async () => {
         if (!userID || !scriptID) return;
@@ -61,6 +58,7 @@ export default function RehearsalRoomPage() {
         setEmbeddingError(false);
         setTTSLoadError(false);
 
+        // Faster but may run into concurrency limit issues
         // const addTTS = async (script: ScriptElement[]): Promise<[ScriptElement[], number[]]> => {
         //     const failedIndexes: number[] = [];
 
@@ -300,36 +298,6 @@ export default function RehearsalRoomPage() {
         setCurrentIndex((i) => Math.min(i + 1, (script?.length ?? 1) - 1));
     };
 
-    // Manual Embedding
-    // const handleEmbedCurrentLine = async (current: { type: string; text: string }) => {
-    //     if (current?.type !== "line") {
-    //         console.log("🟡 Current item is not a line.");
-    //         return;
-    //     }
-
-    //     const expectedLine = current.text;
-    //     const embedding = await fetchEmbedding(expectedLine);
-
-    //     if (embedding) {
-    //         console.log("📐 Embedding for current line:", embedding);
-    //         setExpectedEmbedding(embedding);
-    //     } else {
-    //         console.error("❌ Failed to fetch embedding for:", expectedLine);
-    //     }
-    // };
-
-    // const loadTTS = async (text: string, voiceId: string) => {
-    //     try {
-    //         const blob = await useTextToSpeech({ text, voiceId });
-
-    //         const url = URL.createObjectURL(blob);
-    //         const audio = new Audio(url);
-    //         audio.play();
-    //     } catch (err) {
-    //         console.error('❌ Failed to fetch TTS:', err);
-    //     }
-    // };
-
     const isQuotaExceeded = (error: any) => {
         return (
             error &&
@@ -526,11 +494,6 @@ export default function RehearsalRoomPage() {
                                 }}
                             >
                                 🔊 Play TTS Audio
-                            </button> */}
-                            {/* <br />
-                            <br /> */}
-                            {/* <button onClick={() => handleEmbedCurrentLine(current)}>
-                                🔍 Get Embedding
                             </button> */}
                             <div className="flex items-center gap-4 mb-4">
                                 <label className="text-sm font-medium">STT Provider:</label>
