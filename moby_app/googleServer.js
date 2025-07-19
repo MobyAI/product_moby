@@ -24,10 +24,14 @@ wss.on('connection', async (socket) => {
         })
         .on('data', (data) => {
             const alt = data.results[0]?.alternatives?.[0];
+            const isFinal = data.results[0]?.isFinal;
+
+            // console.log(`🧠 Google STT returned: ${alt?.transcript || '[no transcript]'} (final: ${isFinal})`);
+
             if (alt) {
                 socket.send(JSON.stringify({
                     channel: { alternatives: [alt] },
-                    is_final: data.results[0].isFinal,
+                    is_final: isFinal,
                 }));
             }
         })
@@ -37,6 +41,7 @@ wss.on('connection', async (socket) => {
         });
 
     socket.on('message', (audioChunk) => {
+        // console.log(`📥 Received audio chunk: ${audioChunk.length || audioChunk.byteLength} bytes`);
         recognizeStream.write(audioChunk);
     });
 

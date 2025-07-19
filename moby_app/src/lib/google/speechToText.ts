@@ -15,7 +15,9 @@ export function useGoogleSTT({
     expectedEmbedding,
 }: UseGoogleSTTProps) {
     const wsRef = useRef<WebSocket | null>(null);
+    const micStreamRef = useRef<MediaStream | null>(null);
     const isActiveRef = useRef(false);
+    const isInitializingRef = useRef(false);
     const silenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const micCleanupRef = useRef<(() => void) | null>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
@@ -29,8 +31,7 @@ export function useGoogleSTT({
     const triggerNextLine = (transcript: string) => {
         if (hasTriggeredRef.current) return false;
         hasTriggeredRef.current = true;
-
-        stopSTT();
+        pauseSTT();
         onCueDetected(transcript);
         return true;
     };
@@ -39,14 +40,13 @@ export function useGoogleSTT({
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
         silenceTimeoutRef.current = setTimeout(() => {
             console.log('🛑 Silence timeout — stopping Google STT to save usage.');
-            stopSTT();
+            pauseSTT();
             onSilenceTimeout?.();
         }, 10000);
     };
 
     const resetSilenceTimer = (spokenLine: string) => {
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-
         silenceTimerRef.current = setTimeout(() => {
             if (hasTriggeredRef.current) return;
             console.log('⏳ Silence timer triggered. Running finalization...');
@@ -54,53 +54,8 @@ export function useGoogleSTT({
         }, 1000);
     };
 
-    const streamMic = async (wsRef: RefObject<WebSocket | null>) => {
-        if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
-            audioCtxRef.current = new AudioContext({ sampleRate: 44100 });
-            await audioCtxRef.current.audioWorklet.addModule('/linearPCMProcessor.js');
-        }
-
-        const audioCtx = audioCtxRef.current!;
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const source = audioCtx.createMediaStreamSource(stream);
-        const workletNode = new AudioWorkletNode(audioCtx, 'linear-pcm-processor');
-
-        workletNode.port.onmessage = (e: MessageEvent<Float32Array>) => {
-            const floatInput = e.data;
-            const buffer = convertFloat32ToInt16(floatInput);
-            if (wsRef.current?.readyState === WebSocket.OPEN) {
-                wsRef.current.send(buffer);
-            }
-        };
-
-        source.connect(workletNode);
-        workletNode.connect(audioCtx.destination);
-
-        return () => {
-            workletNode.port.onmessage = null;
-            source.disconnect();
-            workletNode.disconnect();
-            stream.getTracks().forEach((track) => track.stop());
-        };
-    };
-
-    const stopSTT = () => {
-        const end = performance.now();
-        console.log(`Stop STT triggered @ ${end}`);
-        
-        if (wsRef.current) wsRef.current.close();
-        if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
-        if (micCleanupRef.current) micCleanupRef.current();
-        if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
-            audioCtxRef.current.close();
-            audioCtxRef.current = null;
-        }
-        isActiveRef.current = false;
-    };
-
     const matchesEndPhrase = (transcript: string, keywords: string[]) => {
-        const normalize = (text: string) =>
-            text.toLowerCase().replace(/[\s.,!?'"“”\-]+/g, ' ').trim();
+        const normalize = (text: string) => text.toLowerCase().replace(/[\s.,!?'"“”\-]+/g, ' ').trim();
         const normTranscript = normalize(transcript);
         return keywords.some((kw) => normTranscript.includes(normalize(kw)));
     };
@@ -110,47 +65,153 @@ export function useGoogleSTT({
 
         if (matchesEndPhrase(spokenLine, lineEndKeywords)) {
             const end = performance.now();
-            console.log(`⚡ Total latency in this block: ${(end - start).toFixed(2)}ms`);
-            console.log(`End timestamp: ${end.toFixed(2)}ms`);
-            console.log("🔑 Keyword match detected (Google)!");
-
+            console.log(`⚡ Total latency: ${(end - start).toFixed(2)}ms`);
             triggerNextLine(spokenLine);
             return;
-        } else {
-            console.log('🔑 Keyword match failed');
         }
 
         if (expectedEmbedding?.length) {
             const similarity = await fetchSimilarity(spokenLine, expectedEmbedding);
-
             if (similarity && similarity > 0.80) {
-                console.log("✅ Similarity test passed (Google)!");
-                console.log(`🧠 Google Similarity: ${similarity}`);
-                const end = performance.now();
-                console.log(`⚡ Total latency in this block: ${(end - start).toFixed(2)}ms`);
-                console.log(`End timestamp: ${end.toFixed(2)}ms`);
-
+                console.log("✅ Similarity passed (Google)!");
                 triggerNextLine(spokenLine);
-                return;
             } else {
-                console.log("🔁 Similarity too low, not triggering cue.");
+                console.log("🔁 Similarity too low.");
             }
         }
     };
 
     const handleKeywordMatch = async (spokenLine: string) => {
         const start = performance.now();
-
         if (matchesEndPhrase(spokenLine, lineEndKeywords)) {
-            console.log("🔑 Keyword match detected (Google)!");
             const end = performance.now();
-            console.log(`⚡ Total latency in this block: ${(end - start).toFixed(2)}ms`);
-            console.log(`End timestamp: ${end.toFixed(2)}ms`);
-
+            console.log(`⚡ Match latency: ${(end - start).toFixed(2)}ms`);
             triggerNextLine(spokenLine);
+        }
+    };
+
+    const initializeSTT = async () => {
+        if (isInitializingRef.current) {
+            console.warn('⏳ initializeSTT already in progress — skipping duplicate call');
             return;
-        } else {
-            console.log('🔑 Keyword match failed')
+        }
+
+        isInitializingRef.current = true;
+
+        try {
+            // ✅ Clean up any existing worklet/mic routing
+            if (micCleanupRef.current) {
+                console.log('♻️ Cleaning up existing mic/processor before reinitializing');
+                micCleanupRef.current();
+                micCleanupRef.current = null;
+            }
+
+            // 🎛️ AudioContext
+            if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+                console.log('🎛️ Creating new AudioContext...');
+                audioCtxRef.current = new AudioContext({ sampleRate: 44100 });
+                try {
+                    await audioCtxRef.current.audioWorklet.addModule('/linearPCMProcessor.js');
+                    console.log('✅ AudioWorklet module loaded!');
+                } catch (err) {
+                    console.error('❌ Failed to load AudioWorklet module:', err);
+                    return;
+                }
+            } else {
+                console.log('🎛️ Reusing existing AudioContext');
+            }
+
+            // 🎤 Microphone
+            if (!micStreamRef.current) {
+                try {
+                    console.log('🎤 Requesting mic stream...');
+                    micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    console.log('✅ Mic stream obtained');
+                } catch (err) {
+                    console.error('❌ Failed to get mic stream:', err);
+                    return;
+                }
+            } else {
+                console.log('🎤 Reusing existing mic stream');
+            }
+
+            // 🔗 Audio routing
+            const audioCtx = audioCtxRef.current!;
+            const micStream = micStreamRef.current!;
+            const source = audioCtx.createMediaStreamSource(micStream);
+            const workletNode = new AudioWorkletNode(audioCtx, 'linear-pcm-processor');
+
+            workletNode.port.onmessage = (e: MessageEvent<Float32Array>) => {
+                const floatInput = e.data;
+                const buffer = convertFloat32ToInt16(floatInput);
+                if (wsRef.current?.readyState === WebSocket.OPEN) {
+                    wsRef.current.send(buffer);
+                }
+            };
+
+            try {
+                source.connect(workletNode);
+                workletNode.connect(audioCtx.destination);
+            } catch (err) {
+                console.error('⚠️ Failed to connect audio nodes:', err);
+            }
+
+            micCleanupRef.current = () => {
+                console.log('🧹 Disconnecting mic and worklet');
+                workletNode.port.onmessage = null;
+                source.disconnect();
+                workletNode.disconnect();
+            };
+
+            console.log('✅ STT initialized — mic and worklet connected');
+        } finally {
+            isInitializingRef.current = false;
+        }
+    };
+
+    // const streamMic = async (wsRef: RefObject<WebSocket | null>) => {
+    //     if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+    //         audioCtxRef.current = new AudioContext({ sampleRate: 44100 });
+    //         await audioCtxRef.current.audioWorklet.addModule('/linearPCMProcessor.js');
+    //     }
+
+    //     if (!micStreamRef.current) {
+    //         micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+    //     }
+
+    //     const audioCtx = audioCtxRef.current!;
+    //     const source = audioCtx.createMediaStreamSource(micStreamRef.current);
+    //     const workletNode = new AudioWorkletNode(audioCtx, 'linear-pcm-processor');
+
+    //     workletNode.port.onmessage = (e: MessageEvent<Float32Array>) => {
+    //         const floatInput = e.data;
+    //         const buffer = convertFloat32ToInt16(floatInput);
+    //         if (wsRef.current?.readyState === WebSocket.OPEN) {
+    //             wsRef.current.send(buffer);
+    //         }
+    //     };
+
+    //     try {
+    //         source.connect(workletNode);
+    //         workletNode.connect(audioCtx.destination);
+    //     } catch (err) {
+    //         console.error('⚠️ Failed to connect audio nodes:', err);
+    //     }
+
+    //     return () => {
+    //         workletNode.port.onmessage = null;
+    //         source.disconnect();
+    //         workletNode.disconnect();
+    //     };
+    // };
+
+    const resumeAudioContext = async () => {
+        try {
+            if (audioCtxRef.current?.state === 'suspended') {
+                await audioCtxRef.current.resume();
+            }
+        } catch (err) {
+            console.warn('⚠️ Failed to resume AudioContext:', err);
         }
     };
 
@@ -160,14 +221,30 @@ export function useGoogleSTT({
         hasTriggeredRef.current = false;
         fullTranscript.current = [];
 
-        const ws = new WebSocket('ws://localhost:3002');
-        wsRef.current = ws;
+        await resumeAudioContext();
 
-        ws.onmessage = async (event: MessageEvent) => {
-            if (hasTriggeredRef.current) {
-                console.log('⛔ Cue already triggered — skipping further STT events');
-                return;
-            }
+        if (!audioCtxRef.current || !micStreamRef.current) {
+            console.warn('⚠️ STT not initialized — call initializeSTT() first');
+            return;
+        }
+
+        if (wsRef.current) {
+            wsRef.current.onmessage = null;
+            wsRef.current.onopen = null;
+            wsRef.current.onerror = null;
+            wsRef.current.onclose = null;
+        }
+
+        if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
+            wsRef.current = new WebSocket('ws://localhost:3002');
+        } else {
+            console.warn('🔁 Reusing existing WebSocket');
+        }
+
+        console.log('startSTT triggered');
+
+        wsRef.current.onmessage = async (event: MessageEvent) => {
+            if (hasTriggeredRef.current) return;
 
             const raw = event.data;
             let data: any;
@@ -175,9 +252,8 @@ export function useGoogleSTT({
             try {
                 const text = raw instanceof Blob ? await raw.text() : raw;
                 data = JSON.parse(text);
-                console.log('data final?', data.is_final);
             } catch (err) {
-                console.warn('❌ Could not parse WebSocket data:', err);
+                console.warn('❌ WebSocket data error:', err);
                 return;
             }
 
@@ -202,15 +278,10 @@ export function useGoogleSTT({
                 lastTranscriptRef.current = transcript;
 
                 const now = performance.now();
-                const repeatDuration = repeatStartTimeRef.current
-                    ? now - repeatStartTimeRef.current
-                    : 0;
+                const repeatDuration = now - (repeatStartTimeRef.current ?? now);
 
-                if (
-                    repeatCountRef.current >= 2 &&
-                    repeatDuration >= 400
-                ) {
-                    console.log('🟡 Google: Stable interim — forcing early match');
+                if (repeatCountRef.current >= 2 && repeatDuration >= 400) {
+                    console.log('🟡 Stable interim — forcing early match');
                     await handleKeywordMatch(transcript);
                     repeatCountRef.current = 0;
                     repeatStartTimeRef.current = null;
@@ -218,28 +289,85 @@ export function useGoogleSTT({
             }
 
             if (isFinal && transcript) {
-                fullTranscript.current.push(transcript);
                 console.log(`!!!! Is Final detected !!!! @ ${performance.now().toFixed(2)}ms`);
                 console.log(`🎯 Google Final transcript: ${transcript}`);
+                fullTranscript.current.push(transcript);
                 await handleFinalization(transcript);
             }
         };
 
-        ws.onopen = async () => {
-            micCleanupRef.current = await streamMic(wsRef);
+        wsRef.current.onopen = async () => {
+            if (!isActiveRef.current) return;
+            // micCleanupRef.current = await streamMic(wsRef);
             resetSilenceTimeout();
+        };
+
+        wsRef.current.onerror = (e) => {
+            console.warn('❌ WebSocket error:', e);
+        };
+
+        wsRef.current.onclose = (e) => {
+            console.log('🔌 WebSocket closed:', e.code, e.reason);
         };
     };
 
-    return { startSTT, stopSTT };
+    const pauseSTT = () => {
+        const end = performance.now();
+        console.log(`⏸️ pauseSTT triggered @ ${end}`);
+
+        // 🧹 Stop WebSocket
+        if (wsRef.current) {
+            wsRef.current.close();
+            wsRef.current = null;
+        }
+
+        // ⏲️ Clear silence timeout
+        if (silenceTimeoutRef.current) {
+            clearTimeout(silenceTimeoutRef.current);
+            silenceTimeoutRef.current = null;
+        }
+
+        // ⏲️ Clear silence detection timer
+        if (silenceTimerRef.current) {
+            clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = null;
+        }
+
+        isActiveRef.current = false;
+    };
+
+    const cleanupSTT = () => {
+        pauseSTT();
+
+        // 💥 Disconnect audio routing
+        if (micCleanupRef.current) {
+            micCleanupRef.current();
+            micCleanupRef.current = null;
+        }
+
+        // 💥 Stop mic stream
+        if (micStreamRef.current) {
+            micStreamRef.current.getTracks().forEach((track) => track.stop());
+            micStreamRef.current = null;
+        }
+
+        // 💥 Close AudioContext
+        if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+            audioCtxRef.current.close().catch((err) => {
+                console.warn('⚠️ Error closing AudioContext:', err);
+            });
+            audioCtxRef.current = null;
+        }
+    };
+
+    return { startSTT, pauseSTT, initializeSTT, cleanupSTT };
 }
 
-// PCM conversion helper
 function convertFloat32ToInt16(float32Array: Float32Array): ArrayBuffer {
     const len = float32Array.length;
     const int16Array = new Int16Array(len);
     for (let i = 0; i < len; i++) {
-        let s = Math.max(-1, Math.min(1, float32Array[i]));
+        const s = Math.max(-1, Math.min(1, float32Array[i]));
         int16Array[i] = Math.round(s * 32767);
     }
     return int16Array.buffer;

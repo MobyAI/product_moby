@@ -8,4 +8,5 @@ export type ScriptElement = {
     role?: 'user' | 'scene-partner';
     lineEndKeywords?: string[];
     expectedEmbedding?: number[];
+    ttsUrl?: string;
 };

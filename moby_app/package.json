@@ -13,6 +13,7 @@
     "@anthropic-ai/sdk": "^0.56.0",
     "@elevenlabs/elevenlabs-js": "^2.6.0",
     "@google-cloud/speech": "^7.2.0",
+    "@google-cloud/text-to-speech": "^6.2.0",
     "dotenv": "^17.2.0",
     "firebase": "^11.10.0",
     "idb-keyval": "^6.2.2",
