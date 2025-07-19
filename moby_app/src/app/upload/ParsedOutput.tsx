@@ -1,11 +1,16 @@
-export default function ParsedOutput({ data }: { data: any }) {
-    const parsedData = JSON.parse(data);
+import type { ScriptElement } from '@/types/script';
 
+type ParsedOutputProps = {
+    data: ScriptElement[];
+    onRoleChange: (index: number, role: 'user' | 'scene-partner') => void;
+};
+
+export default function ParsedOutput({ data, onRoleChange }: ParsedOutputProps) {
     return (
         <div className="mt-6">
             <h2 className="text-lg font-semibold mb-4">Parsed Script:</h2>
             <div className="bg-white border border-gray-300 rounded-lg p-8 max-w-4xl mx-auto font-mono text-sm leading-relaxed">
-                {parsedData.map((item: any, index: number) => {
+                {data.map((item: any, index: number) => {
                     switch (item.type) {
                         case 'scene':
                             return (
@@ -27,6 +32,17 @@ export default function ParsedOutput({ data }: { data: any }) {
                                             <span className="text-xs text-gray-500 italic px-2 py-1 bg-gray-100 rounded">
                                                 {item.tone}
                                             </span>
+                                            <button
+                                                onClick={() =>
+                                                    onRoleChange(index, item.role === 'user' ? 'scene-partner' : 'user')
+                                                }
+                                                className={`text-xs px-2 py-1 rounded border ${item.role === 'user'
+                                                        ? 'bg-green-100 border-green-300 text-green-800'
+                                                        : 'bg-blue-100 border-blue-300 text-blue-800'
+                                                    }`}
+                                            >
+                                                {item.role === 'user' ? '🙋 You' : '🤖 Scene Partner'}
+                                            </button>
                                         </div>
                                         <div className="text-gray-800 leading-relaxed pl-4">
                                             {item.text}

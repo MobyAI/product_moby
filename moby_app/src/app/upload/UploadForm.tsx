@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { parseScriptFile } from '@/lib/api/parse';
 
 export default function UploadForm({ onParsed }: { onParsed: (data: any) => void }) {
     const [file, setFile] = useState<File | null>(null);
@@ -15,28 +16,19 @@ export default function UploadForm({ onParsed }: { onParsed: (data: any) => void
         setMessage('');
 
         try {
-            const formData = new FormData();
-            formData.append('file', file);
-
-            const res = await fetch('/api/parse', {
-                method: 'POST',
-                body: formData,
-            });
-
-            const data = await res.json();
-
-            if (res.ok) {
+            const parsedScript = await parseScriptFile(file);
+            if (parsedScript) {
                 setMessage('Script parsed successfully!');
-                onParsed(data.parsed);
+                onParsed(parsedScript);
             } else {
-                setMessage(`Error: ${data.error}`);
+                setMessage('Error: Failed to parse script.');
             }
         } catch (error) {
             setMessage('Error: Failed to parse script');
         } finally {
             setIsLoading(false);
         }
-    };
+    }
 
     return (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -51,8 +43,8 @@ export default function UploadForm({ onParsed }: { onParsed: (data: any) => void
                 type="submit"
                 disabled={!file || isLoading}
                 className={`px-4 py-2 rounded font-medium transition-colors ${!file || isLoading
-                        ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
                     }`}
             >
                 {isLoading ? (
