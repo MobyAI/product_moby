@@ -6,6 +6,7 @@ import { fetchScriptByID } from '@/lib/api/dbFunctions/scripts';
 import { fetchEmbedding, addEmbeddingsToScript } from '@/lib/api/embed';
 import { useElevenTTS } from '@/lib/api/elevenTTS';
 import { useGoogleTTS } from '@/lib/api/googleTTS';
+import { useVogentTTS } from '@/lib/api/vogentTTS';
 import { useGoogleSTT } from '@/lib/google/speechToText';
 import { useDeepgramSTT } from '@/lib/deepgram/speechToText';
 import type { ScriptElement } from '@/types/script';
@@ -581,6 +582,32 @@ export default function RehearsalRoomPage() {
         }
     };
 
+    const loadVogentTTS = async ({
+        text,
+        voiceId = '36b87413-6d7b-421d-8745-bc0897770d1e',
+    }: {
+        text: string;
+        voiceId?: string;
+    }) => {
+        try {
+            const blob = await useVogentTTS({
+                text,
+                voiceId,
+                temperature: 0.8,
+            });
+
+            const url = URL.createObjectURL(blob);
+            const audio = new Audio(url);
+            await audio.play();
+
+            audio.onended = () => {
+                URL.revokeObjectURL(url);
+            };
+        } catch (err) {
+            console.error('❌ Failed to load or play Vogent TTS audio:', err);
+        }
+    };
+
     if (loading) {
         return (
             <div className="p-6">
@@ -686,12 +713,13 @@ export default function RehearsalRoomPage() {
                                         voiceId:
                                             current.gender === 'male'
                                                 ? '1t1EeRixsJrKbiF1zwM6'
-                                                : 'uYXf8XasLslADfZ2MB4u',
+                                                : '56AoDkrOh6qfVPDXZ7Pt',
                                     });
                                 }}
                             >
-                                🔊 Generate Eleven TTS
+                                🔊 Eleven TTS
                             </button>
+                            <br />
                             <button
                                 onClick={() => {
                                     const tonePrefix =
@@ -712,7 +740,18 @@ export default function RehearsalRoomPage() {
                                     });
                                 }}
                             >
-                                🔊 Generate Google TTS
+                                🔊 Google TTS
+                            </button>
+                            <br />
+                            <button
+                                onClick={() => {
+                                    loadVogentTTS({
+                                        text: current.text,
+                                        voiceId: '94c32748-865f-42e1-bb1a-3a6b4abc7d11',
+                                    });
+                                }}
+                            >
+                                🔊 Vogent TTS
                             </button>
                         </>
                     )
