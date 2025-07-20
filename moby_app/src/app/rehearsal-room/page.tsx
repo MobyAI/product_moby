@@ -79,15 +79,21 @@ export default function RehearsalRoomPage() {
 
                     try {
                         const cachedAudio = await get(ttsCacheKey);
+
                         if (cachedAudio) {
                             const url = URL.createObjectURL(cachedAudio);
                             withTTS.push({ ...element, ttsUrl: url });
                             continue;
                         }
 
+                        const voiceId =
+                            element.gender === 'male'
+                                ? 'FIsP50cHv9JY47BkNVR7'
+                                : '56AoDkrOh6qfVPDXZ7Pt'
+
                         const blob = await useElevenTTS({
                             text: element.text,
-                            voiceId: 'JBFqnCBsd6RMkjVDRZzb',
+                            voiceId,
                             voiceSettings: {
                                 stability: 0.1,
                                 similarityBoost: 0.7,
@@ -139,9 +145,15 @@ export default function RehearsalRoomPage() {
                         // If no blob, regenerate
                         if (!blob) {
                             console.warn(`💡 TTS blob missing for line ${element.index}, regenerating...`);
+
+                            const voiceId =
+                                element.gender === 'male'
+                                    ? 'FIsP50cHv9JY47BkNVR7'
+                                    : '56AoDkrOh6qfVPDXZ7Pt'
+
                             blob = await useElevenTTS({
                                 text: element.text,
-                                voiceId: 'JBFqnCBsd6RMkjVDRZzb',
+                                voiceId,
                                 voiceSettings: {
                                     stability: 0.1,
                                     similarityBoost: 0.7,
@@ -288,9 +300,14 @@ export default function RehearsalRoomPage() {
                         console.warn(`🔁 No blob available for line ${element.index}, regenerating...`);
 
                         try {
+                            const voiceId =
+                                element.gender === 'male'
+                                    ? 'FIsP50cHv9JY47BkNVR7'
+                                    : '56AoDkrOh6qfVPDXZ7Pt'
+
                             blob = await useElevenTTS({
                                 text: element.text,
-                                voiceId: 'JBFqnCBsd6RMkjVDRZzb',
+                                voiceId,
                                 voiceSettings: {
                                     stability: 0.1,
                                     similarityBoost: 0.7,
@@ -510,7 +527,7 @@ export default function RehearsalRoomPage() {
     const loadElevenTTS = async ({
         text,
         voiceId = 'JBFqnCBsd6RMkjVDRZzb',
-        stability = 0.5,
+        stability = 0.4,
         similarityBoost = 0.8,
     }: {
         text: string;
@@ -712,7 +729,7 @@ export default function RehearsalRoomPage() {
                                         text: current.text,
                                         voiceId:
                                             current.gender === 'male'
-                                                ? '1t1EeRixsJrKbiF1zwM6'
+                                                ? 'FIsP50cHv9JY47BkNVR7'
                                                 : '56AoDkrOh6qfVPDXZ7Pt',
                                     });
                                 }}
