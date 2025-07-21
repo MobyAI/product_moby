@@ -7,6 +7,7 @@ export type ScriptElement = {
     tone?: string;
     role?: 'user' | 'scene-partner';
     lineEndKeywords?: string[];
+    actingInstructions?: string;
     expectedEmbedding?: number[];
     ttsUrl?: string;
 };

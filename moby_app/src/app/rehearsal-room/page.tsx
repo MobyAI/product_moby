@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { fetchScriptByID } from '@/lib/api/dbFunctions/scripts';
 import { fetchEmbedding, addEmbeddingsToScript } from '@/lib/api/embed';
+import { useHumeTTS } from '@/lib/api/humeTTS';
 import { useElevenTTS } from '@/lib/api/elevenTTS';
 import { useGoogleTTS } from '@/lib/api/googleTTS';
 import { useVogentTTS } from '@/lib/api/vogentTTS';
@@ -625,6 +626,41 @@ export default function RehearsalRoomPage() {
         }
     };
 
+    const loadHumeTTS = async ({
+        text,
+        voiceId,
+        voiceDescription,
+        contextUtterance,
+    }: {
+        text: string;
+        voiceId: string;
+        voiceDescription: string;
+        contextUtterance?: {
+            text: string;
+            description: string;
+        };
+    }) => {
+        try {
+            const blob = await useHumeTTS({
+                text,
+                voiceId,
+                voiceDescription,
+                contextUtterance,
+            });
+
+            const url = URL.createObjectURL(blob);
+
+            const audio = new Audio(url);
+            await audio.play();
+
+            audio.onended = () => {
+                URL.revokeObjectURL(url);
+            };
+        } catch (err) {
+            console.error('❌ Failed to load or play Hume TTS audio:', err);
+        }
+    };
+
     if (loading) {
         return (
             <div className="p-6">
@@ -729,7 +765,7 @@ export default function RehearsalRoomPage() {
                                         text: current.text,
                                         voiceId:
                                             current.gender === 'male'
-                                                ? 'FIsP50cHv9JY47BkNVR7'
+                                                ? 's3TPKV1kjDlVtZbl4Ksh'
                                                 : '56AoDkrOh6qfVPDXZ7Pt',
                                     });
                                 }}
@@ -769,6 +805,25 @@ export default function RehearsalRoomPage() {
                                 }}
                             >
                                 🔊 Vogent TTS
+                            </button>
+                            <br />
+                            <button
+                                onClick={() => {
+                                    const voiceId =
+                                        current.gender === 'male'
+                                            ? '89989d92-1de8-4e5d-97e4-23cd363e9788'
+                                            : current.gender === 'female'
+                                                ? '5bbc32c1-a1f6-44e8-bedb-9870f23619e2'
+                                                : 'c5be03fa-09cc-4fc3-8852-7f5a32b5606c'
+
+                                    loadHumeTTS({
+                                        text: current.text,
+                                        voiceId: voiceId,
+                                        voiceDescription: current.actingInstructions ?? '',
+                                    });
+                                }}
+                            >
+                                🔊 Hume TTS
                             </button>
                         </>
                     )
