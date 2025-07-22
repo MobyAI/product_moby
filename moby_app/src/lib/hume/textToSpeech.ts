@@ -11,10 +11,7 @@ export async function fetchTTSBlob({
     text: string;
     voiceId: string;
     voiceDescription?: string;
-    contextUtterance?: {
-        text: string;
-        description: string;
-    };
+    contextUtterance?: { text: string; description: string }[];
 }): Promise<Blob> {
     const body = {
         utterances: [
@@ -29,7 +26,7 @@ export async function fetchTTSBlob({
         ],
         ...(contextUtterance && {
             context: {
-                utterances: [contextUtterance],
+                utterances: contextUtterance,
             },
         }),
         format: {
@@ -39,11 +36,6 @@ export async function fetchTTSBlob({
     };
 
     const response = await client.tts.synthesizeJson({ body });
-
-    // const page = await client.tts.voices.list({
-    //     provider: "HUME_AI"
-    // });
-    // console.log('🗣️ Available voices:', page);
 
     const audio = response.generations?.[0]?.audio;
 

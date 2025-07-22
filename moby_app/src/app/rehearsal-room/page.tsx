@@ -69,47 +69,20 @@ export default function RehearsalRoomPage() {
         setEmbeddingError(false);
         setTTSLoadError(false);
 
-        const createHumeBatches = (lines: ScriptElement[]): ScriptElement[][] => {
-            const batches: ScriptElement[][] = [];
-            let currentBatch: ScriptElement[] = [];
-            let currentLength = 0;
-
-            for (const line of lines) {
-                const textLength = line.text.length;
-                const wouldExceedCharLimit = currentLength + textLength > 5000;
-                const wouldExceedBatchSize = currentBatch.length >= 5;
-
-                if (wouldExceedCharLimit || wouldExceedBatchSize) {
-                    batches.push(currentBatch);
-                    currentBatch = [];
-                    currentLength = 0;
-                }
-
-                currentBatch.push(line);
-                currentLength += textLength;
-            }
-
-            if (currentBatch.length > 0) {
-                batches.push(currentBatch);
-            }
-
-            return batches;
-        };
-
-        // Hume TTS -- No Batch
+        // Hume TTS -- No Batch + Context Utterances
         const addTTS = async (script: ScriptElement[]): Promise<[ScriptElement[], number[]]> => {
             const failedIndexes: number[] = [];
             const withTTS: ScriptElement[] = [];
 
-            for (const element of script) {
+            for (let i = 0; i < script.length; i++) {
+                const element = script[i];
+
                 if (element.type === 'line' && element.role === 'scene-partner') {
                     const ttsCacheKey = `tts:${userID}:${scriptID}:${element.index}`;
                     const voiceId =
                         element.gender === 'male'
                             ? 'c5be03fa-09cc-4fc3-8852-7f5a32b5606c'
-                            : element.gender === 'female'
-                                ? '5bbc32c1-a1f6-44e8-bedb-9870f23619e2'
-                                : '5bbc32c1-a1f6-44e8-bedb-9870f23619e2';
+                            : '5bbc32c1-a1f6-44e8-bedb-9870f23619e2';
 
                     try {
                         const cached = await get(ttsCacheKey);
@@ -119,10 +92,20 @@ export default function RehearsalRoomPage() {
                             continue;
                         }
 
+                        // 🔁 Use previous 2 lines as context utterances
+                        const contextUtterance = script
+                            .slice(Math.max(0, i - 2), i)
+                            .filter(l => l.type === 'line' && typeof l.text === 'string' && l.text.trim().length > 0)
+                            .map(l => ({
+                                text: l.text,
+                                description: (l as any).actingInstructions || '',
+                            }));
+
                         const blob = await useHumeTTS({
                             text: element.text,
                             voiceId,
                             voiceDescription: element.actingInstructions || '',
+                            contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined
                         });
 
                         try {
@@ -134,7 +117,7 @@ export default function RehearsalRoomPage() {
                         const url = URL.createObjectURL(blob);
                         withTTS.push({ ...element, ttsUrl: url });
 
-                        await new Promise((res) => setTimeout(res, 100)); // Optional throttle
+                        await new Promise((res) => setTimeout(res, 100));
                     } catch (err) {
                         console.warn(`⚠️ Failed to generate Hume TTS for line ${element.index}`, err);
                         failedIndexes.push(element.index);
@@ -152,7 +135,9 @@ export default function RehearsalRoomPage() {
             const hydrated: ScriptElement[] = [];
             const failedIndexes: number[] = [];
 
-            for (const element of script) {
+            for (let i = 0; i < script.length; i++) {
+                const element = script[i];
+
                 if (element.type === 'line' && element.role === 'scene-partner') {
                     const ttsCacheKey = `tts:${userID}:${scriptID}:${element.index}`;
                     const voiceId =
@@ -163,21 +148,31 @@ export default function RehearsalRoomPage() {
                     try {
                         let blob: Blob | undefined;
 
-                        // 🧪 Try loading from cache
+                        // Try loading from cache
                         try {
                             blob = await get(ttsCacheKey);
                         } catch (getErr) {
                             console.warn(`⚠️ Failed to read cache for line ${element.index}`, getErr);
                         }
 
-                        // 🔁 If missing, regenerate
+                        // If missing, regenerate with context
                         if (!blob) {
                             console.warn(`💡 TTS blob missing for line ${element.index}, regenerating with Hume...`);
+
+                            // Grab up to 2 previous lines as context
+                            const contextUtterance = script
+                                .slice(Math.max(0, i - 2), i)
+                                .filter((l) => l.type === 'line' && typeof l.text === 'string' && l.text.trim().length > 0)
+                                .map((l) => ({
+                                    text: l.text,
+                                    description: (l as any).actingInstructions || '',
+                                }));
 
                             blob = await useHumeTTS({
                                 text: element.text,
                                 voiceId,
                                 voiceDescription: element.actingInstructions || '',
+                                contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined,
                             });
 
                             try {
@@ -201,6 +196,140 @@ export default function RehearsalRoomPage() {
 
             return [hydrated, failedIndexes];
         };
+
+        // // Hume TTS -- No Batch + No Context Utterances
+
+        // const createHumeBatches = (lines: ScriptElement[]): ScriptElement[][] => {
+        //     const batches: ScriptElement[][] = [];
+        //     let currentBatch: ScriptElement[] = [];
+        //     let currentLength = 0;
+
+        //     for (const line of lines) {
+        //         const textLength = line.text.length;
+        //         const wouldExceedCharLimit = currentLength + textLength > 5000;
+        //         const wouldExceedBatchSize = currentBatch.length >= 5;
+
+        //         if (wouldExceedCharLimit || wouldExceedBatchSize) {
+        //             batches.push(currentBatch);
+        //             currentBatch = [];
+        //             currentLength = 0;
+        //         }
+
+        //         currentBatch.push(line);
+        //         currentLength += textLength;
+        //     }
+
+        //     if (currentBatch.length > 0) {
+        //         batches.push(currentBatch);
+        //     }
+
+        //     return batches;
+        // };
+
+        // const addTTS = async (script: ScriptElement[]): Promise<[ScriptElement[], number[]]> => {
+        //     const failedIndexes: number[] = [];
+        //     const withTTS: ScriptElement[] = [];
+
+        //     for (const element of script) {
+        //         if (element.type === 'line' && element.role === 'scene-partner') {
+        //             const ttsCacheKey = `tts:${userID}:${scriptID}:${element.index}`;
+        //             const voiceId =
+        //                 element.gender === 'male'
+        //                     ? 'c5be03fa-09cc-4fc3-8852-7f5a32b5606c'
+        //                     : element.gender === 'female'
+        //                         ? '5bbc32c1-a1f6-44e8-bedb-9870f23619e2'
+        //                         : '5bbc32c1-a1f6-44e8-bedb-9870f23619e2';
+
+        //             try {
+        //                 const cached = await get(ttsCacheKey);
+        //                 if (cached) {
+        //                     const url = URL.createObjectURL(cached);
+        //                     withTTS.push({ ...element, ttsUrl: url });
+        //                     continue;
+        //                 }
+
+        //                 const blob = await useHumeTTS({
+        //                     text: element.text,
+        //                     voiceId,
+        //                     voiceDescription: element.actingInstructions || '',
+        //                 });
+
+        //                 try {
+        //                     await set(ttsCacheKey, blob);
+        //                 } catch (setErr) {
+        //                     console.warn(`⚠️ Failed to store TTS blob in IndexedDB for line ${element.index}`, setErr);
+        //                 }
+
+        //                 const url = URL.createObjectURL(blob);
+        //                 withTTS.push({ ...element, ttsUrl: url });
+
+        //                 await new Promise((res) => setTimeout(res, 100)); // Optional throttle
+        //             } catch (err) {
+        //                 console.warn(`⚠️ Failed to generate Hume TTS for line ${element.index}`, err);
+        //                 failedIndexes.push(element.index);
+        //                 withTTS.push(element);
+        //             }
+        //         } else {
+        //             withTTS.push(element);
+        //         }
+        //     }
+
+        //     return [withTTS, failedIndexes];
+        // };
+
+        // const hydrateTTSUrls = async (script: ScriptElement[]): Promise<[ScriptElement[], number[]]> => {
+        //     const hydrated: ScriptElement[] = [];
+        //     const failedIndexes: number[] = [];
+
+        //     for (const element of script) {
+        //         if (element.type === 'line' && element.role === 'scene-partner') {
+        //             const ttsCacheKey = `tts:${userID}:${scriptID}:${element.index}`;
+        //             const voiceId =
+        //                 element.gender === 'male'
+        //                     ? 'c5be03fa-09cc-4fc3-8852-7f5a32b5606c'
+        //                     : '5bbc32c1-a1f6-44e8-bedb-9870f23619e2';
+
+        //             try {
+        //                 let blob: Blob | undefined;
+
+        //                 // 🧪 Try loading from cache
+        //                 try {
+        //                     blob = await get(ttsCacheKey);
+        //                 } catch (getErr) {
+        //                     console.warn(`⚠️ Failed to read cache for line ${element.index}`, getErr);
+        //                 }
+
+        //                 // 🔁 If missing, regenerate
+        //                 if (!blob) {
+        //                     console.warn(`💡 TTS blob missing for line ${element.index}, regenerating with Hume...`);
+
+        //                     blob = await useHumeTTS({
+        //                         text: element.text,
+        //                         voiceId,
+        //                         voiceDescription: element.actingInstructions || '',
+        //                     });
+
+        //                     try {
+        //                         await set(ttsCacheKey, blob);
+        //                     } catch (setErr) {
+        //                         console.warn(`⚠️ Failed to cache regenerated blob for line ${element.index}`, setErr);
+        //                     }
+        //                 }
+
+        //                 const url = URL.createObjectURL(blob);
+        //                 hydrated.push({ ...element, ttsUrl: url });
+        //             } catch (err) {
+        //                 console.warn(`❌ Failed to hydrate or regenerate Hume TTS for line ${element.index}`, err);
+        //                 failedIndexes.push(element.index);
+        //                 hydrated.push(element);
+        //             }
+        //         } else {
+        //             hydrated.push(element);
+        //         }
+        //     }
+
+        //     return [hydrated, failedIndexes];
+        // };
 
         // // Hume TTS -- Batch
         // const addTTS = async (script: ScriptElement[]): Promise<[ScriptElement[], number[]]> => {
@@ -581,34 +710,40 @@ export default function RehearsalRoomPage() {
                 failedIndexes.includes(element.index)
             ) {
                 const ttsCacheKey = `tts:${userID}:${scriptID}:${element.index}`;
+                const voiceId =
+                    element.gender === 'male'
+                        ? 'c5be03fa-09cc-4fc3-8852-7f5a32b5606c'
+                        : '5bbc32c1-a1f6-44e8-bedb-9870f23619e2';
 
                 try {
                     let blob: Blob | undefined;
 
-                    // Attempt to get from IndexedDB
+                    // Try to load from cache
                     try {
                         blob = await get(ttsCacheKey);
                     } catch (getErr) {
                         console.warn(`⚠️ Failed to get blob from IndexedDB for line ${element.index}`, getErr);
                     }
 
-                    // If not found, regenerate
+                    // If no blob, regenerate
                     if (!blob) {
                         console.warn(`🔁 No blob available for line ${element.index}, regenerating...`);
 
-                        try {
-                            const voiceId =
-                                element.gender === 'male'
-                                    ? 'FIsP50cHv9JY47BkNVR7'
-                                    : '56AoDkrOh6qfVPDXZ7Pt'
+                        // Provide up to 2 lines of context
+                        const contextUtterance = updatedScript
+                            .slice(Math.max(0, i - 2), i)
+                            .filter((l) => l.type === 'line' && typeof l.text === 'string' && l.text.trim().length > 0)
+                            .map((l) => ({
+                                text: l.text,
+                                description: (l as any).actingInstructions || '',
+                            }));
 
-                            blob = await useElevenTTS({
+                        try {
+                            blob = await useHumeTTS({
                                 text: element.text,
                                 voiceId,
-                                voiceSettings: {
-                                    stability: 0.1,
-                                    similarityBoost: 0.7,
-                                }
+                                voiceDescription: element.actingInstructions || '',
+                                contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined,
                             });
                         } catch (ttsErr) {
                             console.warn(`❌ TTS generation failed for line ${element.index}`, ttsErr);
@@ -616,7 +751,7 @@ export default function RehearsalRoomPage() {
                             continue;
                         }
 
-                        // Try to store regenerated blob
+                        // Store regenerated blob
                         try {
                             await set(ttsCacheKey, blob);
                         } catch (setErr) {
@@ -627,7 +762,7 @@ export default function RehearsalRoomPage() {
                     const url = URL.createObjectURL(blob);
                     updatedScript[i] = { ...element, ttsUrl: url };
 
-                    await new Promise((res) => setTimeout(res, 100));
+                    await new Promise((res) => setTimeout(res, 100)); // throttle
                 } catch (err) {
                     console.warn(`❌ Final fallback failed for line ${element.index}`, err);
                     stillFailed.push(element.index);
@@ -934,7 +1069,7 @@ export default function RehearsalRoomPage() {
         contextUtterance?: {
             text: string;
             description: string;
-        };
+        }[];
     }) => {
         try {
             const blob = await useHumeTTS({

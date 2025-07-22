@@ -10,7 +10,7 @@ export async function useHumeTTS({
     contextUtterance?: {
         text: string;
         description: string;
-    };
+    }[];
 }): Promise<Blob> {
     const res = await fetch('/api/TTS/hume', {
         method: 'POST',

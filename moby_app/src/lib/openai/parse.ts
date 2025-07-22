@@ -4,6 +4,7 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Catch scene directions inside lines and separate them from the line?
 export async function parseWithGPT(scriptText: string) {
     const prompt = `
 Parse the script into JSON. Each object must include:

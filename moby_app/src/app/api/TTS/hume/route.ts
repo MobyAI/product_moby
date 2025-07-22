@@ -7,7 +7,14 @@ export async function POST(req: Request) {
 
         if (!text || !voiceId || !voiceDescription) {
             return NextResponse.json(
-                { error: 'Missing required fields: text, voiceName, voiceDescription' },
+                { error: 'Missing required fields: text, voiceId, voiceDescription' },
+                { status: 400 }
+            );
+        }
+
+        if (contextUtterance && !Array.isArray(contextUtterance)) {
+            return NextResponse.json(
+                { error: 'contextUtterance must be an array of { text, description }' },
                 { status: 400 }
             );
         }
