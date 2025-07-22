@@ -27,3 +27,33 @@ export async function useHumeTTS({
 
     return await res.blob();
 }
+
+export async function useHumeTTSBatch(lines: {
+    text: string;
+    voiceId: string;
+    description?: string;
+}[]): Promise<Blob[]> {
+    const res = await fetch('/api/TTS/hume-batch', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ lines }),
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error?.error || 'Hume batch TTS request failed');
+    }
+
+    const { audioList } = await res.json();
+
+    return audioList.map((base64: string) => {
+        const binary = atob(base64);
+        const audioBytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            audioBytes[i] = binary.charCodeAt(i);
+        }
+        return new Blob([audioBytes], { type: 'audio/mpeg' });
+    });
+}  
