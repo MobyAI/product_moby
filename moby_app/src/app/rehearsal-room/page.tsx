@@ -528,7 +528,7 @@ export default function RehearsalRoomPage() {
     const loadElevenTTS = async ({
         text,
         voiceId = 'JBFqnCBsd6RMkjVDRZzb',
-        stability = 0.4,
+        stability = 0.3,
         similarityBoost = 0.8,
     }: {
         text: string;
