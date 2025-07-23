@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { fetchScriptByID } from '@/lib/api/dbFunctions/scripts';
 import { fetchEmbedding, addEmbeddingsToScript } from '@/lib/api/embed';
+import { fetchEmbeddingUrl, uploadEmbeddingBlob } from '@/lib/api/dbFunctions/embeddings';
 import { useHumeTTS, useHumeTTSBatch } from '@/lib/api/humeTTS';
 import { useElevenTTS } from '@/lib/api/elevenTTS';
 import { useGoogleTTS } from '@/lib/api/googleTTS';
@@ -39,6 +40,7 @@ export default function RehearsalRoomPage() {
     // Error handling
     const [storageError, setStorageError] = useState(false);
     const [embeddingError, setEmbeddingError] = useState(false);
+    const [embeddingFailedLines, setEmbeddingFailedLines] = useState<number[]>([]);
     const [ttsLoadError, setTTSLoadError] = useState(false);
     const [ttsFailedLines, setTTSFailedLines] = useState<number[]>([]);
 
@@ -65,6 +67,9 @@ export default function RehearsalRoomPage() {
     // Fetch script
     const loadScript = async () => {
         if (!userID || !scriptID) return;
+
+        // IndexedDB key
+        const scriptCacheKey = `script-cache:${userID}:${scriptID}`;
 
         setLoading(true);
         setStorageError(false);
@@ -227,43 +232,126 @@ export default function RehearsalRoomPage() {
             return [hydrated, failedIndexes];
         };
 
-        const scriptCacheKey = `script-cache:${userID}:${scriptID}`;
+        const hydrateEmbeddings = async (
+            script: ScriptElement[],
+            userID: string,
+            scriptID: string
+        ): Promise<[ScriptElement[], number[]]> => {
+            const hydrated: ScriptElement[] = [];
+            const failedIndexes: number[] = [];
+
+            for (let i = 0; i < script.length; i++) {
+                const element = script[i];
+
+                if (element.type === 'line' && element.role === 'user') {
+                    try {
+                        let embedding: number[] | null = null;
+
+                        // Try fetching from Firebase Storage
+                        try {
+                            const url = await fetchEmbeddingUrl({ userID, scriptID, index: element.index });
+                            const res = await fetch(url);
+                            const data = await res.json();
+                            embedding = data.embedding;
+                        } catch {
+                            console.warn(`💡 Embedding missing for line ${element.index}, regenerating...`);
+                        }
+
+                        // Regenerate and upload to storage
+                        if (!embedding) {
+                            embedding = await fetchEmbedding(element.text);
+                            if (!embedding) throw new Error('Embedding generation failed');
+
+                            try {
+                                const blob = new Blob([JSON.stringify({ embedding })], { type: 'application/json' });
+                                await uploadEmbeddingBlob({ userID, scriptID, index: element.index, blob });
+                            } catch (uploadErr) {
+                                console.warn(`⚠️ Failed to upload embedding for line ${element.index}`, uploadErr);
+                            }
+                        }
+
+                        hydrated.push({ ...element, expectedEmbedding: embedding });
+                    } catch (err) {
+                        console.warn(`❌ Failed to hydrate or regenerate embedding for line ${element.index}`, err);
+                        failedIndexes.push(element.index);
+                        hydrated.push(element);
+                    }
+                } else {
+                    hydrated.push(element);
+                }
+            }
+
+            return [hydrated, failedIndexes];
+        };
 
         try {
             setLoadStage('🔍 Checking local cache...');
             const cached = await get(scriptCacheKey);
 
             if (cached) {
-                const isFullyHydrated = cached.every((element: ScriptElement) =>
+                // Check if all TTS audio urls are in cache
+                const ttsFullyHydrated = cached.every((element: ScriptElement) =>
                     element.type === 'line' && element.role === 'scene-partner'
                         ? typeof element.ttsUrl === 'string' && element.ttsUrl.startsWith('https://')
                         : true
                 );
 
-                if (!isFullyHydrated) {
-                    setLoadStage('🔁 Hydrating TTS URLs from cached audio blobs...');
-                    let hydrated: ScriptElement[] = [];
-                    let failedIndexes: number[] = [];
+                // Check if all embeddings are in cache
+                const embeddingsFullyHydrated = cached.every((element: ScriptElement) =>
+                    element.type === 'line' && element.role === 'user'
+                        ? Array.isArray(element.expectedEmbedding) && element.expectedEmbedding.length > 0
+                        : true
+                );
 
-                    try {
-                        [hydrated, failedIndexes] = await hydrateTTSUrls(cached, userID, scriptID);
-                    } catch (ttsError) {
-                        console.error('❌ Critical failure in addTTS:', ttsError);
-                        setTTSLoadError(true);
-                        setTTSFailedLines(cached
-                            .filter((e: ScriptElement) => e.type === 'line' && e.role === 'scene-partner')
-                            .map((e: ScriptElement) => e.index)
-                        );
-                        hydrated = cached;
+                // If missing, attempt to add to cache
+                if (!ttsFullyHydrated || !embeddingsFullyHydrated) {
+                    let hydrated = cached;
+
+                    if (!ttsFullyHydrated) {
+                        setLoadStage('🔁 Hydrating TTS URLs from storage...');
+                        let failedIndexes: number[] = [];
+
+                        try {
+                            [hydrated, failedIndexes] = await hydrateTTSUrls(hydrated, userID, scriptID);
+                        } catch (ttsError) {
+                            console.error('❌ Critical failure in addTTS:', ttsError);
+                            setTTSLoadError(true);
+                            setTTSFailedLines(cached
+                                .filter((e: ScriptElement) => e.type === 'line' && e.role === 'scene-partner')
+                                .map((e: ScriptElement) => e.index)
+                            );
+                        }
+
+                        if (failedIndexes.length > 0) {
+                            console.log('Error occurred hydrating TTS urls');
+                            setTTSLoadError(true);
+                            setTTSFailedLines(failedIndexes);
+                        }
                     }
 
-                    if (failedIndexes.length > 0) {
-                        console.log('Error occurred hydrating TTS urls');
-                        setTTSLoadError(true);
-                        setTTSFailedLines(failedIndexes);
+                    if (!embeddingsFullyHydrated) {
+                        setLoadStage('🔁 Hydrating embeddings from storage...');
+                        let failedIndexes: number[] = [];
+
+                        try {
+                            [hydrated, failedIndexes] = await hydrateEmbeddings(hydrated, userID, scriptID);
+                        } catch (embedError) {
+                            console.error('❌ Critical failure in adding embeddings:', embedError);
+                            setEmbeddingError(true);
+                            setEmbeddingFailedLines(cached
+                                .filter((e: ScriptElement) => e.type === 'line' && e.role === 'user')
+                                .map((e: ScriptElement) => e.index)
+                            );
+                        }
+
+                        if (failedIndexes.length > 0) {
+                            console.log('Error occurred hydrating embeddings');
+                            setEmbeddingError(true);
+                            setEmbeddingFailedLines(failedIndexes);
+                        }
                     }
 
-                    // Try storing
+                    // Attempt to cache
                     setLoadStage('💾 Caching to IndexedDB...');
                     try {
                         await set(scriptCacheKey, hydrated);
@@ -295,11 +383,21 @@ export default function RehearsalRoomPage() {
                 setLoadStage('📐 Embedding lines...');
                 let embedded: any[];
                 try {
-                    embedded = await addEmbeddingsToScript(script);
+                    embedded = await addEmbeddingsToScript(script, userID, scriptID);
                 } catch (embedErr) {
                     console.error('❌ Failed to embed script:', embedErr);
                     setEmbeddingError(true);
                     return;
+                }
+
+                // Store failed embedding indexes for retry
+                const failedEmbeddingIndexes = embedded
+                    .filter((item) => item.type === 'line' && item.role === 'user' && !Array.isArray(item.expectedEmbedding))
+                    .map((item) => item.index);
+
+                if (failedEmbeddingIndexes.length > 0) {
+                    setEmbeddingError(true);
+                    setEmbeddingFailedLines(failedEmbeddingIndexes);
                 }
 
                 // Add TTS audio
@@ -319,13 +417,14 @@ export default function RehearsalRoomPage() {
                     withTTS = embedded;
                 }
 
+                // Store failed TTS line indexes for retry
                 if (failedIndexes.length > 0) {
                     console.log('Error occurred adding TTS urls');
                     setTTSLoadError(true);
                     setTTSFailedLines(failedIndexes);
                 }
 
-                // Try storing
+                // Attempt to cache
                 setLoadStage('💾 Caching to IndexedDB...');
                 try {
                     await set(scriptCacheKey, withTTS);

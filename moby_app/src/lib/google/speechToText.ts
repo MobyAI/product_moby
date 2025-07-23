@@ -77,6 +77,7 @@ export function useGoogleSTT({
 
         if (expectedEmbedding?.length) {
             const similarity = await fetchSimilarity(spokenLine, expectedEmbedding);
+            console.log('Similarity: ', similarity);
             if (similarity && similarity > 0.80) {
                 console.log("✅ Similarity passed (Google)!");
                 triggerNextLine(spokenLine);
