@@ -45,6 +45,25 @@ export async function fetchTTSAudioBlob({
     return await res.blob();
 }
 
+export async function fetchTTSAudioUrl({
+    userID,
+    scriptID,
+    index,
+}: {
+    userID: string;
+    scriptID: string;
+    index: number;
+}): Promise<string> {
+    const res = await fetch(`/api/tts/storage/${userID}/${scriptID}?index=${index}`);
+
+    if (!res.ok) {
+        throw new Error('Failed to fetch TTS audio URL');
+    }
+
+    const data = await res.json();
+    return data.url;
+}
+
 // Delete a TTS audio blob
 export async function deleteTTSAudioBlob({
     userID,
