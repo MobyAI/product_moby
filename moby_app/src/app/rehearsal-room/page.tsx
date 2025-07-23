@@ -72,7 +72,7 @@ export default function RehearsalRoomPage() {
         setTTSLoadError(false);
         setTTSFailedLines([]);
 
-        // Hume via Firebase Storage
+        // Hume TTS + Firebase Storage
         const addTTS = async (
             script: ScriptElement[],
             userID: string,
@@ -100,11 +100,13 @@ export default function RehearsalRoomPage() {
                             });
 
                             if (existingUrl) {
+                                console.log('Audio url found in storage! Skipping generation.');
                                 withTTS.push({ ...element, ttsUrl: existingUrl });
                                 continue;
                             }
                         } catch {
                             // Ignore and continue to generation
+                            console.log('Audio url not found. Continuing to generation.');
                         }
 
                         // Build context
@@ -148,11 +150,8 @@ export default function RehearsalRoomPage() {
                         withTTS.push({ ...element, ttsUrl: url });
 
                         await new Promise((res) => setTimeout(res, 100));
-                    } catch (err) {
-                        console.warn(
-                            `⚠️ Failed to generate or upload TTS for line ${element.index}`,
-                            err
-                        );
+                    } catch (error) {
+                        console.warn(`⚠️ Failed to generate or upload TTS for line ${element.index}`, error);
                         failedIndexes.push(element.index);
                         withTTS.push(element);
                     }
