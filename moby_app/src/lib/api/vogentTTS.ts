@@ -7,7 +7,7 @@ export async function useVogentTTS({
     voiceId: string;
     temperature?: number;
 }): Promise<Blob> {
-    const res = await fetch('/api/TTS/vogent', {
+    const res = await fetch('/api/tts/vogent', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

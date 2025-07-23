@@ -12,7 +12,7 @@ export async function useElevenTTS({
         similarityBoost?: number;
     };
 }): Promise<Blob> {
-    const res = await fetch('/api/TTS/elevenlabs', {
+    const res = await fetch('/api/tts/elevenlabs', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

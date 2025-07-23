@@ -7,7 +7,7 @@ export async function useGoogleTTS({
     voiceId?: string;
     gender?: 'MALE' | 'FEMALE' | 'NEUTRAL';
 }): Promise<Blob> {
-    const res = await fetch('/api/TTS/google', {
+    const res = await fetch('/api/tts/google', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

@@ -12,7 +12,7 @@ export async function useHumeTTS({
         description: string;
     }[];
 }): Promise<Blob> {
-    const res = await fetch('/api/TTS/hume', {
+    const res = await fetch('/api/tts/hume', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
