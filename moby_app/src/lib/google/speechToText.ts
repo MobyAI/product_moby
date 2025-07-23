@@ -55,9 +55,14 @@ export function useGoogleSTT({
     };
 
     const matchesEndPhrase = (transcript: string, keywords: string[]) => {
-        const normalize = (text: string) => text.toLowerCase().replace(/[\s.,!?'"“”\-]+/g, ' ').trim();
+        const normalize = (text: string) =>
+            text.toLowerCase().replace(/[\s.,!?'"“”\-]+/g, ' ').trim();
+
         const normTranscript = normalize(transcript);
-        return keywords.some((kw) => normTranscript.includes(normalize(kw)));
+
+        return keywords.every((kw) =>
+            normTranscript.includes(normalize(kw))
+        );
     };
 
     const handleFinalization = async (spokenLine: string) => {
