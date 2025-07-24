@@ -23,7 +23,7 @@ export async function uploadEmbeddingBlob({
     }
 }
 
-export async function fetchEmbeddingUrl({
+export async function fetchEmbeddingFromStorage({
     userID,
     scriptID,
     index,
@@ -31,14 +31,15 @@ export async function fetchEmbeddingUrl({
     userID: string;
     scriptID: string;
     index: number;
-}): Promise<string> {
+}): Promise<number[] | null> {
     const res = await fetch(`/api/embed/storage/${userID}/${scriptID}?index=${index}`);
     if (!res.ok) {
-        throw new Error('Failed to fetch embedding URL');
+        throw new Error('Failed to fetch embedding from storage');
     }
     const data = await res.json();
-    return data.url;
+    return data.embedding ?? null;
 }
+
 
 export async function deleteEmbeddingBlob({
     userID,

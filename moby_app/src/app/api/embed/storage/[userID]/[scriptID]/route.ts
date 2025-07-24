@@ -33,7 +33,13 @@ export async function GET(req: NextRequest, { params }: { params: RouteParams })
 
     try {
         const url = await getEmbeddingUrl(userID, scriptID, index);
-        return NextResponse.json({ url });
+
+        // Server-side fetch to avoid CORS
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Failed to fetch embedding content');
+        const embedding = await res.json();
+
+        return NextResponse.json({ embedding });
     } catch (err) {
         console.error(err);
         return NextResponse.json({ error: 'Failed to fetch embedding URL' }, { status: 500 });
