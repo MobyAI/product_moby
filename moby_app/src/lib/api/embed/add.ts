@@ -14,14 +14,12 @@ export async function addEmbedding(
     // Check Firebase Storage first
     try {
         embedding = await fetchEmbeddingFromStorage({ userID, scriptID, index: element.index });
-        console.log('embedding found!');
     } catch (err) {
         console.warn(`⚠️ No embedding in storage for line ${element.index}, generating...`, err);
     }
 
     // If not found, generate
     if (!embedding) {
-        console.log('no embedding found. regenerating..');
         embedding = await fetchEmbedding(element.text);
         if (!embedding) throw new Error(`Embedding generation failed for: "${element.text}"`);
 

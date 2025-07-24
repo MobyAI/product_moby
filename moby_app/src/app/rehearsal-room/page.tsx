@@ -64,6 +64,8 @@ export default function RehearsalRoomPage() {
     const loadScript = async () => {
         if (!userID || !scriptID) return;
 
+        const start = performance.now();
+
         // IndexedDB key
         const scriptCacheKey = `script-cache:${userID}:${scriptID}`;
 
@@ -261,12 +263,16 @@ export default function RehearsalRoomPage() {
                     setLoadStage('✅ Loaded and hydrated script from cache');
                     console.log('📦 Loaded and hydrated script from cache');
                     setScript(hydrated);
+                    const end = performance.now();
+                    console.log(`⏱️ Script loaded from cache in ${(end - start).toFixed(2)} ms`);
                     return;
                 }
 
                 setLoadStage('✅ Loaded fully hydrated script from cache');
                 console.log('📦 Loaded fully hydrated script from cache');
                 setScript(cached);
+                const end = performance.now();
+                console.log(`⏱️ Script loaded from cache in ${(end - start).toFixed(2)} ms`);
                 return;
             } else {
                 setLoadStage('🌐 Fetching script from Firestore...');
@@ -411,6 +417,9 @@ export default function RehearsalRoomPage() {
 
                 setLoadStage('✅ Script ready!');
                 setScript(withTTS);
+                const end = performance.now();
+                console.log(`⏱️ Script loaded from cache in ${(end - start).toFixed(2)} ms`);
+                return;
             }
         } catch (err) {
             // Display load error page
@@ -745,7 +754,7 @@ export default function RehearsalRoomPage() {
         );
     };
 
-    if (ttsLoadError || embeddingError ) {
+    if (ttsLoadError || embeddingError) {
         return (
             <div className="p-6 text-red-600">
                 <h1 className="text-xl font-bold">❌ Script Loading Failed</h1>
