@@ -569,12 +569,44 @@ export default function RehearsalRoomPage() {
         });
     };
 
+    // STT functions import
+    function useSTT({
+        provider,
+        lineEndKeywords,
+        expectedEmbedding,
+        onCueDetected,
+        onSilenceTimeout,
+    }: {
+        provider: 'google' | 'deepgram';
+        lineEndKeywords: string[];
+        expectedEmbedding: number[];
+        onCueDetected: () => void;
+        onSilenceTimeout: () => void;
+    }) {
+        const google = useGoogleSTT({
+            lineEndKeywords,
+            expectedEmbedding,
+            onCueDetected,
+            onSilenceTimeout,
+        });
+    
+        const deepgram = useDeepgramSTT({
+            lineEndKeywords,
+            expectedEmbedding,
+            onCueDetected,
+            onSilenceTimeout,
+        });
+    
+        return provider === 'google' ? google : deepgram;
+    }
+
     const {
         initializeSTT,
         startSTT,
         pauseSTT,
         cleanupSTT,
-    } = useGoogleSTT({
+    } = useSTT({
+        provider: sttProvider,
         lineEndKeywords: current?.lineEndKeywords ?? [],
         expectedEmbedding: current?.expectedEmbedding ?? [],
         onCueDetected: onUserLineMatched,
@@ -583,6 +615,21 @@ export default function RehearsalRoomPage() {
             setIsWaitingForUser(false);
         },
     });
+
+    // const {
+    //     initializeSTT,
+    //     startSTT,
+    //     pauseSTT,
+    //     cleanupSTT,
+    // } = useGoogleSTT({
+    //     lineEndKeywords: current?.lineEndKeywords ?? [],
+    //     expectedEmbedding: current?.expectedEmbedding ?? [],
+    //     onCueDetected: onUserLineMatched,
+    //     onSilenceTimeout: () => {
+    //         console.log('⏱️ Timeout reached');
+    //         setIsWaitingForUser(false);
+    //     },
+    // });
 
     // Deepgram useSTT import
     // const {
