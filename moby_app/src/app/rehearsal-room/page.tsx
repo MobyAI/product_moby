@@ -589,14 +589,14 @@ export default function RehearsalRoomPage() {
             onCueDetected,
             onSilenceTimeout,
         });
-    
+
         const deepgram = useDeepgramSTT({
             lineEndKeywords,
             expectedEmbedding,
             onCueDetected,
             onSilenceTimeout,
         });
-    
+
         return provider === 'google' ? google : deepgram;
     }
 
@@ -616,6 +616,7 @@ export default function RehearsalRoomPage() {
         },
     });
 
+    // Google useSTT
     // const {
     //     initializeSTT,
     //     startSTT,
@@ -631,7 +632,7 @@ export default function RehearsalRoomPage() {
     //     },
     // });
 
-    // Deepgram useSTT import
+    // Deepgram useSTT
     // const {
     //     initializeSTT,
     //     startSTT,
@@ -744,6 +745,24 @@ export default function RehearsalRoomPage() {
         );
     };
 
+    if (ttsLoadError || embeddingError ) {
+        return (
+            <div className="p-6 text-red-600">
+                <h1 className="text-xl font-bold">❌ Script Loading Failed</h1>
+                <p className="mt-2">Some parts of the script could not be hydrated.</p>
+                {ttsFailedLines.length > 0 && (
+                    <p>Failed TTS lines: {ttsFailedLines.join(', ')}</p>
+                )}
+                {embeddingFailedLines.length > 0 && (
+                    <p>Failed embedding lines: {embeddingFailedLines.join(', ')}</p>
+                )}
+                <button onClick={loadScript} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded">
+                    🔄 Retry Loading
+                </button>
+            </div>
+        );
+    }
+
     if (!script) {
         return (
             <div className="p-6">
@@ -756,23 +775,6 @@ export default function RehearsalRoomPage() {
     return (
         <div className="p-6 space-y-4">
             <h1 className="text-2xl font-bold">🎭 Rehearsal Room</h1>
-            {embeddingError && (
-                <div className="mt-4 text-red-600">
-                    Failed to embed all lines. Some lines may be missing expected match behavior.
-                    <br />
-                    <button
-                        className="mt-2 px-4 py-2 bg-red-600 text-white rounded"
-                        onClick={() => window.location.reload()}
-                    >
-                        🔁 Retry Embedding
-                    </button>
-                </div>
-            )}
-            {ttsLoadError && (
-                <div className="warning">
-                    ⚠️ Some lines failed to load TTS. You can still rehearse, but not all audio will play.
-                </div>
-            )}
             {storageError && (
                 <div className="mt-4">
                     <p className="text-red-600">🚫 Not enough space to store rehearsal data.</p>
@@ -780,7 +782,7 @@ export default function RehearsalRoomPage() {
                         onClick={async () => {
                             await clear();
                             setStorageError(false);
-                            window.location.reload();
+                            await loadScript();
                         }}
                         className="mt-2 px-4 py-2 bg-red-600 text-white rounded"
                     >
