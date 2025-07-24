@@ -3,15 +3,14 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { fetchScriptByID } from '@/lib/api/dbFunctions/scripts';
-import { fetchEmbedding, addEmbeddingsToScript, addEmbedding } from '@/lib/api/embed';
-import { fetchEmbeddingUrl, uploadEmbeddingBlob } from '@/lib/api/dbFunctions/embeddings';
-import { useHumeTTS, useHumeTTSBatch } from '@/lib/api/humeTTS';
+import { addEmbedding } from '@/lib/api/embed';
+import { useHumeTTS } from '@/lib/api/humeTTS';
 import { useElevenTTS } from '@/lib/api/elevenTTS';
 import { useGoogleTTS } from '@/lib/api/googleTTS';
 import { useVogentTTS } from '@/lib/api/vogentTTS';
 import { useGoogleSTT } from '@/lib/google/speechToText';
 import { useDeepgramSTT } from '@/lib/deepgram/speechToText';
-import { uploadTTSAudioBlob, fetchTTSAudioBlob, fetchTTSAudioUrl } from '@/lib/api/dbFunctions/audio/tts';
+import { uploadTTSAudioBlob, fetchTTSAudioUrl } from '@/lib/api/dbFunctions/audio/tts';
 import type { ScriptElement } from '@/types/script';
 import Deepgram from './deepgram';
 import GoogleSTT from './google';
