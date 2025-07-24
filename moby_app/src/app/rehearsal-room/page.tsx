@@ -4,10 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { fetchScriptByID } from '@/lib/api/dbFunctions/scripts';
 import { addEmbedding } from '@/lib/api/embed';
-import { addTTS, useHumeTTS } from '@/lib/api/tts';
-import { useElevenTTS } from '@/lib/api/elevenTTS';
-import { useGoogleTTS } from '@/lib/api/googleTTS';
-import { useVogentTTS } from '@/lib/api/vogentTTS';
+import { addTTS, useHumeTTS, useElevenTTS } from '@/lib/api/tts';
 import { useGoogleSTT } from '@/lib/google/speechToText';
 import { useDeepgramSTT } from '@/lib/deepgram/speechToText';
 import type { ScriptElement } from '@/types/script';
@@ -652,74 +649,6 @@ export default function RehearsalRoomPage() {
         }
     };
 
-    const getDefaultGoogleVoice = (gender: 'MALE' | 'FEMALE' | 'NEUTRAL' = 'MALE') => {
-        switch (gender) {
-            case 'FEMALE':
-                return 'en-US-Wavenet-F';
-            case 'NEUTRAL':
-                return 'en-US-Wavenet-C';
-            case 'MALE':
-            default:
-                return 'en-US-Wavenet-D';
-        }
-    };
-
-    const normalizedGender = (current?.gender?.toUpperCase?.() || 'MALE') as 'MALE' | 'FEMALE' | 'NEUTRAL';
-
-    const loadGoogleTTS = async ({
-        text,
-        voiceId = 'en-US-Wavenet-D',
-        gender = 'NEUTRAL',
-    }: {
-        text: string;
-        voiceId?: string;
-        gender?: 'MALE' | 'FEMALE' | 'NEUTRAL';
-    }) => {
-        try {
-            const blob = await useGoogleTTS({
-                text,
-                voiceId,
-                gender,
-            });
-
-            const url = URL.createObjectURL(blob);
-            const audio = new Audio(url);
-            await audio.play();
-
-            audio.onended = () => {
-                URL.revokeObjectURL(url);
-            };
-        } catch (err) {
-            console.error('❌ Failed to load or play TTS audio:', err);
-        }
-    };
-
-    const loadVogentTTS = async ({
-        text,
-        voiceId = '36b87413-6d7b-421d-8745-bc0897770d1e',
-    }: {
-        text: string;
-        voiceId?: string;
-    }) => {
-        try {
-            const blob = await useVogentTTS({
-                text,
-                voiceId,
-                temperature: 0.8,
-            });
-
-            const url = URL.createObjectURL(blob);
-            const audio = new Audio(url);
-            await audio.play();
-
-            audio.onended = () => {
-                URL.revokeObjectURL(url);
-            };
-        } catch (err) {
-            console.error('❌ Failed to load or play Vogent TTS audio:', err);
-        }
-    };
-
     const loadHumeTTS = async ({
         text,
         voiceId,
@@ -859,40 +788,6 @@ export default function RehearsalRoomPage() {
                                 }}
                             >
                                 🔊 Eleven TTS
-                            </button>
-                            <br />
-                            <button
-                                onClick={() => {
-                                    const tonePrefix =
-                                        typeof current.tone === 'string' && current.tone.trim().length > 0
-                                            ? current.tone
-                                                .trim()
-                                                .split(/\s+/)
-                                                .map((t) => `[${t}]`)
-                                                .join(' ') + ' '
-                                            : '';
-
-                                    const textWithTone = tonePrefix + current.text;
-
-                                    loadGoogleTTS({
-                                        text: current.text,
-                                        voiceId: getDefaultGoogleVoice(normalizedGender),
-                                        gender: normalizedGender,
-                                    });
-                                }}
-                            >
-                                🔊 Google TTS
-                            </button>
-                            <br />
-                            <button
-                                onClick={() => {
-                                    loadVogentTTS({
-                                        text: current.text,
-                                        voiceId: '94c32748-865f-42e1-bb1a-3a6b4abc7d11',
-                                    });
-                                }}
-                            >
-                                🔊 Vogent TTS
                             </button>
                             <br />
                             <button
