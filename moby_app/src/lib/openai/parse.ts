@@ -48,7 +48,7 @@ Your JSON must be parsable by JavaScript’s JSON.parse(). To ensure this:
 Example format:
 [
     { "index": 0, "type": "scene", "text": "INT. KITCHEN – DAY" },
-    { "index": 1, "type": "line", "character": "JANE", "gender", "text": "What are you doing here?", "tone": "suspicious", "lineEndKeywords": "doing", "here", "actingInstructions": "Suspicious and guarded, confronting someone unexpectedly." },
+    { "index": 1, "type": "line", "character": "JANE", "gender": "female", "text": "What are you doing here?", "tone": "suspicious", "lineEndKeywords": "doing", "here", "actingInstructions": "Suspicious and guarded, confronting someone unexpectedly." },
     { "index": 2, "type": "direction", "text": "He steps back cautiously." }
 ]
     

@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import UploadForm from './UploadForm';
 import ParsedOutput from './ParsedOutput';
 import { useRouter } from 'next/navigation';
 import { saveScript } from '@/lib/api/dbFunctions/scripts';
-// import { fetchEmbedding } from '@/lib/api/embed';
 import type { ScriptElement } from '@/types/script';
 
 export default function UploadPage() {
@@ -15,6 +14,10 @@ export default function UploadPage() {
 
     const router = useRouter();
     const userID = 'demo-user'; // Replace with real auth ID later
+
+    useEffect(() => {
+        console.log('updated script: ', parsedData);
+    }, [parsedData]);
 
     async function handleParsedScript(script: ScriptElement[]) {
         try {
@@ -38,14 +41,14 @@ export default function UploadPage() {
         );
     }
 
-    function handleRoleChange(index: number, role: 'user' | 'scene-partner') {
-        if (!parsedData) return;
-        const updated = parsedData.map((item, i) =>
-            i === index && item.type === 'line'
-                ? { ...item, role }
-                : item
-        );
-        setParsedData(updated);
+    function getUniqueCharacters(script: ScriptElement[]) {
+        const characters = new Set<string>();
+        for (const item of script) {
+            if (item.type === 'line' && typeof item.character === 'string') {
+                characters.add(item.character);
+            }
+        }
+        return Array.from(characters);
     }
 
     function updateCharacterRole(character: string, role: 'user' | 'scene-partner') {
@@ -60,14 +63,30 @@ export default function UploadPage() {
         setParsedData(updated);
     }
 
-    function getUniqueCharacters(script: ScriptElement[]) {
-        const characters = new Set<string>();
-        for (const item of script) {
-            if (item.type === 'line' && typeof item.character === 'string') {
-                characters.add(item.character);
-            }
-        }
-        return Array.from(characters);
+    function handleLineUpdate(index: number, updated: ScriptElement) {
+        if (!parsedData) return;
+
+        // Extract line end kw and remove punctuation
+        const words = updated.text.trim().split(/\s+/);
+
+        const clean = (word: string) =>
+            word.replace(/[^\w'-]/g, '').replace(/^['"]+|['"]+$/g, '');
+
+        const lastWords = words
+            .slice(-2)
+            .map(clean)
+            .filter(Boolean);
+
+        const updatedItem: ScriptElement = {
+            ...parsedData[index],
+            ...updated,
+            text: updated.text,
+            lineEndKeywords: lastWords,
+        };
+
+        const newData = [...parsedData];
+        newData[index] = updatedItem;
+        setParsedData(newData);
     }
 
     return (
@@ -108,8 +127,8 @@ export default function UploadPage() {
                                                 )
                                             }
                                             className={`text-xs px-2 py-1 rounded border ${currentRole === 'user'
-                                                    ? 'bg-green-100 border-green-300 text-green-800'
-                                                    : 'bg-blue-100 border-blue-300 text-blue-800'
+                                                ? 'bg-green-100 border-green-300 text-green-800'
+                                                : 'bg-blue-100 border-blue-300 text-blue-800'
                                                 }`}
                                         >
                                             {currentRole === 'user' ? '🙋 You' : '🤖 Scene Partner'}
@@ -121,6 +140,7 @@ export default function UploadPage() {
                     )}
                     <ParsedOutput
                         data={parsedData}
+                        onUpdateLine={handleLineUpdate}
                     />
                 </div>
             )}

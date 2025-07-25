@@ -12,6 +12,8 @@ export default function UploadForm({ onParsed }: { onParsed: (data: any) => void
         e.preventDefault();
         if (!file || isLoading) return;
 
+        const start = performance.now();
+
         setIsLoading(true);
         setMessage('');
 
@@ -20,6 +22,8 @@ export default function UploadForm({ onParsed }: { onParsed: (data: any) => void
             if (parsedScript) {
                 setMessage('Script parsed successfully!');
                 onParsed(parsedScript);
+                const end = performance.now();
+                console.log(`⏱️ Script loaded from cache in ${(end - start).toFixed(2)} ms`);
             } else {
                 setMessage('Error: Failed to parse script.');
             }
