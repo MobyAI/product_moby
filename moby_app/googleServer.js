@@ -2,6 +2,10 @@ const WebSocket = require('ws');
 const { SpeechClient } = require('@google-cloud/speech');
 require('dotenv').config();
 
+//
+// Need to add better error handling
+//
+
 const speechClient = new SpeechClient();
 
 const wss = new WebSocket.Server({ port: 3002 });

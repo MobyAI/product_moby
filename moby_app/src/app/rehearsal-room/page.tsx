@@ -27,7 +27,7 @@ export default function RehearsalRoomPage() {
     const [loading, setLoading] = useState(false);
     const [loadStage, setLoadStage] = useState<string | null>(null);
     const [script, setScript] = useState<ScriptElement[] | null>(null);
-    const [sttProvider, setSttProvider] = useState<'google' | 'deepgram'>('google');
+    const [sttProvider, setSttProvider] = useState<'google' | 'deepgram'>('deepgram');
 
     // Rehearsal flow
     const [isPlaying, setIsPlaying] = useState(false);
@@ -587,60 +587,48 @@ export default function RehearsalRoomPage() {
     };
 
     // STT functions import
-    // function useSTT({
-    //     provider,
-    //     lineEndKeywords,
-    //     expectedEmbedding,
-    //     onCueDetected,
-    //     onSilenceTimeout,
-    // }: {
-    //     provider: 'google' | 'deepgram';
-    //     lineEndKeywords: string[];
-    //     expectedEmbedding: number[];
-    //     onCueDetected: () => void;
-    //     onSilenceTimeout: () => void;
-    // }) {
-    //     const google = useGoogleSTT({
-    //         lineEndKeywords,
-    //         expectedEmbedding,
-    //         onCueDetected,
-    //         onSilenceTimeout,
-    //     });
+    function useSTT({
+        provider,
+        lineEndKeywords,
+        expectedEmbedding,
+        onCueDetected,
+        onSilenceTimeout,
+        onProgressUpdate,
+    }: {
+        provider: 'google' | 'deepgram';
+        lineEndKeywords: string[];
+        expectedEmbedding: number[];
+        onCueDetected: () => void;
+        onSilenceTimeout: () => void;
+        onProgressUpdate?: (matchedCount: number) => void;
+    }) {
+        const google = useGoogleSTT({
+            lineEndKeywords,
+            expectedEmbedding,
+            onCueDetected,
+            onSilenceTimeout,
+            onProgressUpdate,
+        });
 
-    //     const deepgram = useDeepgramSTT({
-    //         lineEndKeywords,
-    //         expectedEmbedding,
-    //         onCueDetected,
-    //         onSilenceTimeout,
-    //     });
+        const deepgram = useDeepgramSTT({
+            lineEndKeywords,
+            expectedEmbedding,
+            onCueDetected,
+            onSilenceTimeout,
+            onProgressUpdate,
+        });
 
-    //     return provider === 'google' ? google : deepgram;
-    // }
+        return provider === 'google' ? google : deepgram;
+    }
 
-    // const {
-    //     initializeSTT,
-    //     startSTT,
-    //     pauseSTT,
-    //     cleanupSTT,
-    // } = useSTT({
-    //     provider: sttProvider,
-    //     lineEndKeywords: current?.lineEndKeywords ?? [],
-    //     expectedEmbedding: current?.expectedEmbedding ?? [],
-    //     onCueDetected: onUserLineMatched,
-    //     onSilenceTimeout: () => {
-    //         console.log('⏱️ Timeout reached');
-    //         setIsWaitingForUser(false);
-    //     },
-    // });
-
-    // Google useSTT
     const {
         initializeSTT,
         startSTT,
         pauseSTT,
         cleanupSTT,
         setCurrentLineText,
-    } = useGoogleSTT({
+    } = useSTT({
+        provider: sttProvider,
         lineEndKeywords: current?.lineEndKeywords ?? [],
         expectedEmbedding: current?.expectedEmbedding ?? [],
         onCueDetected: onUserLineMatched,
@@ -650,6 +638,24 @@ export default function RehearsalRoomPage() {
         },
         onProgressUpdate: setSpokenWordCount,
     });
+
+    // Google useSTT
+    // const {
+    //     initializeSTT,
+    //     startSTT,
+    //     pauseSTT,
+    //     cleanupSTT,
+    //     setCurrentLineText,
+    // } = useGoogleSTT({
+    //     lineEndKeywords: current?.lineEndKeywords ?? [],
+    //     expectedEmbedding: current?.expectedEmbedding ?? [],
+    //     onCueDetected: onUserLineMatched,
+    //     onSilenceTimeout: () => {
+    //         console.log('⏱️ Timeout reached');
+    //         setIsWaitingForUser(false);
+    //     },
+    //     onProgressUpdate: setSpokenWordCount,
+    // });
 
     // Deepgram useSTT
     // const {

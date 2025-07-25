@@ -1,6 +1,10 @@
 import { useRef, RefObject } from 'react';
 import { fetchSimilarity } from '@/lib/api/embed';
 
+//
+// IMPORTANT: For openAI embedding: choose server near openAI's server for lower latency
+//
+
 interface UseGoogleSTTProps {
     lineEndKeywords: string[];
     onCueDetected: (transcript: string) => void;
@@ -16,6 +20,7 @@ export function useGoogleSTT({
     expectedEmbedding,
     onProgressUpdate,
 }: UseGoogleSTTProps) {
+    // STT setup
     const wsRef = useRef<WebSocket | null>(null);
     const micStreamRef = useRef<MediaStream | null>(null);
     const isActiveRef = useRef(false);
@@ -23,12 +28,16 @@ export function useGoogleSTT({
     const silenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const micCleanupRef = useRef<(() => void) | null>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
+
+    // Cue detection
     const fullTranscript = useRef<string[]>([]);
     const lastTranscriptRef = useRef<string | null>(null);
     const repeatCountRef = useRef<number>(0);
     const repeatStartTimeRef = useRef<number | null>(null);
     const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const hasTriggeredRef = useRef(false);
+
+    // Highlighting
     const expectedScriptTokenIDsRef = useRef<number[] | null>(null);
     const matchedScriptIndices = useRef<Set<number>>(new Set());
     const expectedScriptWordsRef = useRef<string[] | null>(null);
@@ -86,7 +95,7 @@ export function useGoogleSTT({
         return highest + 1;
     };
 
-    // STT helper functions
+    // STT helpers
     const triggerNextLine = (transcript: string) => {
         if (hasTriggeredRef.current) return false;
         hasTriggeredRef.current = true;
@@ -238,42 +247,6 @@ export function useGoogleSTT({
             isInitializingRef.current = false;
         }
     };
-
-    // const streamMic = async (wsRef: RefObject<WebSocket | null>) => {
-    //     if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
-    //         audioCtxRef.current = new AudioContext({ sampleRate: 44100 });
-    //         await audioCtxRef.current.audioWorklet.addModule('/linearPCMProcessor.js');
-    //     }
-
-    //     if (!micStreamRef.current) {
-    //         micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
-    //     }
-
-    //     const audioCtx = audioCtxRef.current!;
-    //     const source = audioCtx.createMediaStreamSource(micStreamRef.current);
-    //     const workletNode = new AudioWorkletNode(audioCtx, 'linear-pcm-processor');
-
-    //     workletNode.port.onmessage = (e: MessageEvent<Float32Array>) => {
-    //         const floatInput = e.data;
-    //         const buffer = convertFloat32ToInt16(floatInput);
-    //         if (wsRef.current?.readyState === WebSocket.OPEN) {
-    //             wsRef.current.send(buffer);
-    //         }
-    //     };
-
-    //     try {
-    //         source.connect(workletNode);
-    //         workletNode.connect(audioCtx.destination);
-    //     } catch (err) {
-    //         console.error('⚠️ Failed to connect audio nodes:', err);
-    //     }
-
-    //     return () => {
-    //         workletNode.port.onmessage = null;
-    //         source.disconnect();
-    //         workletNode.disconnect();
-    //     };
-    // };
 
     const resumeAudioContext = async () => {
         try {
