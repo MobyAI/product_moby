@@ -2,16 +2,15 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { fetchScriptByID } from '@/lib/api/dbFunctions/scripts';
-import { addEmbedding } from '@/lib/api/embed';
-import { addTTS, useHumeTTS, useElevenTTS } from '@/lib/api/tts';
+import { useHumeTTS, useElevenTTS } from '@/lib/api/tts';
 import { useGoogleSTT } from '@/lib/google/speechToText';
 import { useDeepgramSTT } from '@/lib/deepgram/speechToText';
 import type { ScriptElement } from '@/types/script';
+import { loadScript } from './loader';
+import { restoreSession, saveSession } from './session';
 import Deepgram from './deepgram';
 import GoogleSTT from './google';
-import { get, set, clear } from 'idb-keyval';
-import pLimit from 'p-limit';
+import { clear } from 'idb-keyval';
 
 export default function RehearsalRoomPage() {
     const searchParams = useSearchParams();
@@ -27,11 +26,13 @@ export default function RehearsalRoomPage() {
     const [loading, setLoading] = useState(false);
     const [loadStage, setLoadStage] = useState<string | null>(null);
     const [script, setScript] = useState<ScriptElement[] | null>(null);
-    const [sttProvider, setSttProvider] = useState<'google' | 'deepgram'>('google');
+    const [sttProvider, setSttProvider] = useState<'google' | 'deepgram'>('deepgram');
 
     // Rehearsal flow
+    const [currentIndex, setCurrentIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isWaitingForUser, setIsWaitingForUser] = useState(false);
+    const [spokenWordMap, setSpokenWordMap] = useState<Record<number, number>>({});
 
     // Error handling
     const [storageError, setStorageError] = useState(false);
@@ -40,412 +41,70 @@ export default function RehearsalRoomPage() {
     const [ttsLoadError, setTTSLoadError] = useState(false);
     const [ttsFailedLines, setTTSFailedLines] = useState<number[]>([]);
 
-    // Track current index in session storage
-    const storageKey = `rehearsal-cache:${scriptID}:index`;
-
-    const [currentIndex, setCurrentIndex] = useState(() => {
-        if (typeof window !== 'undefined') {
-            const saved = sessionStorage.getItem(storageKey);
-            return saved ? parseInt(saved, 10) : 0;
-        }
-        return 0;
-    });
-
-    // Stability check before storing current index
+    // Load script and restore session
     useEffect(() => {
+        if (!userID || !scriptID) return;
+
+        const init = async () => {
+            setLoading(true);
+            await loadScript({
+                userID,
+                scriptID,
+                setLoadStage,
+                setScript,
+                setStorageError,
+                setEmbeddingError,
+                setEmbeddingFailedLines,
+                setTTSLoadError,
+                setTTSFailedLines,
+            });
+            const restored = await restoreSession(scriptID);
+            if (restored) {
+                setCurrentIndex(restored.index ?? 0);
+                setSpokenWordMap(restored.spokenWordMap ?? {});
+            }
+            setLoadStage('✅ Ready!');
+            setLoading(false);
+        };
+
+        init();
+    }, [userID, scriptID]);
+
+    // Save Session
+    useEffect(() => {
+        if (!scriptID) return;
+
         const timeout = setTimeout(() => {
-            sessionStorage.setItem(storageKey, currentIndex.toString());
-        }, 300);
+            saveSession(scriptID, { index: currentIndex, spokenWordMap });
+        }, 1000);
 
         return () => clearTimeout(timeout);
     }, [currentIndex, scriptID]);
 
-    // Fetch script
-    const loadScript = async () => {
+    const retryLoadScript = async () => {
         if (!userID || !scriptID) return;
 
-        const start = performance.now();
-
-        // IndexedDB key
-        const scriptCacheKey = `script-cache:${userID}:${scriptID}`;
-
-        // Concurrent request limit
-        const limit = pLimit(3);
-
-        // Reset error states
-        setLoading(true);
-        setStorageError(false);
-        setEmbeddingError(false);
-        setEmbeddingFailedLines([]);
-        setTTSLoadError(false);
-        setTTSFailedLines([]);
-
-        try {
-            setLoadStage('🔍 Checking local cache...');
-            const cached = await get(scriptCacheKey);
-
-            if (cached) {
-                // Check if all TTS audio urls are in cache
-                const unhydratedTTSLines = cached
-                    .filter((element: ScriptElement) =>
-                        element.type === 'line' &&
-                        element.role === 'scene-partner' &&
-                        (typeof element.ttsUrl !== 'string' || element.ttsUrl.length === 0)
-                    )
-                    .map((element: ScriptElement) => element.index);
-
-
-                // Check if all embeddings are in cache
-                const unhydratedEmbeddingLines = cached
-                    .filter((element: ScriptElement) =>
-                        element.type === 'line' &&
-                        element.role === 'user' &&
-                        (!Array.isArray(element.expectedEmbedding) || element.expectedEmbedding.length === 0)
-                    )
-                    .map((element: ScriptElement) => element.index);
-
-
-                // If missing, attempt to add to cache
-                if (unhydratedTTSLines.length > 0 || unhydratedEmbeddingLines.length > 0) {
-                    let hydrated = cached;
-
-                    if (unhydratedTTSLines.length > 0) {
-                        setLoadStage('🔁 Hydrating TTS URLs from storage...');
-                        const ttsFailedIndexes: number[] = [];
-                        const unhydratedIndexes = new Set(unhydratedTTSLines);
-
-                        const updated: ScriptElement[] = await Promise.all(
-                            hydrated.map((element: ScriptElement) =>
-                                limit(async () => {
-                                    if (
-                                        element.type === 'line' &&
-                                        element.role === 'scene-partner' &&
-                                        unhydratedIndexes.has(element.index)
-                                    ) {
-                                        try {
-                                            const updatedElement = await addTTS(element, hydrated, userID, scriptID);
-                                            return updatedElement;
-                                        } catch (err) {
-                                            console.warn(`❌ addTTS failed for line ${element.index}`, err);
-                                            ttsFailedIndexes.push(element.index);
-                                            return element;
-                                        }
-                                    } else {
-                                        return element;
-                                    }
-                                })
-                            )
-                        );
-
-                        // Update hydrated
-                        hydrated = updated;
-
-                        // Retry
-                        if (ttsFailedIndexes.length > 0) {
-                            console.log('🔁 Retrying failed TTS hydration lines...');
-                            const retryFailed: number[] = [];
-                            const retryIndexes = new Set(ttsFailedIndexes);
-
-                            const retried: ScriptElement[] = await Promise.all(
-                                hydrated.map((element: ScriptElement) =>
-                                    limit(async () => {
-                                        if (
-                                            element.type === 'line' &&
-                                            element.role === 'scene-partner' &&
-                                            retryIndexes.has(element.index)
-                                        ) {
-                                            try {
-                                                const updatedElement = await addTTS(element, hydrated, userID, scriptID);
-                                                return updatedElement;
-                                            } catch (err) {
-                                                console.warn(`❌ Retry failed for TTS line ${element.index}`, err);
-                                                retryFailed.push(element.index);
-                                                return element;
-                                            }
-                                        } else {
-                                            return element;
-                                        }
-                                    })
-                                )
-                            );
-
-                            hydrated = retried;
-
-                            if (retryFailed.length > 0) {
-                                console.log('❌ Retry still failed for some TTS lines');
-                                setTTSLoadError(true);
-                                setTTSFailedLines(retryFailed);
-                            }
-                        }
-                    }
-
-                    if (unhydratedEmbeddingLines.length > 0) {
-                        setLoadStage('🔁 Hydrating embeddings from storage...');
-                        const embeddingFailedIndexes: number[] = [];
-                        const unhydratedIndexes = new Set(unhydratedEmbeddingLines);
-
-                        const updated: ScriptElement[] = await Promise.all(
-                            hydrated.map((element: ScriptElement) =>
-                                limit(async () => {
-                                    if (
-                                        element.type === 'line' &&
-                                        element.role === 'user' &&
-                                        unhydratedIndexes.has(element.index)
-                                    ) {
-                                        try {
-                                            const updatedElement = await addEmbedding(element, userID, scriptID);
-                                            return updatedElement;
-                                        } catch (err) {
-                                            console.warn(`❌ addEmbedding failed for line ${element.index}`, err);
-                                            embeddingFailedIndexes.push(element.index);
-                                            return element;
-                                        }
-                                    } else {
-                                        return element;
-                                    }
-                                })
-                            )
-                        );
-
-                        hydrated = updated;
-
-                        // Retry
-                        if (embeddingFailedIndexes.length > 0) {
-                            console.log('🔁 Retrying failed embedding hydration lines...');
-                            const retryFailed: number[] = [];
-                            const retryIndexes = new Set(embeddingFailedIndexes);
-
-                            const retried: ScriptElement[] = await Promise.all(
-                                hydrated.map((element: ScriptElement) =>
-                                    limit(async () => {
-                                        if (
-                                            element.type === 'line' &&
-                                            element.role === 'user' &&
-                                            retryIndexes.has(element.index)
-                                        ) {
-                                            try {
-                                                const updatedElement = await addEmbedding(element, userID, scriptID);
-                                                return updatedElement;
-                                            } catch (err) {
-                                                console.warn(`❌ Retry failed for embedding line ${element.index}`, err);
-                                                retryFailed.push(element.index);
-                                                return element;
-                                            }
-                                        } else {
-                                            return element;
-                                        }
-                                    })
-                                )
-                            );
-
-                            hydrated = retried;
-
-                            if (retryFailed.length > 0) {
-                                console.log('❌ Retry still failed for some embeddings');
-                                setEmbeddingError(true);
-                                setEmbeddingFailedLines(retryFailed);
-                            }
-                        }
-                    }
-
-                    // Attempt to cache
-                    setLoadStage('💾 Caching to IndexedDB...');
-                    try {
-                        await set(scriptCacheKey, hydrated);
-                        console.log('💾 Script cached successfully');
-                    } catch (err) {
-                        console.warn('⚠️ Failed to store script in IndexedDB:', err);
-                        if (isQuotaExceeded(err)) {
-                            setStorageError(true);
-                        }
-                    }
-
-                    setLoadStage('✅ Loaded and hydrated script from cache');
-                    console.log('📦 Loaded and hydrated script from cache');
-                    setScript(hydrated);
-                    const end = performance.now();
-                    console.log(`⏱️ Script loaded from cache in ${(end - start).toFixed(2)} ms`);
-                    return;
-                }
-
-                setLoadStage('✅ Loaded fully hydrated script from cache');
-                console.log('📦 Loaded fully hydrated script from cache');
-                setScript(cached);
-                const end = performance.now();
-                console.log(`⏱️ Script loaded from cache in ${(end - start).toFixed(2)} ms`);
-                return;
-            } else {
-                setLoadStage('🌐 Fetching script from Firestore...');
-                console.log('🌐 Fetching script from Firestore');
-                const data = await fetchScriptByID(userID, scriptID);
-                const script = data.script;
-
-                // Embed all user lines
-                setLoadStage('📐 Embedding lines...');
-                let embedded: ScriptElement[];
-                const embeddingFailedIndexes: number[] = [];
-
-                embedded = await Promise.all(
-                    script.map((element: ScriptElement) =>
-                        limit(async () => {
-                            if (element.type === 'line' && element.role === 'user') {
-                                try {
-                                    const updated = await addEmbedding(element, userID, scriptID);
-                                    return updated;
-                                } catch (err) {
-                                    console.warn(`❌ addEmbedding failed for line ${element.index}`, err);
-                                    embeddingFailedIndexes.push(element.index);
-                                    return element;
-                                }
-                            }
-                            return element;
-                        })
-                    )
-                );
-
-                // Retry
-                if (embeddingFailedIndexes.length > 0) {
-                    console.log('🔁 Retrying failed embedding lines...');
-                    const retryFailed: number[] = [];
-                    const retryIndexes = new Set(embeddingFailedIndexes);
-
-                    embedded = await Promise.all(
-                        embedded.map((element: ScriptElement) =>
-                            limit(async () => {
-                                if (
-                                    element.type === 'line' &&
-                                    element.role === 'user' &&
-                                    retryIndexes.has(element.index)
-                                ) {
-                                    try {
-                                        const updated = await addEmbedding(element, userID, scriptID);
-                                        if (
-                                            !Array.isArray(updated.expectedEmbedding) ||
-                                            updated.expectedEmbedding.length === 0
-                                        ) {
-                                            retryFailed.push(element.index);
-                                        }
-                                        return updated;
-                                    } catch (err) {
-                                        console.warn(`❌ Retry failed for embedding line ${element.index}`, err);
-                                        retryFailed.push(element.index);
-                                        return element;
-                                    }
-                                }
-                                return element;
-                            })
-                        )
-                    );
-
-                    if (retryFailed.length > 0) {
-                        console.error('❌ Retry still failed for some embeddings');
-                        setEmbeddingError(true);
-                        setEmbeddingFailedLines(retryFailed);
-                        return;
-                    }
-                }
-
-                // Add TTS audio
-                setLoadStage('🎤 Generating TTS...');
-                let withTTS: ScriptElement[] = [];
-                const ttsFailedIndexes: number[] = [];
-
-                withTTS = await Promise.all(
-                    embedded.map((element: ScriptElement) =>
-                        limit(async () => {
-                            if (element.type === 'line' && element.role === 'scene-partner') {
-                                try {
-                                    const updated = await addTTS(element, embedded, userID, scriptID);
-                                    return updated;
-                                } catch (err) {
-                                    console.warn(`❌ addTTS failed for line ${element.index}`, err);
-                                    ttsFailedIndexes.push(element.index);
-                                    return element;
-                                }
-                            }
-                            return element;
-                        })
-                    )
-                );
-
-                // Retry once if any failed
-                if (ttsFailedIndexes.length > 0) {
-                    console.log('🔁 Retrying failed TTS lines...');
-                    const retryFailed: number[] = [];
-                    const retryIndexes = new Set(ttsFailedIndexes);
-
-                    withTTS = await Promise.all(
-                        withTTS.map((element: ScriptElement) =>
-                            limit(async () => {
-                                if (
-                                    element.type === 'line' &&
-                                    element.role === 'scene-partner' &&
-                                    retryIndexes.has(element.index)
-                                ) {
-                                    try {
-                                        const updated = await addTTS(element, withTTS, userID, scriptID);
-                                        return updated;
-                                    } catch (err) {
-                                        console.warn(`❌ Retry failed for TTS line ${element.index}`, err);
-                                        retryFailed.push(element.index);
-                                        return element;
-                                    }
-                                }
-                                return element;
-                            })
-                        )
-                    );
-
-                    if (retryFailed.length > 0) {
-                        console.error('❌ Retry still failed for some TTS lines');
-                        setTTSLoadError(true);
-                        setTTSFailedLines(retryFailed);
-                    }
-                }
-
-                // Attempt to cache
-                setLoadStage('💾 Caching to IndexedDB...');
-                try {
-                    await set(scriptCacheKey, withTTS);
-                    console.log('💾 Script cached successfully');
-                } catch (err) {
-                    console.warn('⚠️ Failed to store script in IndexedDB:', err);
-                    if (isQuotaExceeded(err)) {
-                        setStorageError(true);
-                    }
-                }
-
-                setLoadStage('✅ Script ready!');
-                setScript(withTTS);
-                const end = performance.now();
-                console.log(`⏱️ Script loaded from cache in ${(end - start).toFixed(2)} ms`);
-                return;
-            }
-        } catch (err) {
-            // Display load error page
-            console.error('❌ Error loading script:', err);
-            setLoadStage('❌ Unexpected error loading script');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        setLoadStage(null);
-        loadScript();
-    }, [userID, scriptID]);
-
-    const isQuotaExceeded = (error: any) => {
-        return (
-            error &&
-            (error.name === 'QuotaExceededError' ||
-                error.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
-                error.message?.includes('maximum size'))
-        );
+        await loadScript({
+            userID,
+            scriptID,
+            setLoadStage,
+            setScript,
+            setStorageError,
+            setEmbeddingError,
+            setEmbeddingFailedLines,
+            setTTSLoadError,
+            setTTSFailedLines,
+        });
     };
 
     // Handle script flow
     const current = script?.find((el) => el.index === currentIndex) ?? null;
+
+    const prepareUserLine = (line: ScriptElement | undefined | null) => {
+        if (line?.type === 'line' && line.role === 'user' && typeof line.text === 'string') {
+            setCurrentLineText(line.text);
+        }
+    };
 
     useEffect(() => {
         if (!current || !isPlaying || isWaitingForUser) return;
@@ -511,53 +170,76 @@ export default function RehearsalRoomPage() {
         if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
 
         advanceTimeoutRef.current = setTimeout(() => {
-            setCurrentIndex((i) => {
-                const nextIndex = i + 1;
-                const endOfScript = nextIndex >= (script?.length ?? 0);
+            const nextIndex = currentIndex + 1;
+            const endOfScript = nextIndex >= (script?.length ?? 0);
 
-                if (endOfScript) {
-                    console.log('🎬 Rehearsal complete — cleaning up STT');
-                    cleanupSTT();
-                    setIsPlaying(false);
-                    return i;
-                }
+            if (endOfScript) {
+                console.log('🎬 Rehearsal complete — cleaning up STT');
+                cleanupSTT();
+                setIsPlaying(false);
+                return;
+            }
 
-                return nextIndex;
-            });
+            const nextLine = script?.find((el) => el.index === nextIndex);
+            prepareUserLine(nextLine);
 
+            setCurrentIndex(nextIndex);
             advanceTimeoutRef.current = null;
         }, delay);
     };
 
     const handlePlay = async () => {
         await initializeSTT();
+        const currentLine = script?.find(el => el.index === currentIndex);
+        prepareUserLine(currentLine);
         setIsPlaying(true);
     };
+
     const handlePause = () => {
-        pauseSTT();
-        setIsWaitingForUser(false);
         setIsPlaying(false);
+        setIsWaitingForUser(false);
+        pauseSTT();
 
         if (advanceTimeoutRef.current) {
             clearTimeout(advanceTimeoutRef.current);
             advanceTimeoutRef.current = null;
         }
     };
+
     const handleNext = () => {
-        setIsWaitingForUser(false);
-        setCurrentIndex((i) => Math.min(i + 1, (script?.length ?? 1) - 1));
         setIsPlaying(false);
+        setIsWaitingForUser(false);
+        setCurrentIndex((i) => {
+            const nextIndex = Math.min(i + 1, (script?.length ?? 1) - 1);
+            const nextLine = script?.find((el) => el.index === nextIndex);
+            prepareUserLine(nextLine);
+            return nextIndex;
+        });
     };
+
     const handlePrev = () => {
-        setIsWaitingForUser(false);
-        setCurrentIndex((i) => Math.max(i - 1, 0));
         setIsPlaying(false);
+        setIsWaitingForUser(false);
+        setCurrentIndex((i) => {
+            const prevIndex = Math.max(i - 1, 0);
+            const prevLine = script?.find((el) => el.index === prevIndex);
+            setSpokenWordMap((prevMap) => {
+                const newMap = { ...prevMap };
+                delete newMap[prevIndex];
+                return newMap;
+            });
+            prepareUserLine(prevLine);
+            return prevIndex;
+        });
     };
+
     const handleRestart = () => {
-        cleanupSTT();
-        setIsWaitingForUser(false);
-        setCurrentIndex(0);
         setIsPlaying(false);
+        setIsWaitingForUser(false);
+        cleanupSTT();
+        setCurrentIndex(0);
+        setSpokenWordMap({});
+        prepareUserLine(script?.find(el => el.index === 0));
     };
 
     const onUserLineMatched = () => {
@@ -574,6 +256,9 @@ export default function RehearsalRoomPage() {
                 return i;
             }
 
+            const nextLine = script?.find(el => el.index === nextIndex);
+            prepareUserLine(nextLine);
+
             return nextIndex;
         });
     };
@@ -585,18 +270,21 @@ export default function RehearsalRoomPage() {
         expectedEmbedding,
         onCueDetected,
         onSilenceTimeout,
+        onProgressUpdate,
     }: {
         provider: 'google' | 'deepgram';
         lineEndKeywords: string[];
         expectedEmbedding: number[];
         onCueDetected: () => void;
         onSilenceTimeout: () => void;
+        onProgressUpdate?: (matchedCount: number) => void;
     }) {
         const google = useGoogleSTT({
             lineEndKeywords,
             expectedEmbedding,
             onCueDetected,
             onSilenceTimeout,
+            onProgressUpdate,
         });
 
         const deepgram = useDeepgramSTT({
@@ -604,6 +292,7 @@ export default function RehearsalRoomPage() {
             expectedEmbedding,
             onCueDetected,
             onSilenceTimeout,
+            onProgressUpdate,
         });
 
         return provider === 'google' ? google : deepgram;
@@ -614,6 +303,7 @@ export default function RehearsalRoomPage() {
         startSTT,
         pauseSTT,
         cleanupSTT,
+        setCurrentLineText,
     } = useSTT({
         provider: sttProvider,
         lineEndKeywords: current?.lineEndKeywords ?? [],
@@ -623,6 +313,11 @@ export default function RehearsalRoomPage() {
             console.log('⏱️ Timeout reached');
             setIsWaitingForUser(false);
         },
+        onProgressUpdate: (count) => {
+            if (current?.type === 'line' && current.role === 'user') {
+                setSpokenWordMap(prev => ({ ...prev, [current.index]: count }));
+            }
+        },
     });
 
     // Google useSTT
@@ -631,6 +326,7 @@ export default function RehearsalRoomPage() {
     //     startSTT,
     //     pauseSTT,
     //     cleanupSTT,
+    //     setCurrentLineText,
     // } = useGoogleSTT({
     //     lineEndKeywords: current?.lineEndKeywords ?? [],
     //     expectedEmbedding: current?.expectedEmbedding ?? [],
@@ -639,6 +335,7 @@ export default function RehearsalRoomPage() {
     //         console.log('⏱️ Timeout reached');
     //         setIsWaitingForUser(false);
     //     },
+    //     onProgressUpdate: setSpokenWordCount,
     // });
 
     // Deepgram useSTT
@@ -657,6 +354,7 @@ export default function RehearsalRoomPage() {
     //     },
     // });
 
+    // Clean up STT
     useEffect(() => {
         const handleUnload = () => {
             cleanupSTT();
@@ -765,7 +463,7 @@ export default function RehearsalRoomPage() {
                 {embeddingFailedLines.length > 0 && (
                     <p>Failed embedding lines: {embeddingFailedLines.join(', ')}</p>
                 )}
-                <button onClick={loadScript} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded">
+                <button onClick={retryLoadScript} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded">
                     🔄 Retry Loading
                 </button>
             </div>
@@ -791,7 +489,7 @@ export default function RehearsalRoomPage() {
                         onClick={async () => {
                             await clear();
                             setStorageError(false);
-                            await loadScript();
+                            await retryLoadScript();
                         }}
                         className="mt-2 px-4 py-2 bg-red-600 text-white rounded"
                     >
@@ -812,7 +510,23 @@ export default function RehearsalRoomPage() {
                                         : current.role}
                             </p>
                         )}
-                        <p className="text-xl mt-2">{current.text}</p>
+                        {current.type === 'line' && current.role === 'user' ? (
+                            <p className="text-xl mt-2">
+                                {current.text.split(/\s+/).map((word, i) => {
+                                    const matched = spokenWordMap[current.index] ?? 0;
+                                    return (
+                                        <span
+                                            key={i}
+                                            className={i < matched ? 'font-bold' : 'text-gray-800'}
+                                        >
+                                            {word + ' '}
+                                        </span>
+                                    );
+                                })}
+                            </p>
+                        ) : (
+                            <p className="text-xl mt-2">{current.text}</p>
+                        )}
                         {current.type === 'line' && current.character && (
                             <p className="text-sm text-gray-500">– {current.character} ({current.tone})</p>
                         )}
@@ -888,23 +602,6 @@ export default function RehearsalRoomPage() {
                     Array.isArray(current.lineEndKeywords) &&
                     Array.isArray(current.expectedEmbedding) && (
                         <>
-                            {/* <div className="flex items-center gap-4 mb-4">
-                                <label className="text-sm font-medium">STT Provider:</label>
-                                <div className="flex border rounded overflow-hidden">
-                                    <button
-                                        onClick={() => setSttProvider('google')}
-                                        className={`px-4 py-1 text-sm ${sttProvider === 'google' ? 'bg-green-600 text-white' : 'bg-white text-gray-600'}`}
-                                    >
-                                        Google
-                                    </button>
-                                    <button
-                                        onClick={() => setSttProvider('deepgram')}
-                                        className={`px-4 py-1 text-sm ${sttProvider === 'deepgram' ? 'bg-green-600 text-white' : 'bg-white text-gray-600'}`}
-                                    >
-                                        Deepgram
-                                    </button>
-                                </div>
-                            </div> */}
                             {sttProvider === 'google' ? (
                                 <GoogleSTT
                                     character={current.character}

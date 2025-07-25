@@ -45,7 +45,7 @@ wss.on('connection', (clientSocket) => {
     // });
 
     clientSocket.on('message', (msg) => {
-        console.log('🎤 Receiving audio chunk from browser:', msg.length);
+        // console.log('🎤 Receiving audio chunk from browser:', msg.length);
         const audio = Buffer.from(msg);
         if (dgSocket.readyState === WebSocket.OPEN) {
             dgSocket.send(audio);
@@ -55,7 +55,7 @@ wss.on('connection', (clientSocket) => {
     // Forward Deepgram transcripts to browser
     dgSocket.on('message', (data) => {
         const message = data.toString();
-        console.log('🧠 Deepgram -> Server:', JSON.stringify(message, null, 2));
+        // console.log('🧠 Deepgram -> Server:', JSON.stringify(message, null, 2));
         clientSocket.send(data);
     });
 
