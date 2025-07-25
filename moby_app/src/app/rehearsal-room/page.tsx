@@ -827,7 +827,7 @@ export default function RehearsalRoomPage() {
                                 {current.text.split(/\s+/).map((word, i) => (
                                     <span
                                         key={i}
-                                        className={i < spokenWordCount ? 'font-bold text-green-600' : 'text-gray-800'}
+                                        className={i < spokenWordCount ? 'font-bold' : 'text-gray-800'}
                                     >
                                         {word + ' '}
                                     </span>

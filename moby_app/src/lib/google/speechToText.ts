@@ -34,6 +34,7 @@ export function useGoogleSTT({
     const expectedScriptWordsRef = useRef<string[] | null>(null);
     const lastReportedCount = useRef(0);
 
+    // Highlighting helper functions
     const normalizeWord = (word: string) =>
         word.toLowerCase().replace(/[^\w]/g, '');
 
@@ -48,10 +49,11 @@ export function useGoogleSTT({
         };
     })();
 
+    // Highlighting setup
     const setCurrentLineText = (text: string) => {
         matchedScriptIndices.current = new Set();
         lastReportedCount.current = 0;
-        
+
         const normalizedWords = text.trim().split(/\s+/).map(normalizeWord);
         expectedScriptWordsRef.current = normalizedWords;
 
@@ -59,6 +61,32 @@ export function useGoogleSTT({
         expectedScriptTokenIDsRef.current = tokenIDs;
     };
 
+    // Match word to highlight
+    const progressiveWordMatch = (
+        scriptWords: string[],
+        transcript: string,
+        used: Set<number>
+    ): number => {
+        const transcriptWords = transcript.trim().split(/\s+/).map(w => w.toLowerCase().replace(/[^\w]/g, ''));
+
+        let highest = -1;
+        let matchStartIndex = 0;
+
+        for (const word of transcriptWords) {
+            for (let i = matchStartIndex; i < scriptWords.length; i++) {
+                if (!used.has(i) && scriptWords[i] === word) {
+                    used.add(i);
+                    if (i > highest) highest = i;
+                    matchStartIndex = i + 1;
+                    break;
+                }
+            }
+        }
+
+        return highest + 1;
+    };
+
+    // STT helper functions
     const triggerNextLine = (transcript: string) => {
         if (hasTriggeredRef.current) return false;
         hasTriggeredRef.current = true;
@@ -131,34 +159,6 @@ export function useGoogleSTT({
             triggerNextLine(spokenLine);
         }
     };
-
-    function computeProgressiveWordMatch(
-        scriptWords: string[],
-        transcript: string,
-        used: Set<number>
-    ): number {
-        const transcriptWords = transcript.trim().split(/\s+/).map(w => w.toLowerCase().replace(/[^\w]/g, ''));
-
-        let highest = -1;
-        let matchStartIndex = 0;
-
-        for (const tWord of transcriptWords) {
-            for (let i = matchStartIndex; i < scriptWords.length; i++) {
-                if (!used.has(i) && scriptWords[i] === tWord) {
-                    used.add(i);
-                    if (i > highest) highest = i;
-                    matchStartIndex = i + 1;
-                    break;
-                }
-            }
-        }
-
-        used.forEach(i => {
-            if (i > highest) highest = i;
-        });
-
-        return highest + 1;
-    }
 
     const initializeSTT = async () => {
         if (isInitializingRef.current) {
@@ -339,7 +339,7 @@ export function useGoogleSTT({
                     const scriptWords = expectedScriptWordsRef.current;
 
                     if (scriptWords && !hasTriggeredRef.current) {
-                        const matchCount = computeProgressiveWordMatch(scriptWords, transcript, matchedScriptIndices.current);
+                        const matchCount = progressiveWordMatch(scriptWords, transcript, matchedScriptIndices.current);
 
                         if (matchCount > lastReportedCount.current) {
                             lastReportedCount.current = matchCount;
