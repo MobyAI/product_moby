@@ -41,6 +41,7 @@ export default function RehearsalRoomPage() {
     const [ttsLoadError, setTTSLoadError] = useState(false);
     const [ttsFailedLines, setTTSFailedLines] = useState<number[]>([]);
 
+    // Load script and restore session
     useEffect(() => {
         if (!userID || !scriptID) return;
 
@@ -69,6 +70,7 @@ export default function RehearsalRoomPage() {
         init();
     }, [userID, scriptID]);
 
+    // Save Session
     useEffect(() => {
         if (!scriptID) return;
 
@@ -352,6 +354,7 @@ export default function RehearsalRoomPage() {
     //     },
     // });
 
+    // Clean up STT
     useEffect(() => {
         const handleUnload = () => {
             cleanupSTT();
