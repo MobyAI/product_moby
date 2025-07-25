@@ -32,6 +32,7 @@ export default function RehearsalRoomPage() {
     // Rehearsal flow
     const [isPlaying, setIsPlaying] = useState(false);
     const [isWaitingForUser, setIsWaitingForUser] = useState(false);
+    const [spokenWordCount, setSpokenWordCount] = useState(0);
 
     // Error handling
     const [storageError, setStorageError] = useState(false);
@@ -507,6 +508,13 @@ export default function RehearsalRoomPage() {
         }
     }, [current, isPlaying, isWaitingForUser]);
 
+    useEffect(() => {
+        if (current?.type === 'line' && current.role === 'user' && typeof current.text === 'string') {
+            setSpokenWordCount(0);
+            setCurrentLineText(current.text);
+        }
+    }, [current?.index]);
+
     const autoAdvance = (delay = 1000) => {
         if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
 
@@ -579,59 +587,43 @@ export default function RehearsalRoomPage() {
     };
 
     // STT functions import
-    function useSTT({
-        provider,
-        lineEndKeywords,
-        expectedEmbedding,
-        onCueDetected,
-        onSilenceTimeout,
-    }: {
-        provider: 'google' | 'deepgram';
-        lineEndKeywords: string[];
-        expectedEmbedding: number[];
-        onCueDetected: () => void;
-        onSilenceTimeout: () => void;
-    }) {
-        const google = useGoogleSTT({
-            lineEndKeywords,
-            expectedEmbedding,
-            onCueDetected,
-            onSilenceTimeout,
-        });
+    // function useSTT({
+    //     provider,
+    //     lineEndKeywords,
+    //     expectedEmbedding,
+    //     onCueDetected,
+    //     onSilenceTimeout,
+    // }: {
+    //     provider: 'google' | 'deepgram';
+    //     lineEndKeywords: string[];
+    //     expectedEmbedding: number[];
+    //     onCueDetected: () => void;
+    //     onSilenceTimeout: () => void;
+    // }) {
+    //     const google = useGoogleSTT({
+    //         lineEndKeywords,
+    //         expectedEmbedding,
+    //         onCueDetected,
+    //         onSilenceTimeout,
+    //     });
 
-        const deepgram = useDeepgramSTT({
-            lineEndKeywords,
-            expectedEmbedding,
-            onCueDetected,
-            onSilenceTimeout,
-        });
+    //     const deepgram = useDeepgramSTT({
+    //         lineEndKeywords,
+    //         expectedEmbedding,
+    //         onCueDetected,
+    //         onSilenceTimeout,
+    //     });
 
-        return provider === 'google' ? google : deepgram;
-    }
+    //     return provider === 'google' ? google : deepgram;
+    // }
 
-    const {
-        initializeSTT,
-        startSTT,
-        pauseSTT,
-        cleanupSTT,
-    } = useSTT({
-        provider: sttProvider,
-        lineEndKeywords: current?.lineEndKeywords ?? [],
-        expectedEmbedding: current?.expectedEmbedding ?? [],
-        onCueDetected: onUserLineMatched,
-        onSilenceTimeout: () => {
-            console.log('⏱️ Timeout reached');
-            setIsWaitingForUser(false);
-        },
-    });
-
-    // Google useSTT
     // const {
     //     initializeSTT,
     //     startSTT,
     //     pauseSTT,
     //     cleanupSTT,
-    // } = useGoogleSTT({
+    // } = useSTT({
+    //     provider: sttProvider,
     //     lineEndKeywords: current?.lineEndKeywords ?? [],
     //     expectedEmbedding: current?.expectedEmbedding ?? [],
     //     onCueDetected: onUserLineMatched,
@@ -640,6 +632,24 @@ export default function RehearsalRoomPage() {
     //         setIsWaitingForUser(false);
     //     },
     // });
+
+    // Google useSTT
+    const {
+        initializeSTT,
+        startSTT,
+        pauseSTT,
+        cleanupSTT,
+        setCurrentLineText,
+    } = useGoogleSTT({
+        lineEndKeywords: current?.lineEndKeywords ?? [],
+        expectedEmbedding: current?.expectedEmbedding ?? [],
+        onCueDetected: onUserLineMatched,
+        onSilenceTimeout: () => {
+            console.log('⏱️ Timeout reached');
+            setIsWaitingForUser(false);
+        },
+        onProgressUpdate: setSpokenWordCount,
+    });
 
     // Deepgram useSTT
     // const {
@@ -812,7 +822,20 @@ export default function RehearsalRoomPage() {
                                         : current.role}
                             </p>
                         )}
-                        <p className="text-xl mt-2">{current.text}</p>
+                        {current.type === 'line' && current.role === 'user' ? (
+                            <p className="text-xl mt-2">
+                                {current.text.split(/\s+/).map((word, i) => (
+                                    <span
+                                        key={i}
+                                        className={i < spokenWordCount ? 'font-bold text-green-600' : 'text-gray-800'}
+                                    >
+                                        {word + ' '}
+                                    </span>
+                                ))}
+                            </p>
+                        ) : (
+                            <p className="text-xl mt-2">{current.text}</p>
+                        )}
                         {current.type === 'line' && current.character && (
                             <p className="text-sm text-gray-500">– {current.character} ({current.tone})</p>
                         )}

@@ -6,6 +6,7 @@ interface UseGoogleSTTProps {
     onCueDetected: (transcript: string) => void;
     onSilenceTimeout?: () => void;
     expectedEmbedding: number[];
+    onProgressUpdate?: (matchedCount: number) => void;
 }
 
 export function useGoogleSTT({
@@ -13,6 +14,7 @@ export function useGoogleSTT({
     onCueDetected,
     onSilenceTimeout,
     expectedEmbedding,
+    onProgressUpdate,
 }: UseGoogleSTTProps) {
     const wsRef = useRef<WebSocket | null>(null);
     const micStreamRef = useRef<MediaStream | null>(null);
@@ -27,10 +29,44 @@ export function useGoogleSTT({
     const repeatStartTimeRef = useRef<number | null>(null);
     const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const hasTriggeredRef = useRef(false);
+    const expectedScriptTokenIDsRef = useRef<number[] | null>(null);
+    const matchedScriptIndices = useRef<Set<number>>(new Set());
+    const expectedScriptWordsRef = useRef<string[] | null>(null);
+    const lastReportedCount = useRef(0);
+
+    const normalizeWord = (word: string) =>
+        word.toLowerCase().replace(/[^\w]/g, '');
+
+    const getTokenID = (() => {
+        const map = new Map<string, number>();
+        let nextID = 1;
+
+        return (word: string) => {
+            const norm = normalizeWord(word);
+            if (!map.has(norm)) map.set(norm, nextID++);
+            return map.get(norm)!;
+        };
+    })();
+
+    const setCurrentLineText = (text: string) => {
+        matchedScriptIndices.current = new Set();
+        lastReportedCount.current = 0;
+        
+        const normalizedWords = text.trim().split(/\s+/).map(normalizeWord);
+        expectedScriptWordsRef.current = normalizedWords;
+
+        const tokenIDs = normalizedWords.map(getTokenID);
+        expectedScriptTokenIDsRef.current = tokenIDs;
+    };
 
     const triggerNextLine = (transcript: string) => {
         if (hasTriggeredRef.current) return false;
         hasTriggeredRef.current = true;
+
+        if (expectedScriptWordsRef.current && onProgressUpdate) {
+            onProgressUpdate(expectedScriptWordsRef.current.length);
+        }
+
         pauseSTT();
         onCueDetected(transcript);
         return true;
@@ -95,6 +131,34 @@ export function useGoogleSTT({
             triggerNextLine(spokenLine);
         }
     };
+
+    function computeProgressiveWordMatch(
+        scriptWords: string[],
+        transcript: string,
+        used: Set<number>
+    ): number {
+        const transcriptWords = transcript.trim().split(/\s+/).map(w => w.toLowerCase().replace(/[^\w]/g, ''));
+
+        let highest = -1;
+        let matchStartIndex = 0;
+
+        for (const tWord of transcriptWords) {
+            for (let i = matchStartIndex; i < scriptWords.length; i++) {
+                if (!used.has(i) && scriptWords[i] === tWord) {
+                    used.add(i);
+                    if (i > highest) highest = i;
+                    matchStartIndex = i + 1;
+                    break;
+                }
+            }
+        }
+
+        used.forEach(i => {
+            if (i > highest) highest = i;
+        });
+
+        return highest + 1;
+    }
 
     const initializeSTT = async () => {
         if (isInitializingRef.current) {
@@ -271,6 +335,19 @@ export function useGoogleSTT({
                 resetSilenceTimeout();
                 resetSilenceTimer(transcript);
 
+                if (onProgressUpdate && transcript) {
+                    const scriptWords = expectedScriptWordsRef.current;
+
+                    if (scriptWords && !hasTriggeredRef.current) {
+                        const matchCount = computeProgressiveWordMatch(scriptWords, transcript, matchedScriptIndices.current);
+
+                        if (matchCount > lastReportedCount.current) {
+                            lastReportedCount.current = matchCount;
+                            onProgressUpdate(matchCount);
+                        }
+                    }
+                }
+
                 if (transcript === lastTranscriptRef.current) {
                     repeatCountRef.current += 1;
                     if (!repeatStartTimeRef.current) {
@@ -366,7 +443,7 @@ export function useGoogleSTT({
         }
     };
 
-    return { startSTT, pauseSTT, initializeSTT, cleanupSTT };
+    return { startSTT, pauseSTT, initializeSTT, cleanupSTT, setCurrentLineText };
 }
 
 function convertFloat32ToInt16(float32Array: Float32Array): ArrayBuffer {
