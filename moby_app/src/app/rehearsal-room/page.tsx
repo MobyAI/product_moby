@@ -30,9 +30,10 @@ export default function RehearsalRoomPage() {
     const [sttProvider, setSttProvider] = useState<'google' | 'deepgram'>('deepgram');
 
     // Rehearsal flow
+    const [currentIndex, setCurrentIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isWaitingForUser, setIsWaitingForUser] = useState(false);
-    const [spokenWordCount, setSpokenWordCount] = useState(0);
+    const [spokenWordMap, setSpokenWordMap] = useState<Record<number, number>>({});
 
     // Error handling
     const [storageError, setStorageError] = useState(false);
@@ -42,24 +43,24 @@ export default function RehearsalRoomPage() {
     const [ttsFailedLines, setTTSFailedLines] = useState<number[]>([]);
 
     // Track current index in session storage
-    const storageKey = `rehearsal-cache:${scriptID}:index`;
+    // const storageKey = `rehearsal-cache:${scriptID}:index`;
 
-    const [currentIndex, setCurrentIndex] = useState(() => {
-        if (typeof window !== 'undefined') {
-            const saved = sessionStorage.getItem(storageKey);
-            return saved ? parseInt(saved, 10) : 0;
-        }
-        return 0;
-    });
+    // const [currentIndex, setCurrentIndex] = useState(() => {
+    //     if (typeof window !== 'undefined') {
+    //         const saved = sessionStorage.getItem(storageKey);
+    //         return saved ? parseInt(saved, 10) : 0;
+    //     }
+    //     return 0;
+    // });
 
     // Stability check before storing current index
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            sessionStorage.setItem(storageKey, currentIndex.toString());
-        }, 300);
+    // useEffect(() => {
+    //     const timeout = setTimeout(() => {
+    //         sessionStorage.setItem(storageKey, currentIndex.toString());
+    //     }, 300);
 
-        return () => clearTimeout(timeout);
-    }, [currentIndex, scriptID]);
+    //     return () => clearTimeout(timeout);
+    // }, [currentIndex, scriptID]);
 
     // Fetch script
     const loadScript = async () => {
@@ -74,7 +75,6 @@ export default function RehearsalRoomPage() {
         const limit = pLimit(3);
 
         // Reset error states
-        setLoading(true);
         setStorageError(false);
         setEmbeddingError(false);
         setEmbeddingFailedLines([]);
@@ -426,15 +426,49 @@ export default function RehearsalRoomPage() {
             // Display load error page
             console.error('❌ Error loading script:', err);
             setLoadStage('❌ Unexpected error loading script');
-        } finally {
-            setLoading(false);
+        }
+    };
+
+    const restoreSession = async () => {
+        setLoadStage('🚀 Restoring session');
+        const restored = await get(`rehearsal-room-cache:${scriptID}:session`);
+        if (restored) {
+            setCurrentIndex(restored.index ?? 0);
+            setSpokenWordMap(restored.spokenWordMap ?? {});
+        }
+    };
+
+    const saveSession = async (scriptID: string, state: { index: number; spokenWordMap: Record<number, number> }) => {
+        const storageKey = `rehearsal-room-cache:${scriptID}:session`;
+        try {
+            await set(storageKey, state);
+            console.log('💾 Saved state to IndexedDB');
+        } catch (err) {
+            console.warn('⚠️ Failed to save rehearsal state:', err);
         }
     };
 
     useEffect(() => {
-        setLoadStage(null);
-        loadScript();
+        const init = async () => {
+            setLoading(true);
+            await loadScript();
+            await restoreSession();
+            setLoadStage('✅ Ready!');
+            setLoading(false);
+        }
+
+        init();
     }, [userID, scriptID]);
+
+    useEffect(() => {
+        if (!scriptID) return;
+
+        const timeout = setTimeout(() => {
+            saveSession(scriptID, { index: currentIndex, spokenWordMap });
+        }, 1000);
+
+        return () => clearTimeout(timeout);
+    }, [currentIndex, scriptID]);
 
     const isQuotaExceeded = (error: any) => {
         return (
@@ -447,6 +481,12 @@ export default function RehearsalRoomPage() {
 
     // Handle script flow
     const current = script?.find((el) => el.index === currentIndex) ?? null;
+
+    const prepareUserLine = (line: ScriptElement | undefined | null) => {
+        if (line?.type === 'line' && line.role === 'user' && typeof line.text === 'string') {
+            setCurrentLineText(line.text);
+        }
+    };
 
     useEffect(() => {
         if (!current || !isPlaying || isWaitingForUser) return;
@@ -508,64 +548,86 @@ export default function RehearsalRoomPage() {
         }
     }, [current, isPlaying, isWaitingForUser]);
 
-    useEffect(() => {
-        if (current?.type === 'line' && current.role === 'user' && typeof current.text === 'string') {
-            setSpokenWordCount(0);
-            setCurrentLineText(current.text);
-        }
-    }, [current?.index]);
+    // useEffect(() => {
+    //     if (current?.type === 'line' && current.role === 'user' && typeof current.text === 'string') {
+    //         setCurrentLineText(current.text);
+    //     }
+    // }, [current?.index]);
 
     const autoAdvance = (delay = 1000) => {
         if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
 
         advanceTimeoutRef.current = setTimeout(() => {
-            setCurrentIndex((i) => {
-                const nextIndex = i + 1;
-                const endOfScript = nextIndex >= (script?.length ?? 0);
+            const nextIndex = currentIndex + 1;
+            const endOfScript = nextIndex >= (script?.length ?? 0);
 
-                if (endOfScript) {
-                    console.log('🎬 Rehearsal complete — cleaning up STT');
-                    cleanupSTT();
-                    setIsPlaying(false);
-                    return i;
-                }
+            if (endOfScript) {
+                console.log('🎬 Rehearsal complete — cleaning up STT');
+                cleanupSTT();
+                setIsPlaying(false);
+                return;
+            }
 
-                return nextIndex;
-            });
+            const nextLine = script?.find((el) => el.index === nextIndex);
+            prepareUserLine(nextLine);
 
+            setCurrentIndex(nextIndex);
             advanceTimeoutRef.current = null;
         }, delay);
     };
 
     const handlePlay = async () => {
         await initializeSTT();
+        const currentLine = script?.find(el => el.index === currentIndex);
+        prepareUserLine(currentLine);
         setIsPlaying(true);
     };
+
     const handlePause = () => {
-        pauseSTT();
-        setIsWaitingForUser(false);
         setIsPlaying(false);
+        setIsWaitingForUser(false);
+        pauseSTT();
 
         if (advanceTimeoutRef.current) {
             clearTimeout(advanceTimeoutRef.current);
             advanceTimeoutRef.current = null;
         }
     };
+
     const handleNext = () => {
-        setIsWaitingForUser(false);
-        setCurrentIndex((i) => Math.min(i + 1, (script?.length ?? 1) - 1));
         setIsPlaying(false);
+        setIsWaitingForUser(false);
+        setCurrentIndex((i) => {
+            const nextIndex = Math.min(i + 1, (script?.length ?? 1) - 1);
+            const nextLine = script?.find((el) => el.index === nextIndex);
+            prepareUserLine(nextLine);
+            return nextIndex;
+        });
     };
+
     const handlePrev = () => {
-        setIsWaitingForUser(false);
-        setCurrentIndex((i) => Math.max(i - 1, 0));
         setIsPlaying(false);
+        setIsWaitingForUser(false);
+        setCurrentIndex((i) => {
+            const prevIndex = Math.max(i - 1, 0);
+            const prevLine = script?.find((el) => el.index === prevIndex);
+            setSpokenWordMap((prevMap) => {
+                const newMap = { ...prevMap };
+                delete newMap[prevIndex];
+                return newMap;
+            });
+            prepareUserLine(prevLine);
+            return prevIndex;
+        });
     };
+
     const handleRestart = () => {
-        cleanupSTT();
-        setIsWaitingForUser(false);
-        setCurrentIndex(0);
         setIsPlaying(false);
+        setIsWaitingForUser(false);
+        cleanupSTT();
+        setCurrentIndex(0);
+        setSpokenWordMap({});
+        prepareUserLine(script?.find(el => el.index === 0));
     };
 
     const onUserLineMatched = () => {
@@ -581,6 +643,9 @@ export default function RehearsalRoomPage() {
                 setIsPlaying(false);
                 return i;
             }
+
+            const nextLine = script?.find(el => el.index === nextIndex);
+            prepareUserLine(nextLine);
 
             return nextIndex;
         });
@@ -636,7 +701,11 @@ export default function RehearsalRoomPage() {
             console.log('⏱️ Timeout reached');
             setIsWaitingForUser(false);
         },
-        onProgressUpdate: setSpokenWordCount,
+        onProgressUpdate: (count) => {
+            if (current?.type === 'line' && current.role === 'user') {
+                setSpokenWordMap(prev => ({ ...prev, [current.index]: count }));
+            }
+        },
     });
 
     // Google useSTT
@@ -830,14 +899,17 @@ export default function RehearsalRoomPage() {
                         )}
                         {current.type === 'line' && current.role === 'user' ? (
                             <p className="text-xl mt-2">
-                                {current.text.split(/\s+/).map((word, i) => (
-                                    <span
-                                        key={i}
-                                        className={i < spokenWordCount ? 'font-bold' : 'text-gray-800'}
-                                    >
-                                        {word + ' '}
-                                    </span>
-                                ))}
+                                {current.text.split(/\s+/).map((word, i) => {
+                                    const matched = spokenWordMap[current.index] ?? 0;
+                                    return (
+                                        <span
+                                            key={i}
+                                            className={i < matched ? 'font-bold' : 'text-gray-800'}
+                                        >
+                                            {word + ' '}
+                                        </span>
+                                    );
+                                })}
                             </p>
                         ) : (
                             <p className="text-xl mt-2">{current.text}</p>
