@@ -3,17 +3,15 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { fetchScriptByID } from '@/lib/api/dbFunctions/scripts';
-import { fetchEmbedding, addEmbeddingsToScript } from '@/lib/api/embed';
-import { useHumeTTS, useHumeTTSBatch } from '@/lib/api/humeTTS';
-import { useElevenTTS } from '@/lib/api/elevenTTS';
-import { useGoogleTTS } from '@/lib/api/googleTTS';
-import { useVogentTTS } from '@/lib/api/vogentTTS';
+import { addEmbedding } from '@/lib/api/embed';
+import { addTTS, useHumeTTS, useElevenTTS } from '@/lib/api/tts';
 import { useGoogleSTT } from '@/lib/google/speechToText';
 import { useDeepgramSTT } from '@/lib/deepgram/speechToText';
 import type { ScriptElement } from '@/types/script';
 import Deepgram from './deepgram';
 import GoogleSTT from './google';
 import { get, set, clear } from 'idb-keyval';
+import pLimit from 'p-limit';
 
 export default function RehearsalRoomPage() {
     const searchParams = useSearchParams();
@@ -29,7 +27,7 @@ export default function RehearsalRoomPage() {
     const [loading, setLoading] = useState(false);
     const [loadStage, setLoadStage] = useState<string | null>(null);
     const [script, setScript] = useState<ScriptElement[] | null>(null);
-    const [sttProvider, setSttProvider] = useState<'google' | 'deepgram'>('deepgram');
+    const [sttProvider, setSttProvider] = useState<'google' | 'deepgram'>('google');
 
     // Rehearsal flow
     const [isPlaying, setIsPlaying] = useState(false);
@@ -38,6 +36,7 @@ export default function RehearsalRoomPage() {
     // Error handling
     const [storageError, setStorageError] = useState(false);
     const [embeddingError, setEmbeddingError] = useState(false);
+    const [embeddingFailedLines, setEmbeddingFailedLines] = useState<number[]>([]);
     const [ttsLoadError, setTTSLoadError] = useState(false);
     const [ttsFailedLines, setTTSFailedLines] = useState<number[]>([]);
 
@@ -65,569 +64,215 @@ export default function RehearsalRoomPage() {
     const loadScript = async () => {
         if (!userID || !scriptID) return;
 
-        setLoading(true);
-        setEmbeddingError(false);
-        setTTSLoadError(false);
+        const start = performance.now();
 
-        // Hume TTS -- No Batch + Context Utterances
-        const addTTS = async (script: ScriptElement[]): Promise<[ScriptElement[], number[]]> => {
-            const failedIndexes: number[] = [];
-            const withTTS: ScriptElement[] = [];
-
-            for (let i = 0; i < script.length; i++) {
-                const element = script[i];
-
-                if (element.type === 'line' && element.role === 'scene-partner') {
-                    const ttsCacheKey = `tts:${userID}:${scriptID}:${element.index}`;
-                    const voiceId =
-                        element.gender === 'male'
-                            ? 'c5be03fa-09cc-4fc3-8852-7f5a32b5606c'
-                            : '5bbc32c1-a1f6-44e8-bedb-9870f23619e2';
-
-                    try {
-                        const cached = await get(ttsCacheKey);
-                        if (cached) {
-                            const url = URL.createObjectURL(cached);
-                            withTTS.push({ ...element, ttsUrl: url });
-                            continue;
-                        }
-
-                        // 🔁 Use previous 2 lines as context utterances
-                        const contextUtterance = script
-                            .slice(Math.max(0, i - 2), i)
-                            .filter(l => l.type === 'line' && typeof l.text === 'string' && l.text.trim().length > 0)
-                            .map(l => ({
-                                text: l.text,
-                                description: (l as any).actingInstructions || '',
-                            }));
-
-                        const blob = await useHumeTTS({
-                            text: element.text,
-                            voiceId,
-                            voiceDescription: element.actingInstructions || '',
-                            contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined
-                        });
-
-                        try {
-                            await set(ttsCacheKey, blob);
-                        } catch (setErr) {
-                            console.warn(`⚠️ Failed to store TTS blob in IndexedDB for line ${element.index}`, setErr);
-                        }
-
-                        const url = URL.createObjectURL(blob);
-                        withTTS.push({ ...element, ttsUrl: url });
-
-                        await new Promise((res) => setTimeout(res, 100));
-                    } catch (err) {
-                        console.warn(`⚠️ Failed to generate Hume TTS for line ${element.index}`, err);
-                        failedIndexes.push(element.index);
-                        withTTS.push(element);
-                    }
-                } else {
-                    withTTS.push(element);
-                }
-            }
-
-            return [withTTS, failedIndexes];
-        };
-
-        const hydrateTTSUrls = async (script: ScriptElement[]): Promise<[ScriptElement[], number[]]> => {
-            const hydrated: ScriptElement[] = [];
-            const failedIndexes: number[] = [];
-
-            for (let i = 0; i < script.length; i++) {
-                const element = script[i];
-
-                if (element.type === 'line' && element.role === 'scene-partner') {
-                    const ttsCacheKey = `tts:${userID}:${scriptID}:${element.index}`;
-                    const voiceId =
-                        element.gender === 'male'
-                            ? 'c5be03fa-09cc-4fc3-8852-7f5a32b5606c'
-                            : '5bbc32c1-a1f6-44e8-bedb-9870f23619e2';
-
-                    try {
-                        let blob: Blob | undefined;
-
-                        // Try loading from cache
-                        try {
-                            blob = await get(ttsCacheKey);
-                        } catch (getErr) {
-                            console.warn(`⚠️ Failed to read cache for line ${element.index}`, getErr);
-                        }
-
-                        // If missing, regenerate with context
-                        if (!blob) {
-                            console.warn(`💡 TTS blob missing for line ${element.index}, regenerating with Hume...`);
-
-                            // Grab up to 2 previous lines as context
-                            const contextUtterance = script
-                                .slice(Math.max(0, i - 2), i)
-                                .filter((l) => l.type === 'line' && typeof l.text === 'string' && l.text.trim().length > 0)
-                                .map((l) => ({
-                                    text: l.text,
-                                    description: (l as any).actingInstructions || '',
-                                }));
-
-                            blob = await useHumeTTS({
-                                text: element.text,
-                                voiceId,
-                                voiceDescription: element.actingInstructions || '',
-                                contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined,
-                            });
-
-                            try {
-                                await set(ttsCacheKey, blob);
-                            } catch (setErr) {
-                                console.warn(`⚠️ Failed to cache regenerated blob for line ${element.index}`, setErr);
-                            }
-                        }
-
-                        const url = URL.createObjectURL(blob);
-                        hydrated.push({ ...element, ttsUrl: url });
-                    } catch (err) {
-                        console.warn(`❌ Failed to hydrate or regenerate Hume TTS for line ${element.index}`, err);
-                        failedIndexes.push(element.index);
-                        hydrated.push(element);
-                    }
-                } else {
-                    hydrated.push(element);
-                }
-            }
-
-            return [hydrated, failedIndexes];
-        };
-
-        // // Hume TTS -- No Batch + No Context Utterances
-
-        // const createHumeBatches = (lines: ScriptElement[]): ScriptElement[][] => {
-        //     const batches: ScriptElement[][] = [];
-        //     let currentBatch: ScriptElement[] = [];
-        //     let currentLength = 0;
-
-        //     for (const line of lines) {
-        //         const textLength = line.text.length;
-        //         const wouldExceedCharLimit = currentLength + textLength > 5000;
-        //         const wouldExceedBatchSize = currentBatch.length >= 5;
-
-        //         if (wouldExceedCharLimit || wouldExceedBatchSize) {
-        //             batches.push(currentBatch);
-        //             currentBatch = [];
-        //             currentLength = 0;
-        //         }
-
-        //         currentBatch.push(line);
-        //         currentLength += textLength;
-        //     }
-
-        //     if (currentBatch.length > 0) {
-        //         batches.push(currentBatch);
-        //     }
-
-        //     return batches;
-        // };
-
-        // const addTTS = async (script: ScriptElement[]): Promise<[ScriptElement[], number[]]> => {
-        //     const failedIndexes: number[] = [];
-        //     const withTTS: ScriptElement[] = [];
-
-        //     for (const element of script) {
-        //         if (element.type === 'line' && element.role === 'scene-partner') {
-        //             const ttsCacheKey = `tts:${userID}:${scriptID}:${element.index}`;
-        //             const voiceId =
-        //                 element.gender === 'male'
-        //                     ? 'c5be03fa-09cc-4fc3-8852-7f5a32b5606c'
-        //                     : element.gender === 'female'
-        //                         ? '5bbc32c1-a1f6-44e8-bedb-9870f23619e2'
-        //                         : '5bbc32c1-a1f6-44e8-bedb-9870f23619e2';
-
-        //             try {
-        //                 const cached = await get(ttsCacheKey);
-        //                 if (cached) {
-        //                     const url = URL.createObjectURL(cached);
-        //                     withTTS.push({ ...element, ttsUrl: url });
-        //                     continue;
-        //                 }
-
-        //                 const blob = await useHumeTTS({
-        //                     text: element.text,
-        //                     voiceId,
-        //                     voiceDescription: element.actingInstructions || '',
-        //                 });
-
-        //                 try {
-        //                     await set(ttsCacheKey, blob);
-        //                 } catch (setErr) {
-        //                     console.warn(`⚠️ Failed to store TTS blob in IndexedDB for line ${element.index}`, setErr);
-        //                 }
-
-        //                 const url = URL.createObjectURL(blob);
-        //                 withTTS.push({ ...element, ttsUrl: url });
-
-        //                 await new Promise((res) => setTimeout(res, 100)); // Optional throttle
-        //             } catch (err) {
-        //                 console.warn(`⚠️ Failed to generate Hume TTS for line ${element.index}`, err);
-        //                 failedIndexes.push(element.index);
-        //                 withTTS.push(element);
-        //             }
-        //         } else {
-        //             withTTS.push(element);
-        //         }
-        //     }
-
-        //     return [withTTS, failedIndexes];
-        // };
-
-        // const hydrateTTSUrls = async (script: ScriptElement[]): Promise<[ScriptElement[], number[]]> => {
-        //     const hydrated: ScriptElement[] = [];
-        //     const failedIndexes: number[] = [];
-
-        //     for (const element of script) {
-        //         if (element.type === 'line' && element.role === 'scene-partner') {
-        //             const ttsCacheKey = `tts:${userID}:${scriptID}:${element.index}`;
-        //             const voiceId =
-        //                 element.gender === 'male'
-        //                     ? 'c5be03fa-09cc-4fc3-8852-7f5a32b5606c'
-        //                     : '5bbc32c1-a1f6-44e8-bedb-9870f23619e2';
-
-        //             try {
-        //                 let blob: Blob | undefined;
-
-        //                 // 🧪 Try loading from cache
-        //                 try {
-        //                     blob = await get(ttsCacheKey);
-        //                 } catch (getErr) {
-        //                     console.warn(`⚠️ Failed to read cache for line ${element.index}`, getErr);
-        //                 }
-
-        //                 // 🔁 If missing, regenerate
-        //                 if (!blob) {
-        //                     console.warn(`💡 TTS blob missing for line ${element.index}, regenerating with Hume...`);
-
-        //                     blob = await useHumeTTS({
-        //                         text: element.text,
-        //                         voiceId,
-        //                         voiceDescription: element.actingInstructions || '',
-        //                     });
-
-        //                     try {
-        //                         await set(ttsCacheKey, blob);
-        //                     } catch (setErr) {
-        //                         console.warn(`⚠️ Failed to cache regenerated blob for line ${element.index}`, setErr);
-        //                     }
-        //                 }
-
-        //                 const url = URL.createObjectURL(blob);
-        //                 hydrated.push({ ...element, ttsUrl: url });
-        //             } catch (err) {
-        //                 console.warn(`❌ Failed to hydrate or regenerate Hume TTS for line ${element.index}`, err);
-        //                 failedIndexes.push(element.index);
-        //                 hydrated.push(element);
-        //             }
-        //         } else {
-        //             hydrated.push(element);
-        //         }
-        //     }
-
-        //     return [hydrated, failedIndexes];
-        // };
-
-        // // Hume TTS -- Batch
-        // const addTTS = async (script: ScriptElement[]): Promise<[ScriptElement[], number[]]> => {
-        //     const failedIndexes: number[] = [];
-        //     const withTTS: ScriptElement[] = [];
-
-        //     const linesToBatch: { line: ScriptElement; ttsCacheKey: string; voiceId: string }[] = [];
-
-        //     // First pass: check cache or mark for batching
-        //     for (const element of script) {
-        //         if (element.type === 'line' && element.role === 'scene-partner') {
-        //             const ttsCacheKey = `tts:${userID}:${scriptID}:${element.index}`;
-        //             const voiceId = element.gender === 'male'
-        //                 ? 'c5be03fa-09cc-4fc3-8852-7f5a32b5606c'
-        //                 : element.gender === 'female'
-        //                     ? '5bbc32c1-a1f6-44e8-bedb-9870f23619e2'
-        //                     : '5bbc32c1-a1f6-44e8-bedb-9870f23619e2';
-
-        //             try {
-        //                 const cached = await get(ttsCacheKey);
-        //                 if (cached) {
-        //                     const url = URL.createObjectURL(cached);
-        //                     withTTS.push({ ...element, ttsUrl: url });
-        //                 } else {
-        //                     linesToBatch.push({ line: element, ttsCacheKey, voiceId });
-        //                 }
-        //             } catch (err) {
-        //                 console.warn(`⚠️ Error checking cache for line ${element.index}`, err);
-        //                 linesToBatch.push({ line: element, ttsCacheKey, voiceId });
-        //             }
-        //         } else {
-        //             withTTS.push(element);
-        //         }
-        //     }
-
-        //     // Create batches from cache-missing lines
-        //     const batches = createHumeBatches(linesToBatch.map(({ line }) => line));
-
-        //     for (const batch of batches) {
-        //         const payload = batch.map((line) => {
-        //             const original = linesToBatch.find((item) => item.line.index === line.index);
-        //             return {
-        //                 text: line.text,
-        //                 description: line.actingInstructions || undefined,
-        //                 voiceId: original?.voiceId!,
-        //             };
-        //         });
-
-        //         try {
-        //             const blobs = await useHumeTTSBatch(payload);
-
-        //             for (let i = 0; i < batch.length; i++) {
-        //                 const element = batch[i];
-        //                 const blob = blobs[i];
-
-        //                 if (!blob) {
-        //                     failedIndexes.push(element.index);
-        //                     withTTS.push(element);
-        //                     continue;
-        //                 }
-
-        //                 const ttsCacheKey = `tts:${userID}:${scriptID}:${element.index}`;
-        //                 const url = URL.createObjectURL(blob);
-        //                 withTTS.push({ ...element, ttsUrl: url });
-
-        //                 try {
-        //                     await set(ttsCacheKey, blob);
-        //                 } catch (err) {
-        //                     console.warn(`⚠️ Failed to cache line ${element.index}`, err);
-        //                 }
-        //             }
-        //         } catch (err) {
-        //             console.warn('❌ Failed Hume TTS batch', err);
-        //             for (const line of batch) {
-        //                 failedIndexes.push(line.index);
-        //                 withTTS.push(line);
-        //             }
-        //         }
-        //     }
-
-        //     return [withTTS.sort((a, b) => a.index - b.index), failedIndexes];
-        // };
-
-        // const hydrateTTSUrls = async (script: ScriptElement[]): Promise<[ScriptElement[], number[]]> => {
-        //     const hydrated: ScriptElement[] = [];
-        //     const failedIndexes: number[] = [];
-
-        //     const linesToBatch: { line: ScriptElement; ttsCacheKey: string; voiceId: string }[] = [];
-
-        //     // First pass: try loading from cache
-        //     for (const element of script) {
-        //         if (element.type === 'line' && element.role === 'scene-partner') {
-        //             const ttsCacheKey = `tts:${userID}:${scriptID}:${element.index}`;
-        //             const voiceId = element.gender === 'male'
-        //                 ? '5bbc32c1-a1f6-44e8-bedb-9870f23619e2'
-        //                 : element.gender === 'female'
-        //                     ? '5bbc32c1-a1f6-44e8-bedb-9870f23619e2'
-        //                     : '5bbc32c1-a1f6-44e8-bedb-9870f23619e2';
-
-        //             try {
-        //                 const cached = await get(ttsCacheKey);
-        //                 if (cached) {
-        //                     const url = URL.createObjectURL(cached);
-        //                     hydrated.push({ ...element, ttsUrl: url });
-        //                 } else {
-        //                     linesToBatch.push({ line: element, ttsCacheKey, voiceId });
-        //                 }
-        //             } catch (err) {
-        //                 console.warn(`⚠️ Cache read error for line ${element.index}`, err);
-        //                 linesToBatch.push({ line: element, ttsCacheKey, voiceId });
-        //             }
-        //         } else {
-        //             hydrated.push(element);
-        //         }
-        //     }
-
-        //     // Regenerate any missing lines in batches
-        //     const batches = createHumeBatches(linesToBatch.map(({ line }) => line));
-
-        //     for (const batch of batches) {
-        //         const payload = batch.map((line) => {
-        //             const original = linesToBatch.find((item) => item.line.index === line.index);
-        //             return {
-        //                 text: line.text,
-        //                 description: line.actingInstructions || undefined,
-        //                 voiceId: original?.voiceId!,
-        //             };
-        //         });
-
-        //         try {
-        //             const blobs = await useHumeTTSBatch(payload);
-
-        //             for (let i = 0; i < batch.length; i++) {
-        //                 const element = batch[i];
-        //                 const blob = blobs[i];
-
-        //                 if (!blob) {
-        //                     failedIndexes.push(element.index);
-        //                     hydrated.push(element);
-        //                     continue;
-        //                 }
-
-        //                 const ttsCacheKey = `tts:${userID}:${scriptID}:${element.index}`;
-        //                 const url = URL.createObjectURL(blob);
-        //                 hydrated.push({ ...element, ttsUrl: url });
-
-        //                 try {
-        //                     await set(ttsCacheKey, blob);
-        //                 } catch (err) {
-        //                     console.warn(`⚠️ Failed to cache blob for line ${element.index}`, err);
-        //                 }
-        //             }
-        //         } catch (err) {
-        //             console.warn('❌ Failed Hume TTS batch during hydration:', err);
-        //             for (const line of batch) {
-        //                 failedIndexes.push(line.index);
-        //                 hydrated.push(line);
-        //             }
-        //         }
-        //     }
-
-        //     return [hydrated.sort((a, b) => a.index - b.index), failedIndexes];
-        // };
-
-        // 11labs -- Limited to 1 request at a time
-        // const addTTS = async (script: ScriptElement[]): Promise<[ScriptElement[], number[]]> => {
-        //     const failedIndexes: number[] = [];
-        //     const withTTS: ScriptElement[] = [];
-
-        //     for (const element of script) {
-        //         if (element.type === 'line' && element.role === 'scene-partner') {
-        //             const ttsCacheKey = `tts:${userID}:${scriptID}:${element.index}`;
-
-        //             try {
-        //                 const cachedAudio = await get(ttsCacheKey);
-
-        //                 if (cachedAudio) {
-        //                     const url = URL.createObjectURL(cachedAudio);
-        //                     withTTS.push({ ...element, ttsUrl: url });
-        //                     continue;
-        //                 }
-
-        //                 const voiceId =
-        //                     element.gender === 'male'
-        //                         ? 'FIsP50cHv9JY47BkNVR7'
-        //                         : '56AoDkrOh6qfVPDXZ7Pt'
-
-        //                 const blob = await useElevenTTS({
-        //                     text: element.text,
-        //                     voiceId,
-        //                     voiceSettings: {
-        //                         stability: 0.1,
-        //                         similarityBoost: 0.7,
-        //                     }
-        //                 });
-
-        //                 // Try storing the blob
-        //                 try {
-        //                     await set(ttsCacheKey, blob);
-        //                 } catch (setErr) {
-        //                     console.warn(`⚠️ Failed to store TTS blob in IndexedDB for line ${element.index}`, setErr);
-        //                 }
-
-        //                 const url = URL.createObjectURL(blob);
-        //                 withTTS.push({ ...element, ttsUrl: url });
-
-        //                 // Optional throttle
-        //                 await new Promise((res) => setTimeout(res, 100));
-        //             } catch (err) {
-        //                 console.warn(`⚠️ Failed to preload TTS for line ${element.index}`, err);
-        //                 failedIndexes.push(element.index);
-        //                 withTTS.push(element); // push original element without ttsUrl
-        //             }
-        //         } else {
-        //             withTTS.push(element);
-        //         }
-        //     }
-
-        //     return [withTTS, failedIndexes];
-        // };
-
-        // const hydrateTTSUrls = async (script: ScriptElement[]): Promise<[ScriptElement[], number[]]> => {
-        //     const hydrated: ScriptElement[] = [];
-        //     const failedIndexes: number[] = [];
-
-        //     for (const element of script) {
-        //         if (element.type === 'line' && element.role === 'scene-partner') {
-        //             const ttsCacheKey = `tts:${userID}:${scriptID}:${element.index}`;
-        //             try {
-        //                 let blob: Blob | undefined;
-
-        //                 // Try to load cached blob
-        //                 try {
-        //                     blob = await get(ttsCacheKey);
-        //                 } catch (getErr) {
-        //                     console.warn(`⚠️ Failed to read from IndexedDB for line ${element.index}`, getErr);
-        //                 }
-
-        //                 // If no blob, regenerate
-        //                 if (!blob) {
-        //                     console.warn(`💡 TTS blob missing for line ${element.index}, regenerating...`);
-
-        //                     const voiceId =
-        //                         element.gender === 'male'
-        //                             ? 'FIsP50cHv9JY47BkNVR7'
-        //                             : '56AoDkrOh6qfVPDXZ7Pt'
-
-        //                     blob = await useElevenTTS({
-        //                         text: element.text,
-        //                         voiceId,
-        //                         voiceSettings: {
-        //                             stability: 0.1,
-        //                             similarityBoost: 0.7,
-        //                         }
-        //                     });
-
-        //                     // Try to cache regenerated blob
-        //                     try {
-        //                         await set(ttsCacheKey, blob);
-        //                     } catch (setErr) {
-        //                         console.warn(`⚠️ Failed to store blob to IndexedDB for line ${element.index}`, setErr);
-        //                         // Proceed without storage — we still have the blob
-        //                     }
-        //                 }
-
-        //                 const url = URL.createObjectURL(blob);
-        //                 hydrated.push({ ...element, ttsUrl: url });
-        //             } catch (err) {
-        //                 console.warn(`❌ Failed to hydrate or regenerate TTS for line ${element.index}`, err);
-        //                 failedIndexes.push(element.index);
-        //                 hydrated.push(element); // fallback to line without ttsUrl
-        //             }
-        //         } else {
-        //             hydrated.push(element);
-        //         }
-        //     }
-
-        //     return [hydrated, failedIndexes];
-        // };
-
+        // IndexedDB key
         const scriptCacheKey = `script-cache:${userID}:${scriptID}`;
+
+        // Concurrent request limit
+        const limit = pLimit(3);
+
+        // Reset error states
+        setLoading(true);
+        setStorageError(false);
+        setEmbeddingError(false);
+        setEmbeddingFailedLines([]);
+        setTTSLoadError(false);
+        setTTSFailedLines([]);
 
         try {
             setLoadStage('🔍 Checking local cache...');
             const cached = await get(scriptCacheKey);
 
             if (cached) {
-                setLoadStage('🔁 Hydrating TTS URLs from cached audio blobs...');
-                const [hydrated, failedIndexes] = await hydrateTTSUrls(cached);
+                // Check if all TTS audio urls are in cache
+                const unhydratedTTSLines = cached
+                    .filter((element: ScriptElement) =>
+                        element.type === 'line' &&
+                        element.role === 'scene-partner' &&
+                        (typeof element.ttsUrl !== 'string' || element.ttsUrl.length === 0)
+                    )
+                    .map((element: ScriptElement) => element.index);
 
-                if (failedIndexes.length > 0) {
-                    setTTSLoadError(true);
-                    setTTSFailedLines(failedIndexes);
+
+                // Check if all embeddings are in cache
+                const unhydratedEmbeddingLines = cached
+                    .filter((element: ScriptElement) =>
+                        element.type === 'line' &&
+                        element.role === 'user' &&
+                        (!Array.isArray(element.expectedEmbedding) || element.expectedEmbedding.length === 0)
+                    )
+                    .map((element: ScriptElement) => element.index);
+
+
+                // If missing, attempt to add to cache
+                if (unhydratedTTSLines.length > 0 || unhydratedEmbeddingLines.length > 0) {
+                    let hydrated = cached;
+
+                    if (unhydratedTTSLines.length > 0) {
+                        setLoadStage('🔁 Hydrating TTS URLs from storage...');
+                        const ttsFailedIndexes: number[] = [];
+                        const unhydratedIndexes = new Set(unhydratedTTSLines);
+
+                        const updated: ScriptElement[] = await Promise.all(
+                            hydrated.map((element: ScriptElement) =>
+                                limit(async () => {
+                                    if (
+                                        element.type === 'line' &&
+                                        element.role === 'scene-partner' &&
+                                        unhydratedIndexes.has(element.index)
+                                    ) {
+                                        try {
+                                            const updatedElement = await addTTS(element, hydrated, userID, scriptID);
+                                            return updatedElement;
+                                        } catch (err) {
+                                            console.warn(`❌ addTTS failed for line ${element.index}`, err);
+                                            ttsFailedIndexes.push(element.index);
+                                            return element;
+                                        }
+                                    } else {
+                                        return element;
+                                    }
+                                })
+                            )
+                        );
+
+                        // Update hydrated
+                        hydrated = updated;
+
+                        // Retry
+                        if (ttsFailedIndexes.length > 0) {
+                            console.log('🔁 Retrying failed TTS hydration lines...');
+                            const retryFailed: number[] = [];
+                            const retryIndexes = new Set(ttsFailedIndexes);
+
+                            const retried: ScriptElement[] = await Promise.all(
+                                hydrated.map((element: ScriptElement) =>
+                                    limit(async () => {
+                                        if (
+                                            element.type === 'line' &&
+                                            element.role === 'scene-partner' &&
+                                            retryIndexes.has(element.index)
+                                        ) {
+                                            try {
+                                                const updatedElement = await addTTS(element, hydrated, userID, scriptID);
+                                                return updatedElement;
+                                            } catch (err) {
+                                                console.warn(`❌ Retry failed for TTS line ${element.index}`, err);
+                                                retryFailed.push(element.index);
+                                                return element;
+                                            }
+                                        } else {
+                                            return element;
+                                        }
+                                    })
+                                )
+                            );
+
+                            hydrated = retried;
+
+                            if (retryFailed.length > 0) {
+                                console.log('❌ Retry still failed for some TTS lines');
+                                setTTSLoadError(true);
+                                setTTSFailedLines(retryFailed);
+                            }
+                        }
+                    }
+
+                    if (unhydratedEmbeddingLines.length > 0) {
+                        setLoadStage('🔁 Hydrating embeddings from storage...');
+                        const embeddingFailedIndexes: number[] = [];
+                        const unhydratedIndexes = new Set(unhydratedEmbeddingLines);
+
+                        const updated: ScriptElement[] = await Promise.all(
+                            hydrated.map((element: ScriptElement) =>
+                                limit(async () => {
+                                    if (
+                                        element.type === 'line' &&
+                                        element.role === 'user' &&
+                                        unhydratedIndexes.has(element.index)
+                                    ) {
+                                        try {
+                                            const updatedElement = await addEmbedding(element, userID, scriptID);
+                                            return updatedElement;
+                                        } catch (err) {
+                                            console.warn(`❌ addEmbedding failed for line ${element.index}`, err);
+                                            embeddingFailedIndexes.push(element.index);
+                                            return element;
+                                        }
+                                    } else {
+                                        return element;
+                                    }
+                                })
+                            )
+                        );
+
+                        hydrated = updated;
+
+                        // Retry
+                        if (embeddingFailedIndexes.length > 0) {
+                            console.log('🔁 Retrying failed embedding hydration lines...');
+                            const retryFailed: number[] = [];
+                            const retryIndexes = new Set(embeddingFailedIndexes);
+
+                            const retried: ScriptElement[] = await Promise.all(
+                                hydrated.map((element: ScriptElement) =>
+                                    limit(async () => {
+                                        if (
+                                            element.type === 'line' &&
+                                            element.role === 'user' &&
+                                            retryIndexes.has(element.index)
+                                        ) {
+                                            try {
+                                                const updatedElement = await addEmbedding(element, userID, scriptID);
+                                                return updatedElement;
+                                            } catch (err) {
+                                                console.warn(`❌ Retry failed for embedding line ${element.index}`, err);
+                                                retryFailed.push(element.index);
+                                                return element;
+                                            }
+                                        } else {
+                                            return element;
+                                        }
+                                    })
+                                )
+                            );
+
+                            hydrated = retried;
+
+                            if (retryFailed.length > 0) {
+                                console.log('❌ Retry still failed for some embeddings');
+                                setEmbeddingError(true);
+                                setEmbeddingFailedLines(retryFailed);
+                            }
+                        }
+                    }
+
+                    // Attempt to cache
+                    setLoadStage('💾 Caching to IndexedDB...');
+                    try {
+                        await set(scriptCacheKey, hydrated);
+                        console.log('💾 Script cached successfully');
+                    } catch (err) {
+                        console.warn('⚠️ Failed to store script in IndexedDB:', err);
+                        if (isQuotaExceeded(err)) {
+                            setStorageError(true);
+                        }
+                    }
+
+                    setLoadStage('✅ Loaded and hydrated script from cache');
+                    console.log('📦 Loaded and hydrated script from cache');
+                    setScript(hydrated);
+                    const end = performance.now();
+                    console.log(`⏱️ Script loaded from cache in ${(end - start).toFixed(2)} ms`);
+                    return;
                 }
 
-                setLoadStage('✅ Loaded from cache');
-                console.log('📦 Loaded script from IndexedDB cache');
-                setScript(hydrated);
+                setLoadStage('✅ Loaded fully hydrated script from cache');
+                console.log('📦 Loaded fully hydrated script from cache');
+                setScript(cached);
+                const end = performance.now();
+                console.log(`⏱️ Script loaded from cache in ${(end - start).toFixed(2)} ms`);
                 return;
             } else {
                 setLoadStage('🌐 Fetching script from Firestore...');
@@ -637,26 +282,128 @@ export default function RehearsalRoomPage() {
 
                 // Embed all user lines
                 setLoadStage('📐 Embedding lines...');
-                let embedded: any[];
-                try {
-                    embedded = await addEmbeddingsToScript(script);
-                } catch (embedErr) {
-                    console.error('❌ Failed to embed script:', embedErr);
-                    setEmbeddingError(true);
-                    return;
+                let embedded: ScriptElement[];
+                const embeddingFailedIndexes: number[] = [];
+
+                embedded = await Promise.all(
+                    script.map((element: ScriptElement) =>
+                        limit(async () => {
+                            if (element.type === 'line' && element.role === 'user') {
+                                try {
+                                    const updated = await addEmbedding(element, userID, scriptID);
+                                    return updated;
+                                } catch (err) {
+                                    console.warn(`❌ addEmbedding failed for line ${element.index}`, err);
+                                    embeddingFailedIndexes.push(element.index);
+                                    return element;
+                                }
+                            }
+                            return element;
+                        })
+                    )
+                );
+
+                // Retry
+                if (embeddingFailedIndexes.length > 0) {
+                    console.log('🔁 Retrying failed embedding lines...');
+                    const retryFailed: number[] = [];
+                    const retryIndexes = new Set(embeddingFailedIndexes);
+
+                    embedded = await Promise.all(
+                        embedded.map((element: ScriptElement) =>
+                            limit(async () => {
+                                if (
+                                    element.type === 'line' &&
+                                    element.role === 'user' &&
+                                    retryIndexes.has(element.index)
+                                ) {
+                                    try {
+                                        const updated = await addEmbedding(element, userID, scriptID);
+                                        if (
+                                            !Array.isArray(updated.expectedEmbedding) ||
+                                            updated.expectedEmbedding.length === 0
+                                        ) {
+                                            retryFailed.push(element.index);
+                                        }
+                                        return updated;
+                                    } catch (err) {
+                                        console.warn(`❌ Retry failed for embedding line ${element.index}`, err);
+                                        retryFailed.push(element.index);
+                                        return element;
+                                    }
+                                }
+                                return element;
+                            })
+                        )
+                    );
+
+                    if (retryFailed.length > 0) {
+                        console.error('❌ Retry still failed for some embeddings');
+                        setEmbeddingError(true);
+                        setEmbeddingFailedLines(retryFailed);
+                        return;
+                    }
                 }
 
                 // Add TTS audio
                 setLoadStage('🎤 Generating TTS...');
-                const [withTTS, failedIndexes] = await addTTS(embedded);
+                let withTTS: ScriptElement[] = [];
+                const ttsFailedIndexes: number[] = [];
 
-                if (failedIndexes.length > 0) {
-                    setTTSLoadError(true);
-                    setTTSFailedLines(failedIndexes);
-                    return;
+                withTTS = await Promise.all(
+                    embedded.map((element: ScriptElement) =>
+                        limit(async () => {
+                            if (element.type === 'line' && element.role === 'scene-partner') {
+                                try {
+                                    const updated = await addTTS(element, embedded, userID, scriptID);
+                                    return updated;
+                                } catch (err) {
+                                    console.warn(`❌ addTTS failed for line ${element.index}`, err);
+                                    ttsFailedIndexes.push(element.index);
+                                    return element;
+                                }
+                            }
+                            return element;
+                        })
+                    )
+                );
+
+                // Retry once if any failed
+                if (ttsFailedIndexes.length > 0) {
+                    console.log('🔁 Retrying failed TTS lines...');
+                    const retryFailed: number[] = [];
+                    const retryIndexes = new Set(ttsFailedIndexes);
+
+                    withTTS = await Promise.all(
+                        withTTS.map((element: ScriptElement) =>
+                            limit(async () => {
+                                if (
+                                    element.type === 'line' &&
+                                    element.role === 'scene-partner' &&
+                                    retryIndexes.has(element.index)
+                                ) {
+                                    try {
+                                        const updated = await addTTS(element, withTTS, userID, scriptID);
+                                        return updated;
+                                    } catch (err) {
+                                        console.warn(`❌ Retry failed for TTS line ${element.index}`, err);
+                                        retryFailed.push(element.index);
+                                        return element;
+                                    }
+                                }
+                                return element;
+                            })
+                        )
+                    );
+
+                    if (retryFailed.length > 0) {
+                        console.error('❌ Retry still failed for some TTS lines');
+                        setTTSLoadError(true);
+                        setTTSFailedLines(retryFailed);
+                    }
                 }
 
-                // Try storing
+                // Attempt to cache
                 setLoadStage('💾 Caching to IndexedDB...');
                 try {
                     await set(scriptCacheKey, withTTS);
@@ -666,13 +413,16 @@ export default function RehearsalRoomPage() {
                     if (isQuotaExceeded(err)) {
                         setStorageError(true);
                     }
-                    return;
                 }
 
                 setLoadStage('✅ Script ready!');
                 setScript(withTTS);
+                const end = performance.now();
+                console.log(`⏱️ Script loaded from cache in ${(end - start).toFixed(2)} ms`);
+                return;
             }
         } catch (err) {
+            // Display load error page
             console.error('❌ Error loading script:', err);
             setLoadStage('❌ Unexpected error loading script');
         } finally {
@@ -692,87 +442,6 @@ export default function RehearsalRoomPage() {
                 error.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
                 error.message?.includes('maximum size'))
         );
-    };
-
-    const retryTTS = async (failedIndexes: number[]) => {
-        if (!script || !userID || !scriptID) return;
-
-        const updatedScript = [...script];
-        const stillFailed: number[] = [];
-        setTTSFailedLines([]);
-
-        for (let i = 0; i < updatedScript.length; i++) {
-            const element = updatedScript[i];
-
-            if (
-                element.type === 'line' &&
-                element.role === 'scene-partner' &&
-                failedIndexes.includes(element.index)
-            ) {
-                const ttsCacheKey = `tts:${userID}:${scriptID}:${element.index}`;
-                const voiceId =
-                    element.gender === 'male'
-                        ? 'c5be03fa-09cc-4fc3-8852-7f5a32b5606c'
-                        : '5bbc32c1-a1f6-44e8-bedb-9870f23619e2';
-
-                try {
-                    let blob: Blob | undefined;
-
-                    // Try to load from cache
-                    try {
-                        blob = await get(ttsCacheKey);
-                    } catch (getErr) {
-                        console.warn(`⚠️ Failed to get blob from IndexedDB for line ${element.index}`, getErr);
-                    }
-
-                    // If no blob, regenerate
-                    if (!blob) {
-                        console.warn(`🔁 No blob available for line ${element.index}, regenerating...`);
-
-                        // Provide up to 2 lines of context
-                        const contextUtterance = updatedScript
-                            .slice(Math.max(0, i - 2), i)
-                            .filter((l) => l.type === 'line' && typeof l.text === 'string' && l.text.trim().length > 0)
-                            .map((l) => ({
-                                text: l.text,
-                                description: (l as any).actingInstructions || '',
-                            }));
-
-                        try {
-                            blob = await useHumeTTS({
-                                text: element.text,
-                                voiceId,
-                                voiceDescription: element.actingInstructions || '',
-                                contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined,
-                            });
-                        } catch (ttsErr) {
-                            console.warn(`❌ TTS generation failed for line ${element.index}`, ttsErr);
-                            stillFailed.push(element.index);
-                            continue;
-                        }
-
-                        // Store regenerated blob
-                        try {
-                            await set(ttsCacheKey, blob);
-                        } catch (setErr) {
-                            console.warn(`⚠️ Failed to save blob to IndexedDB for line ${element.index}`, setErr);
-                        }
-                    }
-
-                    const url = URL.createObjectURL(blob);
-                    updatedScript[i] = { ...element, ttsUrl: url };
-
-                    await new Promise((res) => setTimeout(res, 100)); // throttle
-                } catch (err) {
-                    console.warn(`❌ Final fallback failed for line ${element.index}`, err);
-                    stillFailed.push(element.index);
-                }
-            }
-        }
-
-        setScript(updatedScript);
-        setTTSFailedLines(stillFailed);
-        setTTSLoadError(stillFailed.length > 0);
     };
 
     // Handle script flow
@@ -909,12 +578,44 @@ export default function RehearsalRoomPage() {
         });
     };
 
+    // STT functions import
+    function useSTT({
+        provider,
+        lineEndKeywords,
+        expectedEmbedding,
+        onCueDetected,
+        onSilenceTimeout,
+    }: {
+        provider: 'google' | 'deepgram';
+        lineEndKeywords: string[];
+        expectedEmbedding: number[];
+        onCueDetected: () => void;
+        onSilenceTimeout: () => void;
+    }) {
+        const google = useGoogleSTT({
+            lineEndKeywords,
+            expectedEmbedding,
+            onCueDetected,
+            onSilenceTimeout,
+        });
+
+        const deepgram = useDeepgramSTT({
+            lineEndKeywords,
+            expectedEmbedding,
+            onCueDetected,
+            onSilenceTimeout,
+        });
+
+        return provider === 'google' ? google : deepgram;
+    }
+
     const {
         initializeSTT,
         startSTT,
         pauseSTT,
         cleanupSTT,
-    } = useGoogleSTT({
+    } = useSTT({
+        provider: sttProvider,
         lineEndKeywords: current?.lineEndKeywords ?? [],
         expectedEmbedding: current?.expectedEmbedding ?? [],
         onCueDetected: onUserLineMatched,
@@ -924,7 +625,23 @@ export default function RehearsalRoomPage() {
         },
     });
 
-    // Deepgram useSTT import
+    // Google useSTT
+    // const {
+    //     initializeSTT,
+    //     startSTT,
+    //     pauseSTT,
+    //     cleanupSTT,
+    // } = useGoogleSTT({
+    //     lineEndKeywords: current?.lineEndKeywords ?? [],
+    //     expectedEmbedding: current?.expectedEmbedding ?? [],
+    //     onCueDetected: onUserLineMatched,
+    //     onSilenceTimeout: () => {
+    //         console.log('⏱️ Timeout reached');
+    //         setIsWaitingForUser(false);
+    //     },
+    // });
+
+    // Deepgram useSTT
     // const {
     //     initializeSTT,
     //     startSTT,
@@ -989,74 +706,6 @@ export default function RehearsalRoomPage() {
         }
     };
 
-    const getDefaultGoogleVoice = (gender: 'MALE' | 'FEMALE' | 'NEUTRAL' = 'MALE') => {
-        switch (gender) {
-            case 'FEMALE':
-                return 'en-US-Wavenet-F';
-            case 'NEUTRAL':
-                return 'en-US-Wavenet-C';
-            case 'MALE':
-            default:
-                return 'en-US-Wavenet-D';
-        }
-    };
-
-    const normalizedGender = (current?.gender?.toUpperCase?.() || 'MALE') as 'MALE' | 'FEMALE' | 'NEUTRAL';
-
-    const loadGoogleTTS = async ({
-        text,
-        voiceId = 'en-US-Wavenet-D',
-        gender = 'NEUTRAL',
-    }: {
-        text: string;
-        voiceId?: string;
-        gender?: 'MALE' | 'FEMALE' | 'NEUTRAL';
-    }) => {
-        try {
-            const blob = await useGoogleTTS({
-                text,
-                voiceId,
-                gender,
-            });
-
-            const url = URL.createObjectURL(blob);
-            const audio = new Audio(url);
-            await audio.play();
-
-            audio.onended = () => {
-                URL.revokeObjectURL(url);
-            };
-        } catch (err) {
-            console.error('❌ Failed to load or play TTS audio:', err);
-        }
-    };
-
-    const loadVogentTTS = async ({
-        text,
-        voiceId = '36b87413-6d7b-421d-8745-bc0897770d1e',
-    }: {
-        text: string;
-        voiceId?: string;
-    }) => {
-        try {
-            const blob = await useVogentTTS({
-                text,
-                voiceId,
-                temperature: 0.8,
-            });
-
-            const url = URL.createObjectURL(blob);
-            const audio = new Audio(url);
-            await audio.play();
-
-            audio.onended = () => {
-                URL.revokeObjectURL(url);
-            };
-        } catch (err) {
-            console.error('❌ Failed to load or play Vogent TTS audio:', err);
-        }
-    };
-
     const loadHumeTTS = async ({
         text,
         voiceId,
@@ -1105,6 +754,24 @@ export default function RehearsalRoomPage() {
         );
     };
 
+    if (ttsLoadError || embeddingError) {
+        return (
+            <div className="p-6 text-red-600">
+                <h1 className="text-xl font-bold">❌ Script Loading Failed</h1>
+                <p className="mt-2">Some parts of the script could not be hydrated.</p>
+                {ttsFailedLines.length > 0 && (
+                    <p>Failed TTS lines: {ttsFailedLines.join(', ')}</p>
+                )}
+                {embeddingFailedLines.length > 0 && (
+                    <p>Failed embedding lines: {embeddingFailedLines.join(', ')}</p>
+                )}
+                <button onClick={loadScript} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded">
+                    🔄 Retry Loading
+                </button>
+            </div>
+        );
+    }
+
     if (!script) {
         return (
             <div className="p-6">
@@ -1117,29 +784,6 @@ export default function RehearsalRoomPage() {
     return (
         <div className="p-6 space-y-4">
             <h1 className="text-2xl font-bold">🎭 Rehearsal Room</h1>
-            {embeddingError && (
-                <div className="mt-4 text-red-600">
-                    Failed to embed all lines. Some lines may be missing expected match behavior.
-                    <br />
-                    <button
-                        className="mt-2 px-4 py-2 bg-red-600 text-white rounded"
-                        onClick={() => window.location.reload()}
-                    >
-                        🔁 Retry Embedding
-                    </button>
-                </div>
-            )}
-            {ttsLoadError && (
-                <div className="text-red-600 space-y-2">
-                    <p>Some lines failed to load TTS: {ttsFailedLines.join(', ')}</p>
-                    <button
-                        className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                        onClick={() => retryTTS(ttsFailedLines)}
-                    >
-                        Retry Failed Lines
-                    </button>
-                </div>
-            )}
             {storageError && (
                 <div className="mt-4">
                     <p className="text-red-600">🚫 Not enough space to store rehearsal data.</p>
@@ -1147,7 +791,7 @@ export default function RehearsalRoomPage() {
                         onClick={async () => {
                             await clear();
                             setStorageError(false);
-                            window.location.reload();
+                            await loadScript();
                         }}
                         className="mt-2 px-4 py-2 bg-red-600 text-white rounded"
                     >
@@ -1202,40 +846,6 @@ export default function RehearsalRoomPage() {
                                 }}
                             >
                                 🔊 Eleven TTS
-                            </button>
-                            <br />
-                            <button
-                                onClick={() => {
-                                    const tonePrefix =
-                                        typeof current.tone === 'string' && current.tone.trim().length > 0
-                                            ? current.tone
-                                                .trim()
-                                                .split(/\s+/)
-                                                .map((t) => `[${t}]`)
-                                                .join(' ') + ' '
-                                            : '';
-
-                                    const textWithTone = tonePrefix + current.text;
-
-                                    loadGoogleTTS({
-                                        text: current.text,
-                                        voiceId: getDefaultGoogleVoice(normalizedGender),
-                                        gender: normalizedGender,
-                                    });
-                                }}
-                            >
-                                🔊 Google TTS
-                            </button>
-                            <br />
-                            <button
-                                onClick={() => {
-                                    loadVogentTTS({
-                                        text: current.text,
-                                        voiceId: '94c32748-865f-42e1-bb1a-3a6b4abc7d11',
-                                    });
-                                }}
-                            >
-                                🔊 Vogent TTS
                             </button>
                             <br />
                             <button

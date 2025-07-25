@@ -436,16 +436,11 @@ function matchesEndPhrase(transcript: string, keywords: string[]): boolean {
     const normalize = (text: string) =>
         text.toLowerCase().replace(/[\s.,!?'"“”\-]+/g, ' ').trim();
 
-    const normTranscript = normalize(transcript);
+    const normalizedTranscript = normalize(transcript);
 
-    // Split into sentences and grab the last one
-    const sentences = splitIntoSentences(normTranscript);
-    const lastSentence = sentences[sentences.length - 1]?.trim();
-
-    if (!lastSentence) return false;
-
-    // Check that all keywords appear somewhere in the last sentence
-    return keywords.some((kw) => lastSentence.includes(normalize(kw)));
+    return keywords.every((kw) =>
+        normalizedTranscript.includes(normalize(kw))
+    );
 }
 
 // function convertFloat32ToInt16(float32Array: Float32Array): ArrayBuffer {
