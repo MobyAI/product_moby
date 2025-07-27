@@ -108,7 +108,7 @@ interface VoiceSample {
     name: string;
     description: string;
     url: string;
-    filename: string;
+    voiceId: string;
 }
 
 export async function fetchAllVoiceSamples(): Promise<VoiceSample[]> {

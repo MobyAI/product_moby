@@ -13,19 +13,20 @@ interface VoiceSample {
     name: string;
     description: string;
     url: string;
-    filename: string;
+    voiceId: string;
 }
 
 export default function UploadPage() {
     const [loading, setLoading] = useState(false);
     const [parsedData, setParsedData] = useState<ScriptElement[] | null>(null);
     const [allCharacters, setAllCharacters] = useState<string[]>([]);
-    const [voiceSelectCharacter, setVoiceSelectCharacter] = useState<string | null>(null);
+    
+    // Voice library setup
     const [voiceSamples, setVoiceSamples] = useState<VoiceSample[] | null>(null);
+    const [selectedCharacter, setSelectedCharacter] = useState<string | null>(null);
+    const [selectedVoices, setSelectedVoices] = useState<Record<string, string>>({});
 
-    const router = useRouter();
-    const userID = 'demo-user'; // Replace with real auth ID later
-
+    // Load voice library audio
     useEffect(() => {
         const loadVoiceSamples = async () => {
             try {
@@ -39,15 +40,38 @@ export default function UploadPage() {
         loadVoiceSamples();
     }, []);
 
+    // For testing
     useEffect(() => {
         console.log('updated script: ', parsedData);
-    }, [parsedData]);
+
+        const enrichedScript = parsedData?.map((item) =>
+            item.type === 'line' &&
+                item.character &&
+                selectedVoices[item.character]
+                ? { ...item, voiceId: selectedVoices[item.character] }
+                : item
+        );
+
+        console.log('enriched script: ', enrichedScript);
+    }, [parsedData, selectedVoices]);
+
+    // Save and go to rehearsal room
+    const router = useRouter();
+    const userID = 'demo-user'; // Replace with real auth ID later
 
     async function handleParsedScript(script: ScriptElement[]) {
         try {
             setLoading(true);
 
-            const scriptID = await saveScript(script, userID);
+            const enrichedScript = script.map((item) =>
+                item.type === 'line' &&
+                    item.character &&
+                    selectedVoices[item.character]
+                    ? { ...item, voiceId: selectedVoices[item.character] }
+                    : item
+            );
+
+            const scriptID = await saveScript(enrichedScript, userID);
             router.push(`/rehearsal-room?userID=${userID}&scriptID=${scriptID}`);
         } catch (err) {
             console.error('Failed to save script:', err);
@@ -57,6 +81,7 @@ export default function UploadPage() {
         }
     }
 
+    // Character role selection
     function assignDefaultRoles(script: ScriptElement[]): ScriptElement[] {
         return script.map((item) =>
             item.type === 'line' && !item.role
@@ -87,16 +112,17 @@ export default function UploadPage() {
         setParsedData(updated);
     }
 
+    // Save edited line
     function handleLineUpdate(index: number, updated: ScriptElement) {
         if (!parsedData) return;
 
-        // Extract line end kw and remove punctuation
+        // Extract lineEndKeyword
         const words = updated.text.trim().split(/\s+/);
 
         const clean = (word: string) =>
             word.replace(/[^\w'-]/g, '').replace(/^['"]+|['"]+$/g, '');
 
-        const lastWords = words
+        const lineEndKeywords = words
             .slice(-2)
             .map(clean)
             .filter(Boolean);
@@ -105,7 +131,7 @@ export default function UploadPage() {
             ...parsedData[index],
             ...updated,
             text: updated.text,
-            lineEndKeywords: lastWords,
+            lineEndKeywords: lineEndKeywords,
         };
 
         const newData = [...parsedData];
@@ -159,10 +185,10 @@ export default function UploadPage() {
                                         </button>
                                         {currentRole === 'scene-partner' && (
                                             <button
-                                                onClick={() => setVoiceSelectCharacter(character)}
+                                                onClick={() => setSelectedCharacter(character)}
                                                 className="text-sm text-purple-700 underline"
                                             >
-                                                🗣️ Choose Voice
+                                                🗣️ Select Voice
                                             </button>
                                         )}
                                     </div>
@@ -170,14 +196,14 @@ export default function UploadPage() {
                             })}
                         </div>
                     )}
-                    {voiceSelectCharacter && (
+                    {selectedCharacter && (
                         <div className="mt-4 border rounded-lg p-4 bg-gray-50">
                             <div className="flex justify-between items-center mb-2">
                                 <h3 className="text-md font-semibold">
-                                    Select a Voice for <span className="text-blue-700">{voiceSelectCharacter}</span>
+                                    Select a Voice for <span className="text-blue-700">{selectedCharacter}</span>
                                 </h3>
                                 <button
-                                    onClick={() => setVoiceSelectCharacter(null)}
+                                    onClick={() => setSelectedCharacter(null)}
                                     className="text-xs text-gray-500 hover:text-gray-700"
                                 >
                                     ❌ Close
@@ -185,8 +211,15 @@ export default function UploadPage() {
                             </div>
                             <VoiceLibrary
                                 samples={voiceSamples}
+                                selectedVoiceId={selectedVoices[selectedCharacter] ?? null}
+                                onSelectVoice={(voiceId) => {
+                                    setSelectedVoices((prev) => ({
+                                        ...prev,
+                                        [selectedCharacter]: voiceId,
+                                    }));
+                                }}
                                 onClose={() => {
-                                    setVoiceSelectCharacter(null);
+                                    setSelectedCharacter(null);
                                 }}
                             />
                         </div>

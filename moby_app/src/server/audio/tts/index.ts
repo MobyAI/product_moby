@@ -12,13 +12,6 @@ import {
 // Storage Path: users/{userID}/scripts/{scriptID}/audio/{index}.mp3
 //
 
-interface VoiceSample {
-    name: string;
-    description: string;
-    url: string;
-    filename: string;
-}
-
 export async function saveAudioBlob(userID: string, scriptID: string, index: number, blob: Blob) {
     const path = `users/${userID}/scripts/${scriptID}/tts-audio/${index}.mp3`;
     const audioRef = ref(storage, path);
@@ -56,6 +49,14 @@ export async function deleteAudioBlob(userID: string, scriptID: string, index: n
     await deleteObject(audioRef);
 }
 
+// Voice samples
+interface VoiceSample {
+    name: string;
+    description: string;
+    url: string;
+    voiceId: string;
+}
+
 export async function getAllVoiceSamples(): Promise<VoiceSample[]> {
     const path = "voice-samples";
     const folderRef = ref(storage, path);
@@ -70,14 +71,24 @@ export async function getAllVoiceSamples(): Promise<VoiceSample[]> {
                 getDownloadURL(fileRef),
             ]);
 
-            const name = metadata.customMetadata?.name || fileRef.name.replace(".mp3", "");
-            const description = metadata.customMetadata?.description || "";
+            const titleCase = (str: string) =>
+                str
+                    .split(' ')
+                    .map(word =>
+                        word.charAt(0).toUpperCase() + word.slice(1)
+                    )
+                    .join(' ');
+
+            const nameRaw = metadata.customMetadata?.name || fileRef.name.replace(".mp3", "");
+            const name = titleCase(nameRaw);
+            const description = metadata.customMetadata?.description || "Description unavailable.";
+            const voiceId = metadata.customMetadata?.voiceId || "";
 
             return {
                 name,
                 description,
                 url,
-                filename: fileRef.name,
+                voiceId,
             };
         });
 
