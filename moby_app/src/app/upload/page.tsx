@@ -3,17 +3,41 @@
 import { useState, useEffect } from 'react';
 import UploadForm from './UploadForm';
 import ParsedOutput from './ParsedOutput';
+import VoiceLibrary from './VoiceLibrary';
 import { useRouter } from 'next/navigation';
 import { saveScript } from '@/lib/api/dbFunctions/scripts';
 import type { ScriptElement } from '@/types/script';
+import { fetchAllVoiceSamples } from '@/lib/api/dbFunctions/audio/tts';
+
+interface VoiceSample {
+    name: string;
+    description: string;
+    url: string;
+    filename: string;
+}
 
 export default function UploadPage() {
     const [loading, setLoading] = useState(false);
     const [parsedData, setParsedData] = useState<ScriptElement[] | null>(null);
     const [allCharacters, setAllCharacters] = useState<string[]>([]);
+    const [voiceSelectCharacter, setVoiceSelectCharacter] = useState<string | null>(null);
+    const [voiceSamples, setVoiceSamples] = useState<VoiceSample[] | null>(null);
 
     const router = useRouter();
     const userID = 'demo-user'; // Replace with real auth ID later
+
+    useEffect(() => {
+        const loadVoiceSamples = async () => {
+            try {
+                const data = await fetchAllVoiceSamples();
+                setVoiceSamples(data);
+            } catch (err) {
+                console.error('Failed to load voice samples:', err);
+            }
+        };
+
+        loadVoiceSamples();
+    }, []);
 
     useEffect(() => {
         console.log('updated script: ', parsedData);
@@ -133,9 +157,35 @@ export default function UploadPage() {
                                         >
                                             {currentRole === 'user' ? '🙋 You' : '🤖 Scene Partner'}
                                         </button>
+                                        {currentRole === 'scene-partner' && (
+                                            <button
+                                                onClick={() => setVoiceSelectCharacter(character)}
+                                                className="text-sm text-purple-700 underline"
+                                            >
+                                                🗣️ Choose Voice
+                                            </button>
+                                        )}
                                     </div>
                                 );
                             })}
+                        </div>
+                    )}
+                    {voiceSelectCharacter && (
+                        <div className="mt-4 border rounded-lg p-4 bg-gray-50">
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className="text-md font-semibold">
+                                    Select a Voice for <span className="text-blue-700">{voiceSelectCharacter}</span>
+                                </h3>
+                                <button
+                                    onClick={() => setVoiceSelectCharacter(null)}
+                                    className="text-xs text-gray-500 hover:text-gray-700"
+                                >
+                                    ❌ Close
+                                </button>
+                            </div>
+                            <VoiceLibrary
+                                samples={voiceSamples}
+                            />
                         </div>
                     )}
                     <ParsedOutput

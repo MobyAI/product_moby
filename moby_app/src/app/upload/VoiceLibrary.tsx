@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { fetchAllVoiceSamples } from '@/lib/api/dbFunctions/audio/tts';
+import { useState } from 'react';
 
 interface VoiceSample {
     name: string;
@@ -10,22 +9,12 @@ interface VoiceSample {
     filename: string;
 }
 
-export default function VoiceLibrary() {
-    const [samples, setSamples] = useState<VoiceSample[]>([]);
+interface VoiceLibraryProps {
+    samples: VoiceSample[] | null;
+}
+
+export default function VoiceLibrary({ samples }: VoiceLibraryProps) {
     const [playingUrl, setPlayingUrl] = useState<string | null>(null);
-
-    useEffect(() => {
-        const loadSamples = async () => {
-            try {
-                const data = await fetchAllVoiceSamples();
-                setSamples(data);
-            } catch (err) {
-                console.error('Failed to load voice samples:', err);
-            }
-        };
-
-        loadSamples();
-    }, []);
 
     const handlePlay = (url: string) => {
         if (playingUrl === url) {
@@ -36,6 +25,14 @@ export default function VoiceLibrary() {
             audio.play();
         }
     };
+
+    if (!samples) {
+        return (
+            <div className="space-y-4">
+                <h2 className="text-xl font-semibold">Voice Library Loading...</h2>
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-4">
