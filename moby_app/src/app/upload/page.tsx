@@ -185,6 +185,9 @@ export default function UploadPage() {
                             </div>
                             <VoiceLibrary
                                 samples={voiceSamples}
+                                onClose={() => {
+                                    setVoiceSelectCharacter(null);
+                                }}
                             />
                         </div>
                     )}
