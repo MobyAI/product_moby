@@ -32,7 +32,6 @@ export default function EditableLine({ item, onUpdate, onClose }: EditableLinePr
                     className="w-full border rounded p-2 font-mono text-sm"
                     value={draftText}
                     onChange={(e) => setDraftText(e.target.value)}
-                    onBlur={onClose}
                     autoFocus
                 />
                 <button
@@ -40,6 +39,12 @@ export default function EditableLine({ item, onUpdate, onClose }: EditableLinePr
                     onClick={handleSave}
                 >
                     Update
+                </button>
+                <button
+                    className="mt-2 px-3 py-1 text-sm bg-red-400 text-white rounded"
+                    onClick={onClose}
+                >
+                    Cancel
                 </button>
             </div>
         </div>

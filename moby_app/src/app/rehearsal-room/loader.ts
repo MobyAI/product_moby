@@ -1,7 +1,7 @@
 import { get, set } from 'idb-keyval';
 import type { ScriptElement } from '@/types/script';
 import { addEmbedding } from '@/lib/api/embed';
-import { addTTS } from '@/lib/api/tts';
+import { addTTS, addTTSRegenerate } from '@/lib/api/tts';
 import { fetchScriptByID } from '@/lib/api/dbFunctions/scripts';
 import pLimit from 'p-limit';
 
@@ -510,7 +510,6 @@ export const hydrateScript = async ({
     const unhydratedTTSLines = script
         .filter((element: ScriptElement) =>
             element.type === 'line' &&
-            element.role === 'scene-partner' &&
             (typeof element.ttsUrl !== 'string' || element.ttsUrl.length === 0)
         )
         .map((element: ScriptElement) => element.index);
@@ -520,7 +519,6 @@ export const hydrateScript = async ({
     const unhydratedEmbeddingLines = script
         .filter((element: ScriptElement) =>
             element.type === 'line' &&
-            element.role === 'user' &&
             (!Array.isArray(element.expectedEmbedding) || element.expectedEmbedding.length === 0)
         )
         .map((element: ScriptElement) => element.index);
@@ -538,7 +536,6 @@ export const hydrateScript = async ({
                 limit(async () => {
                     if (
                         element.type === 'line' &&
-                        element.role === 'user' &&
                         unhydratedEmbeddings.has(element.index)
                     ) {
                         try {
@@ -566,7 +563,6 @@ export const hydrateScript = async ({
                     limit(async () => {
                         if (
                             element.type === 'line' &&
-                            element.role === 'user' &&
                             retryIndexes.has(element.index)
                         ) {
                             try {
@@ -640,7 +636,6 @@ export const hydrateScript = async ({
                     limit(async () => {
                         if (
                             element.type === 'line' &&
-                            element.role === 'scene-partner' &&
                             retryIndexes.has(element.index)
                         ) {
                             try {
@@ -688,5 +683,51 @@ export const hydrateScript = async ({
         // Display load error page
         console.error('❌ Error loading script:', err);
         setLoadStage('❌ Unexpected error loading script');
+    }
+};
+
+export const hydrateLine = async ({
+    line,
+    script,
+    userID,
+    scriptID,
+    updateTTSHydrationStatus,
+}: {
+    line: ScriptElement;
+    script: ScriptElement[];
+    userID: string;
+    scriptID: string;
+    updateTTSHydrationStatus?: (index: number, status: 'pending' | 'ready' | 'failed') => void;
+}): Promise<ScriptElement> => {
+    const cacheKey = `script-cache:${userID}:${scriptID}`;
+
+    if (
+        line.type !== 'line' ||
+        typeof line.text !== 'string' ||
+        line.text.trim().length === 0
+    ) {
+        console.warn(`⚠️ hydrateLineWithTTS: invalid line ${line.index}`);
+        return line;
+    }
+
+    updateTTSHydrationStatus?.(line.index, 'pending');
+
+    try {
+        const updatedLine = await addTTSRegenerate(line, script, userID, scriptID);
+        updateTTSHydrationStatus?.(line.index, 'ready');
+
+        // Update the script with the new line
+        const updatedScript = script.map((el) =>
+            el.index === updatedLine.index ? updatedLine : el
+        );
+
+        // Cache to IndexedDB
+        await set(cacheKey, updatedScript);
+
+        return updatedLine;
+    } catch (err) {
+        console.error(`❌ hydrateLineWithTTS failed for line ${line.index}`, err);
+        updateTTSHydrationStatus?.(line.index, 'failed');
+        return line;
     }
 };

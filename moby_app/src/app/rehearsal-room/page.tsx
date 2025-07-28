@@ -6,7 +6,7 @@ import { useHumeTTS, useElevenTTS } from '@/lib/api/tts';
 import { useGoogleSTT } from '@/lib/google/speechToText';
 import { useDeepgramSTT } from '@/lib/deepgram/speechToText';
 import type { ScriptElement } from '@/types/script';
-import { loadScript, hydrateScript } from './loader';
+import { loadScript, hydrateScript, hydrateLine } from './loader';
 import { restoreSession, saveSession } from './session';
 import Deepgram from './deepgram';
 import GoogleSTT from './google';
@@ -43,10 +43,6 @@ export default function RehearsalRoomPage() {
     const [embeddingFailedLines, setEmbeddingFailedLines] = useState<number[]>([]);
     const [ttsLoadError, setTTSLoadError] = useState(false);
     const [ttsFailedLines, setTTSFailedLines] = useState<number[]>([]);
-
-    useEffect(() => {
-        console.log('updated: ', script)
-    }, [script]);
 
     // Load script and restore session
     useEffect(() => {
@@ -142,18 +138,30 @@ export default function RehearsalRoomPage() {
     };
 
     // Update edited line
-    const onUpdateLine = (updatedItem: ScriptElement) => {
-        setScript((prev) => {
-            if (!prev) return prev;
-
-            const updated = prev.map((el) =>
-                el.index === updatedItem.index ? updatedItem : el
-            );
-
-            return updated;
-        });
-
+    const onUpdateLine = async (updateLine: ScriptElement) => {
         setIsEditingLine(false);
+
+        const updatedScript = script?.map((el) =>
+            el.index === updateLine.index ? updateLine : el
+        ) ?? [];
+
+        console.log('update', updateLine);
+
+        if (userID && scriptID) {
+            const result = await hydrateLine({
+                line: updateLine,
+                script: updatedScript,
+                userID,
+                scriptID,
+                updateTTSHydrationStatus,
+            });
+
+            setScript((prev) =>
+                prev?.map((el) =>
+                    el.index === result.index ? result : el
+                ) ?? []
+            );
+        }
     };
 
     // Handle script flow
