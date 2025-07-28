@@ -6,7 +6,7 @@ import { useHumeTTS, useElevenTTS } from '@/lib/api/tts';
 import { useGoogleSTT } from '@/lib/google/speechToText';
 import { useDeepgramSTT } from '@/lib/deepgram/speechToText';
 import type { ScriptElement } from '@/types/script';
-import { loadScript } from './loader';
+import { loadScript, hydrateScript } from './loader';
 import { restoreSession, saveSession } from './session';
 import Deepgram from './deepgram';
 import GoogleSTT from './google';
@@ -27,6 +27,7 @@ export default function RehearsalRoomPage() {
     const [loadStage, setLoadStage] = useState<string | null>(null);
     const [script, setScript] = useState<ScriptElement[] | null>(null);
     const [sttProvider, setSttProvider] = useState<'google' | 'deepgram'>('deepgram');
+    const [ttsHydrationStatus, setTTSHydrationStatus] = useState<Record<number, 'pending' | 'ready' | 'failed'>>({});
 
     // Rehearsal flow
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -47,7 +48,23 @@ export default function RehearsalRoomPage() {
 
         const init = async () => {
             setLoading(true);
-            await loadScript({
+
+            const rawScript = await loadScript({
+                userID,
+                scriptID,
+                setLoadStage,
+                setStorageError,
+            });
+
+            if (!rawScript) {
+                setLoading(false);
+                return;
+            } else {
+                setScript(rawScript);
+            }
+
+            hydrateScript({
+                script: rawScript,
                 userID,
                 scriptID,
                 setLoadStage,
@@ -57,12 +74,17 @@ export default function RehearsalRoomPage() {
                 setEmbeddingFailedLines,
                 setTTSLoadError,
                 setTTSFailedLines,
+                updateTTSHydrationStatus,
             });
+
+            // Restore session from indexedDB
             const restored = await restoreSession(scriptID);
+
             if (restored) {
                 setCurrentIndex(restored.index ?? 0);
                 setSpokenWordMap(restored.spokenWordMap ?? {});
             }
+
             setLoadStage('✅ Ready!');
             setLoading(false);
         };
@@ -81,10 +103,14 @@ export default function RehearsalRoomPage() {
         return () => clearTimeout(timeout);
     }, [currentIndex, scriptID]);
 
+    // Retry
     const retryLoadScript = async () => {
-        if (!userID || !scriptID) return;
+        if (!userID || !scriptID || !script) return;
 
-        await loadScript({
+        setLoading(true);
+
+        await hydrateScript({
+            script: script,
             userID,
             scriptID,
             setLoadStage,
@@ -94,7 +120,19 @@ export default function RehearsalRoomPage() {
             setEmbeddingFailedLines,
             setTTSLoadError,
             setTTSFailedLines,
+            updateTTSHydrationStatus,
         });
+
+        setLoadStage('✅ Retry succeeded!');
+        setLoading(false);
+    };
+
+    // Track TTS audio generation status
+    const updateTTSHydrationStatus = (index: number, status: 'pending' | 'ready' | 'failed') => {
+        setTTSHydrationStatus((prev) => ({
+            ...prev,
+            [index]: status,
+        }));
     };
 
     // Handle script flow
@@ -530,6 +568,9 @@ export default function RehearsalRoomPage() {
                         {current.type === 'line' && current.character && (
                             <p className="text-sm text-gray-500">– {current.character} ({current.tone})</p>
                         )}
+                        {ttsHydrationStatus[current.index] === 'pending' && '🎤 Generating...'}
+                        {ttsHydrationStatus[current.index] === 'ready' && '✅ TTS Ready'}
+                        {ttsHydrationStatus[current.index] === 'failed' && '❌ TTS Failed'}
                     </div>
                 ) : (
                     <p>🎉 End of script!</p>
