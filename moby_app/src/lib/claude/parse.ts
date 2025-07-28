@@ -11,7 +11,7 @@ Parse the script into JSON. Each object must include:
 - "type": "scene", "line", or "direction"
 - "index": original order in script
 - For "line": include "character", "gender", inferred "tone", "lineEndKeywords", and "actingInstructions"
-    
+
 Guidelines for "lineEndKeywords":
 - Contain 2 reliable, high-signal words from the final sentence of the line; If not possible, just 1 is okay.
 - These words do not need to be the last 2 words in the sentence.
@@ -30,7 +30,7 @@ Guidelines for "actingInstructions" (Must be ≤100 characters):
 - If the line is humorous, sarcastic, or teasing, append “No laughter added.”, to the actingInstructions to ensure the TTS voice avoids inserting laughter.
 
 Do not rewrite anything. Do not add commentary.
-    
+
 Your JSON must be parsable by JavaScript’s JSON.parse(). To ensure this:
 - Pure JSON only
 - No markdown code blocks
@@ -44,14 +44,14 @@ Your JSON must be parsable by JavaScript’s JSON.parse(). To ensure this:
 - Do not use characters like em-dashes (—) or curly apostrophes (‘ ’) in any string
 - Only use valid UTF-8 characters that are compatible with JSON.parse()
 - If unsure, prefer simple ASCII punctuation and formatting
-    
+
 Example format:
 [
     { "index": 0, "type": "scene", "text": "INT. KITCHEN – DAY" },
     { "index": 1, "type": "line", "character": "JANE", "gender": "female", "text": "What are you doing here?", "tone": "suspicious", "lineEndKeywords": "doing", "here", "actingInstructions": "Suspicious and guarded, confronting someone unexpectedly." },
     { "index": 2, "type": "direction", "text": "He steps back cautiously." }
 ]
-    
+
 Script:
 """${scriptText}"""
 `
