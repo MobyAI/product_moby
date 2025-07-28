@@ -27,6 +27,7 @@ export default function RehearsalRoomPage() {
     const [loading, setLoading] = useState(false);
     const [loadStage, setLoadStage] = useState<string | null>(null);
     const [script, setScript] = useState<ScriptElement[] | null>(null);
+    const scriptRef = useRef<ScriptElement[] | null>(null);
     const [sttProvider, setSttProvider] = useState<'google' | 'deepgram'>('deepgram');
     const [ttsHydrationStatus, setTTSHydrationStatus] = useState<Record<number, 'pending' | 'ready' | 'failed'>>({});
     const [isEditingLine, setIsEditingLine] = useState(false);
@@ -77,6 +78,7 @@ export default function RehearsalRoomPage() {
                 setTTSLoadError,
                 setTTSFailedLines,
                 updateTTSHydrationStatus,
+                getScriptLine,
             });
 
             // Restore session from indexedDB
@@ -105,6 +107,11 @@ export default function RehearsalRoomPage() {
         return () => clearTimeout(timeout);
     }, [currentIndex, scriptID]);
 
+    // Keep ref in sync with script state
+    useEffect(() => {
+        scriptRef.current = script;
+    }, [script]);
+
     // Retry
     const retryLoadScript = async () => {
         if (!userID || !scriptID || !script) return;
@@ -123,6 +130,7 @@ export default function RehearsalRoomPage() {
             setTTSLoadError,
             setTTSFailedLines,
             updateTTSHydrationStatus,
+            getScriptLine,
         });
 
         setLoadStage('✅ Retry succeeded!');
@@ -145,8 +153,6 @@ export default function RehearsalRoomPage() {
             el.index === updateLine.index ? updateLine : el
         ) ?? [];
 
-        console.log('update', updateLine);
-
         if (userID && scriptID) {
             const result = await hydrateLine({
                 line: updateLine,
@@ -154,6 +160,7 @@ export default function RehearsalRoomPage() {
                 userID,
                 scriptID,
                 updateTTSHydrationStatus,
+                getScriptLine,
             });
 
             setScript((prev) =>
@@ -166,6 +173,10 @@ export default function RehearsalRoomPage() {
 
     // Handle script flow
     const current = script?.find((el) => el.index === currentIndex) ?? null;
+
+    const getScriptLine = (index: number): ScriptElement | undefined => {
+        return scriptRef.current?.find((el) => el.index === index);
+    };
 
     const prepareUserLine = (line: ScriptElement | undefined | null) => {
         if (line?.type === 'line' && line.role === 'user' && typeof line.text === 'string') {

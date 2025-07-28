@@ -7,9 +7,18 @@ export async function addTTS(
     element: ScriptElement,
     script: ScriptElement[],
     userID: string,
-    scriptID: string
+    scriptID: string,
+    getScriptLine: (index: number) => ScriptElement | undefined,
 ): Promise<ScriptElement> {
     if (element.type !== 'line') return element;
+
+    // Check for updated line
+    const latestLine = getScriptLine(element.index);
+
+    if (latestLine?.text !== element.text) {
+        console.log(`⏩ Skipping outdated TTS for line ${element.index}`);
+        return element;
+    }
 
     const voiceId =
         element.gender === 'male'
@@ -47,6 +56,14 @@ export async function addTTS(
             contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined,
         });
 
+        // Check once more before upload
+        const latestLineBeforeUpload = getScriptLine(element.index);
+
+        if (latestLineBeforeUpload?.text !== element.text) {
+            console.warn(`⚠️ Line ${element.index} changed mid-TTS — discarding blob`);
+            return element;
+        }
+
         await uploadTTSAudioBlob({ userID, scriptID, index: element.index, blob });
 
         url = await fetchTTSAudioUrl({ userID, scriptID, index: element.index });
@@ -63,9 +80,18 @@ export async function addTTSRegenerate(
     element: ScriptElement,
     script: ScriptElement[],
     userID: string,
-    scriptID: string
+    scriptID: string,
+    getScriptLine: (index: number) => ScriptElement | undefined,
 ): Promise<ScriptElement> {
     if (element.type !== 'line') return element;
+
+    // Check for updated line
+    const latestLine = getScriptLine(element.index);
+
+    if (latestLine?.text !== element.text) {
+        console.log(`⏩ Skipping outdated TTS for line ${element.index}`);
+        return element;
+    }
 
     const voiceId =
         element.gender === 'male'
@@ -89,6 +115,14 @@ export async function addTTSRegenerate(
             voiceDescription: element.actingInstructions || '',
             contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined,
         });
+
+        // Check once more before upload
+        const latestLineBeforeUpload = getScriptLine(element.index);
+
+        if (latestLineBeforeUpload?.text !== element.text) {
+            console.warn(`⚠️ Line ${element.index} changed mid-TTS — discarding blob`);
+            return element;
+        }
 
         await uploadTTSAudioBlob({ userID, scriptID, index: element.index, blob });
 

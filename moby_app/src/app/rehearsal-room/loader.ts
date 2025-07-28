@@ -476,6 +476,7 @@ export const hydrateScript = async ({
     setTTSLoadError,
     setTTSFailedLines,
     updateTTSHydrationStatus,
+    getScriptLine,
 }: {
     script: ScriptElement[];
     userID: string;
@@ -488,6 +489,7 @@ export const hydrateScript = async ({
     setTTSLoadError: (val: boolean) => void;
     setTTSFailedLines: (lines: number[]) => void;
     updateTTSHydrationStatus?: (index: number, status: 'pending' | 'ready' | 'failed') => void;
+    getScriptLine: (index: number) => ScriptElement | undefined;
 }) => {
     if (!userID || !scriptID) return;
 
@@ -609,7 +611,7 @@ export const hydrateScript = async ({
                         updateTTSHydrationStatus?.(element.index, 'pending');
 
                         try {
-                            const updated = await addTTS(element, embedded, userID, scriptID);
+                            const updated = await addTTS(element, embedded, userID, scriptID, getScriptLine);
 
                             updateTTSHydrationStatus?.(element.index, 'ready');
 
@@ -639,7 +641,7 @@ export const hydrateScript = async ({
                             retryIndexes.has(element.index)
                         ) {
                             try {
-                                const updated = await addTTS(element, withTTS, userID, scriptID);
+                                const updated = await addTTS(element, withTTS, userID, scriptID, getScriptLine);
                                 return updated;
                             } catch (err) {
                                 console.warn(`❌ Retry failed for TTS line ${element.index}`, err);
@@ -692,12 +694,14 @@ export const hydrateLine = async ({
     userID,
     scriptID,
     updateTTSHydrationStatus,
+    getScriptLine,
 }: {
     line: ScriptElement;
     script: ScriptElement[];
     userID: string;
     scriptID: string;
     updateTTSHydrationStatus?: (index: number, status: 'pending' | 'ready' | 'failed') => void;
+    getScriptLine: (index: number) => ScriptElement | undefined;
 }): Promise<ScriptElement> => {
     const cacheKey = `script-cache:${userID}:${scriptID}`;
 
@@ -713,7 +717,7 @@ export const hydrateLine = async ({
     updateTTSHydrationStatus?.(line.index, 'pending');
 
     try {
-        const updatedLine = await addTTSRegenerate(line, script, userID, scriptID);
+        const updatedLine = await addTTSRegenerate(line, script, userID, scriptID, getScriptLine);
         updateTTSHydrationStatus?.(line.index, 'ready');
 
         // Update the script with the new line
