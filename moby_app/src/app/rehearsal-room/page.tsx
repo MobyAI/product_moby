@@ -10,6 +10,7 @@ import { loadScript, hydrateScript } from './loader';
 import { restoreSession, saveSession } from './session';
 import Deepgram from './deepgram';
 import GoogleSTT from './google';
+import EditableLine from './EditableLine';
 import { clear } from 'idb-keyval';
 
 export default function RehearsalRoomPage() {
@@ -28,6 +29,7 @@ export default function RehearsalRoomPage() {
     const [script, setScript] = useState<ScriptElement[] | null>(null);
     const [sttProvider, setSttProvider] = useState<'google' | 'deepgram'>('deepgram');
     const [ttsHydrationStatus, setTTSHydrationStatus] = useState<Record<number, 'pending' | 'ready' | 'failed'>>({});
+    const [isEditingLine, setIsEditingLine] = useState(false);
 
     // Rehearsal flow
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -41,6 +43,10 @@ export default function RehearsalRoomPage() {
     const [embeddingFailedLines, setEmbeddingFailedLines] = useState<number[]>([]);
     const [ttsLoadError, setTTSLoadError] = useState(false);
     const [ttsFailedLines, setTTSFailedLines] = useState<number[]>([]);
+
+    useEffect(() => {
+        console.log('updated: ', script)
+    }, [script]);
 
     // Load script and restore session
     useEffect(() => {
@@ -133,6 +139,21 @@ export default function RehearsalRoomPage() {
             ...prev,
             [index]: status,
         }));
+    };
+
+    // Update edited line
+    const onUpdateLine = (updatedItem: ScriptElement) => {
+        setScript((prev) => {
+            if (!prev) return prev;
+
+            const updated = prev.map((el) =>
+                el.index === updatedItem.index ? updatedItem : el
+            );
+
+            return updated;
+        });
+
+        setIsEditingLine(false);
     };
 
     // Handle script flow
@@ -548,25 +569,41 @@ export default function RehearsalRoomPage() {
                                         : current.role}
                             </p>
                         )}
-                        {current.type === 'line' && current.role === 'user' ? (
-                            <p className="text-xl mt-2">
-                                {current.text.split(/\s+/).map((word, i) => {
-                                    const matched = spokenWordMap[current.index] ?? 0;
-                                    return (
-                                        <span
-                                            key={i}
-                                            className={i < matched ? 'font-bold' : 'text-gray-800'}
-                                        >
-                                            {word + ' '}
-                                        </span>
-                                    );
-                                })}
-                            </p>
+                        {current.type === 'line' && isEditingLine ? (
+                            <EditableLine
+                                item={current}
+                                onUpdate={onUpdateLine}
+                                onClose={() => setIsEditingLine(false)}
+                            />
                         ) : (
-                            <p className="text-xl mt-2">{current.text}</p>
+                            <div className="text-xl mt-2">
+                                {current.role === 'user' ? (
+                                    current.text.split(/\s+/).map((word, i) => {
+                                        const matched = spokenWordMap[current.index] ?? 0;
+                                        return (
+                                            <span
+                                                key={i}
+                                                className={i < matched ? 'font-bold' : 'text-gray-800'}
+                                            >
+                                                {word + ' '}
+                                            </span>
+                                        );
+                                    })
+                                ) : (
+                                    <span>{current.text}</span>
+                                )}
+                            </div>
                         )}
                         {current.type === 'line' && current.character && (
                             <p className="text-sm text-gray-500">– {current.character} ({current.tone})</p>
+                        )}
+                        {current?.type === 'line' && !isEditingLine && (
+                            <button
+                                className="mt-2 px-3 py-1 text-sm bg-yellow-400 text-white rounded"
+                                onClick={() => setIsEditingLine(true)}
+                            >
+                                ✏️ Edit Line
+                            </button>
                         )}
                         {ttsHydrationStatus[current.index] === 'pending' && '🎤 Generating...'}
                         {ttsHydrationStatus[current.index] === 'ready' && '✅ TTS Ready'}
@@ -575,7 +612,7 @@ export default function RehearsalRoomPage() {
                 ) : (
                     <p>🎉 End of script!</p>
                 )}
-                {
+                {/* {
                     current?.type === 'line' && (
                         <>
                             <button
@@ -623,7 +660,7 @@ export default function RehearsalRoomPage() {
                             </button>
                         </>
                     )
-                }
+                } */}
             </div>
             <div className="flex items-center gap-4">
                 <button onClick={handlePlay} className="px-4 py-2 bg-green-600 text-white rounded">Play</button>

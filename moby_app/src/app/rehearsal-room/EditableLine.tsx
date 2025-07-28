@@ -4,15 +4,15 @@ import type { ScriptElement } from '@/types/script';
 type EditableLineProps = {
     item: ScriptElement;
     onUpdate: (updatedItem: ScriptElement) => void;
+    onClose: () => void;
 };
 
-export default function EditableLine({ item, onUpdate }: EditableLineProps) {
-    const [isEditing, setIsEditing] = useState(false);
+export default function EditableLine({ item, onUpdate, onClose }: EditableLineProps) {
     const [draftText, setDraftText] = useState(item.text);
 
-    const handleBlur = () => {
+    const handleSave = () => {
         onUpdate({ ...item, text: draftText });
-        setIsEditing(false);
+        onClose();
     };
 
     return (
@@ -28,29 +28,19 @@ export default function EditableLine({ item, onUpdate }: EditableLineProps) {
                         {item.role === 'user' ? '🙋 You' : '🤖 Scene Partner'}
                     </span>
                 </div>
-
-                {isEditing ? (
-                    <textarea
-                        className="w-full border rounded p-2 font-mono text-sm"
-                        value={draftText}
-                        onChange={(e) => setDraftText(e.target.value)}
-                        onBlur={handleBlur}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleBlur();
-                            }
-                        }}
-                        autoFocus
-                    />
-                ) : (
-                    <div
-                        className="text-gray-800 leading-relaxed pl-4 cursor-pointer hover:bg-yellow-100 rounded px-2"
-                        onClick={() => setIsEditing(true)}
-                    >
-                        {item.text}
-                    </div>
-                )}
+                <textarea
+                    className="w-full border rounded p-2 font-mono text-sm"
+                    value={draftText}
+                    onChange={(e) => setDraftText(e.target.value)}
+                    onBlur={onClose}
+                    autoFocus
+                />
+                <button
+                    className="mt-2 px-3 py-1 text-sm bg-yellow-400 text-white rounded"
+                    onClick={handleSave}
+                >
+                    Update
+                </button>
             </div>
         </div>
     );
