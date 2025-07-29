@@ -13,7 +13,6 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
 
     const handleSave = () => {
         onUpdate({ ...item, text: draftText });
-        onClose();
     };
 
     return (
@@ -33,14 +32,15 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
                     className="w-full border rounded p-2 font-mono text-sm"
                     value={draftText}
                     onChange={(e) => setDraftText(e.target.value)}
+                    onBlur={onClose}
                     autoFocus
                 />
                 <button
                     className="mt-2 px-3 py-1 text-sm bg-yellow-400 text-white rounded"
-                    onClick={handleSave}
+                    onMouseDown={handleSave}
                     disabled={hydrationStatus === 'updating'}
                 >
-                    Update
+                    {hydrationStatus === 'updating' ? 'Updating...' : 'Update'}
                 </button>
                 <button
                     className="mt-2 px-3 py-1 text-sm bg-red-400 text-white rounded"

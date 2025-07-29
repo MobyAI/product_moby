@@ -149,6 +149,7 @@ export default function RehearsalRoomPage() {
                 el.index === updateLine.index ? updateLine : el
             ) ?? [];
 
+            setScript(updatedScript);
             scriptRef.current = updatedScript;
 
             if (userID && scriptID) {
@@ -631,6 +632,7 @@ export default function RehearsalRoomPage() {
                             </button>
                         )}
                         {ttsHydrationStatus[current.index] === 'pending' && '🎤 Generating...'}
+                        {ttsHydrationStatus[current.index] === 'updating' && '🎤 Generating...'}
                         {ttsHydrationStatus[current.index] === 'ready' && '✅ TTS Ready'}
                         {ttsHydrationStatus[current.index] === 'failed' && '❌ TTS Failed'}
                     </div>
