@@ -64,6 +64,7 @@ export default function RehearsalRoomPage() {
                 return;
             } else {
                 setScript(rawScript);
+                scriptRef.current = rawScript;
             }
 
             hydrateScript({

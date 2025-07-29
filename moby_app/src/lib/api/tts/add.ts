@@ -17,6 +17,7 @@ export async function addTTS(
 
     if (latestLine?.text !== element.text) {
         console.log(`⏩ Skipping outdated TTS for line ${element.index}`);
+        console.log('latest vs expected line: ', latestLine?.text, element.text);
         return element;
     }
 

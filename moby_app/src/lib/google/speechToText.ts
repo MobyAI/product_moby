@@ -38,7 +38,6 @@ export function useGoogleSTT({
     const hasTriggeredRef = useRef(false);
 
     // Highlighting
-    const expectedScriptTokenIDsRef = useRef<number[] | null>(null);
     const matchedScriptIndices = useRef<Set<number>>(new Set());
     const expectedScriptWordsRef = useRef<string[] | null>(null);
     const lastReportedCount = useRef(0);
@@ -47,17 +46,6 @@ export function useGoogleSTT({
     const normalizeWord = (word: string) =>
         word.toLowerCase().replace(/[^\w]/g, '');
 
-    const getTokenID = (() => {
-        const map = new Map<string, number>();
-        let nextID = 1;
-
-        return (word: string) => {
-            const norm = normalizeWord(word);
-            if (!map.has(norm)) map.set(norm, nextID++);
-            return map.get(norm)!;
-        };
-    })();
-
     // Highlighting setup
     const setCurrentLineText = (text: string) => {
         matchedScriptIndices.current = new Set();
@@ -65,27 +53,40 @@ export function useGoogleSTT({
 
         const normalizedWords = text.trim().split(/\s+/).map(normalizeWord);
         expectedScriptWordsRef.current = normalizedWords;
-
-        const tokenIDs = normalizedWords.map(getTokenID);
-        expectedScriptTokenIDsRef.current = tokenIDs;
     };
 
     // Match word to highlight
     const progressiveWordMatch = (
         scriptWords: string[],
         transcript: string,
-        used: Set<number>
+        used: Set<number>,
+        windowSize = 3
     ): number => {
-        const transcriptWords = transcript.trim().split(/\s+/).map(w => w.toLowerCase().replace(/[^\w]/g, ''));
+        const transcriptWords = transcript
+            .trim()
+            .split(/\s+/)
+            .map(w => w.toLowerCase().replace(/[^\w]/g, ''));
 
+        // Use highest matched index so far
         let highest = -1;
-        let matchStartIndex = 0;
+        for (const i of used) {
+            if (i > highest) highest = i;
+        }
+
+        let matchStartIndex = highest + 1;
 
         for (const word of transcriptWords) {
-            for (let i = matchStartIndex; i < scriptWords.length; i++) {
+            const matchEndIndex = Math.min(scriptWords.length, matchStartIndex + windowSize);
+
+            for (let i = matchStartIndex; i < matchEndIndex; i++) {
                 if (!used.has(i) && scriptWords[i] === word) {
+                    // console.log('✅ script word:', scriptWords[i]);
+                    // console.log('🗣️ spoken word:', word);
+                    // console.log('matched index: ', i);
+
                     used.add(i);
                     if (i > highest) highest = i;
+
                     matchStartIndex = i + 1;
                     break;
                 }
@@ -308,18 +309,18 @@ export function useGoogleSTT({
                 resetSilenceTimeout();
                 resetSilenceTimer(transcript);
 
-                if (onProgressUpdate && transcript) {
-                    const scriptWords = expectedScriptWordsRef.current;
+                // if (onProgressUpdate && transcript) {
+                //     const scriptWords = expectedScriptWordsRef.current;
 
-                    if (scriptWords && !hasTriggeredRef.current) {
-                        const matchCount = progressiveWordMatch(scriptWords, transcript, matchedScriptIndices.current);
+                //     if (scriptWords && !hasTriggeredRef.current) {
+                //         const matchCount = progressiveWordMatch(scriptWords, transcript, matchedScriptIndices.current);
 
-                        if (matchCount > lastReportedCount.current) {
-                            lastReportedCount.current = matchCount;
-                            onProgressUpdate(matchCount);
-                        }
-                    }
-                }
+                //         if (matchCount > lastReportedCount.current) {
+                //             lastReportedCount.current = matchCount;
+                //             onProgressUpdate(matchCount);
+                //         }
+                //     }
+                // }
 
                 if (transcript === lastTranscriptRef.current) {
                     repeatCountRef.current += 1;
@@ -329,6 +330,19 @@ export function useGoogleSTT({
                 } else {
                     repeatCountRef.current = 1;
                     repeatStartTimeRef.current = performance.now();
+
+                    if (onProgressUpdate) {
+                        const scriptWords = expectedScriptWordsRef.current;
+
+                        if (scriptWords && !hasTriggeredRef.current) {
+                            const matchCount = progressiveWordMatch(scriptWords, transcript, matchedScriptIndices.current);
+
+                            if (matchCount > lastReportedCount.current) {
+                                lastReportedCount.current = matchCount;
+                                onProgressUpdate(matchCount);
+                            }
+                        }
+                    }
                 }
 
                 lastTranscriptRef.current = transcript;
