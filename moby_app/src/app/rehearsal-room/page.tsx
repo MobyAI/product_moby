@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useHumeTTS, useElevenTTS } from '@/lib/api/tts';
 import { useGoogleSTT } from '@/lib/google/speechToText';
@@ -180,6 +180,18 @@ export default function RehearsalRoomPage() {
     // Handle script flow
     const current = script?.find((el) => el.index === currentIndex) ?? null;
 
+    const isScriptFullyHydrated = useMemo(() => {
+        return script?.every((el) => {
+            if (el.type !== 'line') return true;
+
+            const hydratedEmbedding = Array.isArray(el.expectedEmbedding) && el.expectedEmbedding.length > 0;
+            const hydratedTTS = typeof el.ttsUrl === 'string' && el.ttsUrl.length > 0;
+            const ttsReady = (ttsHydrationStatus[el.index] ?? 'pending') === 'ready';
+
+            return hydratedEmbedding && hydratedTTS && ttsReady;
+        }) ?? false;
+    }, [script, ttsHydrationStatus]);
+
     const getScriptLine = (index: number): ScriptElement | undefined => {
         return scriptRef.current?.find((el) => el.index === index);
     };
@@ -273,6 +285,11 @@ export default function RehearsalRoomPage() {
     };
 
     const handlePlay = async () => {
+        if (!isScriptFullyHydrated) {
+            console.warn('⏳ Script is still being prepared with resources...');
+            return;
+        }
+
         await initializeSTT();
         const currentLine = script?.find(el => el.index === currentIndex);
         prepareUserLine(currentLine);
@@ -690,7 +707,13 @@ export default function RehearsalRoomPage() {
                 } */}
             </div>
             <div className="flex items-center gap-4">
-                <button onClick={handlePlay} className="px-4 py-2 bg-green-600 text-white rounded">Play</button>
+                <button
+                    onClick={handlePlay}
+                    disabled={!isScriptFullyHydrated}
+                    className="px-4 py-2 bg-green-600 text-white rounded"
+                >
+                    Play
+                </button>
                 <button onClick={handlePause} className="px-4 py-2 bg-yellow-500 text-white rounded">Pause</button>
                 <button onClick={handlePrev} className="px-4 py-2 bg-blue-500 text-white rounded">Back</button>
                 <button onClick={handleNext} className="px-4 py-2 bg-blue-500 text-white rounded">Next</button>
