@@ -1,11 +1,16 @@
 import { useRef } from 'react';
 import { fetchSimilarity } from '@/lib/api/embed';
 
+//
+// IMPORTANT: For openAI embedding: choose server near openAI's server for lower latency
+//
+
 interface UseDeepgramSTTProps {
     lineEndKeywords: string[];
     onCueDetected: (transcript: string) => void;
     onSilenceTimeout?: () => void;
     expectedEmbedding: number[];
+    onProgressUpdate?: (matchedCount: number) => void;
 }
 
 export function useDeepgramSTT({
@@ -13,7 +18,9 @@ export function useDeepgramSTT({
     onCueDetected,
     onSilenceTimeout,
     expectedEmbedding,
+    onProgressUpdate,
 }: UseDeepgramSTTProps) {
+    // STT setup
     const wsRef = useRef<WebSocket | null>(null);
     const micStreamRef = useRef<MediaStream | null>(null);
     const isActiveRef = useRef(false);
@@ -21,12 +28,73 @@ export function useDeepgramSTT({
     const silenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const micCleanupRef = useRef<(() => void) | null>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
+
+    // Cue detection
     const fullTranscript = useRef<string[]>([]);
     const lastTranscriptRef = useRef<string | null>(null);
     const repeatCountRef = useRef<number>(0);
     const repeatStartTimeRef = useRef<number | null>(null);
     const hasTriggeredRef = useRef(false);
 
+    // Highlighting
+    const expectedScriptTokenIDsRef = useRef<number[] | null>(null);
+    const matchedScriptIndices = useRef<Set<number>>(new Set());
+    const expectedScriptWordsRef = useRef<string[] | null>(null);
+    const lastReportedCount = useRef(0);
+
+    // Highlighting helper functions
+    const normalizeWord = (word: string) =>
+        word.toLowerCase().replace(/[^\w]/g, '');
+
+    const getTokenID = (() => {
+        const map = new Map<string, number>();
+        let nextID = 1;
+
+        return (word: string) => {
+            const norm = normalizeWord(word);
+            if (!map.has(norm)) map.set(norm, nextID++);
+            return map.get(norm)!;
+        };
+    })();
+
+    // Highlighting setup
+    const setCurrentLineText = (text: string) => {
+        matchedScriptIndices.current = new Set();
+        lastReportedCount.current = 0;
+
+        const normalizedWords = text.trim().split(/\s+/).map(normalizeWord);
+        expectedScriptWordsRef.current = normalizedWords;
+
+        const tokenIDs = normalizedWords.map(getTokenID);
+        expectedScriptTokenIDsRef.current = tokenIDs;
+    };
+
+    // Match word to highlight
+    const progressiveWordMatch = (
+        scriptWords: string[],
+        transcript: string,
+        used: Set<number>
+    ): number => {
+        const transcriptWords = transcript.trim().split(/\s+/).map(w => w.toLowerCase().replace(/[^\w]/g, ''));
+
+        let highest = -1;
+        let matchStartIndex = 0;
+
+        for (const word of transcriptWords) {
+            for (let i = matchStartIndex; i < scriptWords.length; i++) {
+                if (!used.has(i) && scriptWords[i] === word) {
+                    used.add(i);
+                    if (i > highest) highest = i;
+                    matchStartIndex = i + 1;
+                    break;
+                }
+            }
+        }
+
+        return highest + 1;
+    };
+
+    // STT helpers
     const triggerNextLine = (transcript: string) => {
         if (hasTriggeredRef.current) return false;
         hasTriggeredRef.current = true;
@@ -43,41 +111,6 @@ export function useDeepgramSTT({
             onSilenceTimeout?.();
         }, 10000);
     };
-
-    // const streamMic = async (wsRef: RefObject<WebSocket | null>) => {
-    //     if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
-    //         audioCtxRef.current = new AudioContext({ sampleRate: 44100 });
-    //         await audioCtxRef.current.audioWorklet.addModule('/linearPCMProcessor.js');
-    //     }
-
-    //     const audioCtx = audioCtxRef.current!;
-    //     // const actualSampleRate = audioCtx.sampleRate;
-    //     // console.log('🎛️ Actual Sample Rate:', actualSampleRate);
-
-    //     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    //     const source = audioCtx.createMediaStreamSource(stream);
-    //     const workletNode = new AudioWorkletNode(audioCtx, 'linear-pcm-processor');
-
-    //     const onWorkletMessage = (e: MessageEvent<Float32Array>) => {
-    //         const floatInput = e.data;
-    //         const buffer = convertFloat32ToInt16(floatInput);
-    //         if (wsRef.current?.readyState === WebSocket.OPEN) {
-    //             wsRef.current.send(buffer);
-    //         }
-    //     };
-
-    //     workletNode.port.onmessage = onWorkletMessage;
-    //     source.connect(workletNode);
-    //     workletNode.connect(audioCtx.destination);
-
-    //     return () => {
-    //         console.log('🧹 Cleaning up audio resources');
-    //         workletNode.port.onmessage = null;
-    //         source.disconnect();
-    //         workletNode.disconnect();
-    //         stream.getTracks().forEach((track) => track.stop());
-    //     };
-    // };
 
     const handleFinalization = async (triggerSource: string) => {
         const spokenLine = fullTranscript.current.join(' ');
@@ -102,10 +135,6 @@ export function useDeepgramSTT({
         } else {
             console.log('🔑 Keyword match failed');
         }
-
-        //
-        // IMPORTANT: For openAI embedding: choose server near openAI's server for lower latency
-        //
 
         if (!expectedEmbedding || expectedEmbedding.length === 0) {
             console.warn("⚠️ Missing expected embedding — skipping similarity check.");
@@ -307,6 +336,19 @@ export function useDeepgramSTT({
                 console.log(`[🎙️] Transcript chunk at ${performance.now().toFixed(2)}ms:`, transcript);
                 resetSilenceTimeout();
 
+                if (onProgressUpdate && transcript) {
+                    const scriptWords = expectedScriptWordsRef.current;
+
+                    if (scriptWords && !hasTriggeredRef.current) {
+                        const matchCount = progressiveWordMatch(scriptWords, transcript, matchedScriptIndices.current);
+
+                        if (matchCount > lastReportedCount.current) {
+                            lastReportedCount.current = matchCount;
+                            onProgressUpdate(matchCount);
+                        }
+                    }
+                }
+
                 if (transcript === lastTranscriptRef.current) {
                     repeatCountRef.current += 1;
                     if (!repeatStartTimeRef.current) {
@@ -405,7 +447,7 @@ export function useDeepgramSTT({
         }
     };
 
-    return { startSTT, pauseSTT, initializeSTT, cleanupSTT };
+    return { startSTT, pauseSTT, initializeSTT, cleanupSTT, setCurrentLineText };
 }
 
 // Helpers
@@ -436,16 +478,11 @@ function matchesEndPhrase(transcript: string, keywords: string[]): boolean {
     const normalize = (text: string) =>
         text.toLowerCase().replace(/[\s.,!?'"“”\-]+/g, ' ').trim();
 
-    const normTranscript = normalize(transcript);
+    const normalizedTranscript = normalize(transcript);
 
-    // Split into sentences and grab the last one
-    const sentences = splitIntoSentences(normTranscript);
-    const lastSentence = sentences[sentences.length - 1]?.trim();
-
-    if (!lastSentence) return false;
-
-    // Check that all keywords appear somewhere in the last sentence
-    return keywords.some((kw) => lastSentence.includes(normalize(kw)));
+    return keywords.every((kw) =>
+        normalizedTranscript.includes(normalize(kw))
+    );
 }
 
 // function convertFloat32ToInt16(float32Array: Float32Array): ArrayBuffer {

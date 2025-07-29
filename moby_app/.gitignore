@@ -43,3 +43,6 @@ next-env.d.ts
 
 # google
 moby-google-key.json
+
+# alternates
+/src/alternates/

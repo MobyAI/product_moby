@@ -14,7 +14,6 @@ export async function parseScriptFile(file: File): Promise<any | null> {
         }
 
         const data = await res.json();
-        console.log('parsed data from api:', data.parsed);
 
         try {
             return JSON.parse(data.parsed);
