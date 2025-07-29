@@ -141,8 +141,69 @@ export default function RehearsalRoomPage() {
     };
 
     // Update script line
+    const COMMON_WORDS = new Set([
+        'the', 'a', 'an', 'to', 'and', 'but', 'or', 'for', 'at', 'by', 'in', 'on', 'of', 'then', 'so'
+    ]);
+
+    function extractLineEndKeywords(text: string): string[] {
+        const words = text
+            .toLowerCase()
+            .replace(/[^a-z0-9\s']/gi, '')
+            .split(/\s+/)
+            .filter(Boolean);
+
+        // Filter out common words and duplicates
+        const meaningful = words
+            .filter((word, index) => {
+                return (
+                    !COMMON_WORDS.has(word) &&
+                    words.lastIndexOf(word) === index
+                );
+            });
+
+        const selected = meaningful.slice(-2);
+
+        if (selected.length === 2) return selected;
+
+        if (selected.length === 1) {
+            const keyword = selected[0];
+
+            // Find index of that keyword in original `words` array
+            const idx = words.lastIndexOf(keyword);
+
+            let neighbor = '';
+
+            // Prefer word before
+            if (idx > 0) {
+                neighbor = words[idx - 1];
+            } else {
+                neighbor = words[idx + 1];
+            }
+
+            // Only return the keyword and neighbor if neighbor exists
+            return neighbor ? [neighbor, keyword] : [keyword];
+        }
+
+        if (selected.length === 0 && words.length > 0) {
+            return words.slice(-2);
+        }
+
+        return [];
+    }
+
     const onUpdateLine = async (updateLine: ScriptElement) => {
         setIsEditingLine(false);
+
+        if (!script) {
+            console.warn('❌ Tried to update line before script was loaded.');
+            return;
+        }
+
+        // Inject or replace lineEndKeywords
+        if (updateLine.type === 'line' && typeof updateLine.text === 'string') {
+            updateLine.lineEndKeywords = extractLineEndKeywords(updateLine.text);
+            console.log('updated kw: ', updateLine.lineEndKeywords);
+        }
 
         try {
             const updatedScript = script?.map((el) =>

@@ -604,24 +604,26 @@ export const hydrateScript = async ({
         withTTS = await Promise.all(
             embedded.map((element: ScriptElement) =>
                 limit(async () => {
-                    if (
-                        element.type === 'line' &&
-                        unhydratedTTS.has(element.index)
-                    ) {
-                        updateTTSHydrationStatus?.(element.index, 'pending');
+                    if (element.type === 'line') {
+                        const needsHydration = unhydratedTTS.has(element.index);
 
-                        try {
-                            const updated = await addTTS(element, embedded, userID, scriptID, getScriptLine);
+                        if (needsHydration) {
+                            updateTTSHydrationStatus?.(element.index, 'pending');
 
+                            try {
+                                const updated = await addTTS(element, embedded, userID, scriptID, getScriptLine);
+                                updateTTSHydrationStatus?.(element.index, 'ready');
+                                return updated;
+                            } catch (err) {
+                                console.warn(`❌ addTTS failed for line ${element.index}`, err);
+                                ttsFailedIndexes.push(element.index);
+                                return element;
+                            }
+                        } else {
                             updateTTSHydrationStatus?.(element.index, 'ready');
-
-                            return updated;
-                        } catch (err) {
-                            console.warn(`❌ addTTS failed for line ${element.index}`, err);
-                            ttsFailedIndexes.push(element.index);
-                            return element;
                         }
                     }
+
                     return element;
                 })
             )
@@ -642,6 +644,7 @@ export const hydrateScript = async ({
                         ) {
                             try {
                                 const updated = await addTTS(element, withTTS, userID, scriptID, getScriptLine);
+                                updateTTSHydrationStatus?.(element.index, 'ready');
                                 return updated;
                             } catch (err) {
                                 console.warn(`❌ Retry failed for TTS line ${element.index}`, err);
@@ -715,7 +718,7 @@ export const hydrateLine = async ({
     }
 
     updateTTSHydrationStatus?.(line.index, 'updating');
-    
+
     try {
         const updatedLine = await addTTSRegenerate(line, script, userID, scriptID);
 
