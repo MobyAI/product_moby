@@ -87,6 +87,7 @@ export async function addTTSRegenerate(
 
     // Check for updated line
     const latestLine = getScriptLine(element.index);
+    console.log('1 latest line vs this: ', latestLine?.text, element.text);
 
     if (latestLine?.text !== element.text) {
         console.log(`⏩ Skipping outdated TTS for line ${element.index}`);
@@ -118,6 +119,7 @@ export async function addTTSRegenerate(
 
         // Check once more before upload
         const latestLineBeforeUpload = getScriptLine(element.index);
+        console.log('2 latest line vs this: ', latestLine?.text, element.text);
 
         if (latestLineBeforeUpload?.text !== element.text) {
             console.warn(`⚠️ Line ${element.index} changed mid-TTS — discarding blob`);

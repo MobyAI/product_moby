@@ -107,11 +107,6 @@ export default function RehearsalRoomPage() {
         return () => clearTimeout(timeout);
     }, [currentIndex, scriptID]);
 
-    // Keep ref in sync with script state
-    useEffect(() => {
-        scriptRef.current = script;
-    }, [script]);
-
     // Retry
     const retryLoadScript = async () => {
         if (!userID || !scriptID || !script) return;
@@ -153,6 +148,8 @@ export default function RehearsalRoomPage() {
             el.index === updateLine.index ? updateLine : el
         ) ?? [];
 
+        scriptRef.current = updatedScript;
+
         if (userID && scriptID) {
             const result = await hydrateLine({
                 line: updateLine,
@@ -163,11 +160,15 @@ export default function RehearsalRoomPage() {
                 getScriptLine,
             });
 
-            setScript((prev) =>
-                prev?.map((el) =>
+            setScript((prev) => {
+                const next = prev?.map((el) =>
                     el.index === result.index ? result : el
-                ) ?? []
-            );
+                ) ?? [];
+
+                scriptRef.current = next;
+
+                return next;
+            });
         }
     };
 
