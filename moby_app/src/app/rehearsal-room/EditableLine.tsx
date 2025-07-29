@@ -5,9 +5,10 @@ type EditableLineProps = {
     item: ScriptElement;
     onUpdate: (updatedItem: ScriptElement) => void;
     onClose: () => void;
+    hydrationStatus?: 'pending' | 'updating' | 'ready' | 'failed';
 };
 
-export default function EditableLine({ item, onUpdate, onClose }: EditableLineProps) {
+export default function EditableLine({ item, onUpdate, onClose, hydrationStatus }: EditableLineProps) {
     const [draftText, setDraftText] = useState(item.text);
 
     const handleSave = () => {
@@ -37,6 +38,7 @@ export default function EditableLine({ item, onUpdate, onClose }: EditableLinePr
                 <button
                     className="mt-2 px-3 py-1 text-sm bg-yellow-400 text-white rounded"
                     onClick={handleSave}
+                    disabled={hydrationStatus === 'updating'}
                 >
                     Update
                 </button>

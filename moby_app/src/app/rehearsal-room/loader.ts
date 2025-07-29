@@ -694,14 +694,14 @@ export const hydrateLine = async ({
     userID,
     scriptID,
     updateTTSHydrationStatus,
-    getScriptLine,
+    setStorageError,
 }: {
     line: ScriptElement;
     script: ScriptElement[];
     userID: string;
     scriptID: string;
-    updateTTSHydrationStatus?: (index: number, status: 'pending' | 'ready' | 'failed') => void;
-    getScriptLine: (index: number) => ScriptElement | undefined;
+    updateTTSHydrationStatus?: (index: number, status: 'pending' | 'updating' | 'ready' | 'failed') => void;
+    setStorageError: (val: boolean) => void;
 }): Promise<ScriptElement> => {
     const cacheKey = `script-cache:${userID}:${scriptID}`;
 
@@ -714,11 +714,10 @@ export const hydrateLine = async ({
         return line;
     }
 
-    updateTTSHydrationStatus?.(line.index, 'pending');
-
+    updateTTSHydrationStatus?.(line.index, 'updating');
+    
     try {
-        const updatedLine = await addTTSRegenerate(line, script, userID, scriptID, getScriptLine);
-        updateTTSHydrationStatus?.(line.index, 'ready');
+        const updatedLine = await addTTSRegenerate(line, script, userID, scriptID);
 
         // Update the script with the new line
         const updatedScript = script.map((el) =>
@@ -726,8 +725,17 @@ export const hydrateLine = async ({
         );
 
         // Cache to IndexedDB
-        await set(cacheKey, updatedScript);
+        try {
+            await set(cacheKey, updatedScript);
+            console.log('💾 Script cached successfully');
+        } catch (err) {
+            console.warn('⚠️ Failed to store script in IndexedDB:', err);
+            if (isQuotaExceeded(err)) {
+                setStorageError(true);
+            }
+        }
 
+        updateTTSHydrationStatus?.(line.index, 'ready');
         return updatedLine;
     } catch (err) {
         console.error(`❌ hydrateLineWithTTS failed for line ${line.index}`, err);

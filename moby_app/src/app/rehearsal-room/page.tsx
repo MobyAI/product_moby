@@ -29,7 +29,7 @@ export default function RehearsalRoomPage() {
     const [script, setScript] = useState<ScriptElement[] | null>(null);
     const scriptRef = useRef<ScriptElement[] | null>(null);
     const [sttProvider, setSttProvider] = useState<'google' | 'deepgram'>('deepgram');
-    const [ttsHydrationStatus, setTTSHydrationStatus] = useState<Record<number, 'pending' | 'ready' | 'failed'>>({});
+    const [ttsHydrationStatus, setTTSHydrationStatus] = useState<Record<number, 'pending' | 'updating' | 'ready' | 'failed'>>({});
     const [isEditingLine, setIsEditingLine] = useState(false);
 
     // Rehearsal flow
@@ -133,42 +133,46 @@ export default function RehearsalRoomPage() {
     };
 
     // Track TTS audio generation status
-    const updateTTSHydrationStatus = (index: number, status: 'pending' | 'ready' | 'failed') => {
+    const updateTTSHydrationStatus = (index: number, status: 'pending' | 'updating' | 'ready' | 'failed') => {
         setTTSHydrationStatus((prev) => ({
             ...prev,
             [index]: status,
         }));
     };
 
-    // Update edited line
+    // Update script line
     const onUpdateLine = async (updateLine: ScriptElement) => {
         setIsEditingLine(false);
 
-        const updatedScript = script?.map((el) =>
-            el.index === updateLine.index ? updateLine : el
-        ) ?? [];
+        try {
+            const updatedScript = script?.map((el) =>
+                el.index === updateLine.index ? updateLine : el
+            ) ?? [];
 
-        scriptRef.current = updatedScript;
+            scriptRef.current = updatedScript;
 
-        if (userID && scriptID) {
-            const result = await hydrateLine({
-                line: updateLine,
-                script: updatedScript,
-                userID,
-                scriptID,
-                updateTTSHydrationStatus,
-                getScriptLine,
-            });
+            if (userID && scriptID) {
+                const result = await hydrateLine({
+                    line: updateLine,
+                    script: updatedScript,
+                    userID,
+                    scriptID,
+                    updateTTSHydrationStatus,
+                    setStorageError,
+                });
 
-            setScript((prev) => {
-                const next = prev?.map((el) =>
-                    el.index === result.index ? result : el
-                ) ?? [];
+                setScript((prev) => {
+                    const next = prev?.map((el) =>
+                        el.index === result.index ? result : el
+                    ) ?? [];
 
-                scriptRef.current = next;
+                    scriptRef.current = next;
 
-                return next;
-            });
+                    return next;
+                });
+            }
+        } catch (err) {
+            console.error(`❌ Failed to update line ${updateLine.index}:`, err);
         }
     };
 
@@ -594,6 +598,7 @@ export default function RehearsalRoomPage() {
                                 item={current}
                                 onUpdate={onUpdateLine}
                                 onClose={() => setIsEditingLine(false)}
+                                hydrationStatus={ttsHydrationStatus[current.index]}
                             />
                         ) : (
                             <div className="text-xl mt-2">
@@ -691,7 +696,7 @@ export default function RehearsalRoomPage() {
                     <button onClick={handleRestart} className="px-4 py-2 bg-red-500 text-white rounded">Restart</button>
                 }
             </div>
-            <div>
+            {/* <div>
                 {
                     current?.type === 'line' &&
                     current?.role === 'user' &&
@@ -720,7 +725,7 @@ export default function RehearsalRoomPage() {
                         </>
                     )
                 }
-            </div>
+            </div> */}
         </div>
     );
 }
