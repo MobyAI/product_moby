@@ -708,6 +708,12 @@ export default function RehearsalRoomPage() {
                             <button
                                 className="mt-2 px-3 py-1 text-sm bg-yellow-400 text-white rounded"
                                 onClick={() => setIsEditingLine(true)}
+                                disabled={ttsHydrationStatus[current.index] === 'updating'}
+                                title={
+                                    ttsHydrationStatus[current.index] === 'updating'
+                                        ? 'Currently updating this line'
+                                        : 'Edit this line'
+                                }
                             >
                                 ✏️ Edit Line
                             </button>
