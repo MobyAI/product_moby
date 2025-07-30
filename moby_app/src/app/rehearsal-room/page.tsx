@@ -11,6 +11,7 @@ import { restoreSession, saveSession } from './session';
 import Deepgram from './deepgram';
 import GoogleSTT from './google';
 import EditableLine from './EditableLine';
+import { RoleSelector } from './RoleSelector';
 import { clear } from 'idb-keyval';
 
 export default function RehearsalRoomPage() {
@@ -60,6 +61,7 @@ export default function RehearsalRoomPage() {
             });
 
             if (!rawScript) {
+                // Display error page?
                 setLoading(false);
                 return;
             } else {
@@ -783,6 +785,19 @@ export default function RehearsalRoomPage() {
                     <button onClick={handleRestart} className="px-4 py-2 bg-red-500 text-white rounded">Restart</button>
                 }
             </div>
+            <RoleSelector
+                script={script}
+                userID={userID!}
+                scriptID={scriptID!}
+                onRolesUpdated={(updated) => {
+                    setScript(updated);
+                    scriptRef.current = updated;
+                    prepareUserLine(updated[currentIndex]);
+                    // setCurrentIndex(0);
+                    // setSpokenWordMap({});
+                    // prepareUserLine(updated[0]);
+                }}
+            />
             {/* <div>
                 {
                     current?.type === 'line' &&
