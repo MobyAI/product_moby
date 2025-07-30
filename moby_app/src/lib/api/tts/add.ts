@@ -50,8 +50,19 @@ export async function addTTS(
                 description: (l as any).actingInstructions || '',
             }));
 
+        const sanitizeForTTS = (text: string): string => {
+            return text
+                // Replace one or more underscores with pause
+                .replace(/_+/g, ' [pause] ')
+                // Remove parenthetical text
+                .replace(/\([^)]*\)/g, '')
+                // Collapse multiple spaces caused by removals
+                .replace(/\s+/g, ' ')
+                .trim();
+        };
+
         const blob = await useHumeTTS({
-            text: element.text,
+            text: sanitizeForTTS(element.text),
             voiceId,
             voiceDescription: element.actingInstructions || '',
             contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined,
@@ -60,7 +71,7 @@ export async function addTTS(
         // Check once more before upload
         const latestLineBeforeUpload = getScriptLine(element.index);
 
-        if (latestLineBeforeUpload?.text !== element.text) {
+        if (sanitizeForTTS(latestLineBeforeUpload?.text || '') !== sanitizeForTTS(element.text)) {
             console.warn(`⚠️ Line ${element.index} changed mid-TTS — discarding blob`);
             return element;
         }
@@ -101,8 +112,19 @@ export async function addTTSRegenerate(
                 description: (l as any).actingInstructions || '',
             }));
 
+        const sanitizeForTTS = (text: string): string => {
+            return text
+                // Replace one or more underscores with pause
+                .replace(/_+/g, ' [pause] ')
+                // Remove parenthetical text
+                .replace(/\([^)]*\)/g, '')
+                // Collapse multiple spaces caused by removals
+                .replace(/\s+/g, ' ')
+                .trim();
+        };
+
         const blob = await useHumeTTS({
-            text: element.text,
+            text: sanitizeForTTS(element.text),
             voiceId,
             voiceDescription: element.actingInstructions || '',
             contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined,
