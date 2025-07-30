@@ -733,7 +733,7 @@ export default function RehearsalRoomPage() {
 							</div>
 
 							{/* Bottom Button - Always at bottom */}
-							<div className="mt-6 pt-4 border-t border-gray-700">
+							<div className="mt-6 pt-4 border-t border-gray-700" style={{ margin: 'auto' }}>
 								<Button onClick={goBackHome}>
 									Upload new script
 								</Button>
