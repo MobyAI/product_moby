@@ -9,7 +9,7 @@ export const restoreSession = async (scriptID: string) => {
 
 export const saveSession = async (
     scriptID: string,
-    state: { index: number; spokenWordMap: Record<number, number> }
+    state: { index: number }
 ) => {
     const key = getSessionKey(scriptID);
     try {

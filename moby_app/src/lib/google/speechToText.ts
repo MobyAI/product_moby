@@ -359,10 +359,22 @@ export function useGoogleSTT({
             }
 
             if (isFinal && transcript) {
-                console.log(`!!!! Is Final detected !!!! @ ${performance.now().toFixed(2)}ms`);
-                console.log(`🎯 Google Final transcript: ${transcript}`);
+                console.log(`🟡 Google is_final detected @ ${performance.now().toFixed(2)}ms: ${transcript}`);
+
                 fullTranscript.current.push(transcript);
-                await handleFinalization(transcript);
+                
+                const fullSpokenLine = fullTranscript.current.join(' ');
+                const expectedWords = expectedScriptWordsRef.current;
+                const spokenWords = fullSpokenLine.trim().split(/\s+/);
+
+                const isLongEnough = expectedWords && spokenWords.length >= Math.floor(expectedWords.length * 0.75);
+
+                if (isLongEnough) {
+                    console.log(`🟡 Google Final transcript accepted @ ${performance.now().toFixed(2)}ms! Handling finalization...`);
+                    await handleFinalization(fullTranscript.current.join(' '));
+                } else {
+                    console.log(`⏹️ Google Final transcript too short — skipping!`);
+                }
             }
         };
 

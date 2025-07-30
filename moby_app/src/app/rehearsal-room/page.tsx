@@ -87,7 +87,6 @@ export default function RehearsalRoomPage() {
 
             if (restored) {
                 setCurrentIndex(restored.index ?? 0);
-                setSpokenWordMap(restored.spokenWordMap ?? {});
             }
 
             setLoadStage('✅ Ready!');
@@ -102,7 +101,7 @@ export default function RehearsalRoomPage() {
         if (!scriptID) return;
 
         const timeout = setTimeout(() => {
-            saveSession(scriptID, { index: currentIndex, spokenWordMap });
+            saveSession(scriptID, { index: currentIndex });
         }, 1000);
 
         return () => clearTimeout(timeout);
@@ -112,6 +111,7 @@ export default function RehearsalRoomPage() {
     const retryLoadScript = async () => {
         if (!userID || !scriptID || !script) return;
 
+        setLoadStage('🚰 Retrying hydration');
         setLoading(true);
 
         await hydrateScript({
