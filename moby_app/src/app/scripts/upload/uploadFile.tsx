@@ -2,123 +2,128 @@
 
 import { useState } from 'react';
 import { Layout } from '@/components/ui/Layout';
-import { Button } from '@/components/ui/Buttons';
-import { useRouter } from 'next/navigation';
 import { parseScriptFile } from '@/lib/api/parse';
-import { Input } from '@/components/ui/Input';
 import { ScriptElement } from '@/types/script';
+import LoadingScreen from '../practice/LoadingScreen';
 
 export default function UploadPage({ onParsed } : { onParsed: (rawScript: ScriptElement[]) => void }) {
-
-    const router = useRouter();
-
-    const [file, setFile] = useState<File | null>(null);
-    const [message, setMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [loadingProgress, setLoadingProgress] = useState(0);
+    const [loadingStage, setLoadingStage] = useState('');
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!file || isLoading) return;
+    const handleUploadScript = () => {
+        // Create a hidden file input and trigger it
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.pdf,.docx';
+        input.onchange = handleFileUpload;
+        input.click();
+    };
+
+    const handleFileUpload = async (event: Event) => {
+        const target = event.target as HTMLInputElement;
+        const file = target.files?.[0];
+        
+        if (!file) return;
 
         setIsLoading(true);
-        setMessage('');
-
+        setLoadingProgress(0);
+        
         try {
+            // Stage 1: File reading
+            setLoadingStage('Reading file...');
+            setLoadingProgress(20);
+            
+            // Simulate file reading delay
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Stage 2: Processing document
+            setLoadingStage('Processing document...');
+            setLoadingProgress(40);
+            
+            // Stage 3: Parsing script format
+            setLoadingStage('Parsing script format...');
+            setLoadingProgress(60);
+            
+            // Stage 4: API call
+            setLoadingStage('Analyzing characters...');
+            setLoadingProgress(80);
+            
             const parsedScript = await parseScriptFile(file);
+            
+            // Stage 5: Finalizing
+            setLoadingStage('Finalizing...');
+            setLoadingProgress(100);
+            
+            // Brief delay to show completion
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
             if (parsedScript) {
-                setMessage('Script parsed successfully!');
                 onParsed(parsedScript);
             } else {
-                setMessage('Error: Failed to parse script.');
+                alert('Error: Failed to parse script.');
             }
         } catch (error) {
-            setMessage('Error: Failed to parse script');
-            console.log('what is the error', error);
+            alert('Error: Failed to parse script');
+            console.error('Parse error:', error);
         } finally {
             setIsLoading(false);
+            setLoadingProgress(0);
+            setLoadingStage('');
         }
-    }
+    };
 
-    const handleCancel = () => {
-        router.push('/home')
+    // Show loading screen when processing
+    if (isLoading) {
+        return (
+            <Layout>
+                <LoadingScreen loadStage={isLoading}>
+                    {loadingStage}
+                </LoadingScreen>
+            </Layout>
+        );
     }
 
     return (
-        <Layout title="Upload New Script">
-            <div className="min-h-screen flex items-center justify-center px-4 py-8">
-                <div className="w-full max-w-4xl">
-                    <div className="bg-white rounded-lg shadow-sm border p-6">
-                        <form onSubmit={handleSubmit}>
-                            {/* Upload Methods */}
-                            <div className="grid md:grid-cols-1 gap-8 mb-8">
-                                {/* File Upload */}
-                                <div className="text-center">
-                                    <h3 className="text-lg font-semibold mb-4 text-black">Upload File</h3>
-                                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-purple-400 transition-colors">
-                                        <i className="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
-                                        {/* <p className="text-gray-600 mb-4">Drag and drop your script file here</p> */}
-                                        <p className="text-sm text-gray-500 mb-4">Supports PDF, DOCX</p>
-                                        {/* <Button type="button">Choose File</Button> */}
-                                        <Input 
-                                            type="file"
-                                            accept=".pdf, .docx"
-                                            onChange={(e) => setFile(e.target.files?.[0] || null)}
-                                            disabled={isLoading}
-                                            required
-                                            label={'Choose file'}
-                                            style={{ width: 500 }}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
+        <Layout>
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-3xl shadow-lg p-12 max-w-md w-full text-center">
+                    {/* Play Logo */}
+                    <div className="mb-8">
+                        <div className="inline-flex items-center justify-center">
+                            <span 
+                                className="text-6xl font-bold tracking-tight"
+                                style={{
+                                    background: 'linear-gradient(45deg, #ff6b9d, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                    backgroundClip: 'text',
+                                    filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.1))'
+                                }}
+                            >
+                                Play
+                            </span>
+                        </div>
+                    </div>
 
-                            {/* Actions */}
-                            <div className="mt-8 flex justify-center gap-4">
-                                <Button variant="secondary" type="button" onClick={handleCancel}>Cancel</Button>
-                                <Button 
-                                    type="submit" 
-                                    disabled={!file || isLoading }
-                                    className={`px-4 py-2 rounded font-medium transition-colors ${!file || isLoading
-                                        ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
-                                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                                    }`}
-                                >
-                                    {isLoading ? (
-                                        <span className="flex items-center gap-2">
-                                            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                                                <circle
-                                                    className="opacity-25"
-                                                    cx="12"
-                                                    cy="12"
-                                                    r="10"
-                                                    stroke="currentColor"
-                                                    strokeWidth="4"
-                                                    fill="none"
-                                                />
-                                                <path
-                                                    className="opacity-75"
-                                                    fill="currentColor"
-                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                                />
-                                            </svg>
-                                            Parsing! This may take a moment.
-                                        </span>
-                                    ) : (
-                                        'Upload and Parse'
-                                    )}
-                                </Button>
-                            </div>
-                            <div className="mt-4 justify-center">
-                            {message && (
-                                <p className={`text-sm ${message.includes('Error') ? 'text-red-600' : 'text-green-600'}`}>
-                                    {message}
-                                </p>
-                            )}
-                            </div>
-                        </form>
+                    {/* Question Text */}
+                    <h1 className="text-2xl font-medium text-gray-700 mb-12 leading-relaxed">
+                        What do you want to<br />
+                        practice today?
+                    </h1>
+
+                    {/* Action Buttons */}
+                    <div className="space-y-4">
+                        
+                        <button
+                            onClick={handleUploadScript}
+                            className="w-full bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-500 hover:to-blue-600 text-white font-semibold py-4 px-8 rounded-full text-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
+                        >
+                            Upload Script
+                        </button>
                     </div>
                 </div>
             </div>
         </Layout>
-    )
-}   
+    );
+}

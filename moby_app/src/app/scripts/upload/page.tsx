@@ -87,35 +87,34 @@ export default function UploadPage() {
                             >
                                 {loading ? 'Saving...' : 'Save and Rehearse'}
                             </button>
-                            
                             {allCharacters.length > 0 && (
                                 <div className="space-y-4">
-                                    <h2 className="text-lg font-semibold mb-4 text-black">Role Select:</h2>
-                                    {allCharacters.map((character) => {
-                                        const currentRole = parsedData?.find(
+                                    <h2 className="text-lg font-semibold mb-4 text-black">Select Your Role:</h2>
+                                    <div className="flex flex-col gap-2">
+                                        {allCharacters.map((character) => {
+                                            const currentRole = parsedData?.find(
                                             (line) => line.type === 'line' && line.character === character
-                                        )?.role;
+                                            )?.role;
 
-                                        return (
-                                            <div key={character} className="flex items-center gap-4">
-                                                <span className="font-medium flex-1 text-black">{character}</span>
+                                            const isUser = currentRole === 'user';
+
+                                            return (
                                                 <button
+                                                    key={character}
                                                     onClick={() =>
-                                                        updateCharacterRole(
-                                                            character,
-                                                            currentRole === 'user' ? 'scene-partner' : 'user'
-                                                        )
+                                                    updateCharacterRole(character, currentRole === 'user' ? 'scene-partner' : 'user')
                                                     }
-                                                    className={`text-xs px-2 py-1 rounded border ${currentRole === 'user'
-                                                            ? 'bg-green-100 border-green-300 text-green-800'
-                                                            : 'bg-blue-100 border-blue-300 text-blue-800'
-                                                        }`}
+                                                    className={`w-full px-4 py-2 rounded-full border text-sm font-medium text-left transition ${
+                                                    isUser
+                                                        ? 'bg-green-100 border-green-300 text-green-800'
+                                                        : 'bg-blue-100 border-blue-300 text-blue-800'
+                                                    }`}
                                                 >
-                                                    {currentRole === 'user' ? '🙋 You' : '🤖 Scene Partner'}
+                                                    {character}
                                                 </button>
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             )}
                         </div>
