@@ -2,7 +2,7 @@ import { get, set } from 'idb-keyval';
 import type { ScriptElement } from '@/types/script';
 import { addEmbedding } from '@/lib/api/embed';
 import { addTTS, addTTSRegenerate } from '@/lib/api/tts';
-import { fetchScriptByID } from '@/lib/api/dbFunctions/scripts';
+import { fetchScriptByID, updateScriptByID } from '@/lib/api/dbFunctions/scripts';
 import pLimit from 'p-limit';
 
 const isQuotaExceeded = (error: any) =>
@@ -679,6 +679,19 @@ export const hydrateScript = async ({
             }
         }
 
+        // Attempt to save update
+        setLoadStage('💾 Updating database...');
+        const sanitizedScript = withTTS.map((el) =>
+            el.type === 'line'
+                ? { ...el, expectedEmbedding: undefined }
+                : el
+        );
+        try {
+            await updateScriptByID(userID, scriptID, sanitizedScript);
+        } catch (err) {
+            console.warn('⚠️ Failed to save update to database:', err)
+        }
+
         const end = performance.now();
         console.log(`⏱️ Script hydrated in ${(end - start).toFixed(2)} ms`);
 
@@ -727,7 +740,7 @@ export const hydrateLine = async ({
             el.index === updatedLine.index ? updatedLine : el
         );
 
-        // Cache to IndexedDB
+        // Attempt to cache
         try {
             await set(cacheKey, updatedScript);
             console.log('💾 Script cached successfully');
@@ -736,6 +749,18 @@ export const hydrateLine = async ({
             if (isQuotaExceeded(err)) {
                 setStorageError(true);
             }
+        }
+
+        // Attempt to save update
+        const sanitizedScript = updatedScript.map((el) =>
+            el.type === 'line'
+                ? { ...el, expectedEmbedding: undefined }
+                : el
+        );
+        try {
+            await updateScriptByID(userID, scriptID, sanitizedScript);
+        } catch (err) {
+            console.warn('⚠️ Failed to save update to database:', err)
         }
 
         updateTTSHydrationStatus?.(line.index, 'ready');
