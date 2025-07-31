@@ -43,11 +43,12 @@ export async function addTTS(
         }
 
         const contextUtterance = script
-            .slice(Math.max(0, element.index - 2), element.index)
+            .slice(0, element.index)
             .filter((l) => l.type === 'line' && typeof l.text === 'string' && l.text.trim().length > 0)
+            .slice(-4)
             .map((l) => ({
                 text: l.text,
-                description: (l as any).actingInstructions || '',
+                description: l.actingInstructions ?? '',
             }));
 
         const sanitizeForTTS = (text: string): string => {
@@ -64,9 +65,16 @@ export async function addTTS(
         const blob = await useHumeTTS({
             text: sanitizeForTTS(element.text),
             voiceId,
-            voiceDescription: element.actingInstructions || '',
+            voiceDescription: '',
             contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined,
         });
+
+        // const blob = await useHumeTTS({
+        //     text: sanitizeForTTS(element.text),
+        //     voiceId,
+        //     voiceDescription: element.actingInstructions || '',
+        //     contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined,
+        // });
 
         // Check once more before upload
         const latestLineBeforeUpload = getScriptLine(element.index);
@@ -105,11 +113,12 @@ export async function addTTSRegenerate(
 
     try {
         const contextUtterance = script
-            .slice(Math.max(0, element.index - 2), element.index)
+            .slice(0, element.index)
             .filter((l) => l.type === 'line' && typeof l.text === 'string' && l.text.trim().length > 0)
+            .slice(-4)
             .map((l) => ({
                 text: l.text,
-                description: (l as any).actingInstructions || '',
+                description: l.actingInstructions ?? '',
             }));
 
         const sanitizeForTTS = (text: string): string => {
@@ -126,9 +135,16 @@ export async function addTTSRegenerate(
         const blob = await useHumeTTS({
             text: sanitizeForTTS(element.text),
             voiceId,
-            voiceDescription: element.actingInstructions || '',
+            voiceDescription: '',
             contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined,
         });
+
+        // const blob = await useHumeTTS({
+        //     text: sanitizeForTTS(element.text),
+        //     voiceId,
+        //     voiceDescription: element.actingInstructions || '',
+        //     contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined,
+        // });
 
         await uploadTTSAudioBlob({ userID, scriptID, index: element.index, blob });
 
