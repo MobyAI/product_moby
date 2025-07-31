@@ -57,7 +57,7 @@ export default function VoiceLibrary({ samples, onClose, selectedVoiceId, onSele
 
     return (
         <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Voice Library</h2>
+            <h2 className="text-lg font-semibold mb-4 text-black">Voice Library</h2>
             {samples.map((sample) => {
                 const isPlaying = playingUrl === sample.url;
                 const isSelected = sample.voiceId === selectedVoiceId;
@@ -65,29 +65,24 @@ export default function VoiceLibrary({ samples, onClose, selectedVoiceId, onSele
                 return (
                     <div
                         key={sample.name}
-                        className="border p-4 rounded-xl shadow-sm bg-white flex justify-between items-center"
+                        className="border p-2 rounded-xl shadow-sm bg-white flex justify-between items-center"
                     >
+                        <button
+                            onClick={() => onSelectVoice(sample.voiceId, sample.name)}
+                            className="text-xl px-1"
+                        >
+                            {isSelected ? '✅' : '🔘'}
+                        </button>
                         <div>
                             <p className="font-medium">{sample.name}</p>
                             <p className="text-sm text-gray-500">{sample.description}</p>
                         </div>
-                        <div className="flex gap-4 items-center">
-                            <button
-                                onClick={() => handlePlay(sample.url)}
-                                className="text-blue-600 hover:underline text-sm"
-                            >
-                                {isPlaying ? '⏸️ Pause' : '🔊 Play'}
-                            </button>
-                            <button
-                                onClick={() => onSelectVoice(sample.voiceId, sample.name)}
-                                className={`text-sm px-3 py-1 rounded border ${isSelected
-                                    ? 'bg-purple-600 text-white border-purple-600'
-                                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'
-                                    }`}
-                            >
-                                {isSelected ? '✅ Selected' : '➕ Select'}
-                            </button>
-                        </div>
+                        <button
+                            onClick={() => handlePlay(sample.url)}
+                            className="text-xl px-1"
+                        >
+                            {isPlaying ? '⏸️' : '▶️'}
+                        </button>
                     </div>
                 );
             })}
