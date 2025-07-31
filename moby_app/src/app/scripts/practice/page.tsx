@@ -456,8 +456,6 @@ export default function RehearsalRoomPage() {
 		}
 	};
 
-	const [drawerOpen, setDrawerOpen] = useState(false);
-
 	const renderScriptElement = (element: ScriptElement, index: number) => {
 		const isCurrent = element.index === currentIndex;
 		const isCompleted = element.index < currentIndex;
@@ -469,16 +467,16 @@ export default function RehearsalRoomPage() {
 					key={element.index}
 					ref={isCurrent ? currentLineRef : null}
 					onClick={() => handleLineClick(element.index)}
-					className={`text-center mb-8 cursor-pointer transition-all duration-200 hover:bg-yellow-50 hover:shadow-sm rounded-lg p-4 ${
-						isCurrent ? "bg-yellow-100 shadow-sm" : ""
+					className={`text-center mb-8 cursor-pointer transition-all duration-200 hover:bg-gray-50 rounded-lg p-6 ${
+						isCurrent ? "bg-blue-50 shadow-md border border-blue-200" : ""
 					}`}
 				>
-					<h2 className="text-xl font-bold uppercase tracking-wider text-black">
+					<h2 className="text-xl font-bold uppercase tracking-wider text-gray-800">
 						{element.text}
 					</h2>
 					{isCurrent && isPlaying && (
-						<div className="text-xs text-yellow-700 mt-2 animate-pulse">
-							● ACTIVE
+						<div className="text-xs text-blue-600 mt-2 animate-pulse font-medium">
+							● ACTIVE SCENE
 						</div>
 					)}
 				</div>
@@ -492,14 +490,14 @@ export default function RehearsalRoomPage() {
 					key={element.index}
 					ref={isCurrent ? currentLineRef : null}
 					onClick={() => handleLineClick(element.index)}
-					className={`text-center mb-6 cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:shadow-sm rounded-lg p-3 ${
-						isCurrent ? "bg-gray-100 shadow-sm" : ""
+					className={`text-center mb-6 cursor-pointer transition-all duration-200 hover:bg-gray-50 rounded-lg p-4 ${
+						isCurrent ? "bg-blue-50 shadow-md border border-blue-200" : ""
 					}`}
 				>
 					<p className="italic text-gray-600 text-sm">({element.text})</p>
 					{isCurrent && isPlaying && (
-						<div className="text-xs text-gray-500 mt-1 animate-pulse">
-							● ACTIVE
+						<div className="text-xs text-blue-600 mt-1 animate-pulse font-medium">
+							● ACTIVE DIRECTION
 						</div>
 					)}
 				</div>
@@ -513,36 +511,38 @@ export default function RehearsalRoomPage() {
 					key={element.index}
 					ref={isCurrent ? currentLineRef : null}
 					onClick={() => handleLineClick(element.index)}
-					className={`mb-6 cursor-pointer transition-all duration-200 hover:bg-blue-25 hover:shadow-md rounded-lg p-4 ${
-						isCurrent ? "bg-blue-50 shadow-sm" : "hover:bg-slate-50"
+					className={`mb-6 cursor-pointer transition-all duration-200 rounded-lg p-6 ${
+						isCurrent 
+							? "bg-blue-50 shadow-md border-blue-200" 
+							: "hover:bg-gray-50 border-gray-200 hover:shadow-sm"
 					}`}
 				>
-					{/* Character name */}
-					<div className="flex items-center justify-between mb-2">
-						<div className="flex items-center justify-center flex-1 gap-2">
+					{/* Character name and status */}
+					<div className="flex items-center justify-between mb-4">
+						<div className="flex items-center gap-3">
 							<h3
-								className={`font-bold uppercase tracking-wide text-sm text-center ${
-									element.role === "user" ? "text-blue-800" : "text-purple-800"
+								className={`font-bold uppercase tracking-wide text-sm ${
+									element.role === "user" ? "text-blue-700" : "text-purple-700"
 								}`}
 							>
 								{element.character ||
 									(element.role === "user" ? "YOU" : "SCENE PARTNER")}
 							</h3>
 							{isCurrent && isPlaying && (
-								<span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded animate-pulse">
+								<span className="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full animate-pulse font-medium">
 									ACTIVE
 								</span>
 							)}
 							{isCompleted && (
-								<span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-									✓
+								<span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">
+									✓ COMPLETE
 								</span>
 							)}
 						</div>
 					</div>
 
 					{/* Dialogue text */}
-					<div className="ml-6">
+					<div className="pl-4 border-l-3 border-gray-300">
 						{element.role === "user" ? (
 							<div className="text-base leading-relaxed">
 								{element.text.split(/\s+/).map((word, i) => {
@@ -551,11 +551,11 @@ export default function RehearsalRoomPage() {
 										<span
 											key={i}
 											className={`${i < matched
-													? "font-bold text-gray-900"
-													: isCurrent && isWaitingForUser
-														? "text-blue-900 font-medium"
-														: "text-gray-800"
-												} transition-all duration-200`}
+												? "font-bold text-gray-900"
+												: isCurrent && isWaitingForUser
+													? "text-blue-900 font-medium"
+													: "text-gray-700"
+											} transition-all duration-300`}
 										>
 											{word + " "}
 										</span>
@@ -563,7 +563,7 @@ export default function RehearsalRoomPage() {
 								})}
 							</div>
 						) : (
-							<p className="text-base leading-relaxed text-gray-800">
+							<p className="text-base leading-relaxed text-gray-700">
 								{element.text}
 							</p>
 						)}
@@ -575,127 +575,71 @@ export default function RehearsalRoomPage() {
 		return null;
 	};
 
-	// Update the main return JSX to use overlay drawer that doesn't take over
+	// Main render
 	return (
 		<>
-			{loading ? 
+			{loading ? (
 				<LoadingScreen loadStage={loading}>
 					{loadStage}
 				</LoadingScreen>
-				:
-				<div className="min-h-screen bg-white">
-					{/* Main Content - Always visible and centered */}
-					<div className="max-w-4xl mx-auto">
-						{/* Script Title Area */}
-						<div className="text-center py-8 border-b border-gray-200">
-							<h1 className="text-3xl font-bold text-gray-800 mb-2">
-								Play session
-							</h1>
-						</div>
+			) : (
+				<div className="min-h-screen flex relative" style={{ backgroundColor: '#1c1d1d' }}>
+					{/* Back to Scripts Button - Top Right Corner */}
+					{/* <div className="absolute top-4 right-4 z-10">
+						<Button
+							onClick={goBackHome}
+							className="px-6 py-2 bg-blue hover:bg-gray-100 text-gray-800 rounded-lg shadow-sm transition-all duration-200 font-medium"
+						>
+							Upload a new script
+						</Button>
+					</div> */}
 
-						{/* Script Body */}
-						<div className="px-12 py-8 font-mono text-sm leading-loose">
-							{script?.map((element, index) => renderScriptElement(element, index))}
-						</div>
-
-						{/* End of Script */}
-						{script && currentIndex >= script.length && (
-							<div className="text-center py-12 border-t border-gray-200">
-								<div className="text-6xl mb-4">🎉</div>
-								<h2 className="text-2xl font-bold text-gray-800 mb-2">
-									REHEARSAL COMPLETE!
-								</h2>
-								<p className="text-gray-600">
-									Great job working through the script.
-								</p>
-								<button
-									onClick={handleRestart}
-									className="mt-4 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-								>
-									🔄 Start Over
-								</button>
+					{/* Left Control Panel - Dark Theme */}
+					<div className="w-80 text-white shadow-xl flex flex-col" style={{ backgroundColor: '#1c1d1d' }}>
+						<div className="p-6 flex-1 overflow-y-auto">
+							{/* Header */}
+							<div className="mb-8">
+								<h1 className="text-2xl font-bold mb-2">Rehearsal</h1>
+								<p className="text-gray-400 text-sm">Practice your lines</p>
 							</div>
-						)}
-					</div>
 
-					{/* Drawer Panel */}
-					<div className="fixed inset-y-0 left-0 z-50 w-80 bg-gray-900 text-white shadow-xl transform transition-transform duration-300 ease-in-out">
-						<div className="p-6 h-full overflow-y-auto flex flex-col">
-							<div className="flex-1">
-								<div className="flex items-center justify-between mb-6">
-									<h1 className="text-xl font-bold">Play Room</h1>
-								</div>
-
-								{/* Progress Info */}
-								<div className="mb-6 p-3 bg-gray-800 rounded">
-									<div className="text-sm text-gray-300 mb-1">Progress</div>
-									<div className="text-lg font-semibold">
-										Line {currentIndex + 1} of {script?.length}
+							{/* Progress Section */}
+							<div className="mb-8">
+								<div className="text-sm text-gray-400 mb-2">Progress</div>
+								<div className="bg-gray-800 rounded-lg p-4">
+									<div className="text-xl font-bold mb-2">
+										{currentIndex + 1} / {script?.length || 0}
 									</div>
-									<div className="w-full bg-gray-700 rounded-full h-2 mt-2">
+									<div className="w-full bg-gray-700 rounded-full h-3 mb-2">
 										<div
-											className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+											className="bg-blue-500 h-3 rounded-full transition-all duration-500"
 											style={{
 												width: `${((currentIndex + 1) / (script?.length || 1)) * 100}%`,
 											}}
 										></div>
 									</div>
-								</div>
-
-								{/* Control Buttons */}
-								<div className="space-y-3">
-									<button
-										onClick={handlePlay}
-										disabled={isPlaying}
-										className="w-full px-4 py-3 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-									>
-										▶️ Play
-									</button>
-									<button
-										onClick={handlePause}
-										disabled={!isPlaying}
-										className="w-full px-4 py-3 bg-yellow-500 text-white rounded hover:bg-yellow-600 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-									>
-										⏸️ Pause
-									</button>
-									<div className="flex gap-2">
-										<button
-											onClick={handlePrev}
-											className="flex-1 px-4 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
-										>
-											⏮️ Back
-										</button>
-										<button
-											onClick={handleNext}
-											className="flex-1 px-4 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
-										>
-											⏭️ Next
-										</button>
+									<div className="text-xs text-gray-400">
+										{Math.round(((currentIndex + 1) / (script?.length || 1)) * 100)}% complete
 									</div>
-									{currentIndex !== 0 && (
-										<button
-											onClick={handleRestart}
-											className="w-full px-4 py-3 bg-red-500 text-white rounded hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
-										>
-											🔄 Restart
-										</button>
-									)}
 								</div>
+							</div>
 
-								{/* Current Status */}
-								{current && (
-									<div className="mt-6 p-3 bg-gray-800 rounded">
-										<div className="text-sm text-gray-300 mb-1">Current</div>
-										<div className="text-sm">
+							{/* Current Status */}
+							{current && (
+								<div className="mb-8">
+									<div className="text-sm text-gray-400 mb-2">Current Line</div>
+									<div className="bg-gray-800 rounded-lg p-4">
+										<div className="flex items-center gap-2 mb-2">
 											<span
-												className={`inline-block px-2 py-1 rounded text-xs font-semibold ${current.type === "line"
-													? current.role === "user"
-														? "bg-blue-600 text-white"
-														: "bg-purple-600 text-white"
-													: current.type === "scene"
-														? "bg-yellow-600 text-white"
-														: "bg-gray-600 text-white"
-													}`}
+												className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+													current.type === "line"
+														? current.role === "user"
+															? "bg-blue-600 text-white"
+															: "bg-purple-600 text-white"
+														: current.type === "scene"
+															? "bg-yellow-600 text-white"
+															: "bg-gray-600 text-white"
+												}`}
 											>
 												{current.type === "line"
 													? current.role === "user"
@@ -703,45 +647,136 @@ export default function RehearsalRoomPage() {
 														: "SCENE PARTNER"
 													: current.type.toUpperCase()}
 											</span>
-											{isWaitingForUser && (
-												<span className="ml-2 text-xs text-yellow-400 animate-pulse">
-													Waiting for your line...
-												</span>
-											)}
 										</div>
+										{isWaitingForUser && (
+											<div className="text-xs text-yellow-400 animate-pulse">
+												🎤 Listening for your line...
+											</div>
+										)}
 									</div>
-								)}
+								</div>
+							)}
 
-								{/* Storage Error */}
-								{storageError && (
-									<div className="mt-6 p-3 bg-red-900 border border-red-700 rounded">
-										<p className="text-red-200 text-sm">
-											🚫 Not enough space to store rehearsal data.
-										</p>
-										<button
-											onClick={async () => {
-												await clear();
-												setStorageError(false);
-												await retryLoadScript();
-											}}
-											className="mt-2 px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 w-full"
-										>
-											Clear Local Storage & Retry
-										</button>
-									</div>
+							{/* Control Buttons */}
+							<div className="space-y-3 mb-8">
+								<button
+									onClick={handlePlay}
+									disabled={isPlaying}
+									className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 font-medium"
+								>
+									▶️ {isPlaying ? "Playing..." : "Start Rehearsal"}
+								</button>
+								<button
+									onClick={handlePause}
+									disabled={!isPlaying}
+									className="w-full px-4 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 font-medium"
+								>
+									⏸️ Pause
+								</button>
+								<div className="flex gap-3">
+									<button
+										onClick={handlePrev}
+										className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
+									>
+										⏮️ Previous
+									</button>
+									<button
+										onClick={handleNext}
+										className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
+									>
+										⏭️ Next
+									</button>
+								</div>
+								{currentIndex !== 0 && (
+									<button
+										onClick={handleRestart}
+										className="w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
+									>
+										🔄 Restart from Beginning
+									</button>
 								)}
 							</div>
 
-							{/* Bottom Button - Always at bottom */}
-							<div className="mt-6 pt-4 border-t border-gray-700" style={{ margin: 'auto' }}>
-								<Button onClick={goBackHome}>
-									Upload new script
+							{/* Error Handling */}
+							{storageError && (
+								<div className="mb-6 p-4 bg-red-900 border border-red-700 rounded-lg">
+									<p className="text-red-200 text-sm mb-3">
+										🚫 Storage limit reached. Clear data to continue.
+									</p>
+									<button
+										onClick={async () => {
+											await clear();
+											setStorageError(false);
+											await retryLoadScript();
+										}}
+										className="w-full px-3 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+									>
+										Clear & Retry
+									</button>
+								</div>
+							)}
+
+							{/* Back to Scripts Button - Top Right Corner */}
+							<div className="absolute bottom-20 left-4 z-10">
+								<Button
+									onClick={goBackHome}
+									className="px-6 py-2 bg-blue hover:bg-blue-100 text-gray-800 rounded-lg shadow-sm transition-all duration-200 font-medium"
+								>
+									Upload a new script
 								</Button>
 							</div>
 						</div>
 					</div>
 
-					{/* STT Components (hidden) */}
+					{/* Right Content Area - Light Theme */}
+					<div
+						className="flex-1 bg-white h-screen overflow-hidden my-16"
+						style={{ borderRadius: 25, height: 'calc(100vh - 130px)', marginRight: 16 }}
+					>
+						<div className="max-w-4xl mx-auto h-full flex flex-col">
+							{/* Script Header */}
+							<div className="text-center py-8 px-8 border-b border-gray-200 shrink-0">
+								<h1 className="text-3xl font-bold text-gray-900 mb-2">Script Rehearsal</h1>
+								<p className="text-gray-600">Follow along and practice your lines</p>
+							</div>
+
+							{/* Scrollable Script Content */}
+							<div className="flex-1 px-8 py-8 overflow-y-auto hide-scrollbar">
+								{script && script.length > 0 ? (
+									<div className="space-y-4">
+										{script.map((element, index) =>
+											renderScriptElement(element, index)
+										)}
+									</div>
+								) : (
+									<div className="text-center py-12">
+										<div className="text-gray-400 text-lg">No script loaded</div>
+									</div>
+								)}
+
+								{/* End of Script */}
+								{script && currentIndex >= script.length && (
+									<div className="text-center py-16 border-t border-gray-200 mt-12">
+										<div className="text-6xl mb-6">🎉</div>
+										<h2 className="text-3xl font-bold text-gray-900 mb-4">
+											Rehearsal Complete!
+										</h2>
+										<p className="text-gray-600 text-lg mb-8">
+											Excellent work! You've practiced the entire script.
+										</p>
+										<button
+											onClick={handleRestart}
+											className="px-8 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-lg"
+										>
+											🔄 Practice Again
+										</button>
+									</div>
+								)}
+							</div>
+						</div>
+					</div>
+
+					{/* Hidden STT Components */}
 					<div className="hidden">
 						{current?.type === "line" &&
 							current?.role === "user" &&
@@ -770,7 +805,8 @@ export default function RehearsalRoomPage() {
 								</>
 							)}
 					</div>
-				</div>}
+				</div>
+			)}
 		</>
 	);
 }
