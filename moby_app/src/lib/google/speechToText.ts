@@ -1,4 +1,4 @@
-import { useRef, RefObject } from 'react';
+import { useRef } from 'react';
 import { fetchSimilarity } from '@/lib/api/embed';
 
 //
@@ -290,6 +290,7 @@ export function useGoogleSTT({
             if (hasTriggeredRef.current) return;
 
             const raw = event.data;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let data: any;
 
             try {
