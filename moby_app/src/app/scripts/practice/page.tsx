@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useHumeTTS, useElevenTTS } from "@/lib/api/tts";
 import { useGoogleSTT } from "@/lib/google/speechToText";
@@ -14,7 +14,8 @@ import { clear } from "idb-keyval";
 import LoadingScreen from "./LoadingScreen";
 import { Button } from "@/components/ui/Buttons";
 
-export default function RehearsalRoomPage() {
+// export default function RehearsalRoomPage() {
+function RehearsalRoomContent() {
 	const searchParams = useSearchParams();
 	const userID = searchParams.get("userID");
 	const scriptID = searchParams.get("scriptID");
@@ -817,5 +818,20 @@ export default function RehearsalRoomPage() {
 				</div>
 			)}
 		</>
+	);
+}
+
+export default function RehearsalRoomPage() {
+	return (
+		<Suspense fallback={
+			<div className="min-h-screen flex items-center justify-center bg-gray-100">
+				<div className="text-center">
+					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+					<p className="text-gray-600">Loading rehearsal room...</p>
+				</div>
+			</div>
+		}>
+			<RehearsalRoomContent />
+		</Suspense>
 	);
 }
