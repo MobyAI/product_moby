@@ -10,4 +10,6 @@ export type ScriptElement = {
     actingInstructions?: string;
     expectedEmbedding?: number[];
     ttsUrl?: string;
+    voiceId?: string;
+    voiceName?: string;
 };

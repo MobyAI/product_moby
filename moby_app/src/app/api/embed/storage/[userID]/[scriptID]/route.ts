@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { saveEmbeddingBlob, getEmbeddingUrl, deleteEmbeddingBlob } from '@/server/embeddings';
+
 type RouteParams = { userID: string; scriptID: string; };
 
-export async function POST(req: NextRequest, { params }: { params: RouteParams }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<RouteParams> }) {
     const { userID, scriptID } = await params;
     const formData = await req.formData();
 
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest, { params }: { params: RouteParams }
     }
 }
 
-export async function GET(req: NextRequest, { params }: { params: RouteParams }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<RouteParams> }) {
     const { userID, scriptID } = await params;
     const { searchParams } = new URL(req.url);
     const index = Number(searchParams.get('index'));
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest, { params }: { params: RouteParams })
     }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: RouteParams }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<RouteParams> }) {
     const { userID, scriptID } = await params;
     const { searchParams } = new URL(req.url);
     const index = Number(searchParams.get('index'));

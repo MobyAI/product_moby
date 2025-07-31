@@ -90,6 +90,7 @@ export async function fetchTTSBatch({
         'Returned generations:',
         response.generations?.map((g, i) => ({
             index: i,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             text: (g as any).text,
             audioSample: g.audio?.slice(0, 10) + '...'
         }))

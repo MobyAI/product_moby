@@ -14,6 +14,7 @@
     "@elevenlabs/elevenlabs-js": "^2.6.0",
     "@google-cloud/speech": "^7.2.0",
     "@google-cloud/text-to-speech": "^6.2.0",
+    "clsx": "^2.1.1",
     "dotenv": "^17.2.0",
     "firebase": "^11.10.0",
     "hume": "^0.12.1",

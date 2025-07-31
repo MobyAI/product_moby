@@ -5,6 +5,7 @@ import { addTTS, addTTSRegenerate } from '@/lib/api/tts';
 import { fetchScriptByID, updateScriptByID } from '@/lib/api/dbFunctions/scripts';
 import pLimit from 'p-limit';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const isQuotaExceeded = (error: any) =>
     error &&
     (error.name === 'QuotaExceededError' ||

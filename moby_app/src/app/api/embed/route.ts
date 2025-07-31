@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { embedText, cosineSimilarity } from "@/lib/openai/embed";
+import { embedText } from "@/lib/openai/embed";
 
 export async function POST(req: Request) {
     try {

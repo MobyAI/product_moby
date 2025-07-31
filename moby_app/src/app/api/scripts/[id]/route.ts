@@ -13,19 +13,20 @@ import { getScript, updateScript, deleteScript } from '@/server/script';
 //     body: JSON.stringify({ script }),
 // });
 
-type Context = { params: { id: string } };
+type Context = { params: Promise<{ id: string }> };
 
 // Get script by userID and scriptID
 export async function GET(req: NextRequest, { params }: Context) {
     try {
         const { searchParams } = new URL(req.url);
         const userID = searchParams.get('userID');
+        const { id } = await params;
 
         if (!userID) {
             return NextResponse.json({ error: 'Missing userID' }, { status: 400 });
         }
 
-        const script = await getScript(userID, params.id);
+        const script = await getScript(userID, id);
         return NextResponse.json(script);
     } catch (err) {
         console.error('Error in GET /api/scripts/[id]:', err);
@@ -39,12 +40,13 @@ export async function PATCH(req: NextRequest, { params }: Context) {
         const { searchParams } = new URL(req.url);
         const userID = searchParams.get('userID');
         const body = await req.json();
+        const { id } = await params;
 
         if (!userID || !Array.isArray(body.script)) {
             return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
         }
 
-        await updateScript(userID, params.id, body.script);
+        await updateScript(userID, id, body.script);
         return NextResponse.json({ success: true });
     } catch (err) {
         console.error('Error in PATCH /api/scripts/[id]:', err);
@@ -57,12 +59,13 @@ export async function DELETE(req: NextRequest, { params }: Context) {
     try {
         const { searchParams } = new URL(req.url);
         const userID = searchParams.get('userID');
+        const { id } = await params;
 
         if (!userID) {
             return NextResponse.json({ error: 'Missing userID' }, { status: 400 });
         }
 
-        await deleteScript(userID, params.id);
+        await deleteScript(userID, id);
         return NextResponse.json({ success: true });
     } catch (err) {
         console.error('Error in DELETE /api/scripts/[id]:', err);

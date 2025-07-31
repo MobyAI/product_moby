@@ -101,3 +101,23 @@ export async function updateTTSAudioBlob({
 
     await uploadTTSAudioBlob({ userID, scriptID, index, blob });
 }
+
+// Fetch voice samples
+
+interface VoiceSample {
+    name: string;
+    description: string;
+    url: string;
+    voiceId: string;
+}
+
+export async function fetchAllVoiceSamples(): Promise<VoiceSample[]> {
+    const res = await fetch('/api/tts/samples');
+
+    if (!res.ok) {
+        throw new Error('Failed to fetch voice samples');
+    }
+
+    const data = await res.json();
+    return data.samples;
+}

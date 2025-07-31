@@ -48,6 +48,7 @@ export async function addTTS(
             .slice(-4)
             .map((l) => ({
                 text: l.text,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 description: l.actingInstructions ?? '',
             }));
 
