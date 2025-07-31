@@ -11,6 +11,8 @@ export default function ParsedOutput({ data, onUpdateLine }: ParsedOutputProps) 
         <div className="mt-6">
             <h2 className="text-lg font-semibold mb-4">Parsed Script:</h2>
             <div className="bg-white border border-gray-300 rounded-lg p-8 max-w-4xl mx-auto font-mono text-sm leading-relaxed">
+                
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {data.map((item: any, index: number) => {
                     switch (item.type) {
                         case 'scene':

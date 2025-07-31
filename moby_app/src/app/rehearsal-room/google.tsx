@@ -17,7 +17,9 @@ export default function GoogleSTT({
     start,
     stop,
 }: GoogleSTTProps) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [log, setLog] = useState<string[]>([]);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [hasTimedOut, setHasTimedOut] = useState(false);
 
     if (!expectedEmbedding) {
