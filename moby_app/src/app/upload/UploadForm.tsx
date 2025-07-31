@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { parseScriptFile } from '@/lib/api/parse';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function UploadForm({ onParsed }: { onParsed: (data: any) => void }) {
     const [file, setFile] = useState<File | null>(null);
     const [message, setMessage] = useState('');
@@ -27,6 +28,7 @@ export default function UploadForm({ onParsed }: { onParsed: (data: any) => void
             } else {
                 setMessage('Error: Failed to parse script.');
             }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             setMessage('Error: Failed to parse script');
         } finally {

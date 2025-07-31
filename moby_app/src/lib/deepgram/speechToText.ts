@@ -320,6 +320,7 @@ export function useDeepgramSTT({
             }
 
             const raw = event.data;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let data: any;
 
             try {
@@ -451,10 +452,12 @@ export function useDeepgramSTT({
 }
 
 // Helpers
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function normalize(text: string) {
     return text.toLowerCase().replace(/[.,!?']/g, '').trim();
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function splitIntoSentences(text: string): string[] {
     const abbreviations = /\b(Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|Mt|etc)\.$/;
     const parts = text
@@ -500,7 +503,7 @@ function convertFloat32ToInt16(float32Array: Float32Array): ArrayBuffer {
     const len = float32Array.length;
     const int16Array = new Int16Array(len);
     for (let i = 0; i < len; i++) {
-        let s = Math.max(-1, Math.min(1, float32Array[i]));
+        const s = Math.max(-1, Math.min(1, float32Array[i]));
         int16Array[i] = Math.round(s * 32767);
     }
     return int16Array.buffer;

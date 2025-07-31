@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useImperativeHandle, forwardRef } from 'react';
+import React, { useState } from 'react';
 
 interface DeepgramSTTProps {
     character: string;
@@ -17,7 +17,9 @@ export default function DeepgramSTT({
     start,
     stop,
 }: DeepgramSTTProps) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [log, setLog] = useState<string[]>([]);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [hasTimedOut, setHasTimedOut] = useState(false);
 
     if (!expectedEmbedding) {

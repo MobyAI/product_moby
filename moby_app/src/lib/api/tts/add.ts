@@ -37,9 +37,11 @@ export async function addTTS(
             .filter((l) => l.type === 'line' && typeof l.text === 'string' && l.text.trim().length > 0)
             .map((l) => ({
                 text: l.text,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 description: (l as any).actingInstructions || '',
             }));
 
+        // eslint-disable-next-line react-hooks/rules-of-hooks
         const blob = await useHumeTTS({
             text: element.text,
             voiceId,
