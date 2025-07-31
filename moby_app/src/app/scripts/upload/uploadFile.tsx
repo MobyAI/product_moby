@@ -8,6 +8,7 @@ import LoadingScreen from '../practice/LoadingScreen';
 
 export default function UploadPage({ onParsed } : { onParsed: (rawScript: ScriptElement[]) => void }) {
     const [isLoading, setIsLoading] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [loadingStage, setLoadingStage] = useState('');
 

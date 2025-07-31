@@ -71,7 +71,7 @@ const LoadingScreen = ({ loadStage, children }: { loadStage: boolean | null, chi
 
           {/* Fun Loading Messages */}
           <div className="mt-8 text-white/60 text-sm">
-            <p>💡 Tip: Make sure you're in a quiet environment for the best speech recognition</p>
+            <p>💡 Tip: Make sure you&apos;re in a quiet environment for the best speech recognition</p>
           </div>
         </div>
       </div>
