@@ -21,7 +21,7 @@ export async function addTTS(
         return element;
     }
 
-    const voiceId =
+    const defaultVoiceId =
         element.gender === 'male'
             ? 'c5be03fa-09cc-4fc3-8852-7f5a32b5606c'
             : element.gender === 'female'
@@ -65,7 +65,7 @@ export async function addTTS(
 
         const blob = await useHumeTTS({
             text: sanitizeForTTS(element.text),
-            voiceId,
+            voiceId: element.voiceId ?? defaultVoiceId,
             voiceDescription: '',
             contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined,
         });
@@ -105,7 +105,7 @@ export async function addTTSRegenerate(
 ): Promise<ScriptElement> {
     if (element.type !== 'line') return element;
 
-    const voiceId =
+    const defaultVoiceId =
         element.gender === 'male'
             ? 'c5be03fa-09cc-4fc3-8852-7f5a32b5606c'
             : element.gender === 'female'
@@ -135,7 +135,7 @@ export async function addTTSRegenerate(
 
         const blob = await useHumeTTS({
             text: sanitizeForTTS(element.text),
-            voiceId,
+            voiceId: element.voiceId ?? defaultVoiceId,
             voiceDescription: '',
             contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined,
         });

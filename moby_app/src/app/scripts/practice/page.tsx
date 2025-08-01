@@ -868,10 +868,14 @@ function RehearsalRoomContent() {
 							<div className="space-y-3 mb-8">
 								<button
 									onClick={handlePlay}
-									disabled={isPlaying}
+									disabled={isPlaying || !isScriptFullyHydrated}
 									className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 font-medium"
 								>
-									▶️ {isPlaying ? "Playing..." : "Start Rehearsal"}
+									▶️ {!isScriptFullyHydrated
+										? "Preparing..."
+										: isPlaying
+											? "Playing..."
+											: "Start Rehearsal"}
 								</button>
 								<button
 									onClick={handlePause}
