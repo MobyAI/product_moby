@@ -63,6 +63,7 @@ export async function addTTS(
                 .trim();
         };
 
+        // eslint-disable-next-line react-hooks/rules-of-hooks
         const blob = await useHumeTTS({
             text: sanitizeForTTS(element.text),
             voiceId: element.voiceId ?? defaultVoiceId,
@@ -135,6 +136,7 @@ export async function addTTSRegenerate(
 
         console.log('voice id: ', element.voiceId);
 
+        // eslint-disable-next-line react-hooks/rules-of-hooks
         const blob = await useHumeTTS({
             text: sanitizeForTTS(element.text),
             voiceId: element.voiceId ?? defaultVoiceId,
