@@ -8,8 +8,6 @@ import { useDeepgramSTT } from '@/lib/deepgram/speechToText';
 import type { ScriptElement } from '@/types/script';
 import { loadScript, hydrateScript, hydrateLine } from './loader';
 import { restoreSession, saveSession } from './session';
-import Deepgram from './deepgram';
-import GoogleSTT from './google';
 import EditableLine from './EditableLine';
 import { RoleSelector } from './RoleSelector';
 import { clear } from 'idb-keyval';
@@ -538,6 +536,7 @@ function RehearsalRoomContent() {
     }, []);
 
     // Testing TTS audio manually
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const loadElevenTTS = async ({
         text,
         voiceId = 'JBFqnCBsd6RMkjVDRZzb',
@@ -572,6 +571,7 @@ function RehearsalRoomContent() {
         }
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const loadHumeTTS = async ({
         text,
         voiceId,

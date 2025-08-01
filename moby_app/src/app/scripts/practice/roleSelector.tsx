@@ -45,6 +45,7 @@ export function RoleSelector({
             try {
                 await set(`script-cache:${userID}:${scriptID}`, latestScriptRef.current);
                 console.log('💾 Script cached successfully');
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (err) {
                 console.warn('⚠️ Failed to cache script');
             }
