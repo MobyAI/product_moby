@@ -16,7 +16,7 @@ interface VoiceLibraryProps {
     onClose?: () => void;
 }
 
-export default function VoiceLibrary({ samples, onClose, selectedVoiceId, onSelectVoice }: VoiceLibraryProps) {
+export default function VoiceLibrary({ samples, selectedVoiceId, onSelectVoice }: VoiceLibraryProps) {
     const [playingUrl, setPlayingUrl] = useState<string | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
