@@ -253,11 +253,12 @@ function RehearsalRoomContent() {
 
 				setScript((prev) => {
 					const next = prev?.map((el) =>
-						el.index === result.index ? result : el
+						el.index === result.index
+							? { ...el, ...result, text: updateLine.text }
+							: el
 					) ?? [];
-
+				
 					scriptRef.current = next;
-
 					return next;
 				});
 			}
