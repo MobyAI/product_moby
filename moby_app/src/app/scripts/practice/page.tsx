@@ -9,7 +9,7 @@ import type { ScriptElement } from "@/types/script";
 import { loadScript, hydrateScript, hydrateLine } from './loader';
 import { RoleSelector } from './roleSelector';
 import EditableLine from './editableLine';
-import { restoreSession, saveSession } from "../../rehearsal-room/session";
+import { restoreSession, saveSession } from "./session";
 import Deepgram from "../../rehearsal-room/deepgram";
 import GoogleSTT from "../../rehearsal-room/google";
 import { clear } from "idb-keyval";
