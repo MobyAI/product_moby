@@ -106,12 +106,12 @@ export default function UploadPage() {
                     item.gender === 'male'
                         ? {
                             voiceId: '89989d92-1de8-4e5d-97e4-23cd363e9788',
-                            voiceName: 'Joey',
+                            voiceName: 'Matt',
                         }
                         : item.gender === 'female'
                             ? {
                                 voiceId: '5bbc32c1-a1f6-44e8-bedb-9870f23619e2',
-                                voiceName: 'Sonia',
+                                voiceName: 'Rachel',
                             }
                             : {
                                 voiceId: '5bbc32c1-a1f6-44e8-bedb-9870f23619e2',
@@ -183,10 +183,10 @@ export default function UploadPage() {
     return (
         <Layout>
             {parsedData ? (
-                <div className="min-h-screen bg-gray-50 flex">
+                <div className="h-screen bg-gray-50 flex overflow-hidden">
                     {/* Left sidebar for role select */}
-                    <div className="w-80 p-6 bg-white border-r border-gray-200">
-                        <div className="sticky top-6 space-y-6">
+                    <div className="w-80 h-screen overflow-y-auto p-6 pb-15 bg-white border-r border-gray-200">
+                        <div className="space-y-6">
                             <button
                                 onClick={() => handleParsedScript(parsedData)}
                                 disabled={loading}
@@ -256,14 +256,16 @@ export default function UploadPage() {
                                                         ) : (
                                                             <div className="ml-2 text-sm text-gray-600 flex items-center gap-2">
                                                                 <span>
-                                                                    {voiceName ? `Played by ${voiceName}` : 'No voice selected'}
+                                                                    Played by
                                                                 </span>
                                                                 <button
                                                                     onClick={() => setSelectedCharacter(character)}
-                                                                    className="text-purple-700 underline text-md"
+                                                                    className="px-4 py-2 rounded-full border text-xs font-medium text-left transition bg-blue-100 border-blue-300 text-blue-800"
                                                                     title="Change voice"
                                                                 >
-                                                                    🔄
+                                                                    <span>
+                                                                        {voiceName}
+                                                                    </span>
                                                                 </button>
                                                             </div>
                                                         )
@@ -278,7 +280,7 @@ export default function UploadPage() {
                     </div>
 
                     {/* Main content area - centered */}
-                    <div className="flex-1 flex justify-center py-6">
+                    <div className="flex-1 flex justify-center h-screen overflow-y-auto py-6 px-6 bg-gray-50">
                         <div className="w-full max-w-4xl px-6">
                             <ParsedOutput data={parsedData} />
                         </div>

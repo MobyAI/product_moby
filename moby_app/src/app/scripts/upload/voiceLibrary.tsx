@@ -65,7 +65,7 @@ export default function VoiceLibrary({ samples, selectedVoiceId, onSelectVoice }
                 return (
                     <div
                         key={sample.name}
-                        className="border p-2 rounded-xl shadow-sm bg-white flex justify-between items-center"
+                        className="p-2 rounded-xl shadow-md bg-gray flex justify-between items-center"
                     >
                         <button
                             onClick={() => onSelectVoice(sample.voiceId, sample.name)}
@@ -74,8 +74,8 @@ export default function VoiceLibrary({ samples, selectedVoiceId, onSelectVoice }
                             {isSelected ? '✅' : '🔘'}
                         </button>
                         <div>
-                            <p className="font-medium">{sample.name}</p>
-                            <p className="text-sm text-gray-500">{sample.description}</p>
+                            <p className="font-sm">{sample.name}</p>
+                            <p className="text-xs text-gray-500">{sample.description}</p>
                         </div>
                         <button
                             onClick={() => handlePlay(sample.url)}
