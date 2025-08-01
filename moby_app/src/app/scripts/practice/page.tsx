@@ -8,6 +8,7 @@ import { useDeepgramSTT } from "@/lib/deepgram/speechToText";
 import type { ScriptElement } from "@/types/script";
 import { loadScript, hydrateScript, hydrateLine } from './loader';
 import { RoleSelector } from './roleSelector';
+import EditableLine from './editableLine';
 import { restoreSession, saveSession } from "../../rehearsal-room/session";
 import Deepgram from "../../rehearsal-room/deepgram";
 import GoogleSTT from "../../rehearsal-room/google";
@@ -34,7 +35,7 @@ function RehearsalRoomContent() {
 	const [script, setScript] = useState<ScriptElement[] | null>(null);
 	const scriptRef = useRef<ScriptElement[] | null>(null);
 	const [ttsHydrationStatus, setTTSHydrationStatus] = useState<Record<number, 'pending' | 'updating' | 'ready' | 'failed'>>({});
-	const [isEditingLine, setIsEditingLine] = useState(false);
+	const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const [sttProvider, setSttProvider] = useState<"google" | "deepgram">(
 		"deepgram"
@@ -219,7 +220,7 @@ function RehearsalRoomContent() {
 	}
 
 	const onUpdateLine = async (updateLine: ScriptElement) => {
-		setIsEditingLine(false);
+		setEditingLineIndex(null);
 
 		if (!script) {
 			console.warn('❌ Tried to update line before script was loaded.');
@@ -683,7 +684,7 @@ function RehearsalRoomContent() {
 					key={element.index}
 					ref={isCurrent ? currentLineRef : null}
 					onClick={() => handleLineClick(element.index)}
-					className={`mb-6 cursor-pointer transition-all duration-200 rounded-lg p-6 ${isCurrent
+					className={`mb-6 cursor-pointer transition-all duration-200 rounded-lg p-6 relative ${isCurrent
 						? "bg-blue-50 shadow-md border-blue-200"
 						: "hover:bg-gray-50 border-gray-200 hover:shadow-sm"
 						}`}
@@ -712,32 +713,69 @@ function RehearsalRoomContent() {
 					</div>
 
 					{/* Dialogue text */}
-					<div className="pl-4 border-l-3 border-gray-300">
-						{element.role === "user" ? (
-							<div className="text-base leading-relaxed">
-								{element.text.split(/\s+/).map((word, i) => {
-									const matched = spokenWordMap[element.index] ?? 0;
-									return (
-										<span
-											key={i}
-											className={`${i < matched
-												? "font-bold text-gray-900"
-												: isCurrent && isWaitingForUser
-													? "text-blue-900 font-medium"
-													: "text-gray-700"
-												} transition-all duration-300`}
-										>
-											{word + " "}
-										</span>
-									);
-								})}
-							</div>
-						) : (
-							<p className="text-base leading-relaxed text-gray-700">
-								{element.text}
-							</p>
-						)}
-					</div>
+					{editingLineIndex === element.index ? (
+						<EditableLine
+							item={element}
+							onUpdate={onUpdateLine}
+							onClose={() => setEditingLineIndex(null)}
+							hydrationStatus={ttsHydrationStatus[element.index]}
+						/>
+					) : (
+						<div className="pl-4 border-l-3 border-gray-300">
+							{element.role === "user" ? (
+								<div className="text-base leading-relaxed">
+									{element.text.split(/\s+/).map((word, i) => {
+										const matched = spokenWordMap[element.index] ?? 0;
+										return (
+											<span
+												key={i}
+												className={`${i < matched
+													? "font-bold text-gray-900"
+													: isCurrent && isWaitingForUser
+														? "text-blue-900 font-medium"
+														: "text-gray-700"
+													} transition-all duration-300`}
+											>
+												{word + " "}
+											</span>
+										);
+									})}
+								</div>
+							) : (
+								<p className="text-base leading-relaxed text-gray-700">
+									{element.text}
+								</p>
+							)}
+						</div>
+					)}
+
+					{/* Edit button */}
+					{isCurrent &&
+						!isPlaying &&
+						!editingLineIndex &&
+						ttsHydrationStatus[element.index] === 'ready' &&
+						(
+							<button
+								onClick={() => setEditingLineIndex(element.index)}
+								className="absolute top-4 right-4 text-xs text-black bg-gray-50 px-3 py-1 rounded shadow-sm hover:shadow-lg"
+								title="Edit Line"
+							>
+								✏️
+							</button>
+						)
+					}
+
+					{/* Loading indicator */}
+					{['pending', 'updating'].includes(ttsHydrationStatus[element.index]) && (
+						<div className="absolute top-4 right-4 w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+					)}
+
+					{/* Failed indicator */}
+					{ttsHydrationStatus[element.index] === 'failed' && (
+						<div className="absolute top-4 right-4 text-sm">
+							❌
+						</div>
+					)}
 				</div>
 			);
 		}
