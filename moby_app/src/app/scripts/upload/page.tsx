@@ -106,12 +106,12 @@ export default function UploadPage() {
                     item.gender === 'male'
                         ? {
                             voiceId: '89989d92-1de8-4e5d-97e4-23cd363e9788',
-                            voiceName: 'Matt',
+                            voiceName: 'Joey',
                         }
                         : item.gender === 'female'
                             ? {
                                 voiceId: '5bbc32c1-a1f6-44e8-bedb-9870f23619e2',
-                                voiceName: 'Rachel',
+                                voiceName: 'Sonia',
                             }
                             : {
                                 voiceId: '5bbc32c1-a1f6-44e8-bedb-9870f23619e2',

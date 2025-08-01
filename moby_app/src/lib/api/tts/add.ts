@@ -133,6 +133,8 @@ export async function addTTSRegenerate(
                 .trim();
         };
 
+        console.log('voice id: ', element.voiceId);
+
         const blob = await useHumeTTS({
             text: sanitizeForTTS(element.text),
             voiceId: element.voiceId ?? defaultVoiceId,

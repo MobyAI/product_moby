@@ -98,3 +98,26 @@ export async function getAllVoiceSamples(): Promise<VoiceSample[]> {
         return [];
     }
 }
+
+export async function saveVoiceSampleBlob(
+    voiceId: string,
+    voiceName: string,
+    blob: Blob,
+    description: string
+): Promise<void> {
+    const safeVoiceName = voiceName.toLowerCase().replace(/\s+/g, '-').replace(/[^\w\-]/g, '');
+    const path = `voice-samples/${safeVoiceName}.mp3`;
+
+    const audioRef = ref(storage, path);
+
+    const metadata = {
+        customMetadata: {
+            voiceId,
+            name: voiceName,
+            description,
+        },
+        contentType: 'audio/mpeg',
+    };
+
+    await uploadBytes(audioRef, blob, metadata);
+}
