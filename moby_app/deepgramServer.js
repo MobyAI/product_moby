@@ -22,8 +22,8 @@ wss.on('connection', (clientSocket) => {
         '&interim_results=true' +
         '&encoding=linear16' +
         '&sample_rate=44100' +
-        '&endpointing=210' +
-        '&utterance_end_ms=1000' +
+        '&endpointing=1000' +
+        '&utterance_end_ms=4000' +
         '&smart_format=true' ,
         {
             headers: {

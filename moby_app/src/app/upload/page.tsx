@@ -148,13 +148,13 @@ export default function UploadPage() {
     function handleLineUpdate(index: number, updated: ScriptElement) {
         if (!parsedData) return;
 
-        // Extract lineEndKeyword
+        // Extract line end kw and remove punctuation
         const words = updated.text.trim().split(/\s+/);
 
         const clean = (word: string) =>
             word.replace(/[^\w'-]/g, '').replace(/^['"]+|['"]+$/g, '');
 
-        const lineEndKeywords = words
+        const lastWords = words
             .slice(-2)
             .map(clean)
             .filter(Boolean);
@@ -163,7 +163,7 @@ export default function UploadPage() {
             ...parsedData[index],
             ...updated,
             text: updated.text,
-            lineEndKeywords: lineEndKeywords,
+            lineEndKeywords: lastWords,
         };
 
         const newData = [...parsedData];

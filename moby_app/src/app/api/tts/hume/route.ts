@@ -5,7 +5,7 @@ export async function POST(req: Request) {
     try {
         const { text, voiceId, voiceDescription, contextUtterance } = await req.json();
 
-        if (!text || !voiceId || !voiceDescription) {
+        if (!text || !voiceId) {
             return NextResponse.json(
                 { error: 'Missing required fields: text, voiceId, voiceDescription' },
                 { status: 400 }

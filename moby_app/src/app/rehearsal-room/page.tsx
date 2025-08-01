@@ -1,15 +1,17 @@
 'use client';
 
-import { useEffect, useState, useRef, Suspense } from 'react';
+import { useEffect, useState, useRef, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useHumeTTS, useElevenTTS } from '@/lib/api/tts';
 import { useGoogleSTT } from '@/lib/google/speechToText';
 import { useDeepgramSTT } from '@/lib/deepgram/speechToText';
 import type { ScriptElement } from '@/types/script';
-import { loadScript } from './loader';
+import { loadScript, hydrateScript, hydrateLine } from './loader';
 import { restoreSession, saveSession } from './session';
 import Deepgram from './deepgram';
 import GoogleSTT from './google';
+import EditableLine from './EditableLine';
+import { RoleSelector } from './RoleSelector';
 import { clear } from 'idb-keyval';
 
 // export default function RehearsalRoomPage() {
@@ -27,8 +29,11 @@ function RehearsalRoomContent() {
     const [loading, setLoading] = useState(false);
     const [loadStage, setLoadStage] = useState<string | null>(null);
     const [script, setScript] = useState<ScriptElement[] | null>(null);
+    const scriptRef = useRef<ScriptElement[] | null>(null);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [sttProvider, setSttProvider] = useState<'google' | 'deepgram'>('deepgram');
+    const [ttsHydrationStatus, setTTSHydrationStatus] = useState<Record<number, 'pending' | 'updating' | 'ready' | 'failed'>>({});
+    const [isEditingLine, setIsEditingLine] = useState(false);
 
     // Rehearsal flow
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -49,7 +54,25 @@ function RehearsalRoomContent() {
 
         const init = async () => {
             setLoading(true);
-            await loadScript({
+
+            const rawScript = await loadScript({
+                userID,
+                scriptID,
+                setLoadStage,
+                setStorageError,
+            });
+
+            if (!rawScript) {
+                // Display error page?
+                setLoading(false);
+                return;
+            } else {
+                setScript(rawScript);
+                scriptRef.current = rawScript;
+            }
+
+            hydrateScript({
+                script: rawScript,
                 userID,
                 scriptID,
                 setLoadStage,
@@ -59,12 +82,17 @@ function RehearsalRoomContent() {
                 setEmbeddingFailedLines,
                 setTTSLoadError,
                 setTTSFailedLines,
+                updateTTSHydrationStatus,
+                getScriptLine,
             });
+
+            // Restore session from indexedDB
             const restored = await restoreSession(scriptID);
+
             if (restored) {
                 setCurrentIndex(restored.index ?? 0);
-                setSpokenWordMap(restored.spokenWordMap ?? {});
             }
+
             setLoadStage('✅ Ready!');
             setLoading(false);
         };
@@ -77,16 +105,21 @@ function RehearsalRoomContent() {
         if (!scriptID) return;
 
         const timeout = setTimeout(() => {
-            saveSession(scriptID, { index: currentIndex, spokenWordMap });
+            saveSession(scriptID, { index: currentIndex });
         }, 1000);
 
         return () => clearTimeout(timeout);
     }, [currentIndex, scriptID]);
 
+    // Retry
     const retryLoadScript = async () => {
-        if (!userID || !scriptID) return;
+        if (!userID || !scriptID || !script) return;
 
-        await loadScript({
+        setLoadStage('🚰 Retrying hydration');
+        setLoading(true);
+
+        await hydrateScript({
+            script: script,
             userID,
             scriptID,
             setLoadStage,
@@ -96,11 +129,138 @@ function RehearsalRoomContent() {
             setEmbeddingFailedLines,
             setTTSLoadError,
             setTTSFailedLines,
+            updateTTSHydrationStatus,
+            getScriptLine,
         });
+
+        setLoadStage('✅ Retry succeeded!');
+        setLoading(false);
+    };
+
+    // Track TTS audio generation status
+    const updateTTSHydrationStatus = (index: number, status: 'pending' | 'updating' | 'ready' | 'failed') => {
+        setTTSHydrationStatus((prev) => ({
+            ...prev,
+            [index]: status,
+        }));
+    };
+
+    // Update script line
+    const COMMON_WORDS = new Set([
+        'the', 'a', 'an', 'to', 'and', 'but', 'or', 'for', 'at', 'by', 'in', 'on', 'of', 'then', 'so'
+    ]);
+
+    function extractLineEndKeywords(text: string): string[] {
+        const words = text
+            .toLowerCase()
+            .replace(/[^a-z0-9\s']/gi, '')
+            .split(/\s+/)
+            .filter(Boolean);
+
+        // Filter out common words and duplicates
+        const meaningful = words
+            .filter((word, index) => {
+                return (
+                    !COMMON_WORDS.has(word) &&
+                    words.lastIndexOf(word) === index
+                );
+            });
+
+        const selected = meaningful.slice(-2);
+
+        if (selected.length === 2) return selected;
+
+        if (selected.length === 1) {
+            const keyword = selected[0];
+
+            // Find index of that keyword in original `words` array
+            const idx = words.lastIndexOf(keyword);
+
+            let neighbor = '';
+
+            // Prefer word before
+            if (idx > 0) {
+                neighbor = words[idx - 1];
+            } else {
+                neighbor = words[idx + 1];
+            }
+
+            // Only return the keyword and neighbor if neighbor exists
+            return neighbor ? [neighbor, keyword] : [keyword];
+        }
+
+        if (selected.length === 0 && words.length > 0) {
+            return words.slice(-2);
+        }
+
+        return [];
+    }
+
+    const onUpdateLine = async (updateLine: ScriptElement) => {
+        setIsEditingLine(false);
+
+        if (!script) {
+            console.warn('❌ Tried to update line before script was loaded.');
+            return;
+        }
+
+        // Inject or replace lineEndKeywords
+        if (updateLine.type === 'line' && typeof updateLine.text === 'string') {
+            updateLine.lineEndKeywords = extractLineEndKeywords(updateLine.text);
+            console.log('updated kw: ', updateLine.lineEndKeywords);
+        }
+
+        try {
+            const updatedScript = script?.map((el) =>
+                el.index === updateLine.index ? updateLine : el
+            ) ?? [];
+
+            setScript(updatedScript);
+            scriptRef.current = updatedScript;
+
+            if (userID && scriptID) {
+                const result = await hydrateLine({
+                    line: updateLine,
+                    script: updatedScript,
+                    userID,
+                    scriptID,
+                    updateTTSHydrationStatus,
+                    setStorageError,
+                });
+
+                setScript((prev) => {
+                    const next = prev?.map((el) =>
+                        el.index === result.index ? result : el
+                    ) ?? [];
+
+                    scriptRef.current = next;
+
+                    return next;
+                });
+            }
+        } catch (err) {
+            console.error(`❌ Failed to update line ${updateLine.index}:`, err);
+        }
     };
 
     // Handle script flow
     const current = script?.find((el) => el.index === currentIndex) ?? null;
+
+    const isScriptFullyHydrated = useMemo(() => {
+        return script?.every((el) => {
+            if (el.type !== 'line') return true;
+
+            const hydratedEmbedding = Array.isArray(el.expectedEmbedding) && el.expectedEmbedding.length > 0;
+            const hydratedTTS = typeof el.ttsUrl === 'string' && el.ttsUrl.length > 0;
+            const ttsReady = (ttsHydrationStatus[el.index] ?? 'pending') === 'ready';
+
+            return hydratedEmbedding && hydratedTTS && ttsReady;
+        }) ?? false;
+    }, [script, ttsHydrationStatus]);
+
+    const getScriptLine = (index: number): ScriptElement | undefined => {
+        return scriptRef.current?.find((el) => el.index === index);
+    };
 
     const prepareUserLine = (line: ScriptElement | undefined | null) => {
         if (line?.type === 'line' && line.role === 'user' && typeof line.text === 'string') {
@@ -191,6 +351,11 @@ function RehearsalRoomContent() {
     };
 
     const handlePlay = async () => {
+        if (!isScriptFullyHydrated) {
+            console.warn('⏳ Script is still being prepared with resources...');
+            return;
+        }
+
         await initializeSTT();
         const currentLine = script?.find(el => el.index === currentIndex);
         prepareUserLine(currentLine);
@@ -514,31 +679,58 @@ function RehearsalRoomContent() {
                                         : current.role}
                             </p>
                         )}
-                        {current.type === 'line' && current.role === 'user' ? (
-                            <p className="text-xl mt-2">
-                                {current.text.split(/\s+/).map((word, i) => {
-                                    const matched = spokenWordMap[current.index] ?? 0;
-                                    return (
-                                        <span
-                                            key={i}
-                                            className={i < matched ? 'font-bold' : 'text-gray-800'}
-                                        >
-                                            {word + ' '}
-                                        </span>
-                                    );
-                                })}
-                            </p>
+                        {current.type === 'line' && isEditingLine ? (
+                            <EditableLine
+                                item={current}
+                                onUpdate={onUpdateLine}
+                                onClose={() => setIsEditingLine(false)}
+                                hydrationStatus={ttsHydrationStatus[current.index]}
+                            />
                         ) : (
-                            <p className="text-xl mt-2">{current.text}</p>
+                            <div className="text-xl mt-2">
+                                {current.role === 'user' ? (
+                                    current.text.split(/\s+/).map((word, i) => {
+                                        const matched = spokenWordMap[current.index] ?? 0;
+                                        return (
+                                            <span
+                                                key={i}
+                                                className={i < matched ? 'font-bold' : 'text-gray-800'}
+                                            >
+                                                {word + ' '}
+                                            </span>
+                                        );
+                                    })
+                                ) : (
+                                    <span>{current.text}</span>
+                                )}
+                            </div>
                         )}
                         {current.type === 'line' && current.character && (
                             <p className="text-sm text-gray-500">– {current.character} ({current.tone})</p>
                         )}
+                        {current?.type === 'line' && !isEditingLine && (
+                            <button
+                                className="mt-2 px-3 py-1 text-sm bg-yellow-400 text-white rounded"
+                                onClick={() => setIsEditingLine(true)}
+                                disabled={ttsHydrationStatus[current.index] === 'updating'}
+                                title={
+                                    ttsHydrationStatus[current.index] === 'updating'
+                                        ? 'Currently updating this line'
+                                        : 'Edit this line'
+                                }
+                            >
+                                ✏️ Edit Line
+                            </button>
+                        )}
+                        {ttsHydrationStatus[current.index] === 'pending' && '🎤 Generating...'}
+                        {ttsHydrationStatus[current.index] === 'updating' && '🎤 Generating...'}
+                        {ttsHydrationStatus[current.index] === 'ready' && '✅ TTS Ready'}
+                        {ttsHydrationStatus[current.index] === 'failed' && '❌ TTS Failed'}
                     </div>
                 ) : (
                     <p>🎉 End of script!</p>
                 )}
-                {
+                {/* {
                     current?.type === 'line' && (
                         <>
                             <button
@@ -586,10 +778,16 @@ function RehearsalRoomContent() {
                             </button>
                         </>
                     )
-                }
+                } */}
             </div>
             <div className="flex items-center gap-4">
-                <button onClick={handlePlay} className="px-4 py-2 bg-green-600 text-white rounded">Play</button>
+                <button
+                    onClick={handlePlay}
+                    disabled={!isScriptFullyHydrated}
+                    className="px-4 py-2 bg-green-600 text-white rounded"
+                >
+                    Play
+                </button>
                 <button onClick={handlePause} className="px-4 py-2 bg-yellow-500 text-white rounded">Pause</button>
                 <button onClick={handlePrev} className="px-4 py-2 bg-blue-500 text-white rounded">Back</button>
                 <button onClick={handleNext} className="px-4 py-2 bg-blue-500 text-white rounded">Next</button>
@@ -597,7 +795,20 @@ function RehearsalRoomContent() {
                     <button onClick={handleRestart} className="px-4 py-2 bg-red-500 text-white rounded">Restart</button>
                 }
             </div>
-            <div>
+            <RoleSelector
+                script={script}
+                userID={userID!}
+                scriptID={scriptID!}
+                onRolesUpdated={(updated) => {
+                    setScript(updated);
+                    scriptRef.current = updated;
+                    prepareUserLine(updated[currentIndex]);
+                    // setCurrentIndex(0);
+                    // setSpokenWordMap({});
+                    // prepareUserLine(updated[0]);
+                }}
+            />
+            {/* <div>
                 {
                     current?.type === 'line' &&
                     current?.role === 'user' &&
@@ -626,7 +837,7 @@ function RehearsalRoomContent() {
                         </>
                     )
                 }
-            </div>
+            </div> */}
         </div>
     );
 }

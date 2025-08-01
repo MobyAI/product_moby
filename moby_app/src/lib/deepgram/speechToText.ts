@@ -37,7 +37,6 @@ export function useDeepgramSTT({
     const hasTriggeredRef = useRef(false);
 
     // Highlighting
-    const expectedScriptTokenIDsRef = useRef<number[] | null>(null);
     const matchedScriptIndices = useRef<Set<number>>(new Set());
     const expectedScriptWordsRef = useRef<string[] | null>(null);
     const lastReportedCount = useRef(0);
@@ -46,17 +45,6 @@ export function useDeepgramSTT({
     const normalizeWord = (word: string) =>
         word.toLowerCase().replace(/[^\w]/g, '');
 
-    const getTokenID = (() => {
-        const map = new Map<string, number>();
-        let nextID = 1;
-
-        return (word: string) => {
-            const norm = normalizeWord(word);
-            if (!map.has(norm)) map.set(norm, nextID++);
-            return map.get(norm)!;
-        };
-    })();
-
     // Highlighting setup
     const setCurrentLineText = (text: string) => {
         matchedScriptIndices.current = new Set();
@@ -64,27 +52,40 @@ export function useDeepgramSTT({
 
         const normalizedWords = text.trim().split(/\s+/).map(normalizeWord);
         expectedScriptWordsRef.current = normalizedWords;
-
-        const tokenIDs = normalizedWords.map(getTokenID);
-        expectedScriptTokenIDsRef.current = tokenIDs;
     };
 
     // Match word to highlight
     const progressiveWordMatch = (
         scriptWords: string[],
         transcript: string,
-        used: Set<number>
+        used: Set<number>,
+        windowSize = 3
     ): number => {
-        const transcriptWords = transcript.trim().split(/\s+/).map(w => w.toLowerCase().replace(/[^\w]/g, ''));
+        const transcriptWords = transcript
+            .trim()
+            .split(/\s+/)
+            .map(w => w.toLowerCase().replace(/[^\w]/g, ''));
 
+        // Use highest matched index so far
         let highest = -1;
-        let matchStartIndex = 0;
+        for (const i of used) {
+            if (i > highest) highest = i;
+        }
+
+        let matchStartIndex = highest + 1;
 
         for (const word of transcriptWords) {
-            for (let i = matchStartIndex; i < scriptWords.length; i++) {
+            const matchEndIndex = Math.min(scriptWords.length, matchStartIndex + windowSize);
+
+            for (let i = matchStartIndex; i < matchEndIndex; i++) {
                 if (!used.has(i) && scriptWords[i] === word) {
+                    // console.log('✅ script word:', scriptWords[i]);
+                    // console.log('🗣️ spoken word:', word);
+                    // console.log('matched index: ', i);
+
                     used.add(i);
                     if (i > highest) highest = i;
+
                     matchStartIndex = i + 1;
                     break;
                 }
@@ -112,8 +113,7 @@ export function useDeepgramSTT({
         }, 10000);
     };
 
-    const handleFinalization = async (triggerSource: string) => {
-        const spokenLine = fullTranscript.current.join(' ');
+    const handleFinalization = async (spokenLine: string) => {
 
         if (!spokenLine) {
             console.warn("⚠️ Missing spoken line!");
@@ -121,8 +121,6 @@ export function useDeepgramSTT({
         }
 
         const start = performance.now();
-
-        console.log(`${triggerSource} received. Running match test now!`);
 
         if (matchesEndPhrase(spokenLine, lineEndKeywords)) {
             const end = performance.now();
@@ -158,8 +156,7 @@ export function useDeepgramSTT({
         }
     };
 
-    const handleKeywordMatch = async (triggerSource: string) => {
-        let spokenLine = fullTranscript.current.join(' ');
+    const handleKeywordMatch = async (spokenLine: string) => {
 
         if (!spokenLine && lastTranscriptRef.current) {
             console.warn("⚠️ No finalized spoken line. Falling back to last transcript chunk.");
@@ -172,8 +169,6 @@ export function useDeepgramSTT({
         }
 
         const start = performance.now();
-
-        console.log(`${triggerSource} received. Running match test now!`);
 
         if (matchesEndPhrase(spokenLine, lineEndKeywords)) {
             const end = performance.now();
@@ -337,18 +332,18 @@ export function useDeepgramSTT({
                 console.log(`[🎙️] Transcript chunk at ${performance.now().toFixed(2)}ms:`, transcript);
                 resetSilenceTimeout();
 
-                if (onProgressUpdate && transcript) {
-                    const scriptWords = expectedScriptWordsRef.current;
+                // if (onProgressUpdate && transcript) {
+                //     const scriptWords = expectedScriptWordsRef.current;
 
-                    if (scriptWords && !hasTriggeredRef.current) {
-                        const matchCount = progressiveWordMatch(scriptWords, transcript, matchedScriptIndices.current);
+                //     if (scriptWords && !hasTriggeredRef.current) {
+                //         const matchCount = progressiveWordMatch(scriptWords, transcript, matchedScriptIndices.current);
 
-                        if (matchCount > lastReportedCount.current) {
-                            lastReportedCount.current = matchCount;
-                            onProgressUpdate(matchCount);
-                        }
-                    }
-                }
+                //         if (matchCount > lastReportedCount.current) {
+                //             lastReportedCount.current = matchCount;
+                //             onProgressUpdate(matchCount);
+                //         }
+                //     }
+                // }
 
                 if (transcript === lastTranscriptRef.current) {
                     repeatCountRef.current += 1;
@@ -358,6 +353,19 @@ export function useDeepgramSTT({
                 } else {
                     repeatCountRef.current = 1;
                     repeatStartTimeRef.current = performance.now();
+
+                    if (onProgressUpdate) {
+                        const scriptWords = expectedScriptWordsRef.current;
+
+                        if (scriptWords && !hasTriggeredRef.current) {
+                            const matchCount = progressiveWordMatch(scriptWords, transcript, matchedScriptIndices.current);
+
+                            if (matchCount > lastReportedCount.current) {
+                                lastReportedCount.current = matchCount;
+                                onProgressUpdate(matchCount);
+                            }
+                        }
+                    }
                 }
 
                 lastTranscriptRef.current = transcript;
@@ -379,20 +387,57 @@ export function useDeepgramSTT({
             }
 
             if (data.is_final && transcript) {
+                console.log(`🟡 [is_final] detected @ ${performance.now().toFixed(2)}ms`);
+
                 fullTranscript.current.push(transcript);
-                console.log(`!!!! Is Final detected !!!! @ ${performance.now().toFixed(2)}ms`);
-                await handleKeywordMatch(`🟡 [is_final=true] @ ${performance.now().toFixed(2)}ms`);
+
+                const fullSpokenLine = fullTranscript.current.join(' ');
+                const expectedWords = expectedScriptWordsRef.current;
+                const spokenWords = fullSpokenLine.trim().split(/\s+/);
+
+                const isLongEnough = expectedWords && spokenWords.length >= Math.floor(expectedWords.length * 0.75);
+
+                if (isLongEnough) {
+                    console.log(`🟡 [is_final] transcript accepted @ ${performance.now().toFixed(2)}ms! Handling finalization...`);
+                    await handleKeywordMatch(transcript);
+                } else {
+                    console.log(`⏹️ Deepgram is_final transcript too short — skipping!`);
+                }
             }
 
             if (data.speech_final) {
-                console.log(`!!!! Speech final detected !!!! @ ${performance.now().toFixed(2)}ms`);
-                await handleFinalization(`🟡 [speech_final=true] @ ${performance.now().toFixed(2)}ms`);
+                console.log(`🟡 [speech_final] detected @ ${performance.now().toFixed(2)}ms`);
+
+                const fullSpokenLine = fullTranscript.current.join(' ');
+                const expectedWords = expectedScriptWordsRef.current;
+                const spokenWords = fullSpokenLine.trim().split(/\s+/);
+
+                const isLongEnough = expectedWords && spokenWords.length >= Math.floor(expectedWords.length * 0.75);
+
+                if (isLongEnough) {
+                    console.log(`🟡 [speech_final] transcript accepted! Handling finalization...`);
+                    await handleFinalization(fullTranscript.current.join(' '));
+                } else {
+                    console.log(`⏹️ Deepgram speech_final transcript too short — skipping!`);
+                }
             }
 
             // Utterance end too slow. Minimum 1000ms threshold.
             if (data.type === "UtteranceEnd") {
-                console.log(`!!!! Utterance end detected !!!! @ ${performance.now().toFixed(2)}ms`);
-                await handleFinalization(`🟣 [UtteranceEnd] @ ${performance.now().toFixed(2)}ms`);
+                console.log(`🟣 [utterance_end] detected @ ${performance.now().toFixed(2)}ms`);
+
+                const fullSpokenLine = fullTranscript.current.join(' ');
+                const expectedWords = expectedScriptWordsRef.current;
+                const spokenWords = fullSpokenLine.trim().split(/\s+/);
+
+                const isLongEnough = expectedWords && spokenWords.length >= Math.floor(expectedWords.length * 0.75);
+
+                if (isLongEnough) {
+                    console.log(`🟣 [utterance_end] transcript accepted! Handling finalization...`);
+                    await handleFinalization(fullTranscript.current.join(' '));
+                } else {
+                    console.log(`⏹️ Deepgram utterance_end transcript too short — skipping!`);
+                }
             }
         };
 

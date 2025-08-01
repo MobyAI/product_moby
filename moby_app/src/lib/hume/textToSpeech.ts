@@ -21,7 +21,7 @@ export async function fetchTTSBlob({
                     provider: "HUME_AI" as const
                 },
                 text,
-                description: voiceDescription,
+                ...(voiceDescription && { description: voiceDescription }),
             },
         ],
         ...(contextUtterance && {

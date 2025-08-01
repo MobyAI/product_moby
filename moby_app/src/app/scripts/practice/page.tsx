@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import { useEffect, useState, useRef, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useHumeTTS, useElevenTTS } from "@/lib/api/tts";
 import { useGoogleSTT } from "@/lib/google/speechToText";
 import { useDeepgramSTT } from "@/lib/deepgram/speechToText";
 import type { ScriptElement } from "@/types/script";
-import { loadScript } from "../../rehearsal-room/loader";
-import { restoreSession, saveSession } from "../../rehearsal-room/session";
+import { loadScript, hydrateScript, hydrateLine } from './loader';
+import { RoleSelector } from './roleSelector';
+import EditableLine from './editableLine';
+import { restoreSession, saveSession } from "./session";
 import Deepgram from "../../rehearsal-room/deepgram";
 import GoogleSTT from "../../rehearsal-room/google";
 import { clear } from "idb-keyval";
@@ -31,6 +33,9 @@ function RehearsalRoomContent() {
 	const [loading, setLoading] = useState(false);
 	const [loadStage, setLoadStage] = useState<string | null>(null);
 	const [script, setScript] = useState<ScriptElement[] | null>(null);
+	const scriptRef = useRef<ScriptElement[] | null>(null);
+	const [ttsHydrationStatus, setTTSHydrationStatus] = useState<Record<number, 'pending' | 'updating' | 'ready' | 'failed'>>({});
+	const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const [sttProvider, setSttProvider] = useState<"google" | "deepgram">(
 		"deepgram"
@@ -63,7 +68,25 @@ function RehearsalRoomContent() {
 
 		const init = async () => {
 			setLoading(true);
-			await loadScript({
+
+			const rawScript = await loadScript({
+				userID,
+				scriptID,
+				setLoadStage,
+				setStorageError,
+			});
+
+			if (!rawScript) {
+				// Display error page?
+				setLoading(false);
+				return;
+			} else {
+				setScript(rawScript);
+				scriptRef.current = rawScript;
+			}
+
+			hydrateScript({
+				script: rawScript,
 				userID,
 				scriptID,
 				setLoadStage,
@@ -73,12 +96,18 @@ function RehearsalRoomContent() {
 				setEmbeddingFailedLines,
 				setTTSLoadError,
 				setTTSFailedLines,
+				updateTTSHydrationStatus,
+				getScriptLine,
 			});
+
+			// Restore session from indexedDB
 			const restored = await restoreSession(scriptID);
+
 			if (restored) {
 				setCurrentIndex(restored.index ?? 0);
-				setSpokenWordMap(restored.spokenWordMap ?? {});
 			}
+
+			setLoadStage('✅ Ready!');
 			setLoading(false);
 		};
 
@@ -100,16 +129,20 @@ function RehearsalRoomContent() {
 		if (!scriptID) return;
 
 		const timeout = setTimeout(() => {
-			saveSession(scriptID, { index: currentIndex, spokenWordMap });
+			saveSession(scriptID, { index: currentIndex });
 		}, 1000);
 
 		return () => clearTimeout(timeout);
 	}, [currentIndex, scriptID]);
 
 	const retryLoadScript = async () => {
-		if (!userID || !scriptID) return;
+		if (!userID || !scriptID || !script) return;
 
-		await loadScript({
+		setLoadStage('🚰 Retrying hydration');
+		setLoading(true);
+
+		await hydrateScript({
+			script: script,
 			userID,
 			scriptID,
 			setLoadStage,
@@ -119,11 +152,134 @@ function RehearsalRoomContent() {
 			setEmbeddingFailedLines,
 			setTTSLoadError,
 			setTTSFailedLines,
+			updateTTSHydrationStatus,
+			getScriptLine,
 		});
+
+		setLoadStage('✅ Retry succeeded!');
+		setLoading(false);
+	};
+
+	// Track TTS audio generation status
+	const updateTTSHydrationStatus = (index: number, status: 'pending' | 'updating' | 'ready' | 'failed') => {
+		setTTSHydrationStatus((prev) => ({
+			...prev,
+			[index]: status,
+		}));
+	};
+
+	// Update script line
+	const COMMON_WORDS = new Set([
+		'the', 'a', 'an', 'to', 'and', 'but', 'or', 'for', 'at', 'by', 'in', 'on', 'of', 'then', 'so'
+	]);
+
+	function extractLineEndKeywords(text: string): string[] {
+		const words = text
+			.toLowerCase()
+			.replace(/[^a-z0-9\s']/gi, '')
+			.split(/\s+/)
+			.filter(Boolean);
+
+		// Filter out common words and duplicates
+		const meaningful = words
+			.filter((word, index) => {
+				return (
+					!COMMON_WORDS.has(word) &&
+					words.lastIndexOf(word) === index
+				);
+			});
+
+		const selected = meaningful.slice(-2);
+
+		if (selected.length === 2) return selected;
+
+		if (selected.length === 1) {
+			const keyword = selected[0];
+
+			// Find index of that keyword in original `words` array
+			const idx = words.lastIndexOf(keyword);
+
+			let neighbor = '';
+
+			// Prefer word before
+			if (idx > 0) {
+				neighbor = words[idx - 1];
+			} else {
+				neighbor = words[idx + 1];
+			}
+
+			// Only return the keyword and neighbor if neighbor exists
+			return neighbor ? [neighbor, keyword] : [keyword];
+		}
+
+		if (selected.length === 0 && words.length > 0) {
+			return words.slice(-2);
+		}
+
+		return [];
+	}
+
+	const onUpdateLine = async (updateLine: ScriptElement) => {
+		setEditingLineIndex(null);
+
+		if (!script) {
+			console.warn('❌ Tried to update line before script was loaded.');
+			return;
+		}
+
+		// Inject or replace lineEndKeywords
+		if (updateLine.type === 'line' && typeof updateLine.text === 'string') {
+			updateLine.lineEndKeywords = extractLineEndKeywords(updateLine.text);
+			console.log('updated kw: ', updateLine.lineEndKeywords);
+		}
+
+		try {
+			const updatedScript = script?.map((el) =>
+				el.index === updateLine.index ? updateLine : el
+			) ?? [];
+
+			setScript(updatedScript);
+			scriptRef.current = updatedScript;
+
+			if (userID && scriptID) {
+				const result = await hydrateLine({
+					line: updateLine,
+					script: updatedScript,
+					userID,
+					scriptID,
+					updateTTSHydrationStatus,
+					setStorageError,
+				});
+
+				setScript((prev) => {
+					const next = prev?.map((el) =>
+						el.index === result.index ? result : el
+					) ?? [];
+
+					scriptRef.current = next;
+
+					return next;
+				});
+			}
+		} catch (err) {
+			console.error(`❌ Failed to update line ${updateLine.index}:`, err);
+		}
 	};
 
 	// Handle script flow
 	const current = script?.find((el) => el.index === currentIndex) ?? null;
+
+	const isScriptFullyHydrated = useMemo(() => {
+		return script?.every((el) => {
+			if (el.type !== 'line') return true;
+
+			const hydratedEmbedding = Array.isArray(el.expectedEmbedding) && el.expectedEmbedding.length > 0;
+			const hydratedTTS = typeof el.ttsUrl === 'string' && el.ttsUrl.length > 0;
+			const ttsReady = (ttsHydrationStatus[el.index] ?? 'pending') === 'ready';
+
+			return hydratedEmbedding && hydratedTTS && ttsReady;
+		}) ?? false;
+	}, [script, ttsHydrationStatus]);
 
 	const prepareUserLine = (line: ScriptElement | undefined | null) => {
 		if (
@@ -133,6 +289,10 @@ function RehearsalRoomContent() {
 		) {
 			setCurrentLineText(line.text);
 		}
+	};
+
+	const getScriptLine = (index: number): ScriptElement | undefined => {
+		return scriptRef.current?.find((el) => el.index === index);
 	};
 
 	useEffect(() => {
@@ -217,6 +377,11 @@ function RehearsalRoomContent() {
 	};
 
 	const handlePlay = async () => {
+		if (!isScriptFullyHydrated) {
+			console.warn('⏳ Script is still being prepared with resources...');
+			return;
+		}
+
 		await initializeSTT();
 		const currentLine = script?.find((el) => el.index === currentIndex);
 		prepareUserLine(currentLine);
@@ -477,9 +642,8 @@ function RehearsalRoomContent() {
 					key={element.index}
 					ref={isCurrent ? currentLineRef : null}
 					onClick={() => handleLineClick(element.index)}
-					className={`text-center mb-8 cursor-pointer transition-all duration-200 hover:bg-gray-50 rounded-lg p-6 ${
-						isCurrent ? "bg-blue-50 shadow-md border border-blue-200" : ""
-					}`}
+					className={`text-center mb-8 cursor-pointer transition-all duration-200 hover:bg-gray-50 rounded-lg p-6 ${isCurrent ? "bg-blue-50 shadow-md border border-blue-200" : ""
+						}`}
 				>
 					<h2 className="text-xl font-bold uppercase tracking-wider text-gray-800">
 						{element.text}
@@ -500,9 +664,8 @@ function RehearsalRoomContent() {
 					key={element.index}
 					ref={isCurrent ? currentLineRef : null}
 					onClick={() => handleLineClick(element.index)}
-					className={`text-center mb-6 cursor-pointer transition-all duration-200 hover:bg-gray-50 rounded-lg p-4 ${
-						isCurrent ? "bg-blue-50 shadow-md border border-blue-200" : ""
-					}`}
+					className={`text-center mb-6 cursor-pointer transition-all duration-200 hover:bg-gray-50 rounded-lg p-4 ${isCurrent ? "bg-blue-50 shadow-md border border-blue-200" : ""
+						}`}
 				>
 					<p className="italic text-gray-600 text-sm">({element.text})</p>
 					{isCurrent && isPlaying && (
@@ -521,19 +684,17 @@ function RehearsalRoomContent() {
 					key={element.index}
 					ref={isCurrent ? currentLineRef : null}
 					onClick={() => handleLineClick(element.index)}
-					className={`mb-6 cursor-pointer transition-all duration-200 rounded-lg p-6 ${
-						isCurrent 
-							? "bg-blue-50 shadow-md border-blue-200" 
-							: "hover:bg-gray-50 border-gray-200 hover:shadow-sm"
-					}`}
+					className={`mb-6 cursor-pointer transition-all duration-200 rounded-lg p-6 relative ${isCurrent
+						? "bg-blue-50 shadow-md border-blue-200"
+						: "hover:bg-gray-50 border-gray-200 hover:shadow-sm"
+						}`}
 				>
 					{/* Character name and status */}
 					<div className="flex items-center justify-between mb-4">
 						<div className="flex items-center gap-3">
 							<h3
-								className={`font-bold uppercase tracking-wide text-sm ${
-									element.role === "user" ? "text-blue-700" : "text-purple-700"
-								}`}
+								className={`font-bold uppercase tracking-wide text-sm ${element.role === "user" ? "text-blue-700" : "text-purple-700"
+									}`}
 							>
 								{element.character ||
 									(element.role === "user" ? "YOU" : "SCENE PARTNER")}
@@ -552,32 +713,69 @@ function RehearsalRoomContent() {
 					</div>
 
 					{/* Dialogue text */}
-					<div className="pl-4 border-l-3 border-gray-300">
-						{element.role === "user" ? (
-							<div className="text-base leading-relaxed">
-								{element.text.split(/\s+/).map((word, i) => {
-									const matched = spokenWordMap[element.index] ?? 0;
-									return (
-										<span
-											key={i}
-											className={`${i < matched
-												? "font-bold text-gray-900"
-												: isCurrent && isWaitingForUser
-													? "text-blue-900 font-medium"
-													: "text-gray-700"
-											} transition-all duration-300`}
-										>
-											{word + " "}
-										</span>
-									);
-								})}
-							</div>
-						) : (
-							<p className="text-base leading-relaxed text-gray-700">
-								{element.text}
-							</p>
-						)}
-					</div>
+					{editingLineIndex === element.index ? (
+						<EditableLine
+							item={element}
+							onUpdate={onUpdateLine}
+							onClose={() => setEditingLineIndex(null)}
+							hydrationStatus={ttsHydrationStatus[element.index]}
+						/>
+					) : (
+						<div className="pl-4 border-l-3 border-gray-300">
+							{element.role === "user" ? (
+								<div className="text-base leading-relaxed">
+									{element.text.split(/\s+/).map((word, i) => {
+										const matched = spokenWordMap[element.index] ?? 0;
+										return (
+											<span
+												key={i}
+												className={`${i < matched
+													? "font-bold text-gray-900"
+													: isCurrent && isWaitingForUser
+														? "text-blue-900 font-medium"
+														: "text-gray-700"
+													} transition-all duration-300`}
+											>
+												{word + " "}
+											</span>
+										);
+									})}
+								</div>
+							) : (
+								<p className="text-base leading-relaxed text-gray-700">
+									{element.text}
+								</p>
+							)}
+						</div>
+					)}
+
+					{/* Edit button */}
+					{isCurrent &&
+						!isPlaying &&
+						!editingLineIndex &&
+						ttsHydrationStatus[element.index] === 'ready' &&
+						(
+							<button
+								onClick={() => setEditingLineIndex(element.index)}
+								className="absolute top-4 right-4 text-xs text-black bg-gray-50 px-3 py-1 rounded shadow-sm hover:shadow-lg"
+								title="Edit Line"
+							>
+								✏️
+							</button>
+						)
+					}
+
+					{/* Loading indicator */}
+					{['pending', 'updating'].includes(ttsHydrationStatus[element.index]) && (
+						<div className="absolute top-4 right-4 w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+					)}
+
+					{/* Failed indicator */}
+					{ttsHydrationStatus[element.index] === 'failed' && (
+						<div className="absolute top-4 right-4 text-sm">
+							❌
+						</div>
+					)}
 				</div>
 			);
 		}
@@ -605,8 +803,8 @@ function RehearsalRoomContent() {
 					</div> */}
 
 					{/* Left Control Panel - Dark Theme */}
-					<div className="w-80 text-white shadow-xl flex flex-col" style={{ backgroundColor: '#1c1d1d' }}>
-						<div className="p-6 flex-1 overflow-y-auto">
+					<div className="w-80 h-screen text-white shadow-xl flex flex-col" style={{ backgroundColor: '#1c1d1d' }}>
+						<div className="p-6 pb-30 flex-1 overflow-y-auto hide-scrollbar">
 							{/* Header */}
 							<div className="mb-8">
 								<h1 className="text-2xl font-bold mb-2">Rehearsal</h1>
@@ -641,15 +839,14 @@ function RehearsalRoomContent() {
 									<div className="bg-gray-800 rounded-lg p-4">
 										<div className="flex items-center gap-2 mb-2">
 											<span
-												className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-													current.type === "line"
-														? current.role === "user"
-															? "bg-blue-600 text-white"
-															: "bg-purple-600 text-white"
-														: current.type === "scene"
-															? "bg-yellow-600 text-white"
-															: "bg-gray-600 text-white"
-												}`}
+												className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${current.type === "line"
+													? current.role === "user"
+														? "bg-blue-600 text-white"
+														: "bg-purple-600 text-white"
+													: current.type === "scene"
+														? "bg-yellow-600 text-white"
+														: "bg-gray-600 text-white"
+													}`}
 											>
 												{current.type === "line"
 													? current.role === "user"
@@ -671,10 +868,14 @@ function RehearsalRoomContent() {
 							<div className="space-y-3 mb-8">
 								<button
 									onClick={handlePlay}
-									disabled={isPlaying}
+									disabled={isPlaying || !isScriptFullyHydrated}
 									className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 font-medium"
 								>
-									▶️ {isPlaying ? "Playing..." : "Start Rehearsal"}
+									▶️ {!isScriptFullyHydrated
+										? "Preparing..."
+										: isPlaying
+											? "Playing..."
+											: "Start Rehearsal"}
 								</button>
 								<button
 									onClick={handlePause}
@@ -707,6 +908,35 @@ function RehearsalRoomContent() {
 								)}
 							</div>
 
+							{/* Select New Roles */}
+							{script &&
+								<div className="mb-8">
+									<div className="text-sm text-gray-400 mb-2">Role Selector</div>
+									<div className="bg-gray-800 rounded-lg p-4">
+										<div className="flex items-center gap-2 mb-2">
+											<RoleSelector
+												script={script}
+												userID={userID!}
+												scriptID={scriptID!}
+												onRolesUpdated={(updated) => {
+													setScript(updated);
+													scriptRef.current = updated;
+													prepareUserLine(updated[currentIndex]);
+													// setCurrentIndex(0);
+													// setSpokenWordMap({});
+													// prepareUserLine(updated[0]);
+												}}
+											/>
+										</div>
+										{isWaitingForUser && (
+											<div className="text-xs text-yellow-400 animate-pulse">
+												🎤 Listening for your line...
+											</div>
+										)}
+									</div>
+								</div>
+							}
+
 							{/* Error Handling */}
 							{storageError && (
 								<div className="mb-6 p-4 bg-red-900 border border-red-700 rounded-lg">
@@ -730,7 +960,7 @@ function RehearsalRoomContent() {
 							<div className="absolute bottom-20 left-4 z-10">
 								<Button
 									onClick={goBackHome}
-									className="px-6 py-2 bg-blue hover:bg-blue-100 text-gray-800 rounded-lg shadow-sm transition-all duration-200 font-medium"
+									className="px-6 py-2 bg-green-600 hover:bg-green-800 text-gray-800 rounded-lg shadow-md shadow-black hover:shadow-lg hover:shadow-black transition-all duration-200 font-medium"
 								>
 									Upload a new script
 								</Button>
