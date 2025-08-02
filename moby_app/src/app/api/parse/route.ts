@@ -5,6 +5,13 @@ import { extractTextFromPDF } from '@/lib/extract/pdf';
 import { extractTextFromDOCX } from '@/lib/extract/docx';
 import { parseWithClaude } from '@/lib/claude/parse';
 
+// export async function POST() {
+//     return new Response(JSON.stringify({ message: "Temporarily disabled" }), {
+//         status: 503,
+//         headers: { 'Content-Type': 'application/json' }
+//     });
+// }
+
 export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get('file') as File;
