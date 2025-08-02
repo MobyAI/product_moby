@@ -3,8 +3,8 @@ import { saveEmbeddingBlob, getEmbeddingUrl, deleteEmbeddingBlob } from '@/serve
 
 type RouteParams = { userID: string; scriptID: string; };
 
-export async function POST(req: NextRequest, { params }: { params: Promise<RouteParams> }) {
-    const { userID, scriptID } = await params;
+export async function POST(req: NextRequest, { params }: { params: RouteParams }) {
+    const { userID, scriptID } = params;
     const formData = await req.formData();
 
     const index = Number(formData.get('index'));
@@ -23,8 +23,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<Route
     }
 }
 
-export async function GET(req: NextRequest, { params }: { params: Promise<RouteParams> }) {
-    const { userID, scriptID } = await params;
+export async function GET(req: NextRequest, { params }: { params: RouteParams }) {
+    const { userID, scriptID } = params;
     const { searchParams } = new URL(req.url);
     const index = Number(searchParams.get('index'));
 
@@ -47,8 +47,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<RouteP
     }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<RouteParams> }) {
-    const { userID, scriptID } = await params;
+export async function DELETE(req: NextRequest, { params }: { params: RouteParams }) {
+    const { userID, scriptID } = params;
     const { searchParams } = new URL(req.url);
     const index = Number(searchParams.get('index'));
 

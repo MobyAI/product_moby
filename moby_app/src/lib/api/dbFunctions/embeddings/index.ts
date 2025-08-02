@@ -33,13 +33,25 @@ export async function fetchEmbeddingFromStorage({
     index: number;
 }): Promise<number[] | null> {
     const res = await fetch(`/api/embed/storage/${userID}/${scriptID}?index=${index}`);
-    if (!res.ok) {
-        throw new Error('Failed to fetch embedding from storage');
-    }
-    const data = await res.json();
-    return data.embedding ?? null;
-}
 
+    if (!res.ok) {
+        throw new Error("Failed to fetch embedding from storage");
+    }
+
+    try {
+        const contentType = res.headers.get("content-type");
+        if (contentType?.includes("application/json")) {
+            const data = await res.json();
+            return Array.isArray(data?.embedding) ? data.embedding : null;
+        } else {
+            console.warn("Unexpected content type:", contentType);
+            return null;
+        }
+    } catch (err) {
+        console.error("Failed to parse embedding JSON:", err);
+        return null;
+    }
+}
 
 export async function deleteEmbeddingBlob({
     userID,
@@ -90,8 +102,20 @@ export async function fetchEmbeddingBatch({
     const res = await fetch(`/api/embed/batch/${userID}/${scriptID}`);
 
     if (!res.ok) {
-        throw new Error('Failed to fetch embedding batch');
+        throw new Error("Failed to fetch embedding batch");
     }
 
-    return await res.json();
+    try {
+        const contentType = res.headers.get("content-type");
+        if (contentType?.includes("application/json")) {
+            const data = await res.json();
+            return typeof data === "object" && data !== null ? data : {};
+        } else {
+            console.warn("Unexpected content type:", contentType);
+            return {};
+        }
+    } catch (err) {
+        console.error("Failed to parse embedding batch JSON:", err);
+        return {};
+    }
 }

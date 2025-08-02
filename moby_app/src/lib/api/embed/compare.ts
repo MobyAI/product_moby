@@ -10,6 +10,18 @@ export async function fetchSimilarity(spokenLine: string, expectedEmbedding: num
         return null;
     }
 
-    const { similarity } = await res.json();
-    return similarity as number;
+    let similarity: number | null = null;
+    try {
+        const contentType = res.headers.get("content-type");
+        if (contentType?.includes("application/json")) {
+            const data = await res.json();
+            similarity = data?.similarity ?? null;
+        } else {
+            console.warn("Expected JSON but got:", contentType);
+        }
+    } catch (err) {
+        console.error("Failed to parse similarity JSON:", err);
+    }
+
+    return similarity;
 }

@@ -147,7 +147,19 @@ export async function uploadVoiceSample({
     });
 
     if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
+        type UploadError = { error?: string };
+
+        let error: UploadError = {};
+        
+        try {
+            const contentType = res.headers.get('content-type');
+            if (contentType?.includes('application/json')) {
+                error = await res.json();
+            }
+        } catch (_) {
+            // ignore JSON parse error
+        }
+
         throw new Error(error?.error || 'Failed to upload voice sample');
     }
 }  

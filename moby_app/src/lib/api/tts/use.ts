@@ -21,8 +21,23 @@ export async function useHumeTTS({
     });
 
     if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
-        throw new Error(error?.error || 'Hume TTS request failed');
+        let errorMessage = 'TTS API request failed';
+
+        try {
+            const contentType = res.headers.get('content-type');
+            if (contentType?.includes('application/json')) {
+                const error = await res.json();
+                errorMessage = error?.error || errorMessage;
+            } else {
+                console.warn('Unexpected content-type from TTS API:', contentType);
+                const fallbackText = await res.text();
+                console.warn('Raw response:', fallbackText);
+            }
+        } catch (err) {
+            console.error('Failed to parse error response:', err);
+        }
+
+        throw new Error(errorMessage);
     }
 
     return await res.blob();
@@ -51,8 +66,23 @@ export async function useElevenTTS({
     });
 
     if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
-        throw new Error(error?.error || 'TTS API request failed');
+        let errorMessage = 'TTS API request failed';
+
+        try {
+            const contentType = res.headers.get('content-type');
+            if (contentType?.includes('application/json')) {
+                const error = await res.json();
+                errorMessage = error?.error || errorMessage;
+            } else {
+                console.warn('Unexpected content-type from TTS API:', contentType);
+                const fallbackText = await res.text();
+                console.warn('Raw response:', fallbackText);
+            }
+        } catch (err) {
+            console.error('Failed to parse error response:', err);
+        }
+
+        throw new Error(errorMessage);
     }
 
     return await res.blob();
