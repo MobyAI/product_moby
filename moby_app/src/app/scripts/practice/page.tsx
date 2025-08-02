@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useHumeTTS, useElevenTTS } from "@/lib/api/tts";
 import { useGoogleSTT } from "@/lib/google/speechToText";
 import { useDeepgramSTT } from "@/lib/deepgram/speechToText";
 import type { ScriptElement } from "@/types/script";
@@ -38,7 +37,7 @@ function RehearsalRoomContent() {
 	const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const [sttProvider, setSttProvider] = useState<"google" | "deepgram">(
-		"deepgram"
+		"google"
 	);
 
 	// Rehearsal flow
@@ -253,11 +252,12 @@ function RehearsalRoomContent() {
 
 				setScript((prev) => {
 					const next = prev?.map((el) =>
-						el.index === result.index ? result : el
+						el.index === result.index
+							? { ...el, ...result, text: updateLine.text }
+							: el
 					) ?? [];
 
 					scriptRef.current = next;
-
 					return next;
 				});
 			}
@@ -557,78 +557,6 @@ function RehearsalRoomContent() {
 	const goBackHome = () => {
 		router.push('/home')
 	}
-
-	// Testing TTS audio manually
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const loadElevenTTS = async ({
-		text,
-		voiceId = "JBFqnCBsd6RMkjVDRZzb",
-		stability = 0.3,
-		similarityBoost = 0.8,
-	}: {
-		text: string;
-		voiceId?: string;
-		stability?: number;
-		similarityBoost?: number;
-	}) => {
-		try {
-			// eslint-disable-next-line react-hooks/rules-of-hooks
-			const blob = await useElevenTTS({
-				text,
-				voiceId,
-				voiceSettings: {
-					stability,
-					similarityBoost,
-				},
-			});
-
-			const url = URL.createObjectURL(blob);
-			const audio = new Audio(url);
-			await audio.play();
-
-			audio.onended = () => {
-				URL.revokeObjectURL(url);
-			};
-		} catch (err) {
-			console.error("❌ Failed to load or play TTS audio:", err);
-		}
-	};
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars	
-	const loadHumeTTS = async ({
-		text,
-		voiceId,
-		voiceDescription,
-		contextUtterance,
-	}: {
-		text: string;
-		voiceId: string;
-		voiceDescription: string;
-		contextUtterance?: {
-			text: string;
-			description: string;
-		}[];
-	}) => {
-		try {
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars, react-hooks/rules-of-hooks
-			const blob = await useHumeTTS({
-				text,
-				voiceId,
-				voiceDescription,
-				contextUtterance,
-			});
-
-			const url = URL.createObjectURL(blob);
-
-			const audio = new Audio(url);
-			await audio.play();
-
-			audio.onended = () => {
-				URL.revokeObjectURL(url);
-			};
-		} catch (err) {
-			console.error("❌ Failed to load or play Hume TTS audio:", err);
-		}
-	};
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const renderScriptElement = (element: ScriptElement, index: number) => {
