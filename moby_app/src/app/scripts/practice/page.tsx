@@ -9,8 +9,6 @@ import { loadScript, hydrateScript, hydrateLine } from './loader';
 import { RoleSelector } from './roleSelector';
 import EditableLine from './editableLine';
 import { restoreSession, saveSession } from "./session";
-import Deepgram from "../../rehearsal-room/deepgram";
-import GoogleSTT from "../../rehearsal-room/google";
 import { clear } from "idb-keyval";
 import LoadingScreen from "./LoadingScreen";
 import { Button } from "@/components/ui/Buttons";
@@ -942,36 +940,6 @@ function RehearsalRoomContent() {
 								)}
 							</div>
 						</div>
-					</div>
-
-					{/* Hidden STT Components */}
-					<div className="hidden">
-						{current?.type === "line" &&
-							current?.role === "user" &&
-							typeof current.character === "string" &&
-							typeof current.text === "string" &&
-							Array.isArray(current.lineEndKeywords) &&
-							Array.isArray(current.expectedEmbedding) && (
-								<>
-									{sttProvider === "google" ? (
-										<GoogleSTT
-											character={current.character}
-											text={current.text}
-											expectedEmbedding={current.expectedEmbedding}
-											start={startSTT}
-											stop={pauseSTT}
-										/>
-									) : (
-										<Deepgram
-											character={current.character}
-											text={current.text}
-											expectedEmbedding={current.expectedEmbedding}
-											start={startSTT}
-											stop={pauseSTT}
-										/>
-									)}
-								</>
-							)}
 					</div>
 				</div>
 			)}
