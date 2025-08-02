@@ -1,4 +1,4 @@
-// @ts-ignore
+// @ts-expect-error - pdf-parse-fork doesn't have type definitions
 import pdfParse from 'pdf-parse-fork';
 
 export async function extractTextFromPDF(buffer: Buffer): Promise<string> {

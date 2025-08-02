@@ -20,6 +20,7 @@ export async function parseScriptFile(file: File): Promise<any | null> {
             return null;
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let data: any = {};
         try {
             data = await res.json();

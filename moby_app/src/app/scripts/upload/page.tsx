@@ -64,6 +64,7 @@ export default function UploadPage() {
         });
 
         console.log('enriched script: ', enrichedScript);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [allCharacters]);
 
     const router = useRouter();

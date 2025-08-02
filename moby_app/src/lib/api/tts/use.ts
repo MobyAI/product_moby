@@ -1,4 +1,4 @@
-export async function useHumeTTS({
+export async function fetchHumeTTS({
     text,
     voiceId,
     voiceDescription,
@@ -43,7 +43,7 @@ export async function useHumeTTS({
     return await res.blob();
 }
 
-export async function useElevenTTS({
+export async function fetchElevenTTS({
     text,
     voiceId,
     modelId,

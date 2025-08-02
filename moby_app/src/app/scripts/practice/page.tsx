@@ -310,6 +310,7 @@ function RehearsalRoomContent() {
 				}
 				break;
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [current, currentIndex, isPlaying, isWaitingForUser]);
 
 	useEffect(() => {
@@ -339,6 +340,7 @@ function RehearsalRoomContent() {
 			audio.pause();
 			audio.src = "";
 		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [current, isPlaying, isWaitingForUser]);
 
 	useEffect(() => {
@@ -350,6 +352,7 @@ function RehearsalRoomContent() {
 		) {
 			startSTT();
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [current, isPlaying, isWaitingForUser]);
 
 	const autoAdvance = (delay = 1000) => {
@@ -550,6 +553,7 @@ function RehearsalRoomContent() {
 			window.removeEventListener("beforeunload", handleUnload);
 			console.log("🧹 STT cleaned up on unmount");
 		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const goBackHome = () => {

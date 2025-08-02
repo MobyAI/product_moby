@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { saveEmbeddingBlob, getEmbeddingUrl, deleteEmbeddingBlob } from '@/server/embeddings';
 
-type RouteParams = { userID: string; scriptID: string; };
+// type RouteParams = { userID: string; scriptID: string; };
 
-export async function POST(req: NextRequest, { params }: { params: RouteParams }) {
-    const { userID, scriptID } = params;
+export async function POST(
+    req: NextRequest,
+    context: { params: Promise<{ userID: string; scriptID: string }> }
+) {
+    const { userID, scriptID } = await context.params;
     const formData = await req.formData();
 
     const index = Number(formData.get('index'));
@@ -23,8 +26,11 @@ export async function POST(req: NextRequest, { params }: { params: RouteParams }
     }
 }
 
-export async function GET(req: NextRequest, { params }: { params: RouteParams }) {
-    const { userID, scriptID } = params;
+export async function GET(
+    req: NextRequest,
+    context: { params: Promise<{ userID: string; scriptID: string }> }
+) {
+    const { userID, scriptID } = await context.params;
     const { searchParams } = new URL(req.url);
     const index = Number(searchParams.get('index'));
 
@@ -47,8 +53,11 @@ export async function GET(req: NextRequest, { params }: { params: RouteParams })
     }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: RouteParams }) {
-    const { userID, scriptID } = params;
+export async function DELETE(
+    req: NextRequest,
+    context: { params: Promise<{ userID: string; scriptID: string }> }
+) {
+    const { userID, scriptID } = await context.params;
     const { searchParams } = new URL(req.url);
     const index = Number(searchParams.get('index'));
 

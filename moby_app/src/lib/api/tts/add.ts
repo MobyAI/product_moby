@@ -1,9 +1,9 @@
-import { useHumeTTS } from '@/lib/api/tts';
+import { fetchHumeTTS } from '@/lib/api/tts';
 import { uploadTTSAudioBlob, fetchTTSAudioUrl } from '@/lib/api/dbFunctions/audio/tts';
 import type { ScriptElement } from '@/types/script';
 
 // OPTIONAL: Include acting instructions in TTS audio gen
-// const blob = await useHumeTTS({
+// const blob = await fetchHumeTTS({
 //     text: sanitizeForTTS(element.text),
 //     voiceId,
 //     voiceDescription: element.actingInstructions || '',
@@ -70,7 +70,7 @@ export async function addTTS(
                 .trim();
         };
 
-        const blob = await useHumeTTS({
+        const blob = await fetchHumeTTS({
             text: sanitizeForTTS(element.text),
             voiceId: element.voiceId ?? defaultVoiceId,
             voiceDescription: '',
@@ -133,8 +133,7 @@ export async function addTTSRegenerate(
                 .trim();
         };
 
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        const blob = await useHumeTTS({
+        const blob = await fetchHumeTTS({
             text: sanitizeForTTS(element.text),
             voiceId: element.voiceId ?? defaultVoiceId,
             voiceDescription: '',

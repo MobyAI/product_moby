@@ -156,7 +156,7 @@ export async function uploadVoiceSample({
             if (contentType?.includes('application/json')) {
                 error = await res.json();
             }
-        } catch (_) {
+        } catch {
             // ignore JSON parse error
         }
 
