@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "dev:full": "concurrently \"npm run dev\" \"node googleServer.js\" \"node deepgramServer.js\""
+    "dev:full": "concurrently \"npm run dev\" \"node stt-server/googleServer.js\" \"node stt-server/deepgramServer.js\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.56.0",

@@ -10,6 +10,9 @@ node_modules/
 !.yarn/releases
 !.yarn/versions
 
+# stt-server dependencies
+stt-server/node_modules/
+
 # testing
 /coverage
 

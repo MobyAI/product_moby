@@ -1,17 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // ✅ Skip ESLint checks during build
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  /* config options here */
+  webpack: (config) => {
+    // Exclude stt-server from webpack processing
+    config.watchOptions = {
+      ...config.watchOptions,
+      ignored: ['**/stt-server/**'],
+    };
 
-  // ✅ Skip TypeScript type errors during build
-  typescript: {
-    ignoreBuildErrors: true,
+    return config;
   },
-
-  // other options like reactStrictMode, etc., can go here
 };
 
 export default nextConfig;

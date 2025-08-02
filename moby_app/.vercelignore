@@ -1,0 +1,2 @@
+# Ignore stt-server directory during Vercel builds
+stt-server/
