@@ -343,7 +343,7 @@ export function useDeepgramSTT({
         }
 
         if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
-            wsRef.current = new WebSocket('wss://moby-stt.fly.dev:3001');
+            wsRef.current = new WebSocket('wss://deepgram-stt.fly.dev');
         } else {
             console.warn('🔁 Reusing existing WebSocket');
         }

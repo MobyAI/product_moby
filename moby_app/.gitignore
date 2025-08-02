@@ -11,7 +11,8 @@ node_modules/
 !.yarn/versions
 
 # stt-server dependencies
-stt-server/node_modules/
+google-server/node_modules/
+deepgram-server/node_modules/
 
 # testing
 /coverage
