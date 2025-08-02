@@ -1,5 +1,6 @@
 const WebSocket = require('ws');
 const { SpeechClient } = require('@google-cloud/speech');
+require('dotenv').config();
 
 //
 // Need to add better error handling
@@ -21,9 +22,9 @@ if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
     speechClient = new SpeechClient();
 }
 
-const PORT = 3002;
+const PORT = 3000;
 const wss = new WebSocket.Server({ port: PORT, host: '0.0.0.0' });
-console.log('🎤 Google STT proxy WebSocket server running on ws://localhost:3002');
+console.log('🎤 Google STT proxy WebSocket server running on ws://0.0.0.0:3002');
 
 wss.on('connection', async (socket) => {
     console.log('🎧 Client connected to STT proxy');

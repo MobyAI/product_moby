@@ -1,6 +1,7 @@
 const WebSocket = require('ws');
 const fetch = require('node-fetch');
 const http = require('http');
+require('dotenv').config();
 
 //
 // Need to add better error handling
@@ -64,7 +65,7 @@ wss.on('connection', (clientSocket) => {
     });
 });
 
-const PORT = 3001;
+const PORT = 3000;
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`🖥️ WebSocket Proxy listening on ws://0.0.0.0:${PORT}`);
 });

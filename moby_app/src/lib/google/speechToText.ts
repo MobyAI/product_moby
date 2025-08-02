@@ -328,7 +328,7 @@ export function useGoogleSTT({
         }
 
         if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
-            wsRef.current = new WebSocket('wss://moby-stt.fly.dev:3002');
+            wsRef.current = new WebSocket('wss://google-stt.fly.dev');
         } else {
             console.warn('🔁 Reusing existing WebSocket');
         }

@@ -1,7 +1,7 @@
 # syntax = docker/dockerfile:1
 
 # Adjust NODE_VERSION as desired
-ARG NODE_VERSION=23.2.0
+ARG NODE_VERSION=20.19.4
 FROM node:${NODE_VERSION}-slim AS base
 
 LABEL fly_launch_runtime="Node.js"
@@ -12,7 +12,8 @@ WORKDIR /app
 # Set production environment
 ENV NODE_ENV="production"
 
-# --- Build Stage ---
+
+# Throw-away build stage to reduce size of final image
 FROM base AS build
 
 # Install packages needed to build node modules
@@ -20,24 +21,19 @@ RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
 
 # Install node modules
-COPY package*.json ./
-RUN npm ci
+COPY package.json ./
+RUN npm install
 
-# Copy your app code (everything else)
+# Copy application code
 COPY . .
 
-# --- Final Stage ---
+
+# Final stage for app image
 FROM base
 
-# Copy built app from previous stage
+# Copy built application
 COPY --from=build /app /app
 
-# Set working directory
-WORKDIR /app
-
-# Open your STT ports (update if needed)
-EXPOSE 3001
-EXPOSE 3002
-
-# Start the app
-CMD ["node", "index.js"]
+# Start the server by default, this can be overwritten at runtime
+EXPOSE 3000
+CMD [ "npm", "run", "start" ]
