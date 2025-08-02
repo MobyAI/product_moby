@@ -7,7 +7,6 @@ import VoiceLibrary from './voiceLibrary';
 import { useRouter } from 'next/navigation';
 import { saveScript } from '@/lib/api/dbFunctions/scripts';
 import { fetchAllVoiceSamples } from '@/lib/api/dbFunctions/audio/tts';
-// import { fetchEmbedding } from '@/lib/api/embed';
 import type { ScriptElement } from '@/types/script';
 import { Layout } from '@/components/ui/Layout';
 
