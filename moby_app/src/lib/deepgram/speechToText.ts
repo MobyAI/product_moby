@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { fetchSimilarity } from '@/lib/api/embed';
+import * as fuzz from 'fuzzball';
 
 //
 // IMPORTANT: For openAI embedding: choose server near openAI's server for lower latency
@@ -99,6 +100,11 @@ export function useDeepgramSTT({
     const triggerNextLine = (transcript: string) => {
         if (hasTriggeredRef.current) return false;
         hasTriggeredRef.current = true;
+
+        if (expectedScriptWordsRef.current && onProgressUpdate) {
+            onProgressUpdate(expectedScriptWordsRef.current.length);
+        }
+
         pauseSTT();
         onCueDetected(transcript);
         return true;
@@ -114,18 +120,11 @@ export function useDeepgramSTT({
     };
 
     const handleFinalization = async (spokenLine: string) => {
-
-        if (!spokenLine) {
-            console.warn("⚠️ Missing spoken line!");
-            return;
-        }
-
         const start = performance.now();
 
         if (matchesEndPhrase(spokenLine, lineEndKeywords)) {
             const end = performance.now();
-            console.log("🔑 Keyword match detected!");
-            console.log(`⚡ Total latency in this block: ${(end - start).toFixed(2)}ms`);
+            console.log(`🔑 Keyword match detected in: ${(end - start).toFixed(2)}ms`);
             console.log(`End timestamp: ${end.toFixed(2)}ms`);
 
             triggerNextLine(spokenLine);
@@ -134,25 +133,25 @@ export function useDeepgramSTT({
             console.log('🔑 Keyword match failed');
         }
 
-        if (!expectedEmbedding || expectedEmbedding.length === 0) {
-            console.warn("⚠️ Missing expected embedding — skipping similarity check.");
+        if (fuzzyMatchEndKeywords(spokenLine, lineEndKeywords)) {
+            const end = performance.now();
+            console.log(`🤏 Fuzzy match passed in ${(end - start).toFixed(2)}ms`);
+            triggerNextLine(spokenLine);
             return;
         }
 
-        const similarity = await fetchSimilarity(spokenLine, expectedEmbedding);
-
-        console.log(`🧠 Similarity: ${similarity}`);
-
-        if (similarity && similarity > 0.80) {
-            const end = performance.now();
-            console.log("✅ Similarity test passed!");
-            console.log(`⚡ Total latency in this block: ${(end - start).toFixed(2)}ms`);
-            console.log(`End timestamp: ${end.toFixed(2)}ms`);
-
-            triggerNextLine(spokenLine);
-            return;
-        } else {
-            console.log("🔁 Similarity too low, not triggering cue.");
+        if (expectedEmbedding?.length) {
+            const similarity = await fetchSimilarity(spokenLine, expectedEmbedding);
+            console.log('Similarity: ', similarity);
+            if (similarity && similarity > 0.80) {
+                const end = performance.now();
+                console.log(`⚡ Similarity test passed in: ${(end - start).toFixed(2)}ms`);
+                console.log(`End timestamp: ${end.toFixed(2)}ms`);
+                triggerNextLine(spokenLine);
+                return;
+            } else {
+                console.log("🔁 Similarity too low.");
+            }
         }
     };
 
@@ -172,14 +171,18 @@ export function useDeepgramSTT({
 
         if (matchesEndPhrase(spokenLine, lineEndKeywords)) {
             const end = performance.now();
-            console.log("🔑 Keyword match detected!");
-            console.log(`⚡ Total latency in this block: ${(end - start).toFixed(2)}ms`);
+            console.log(`🔑 Keyword match detected in: ${(end - start).toFixed(2)}ms`);
             console.log(`End timestamp: ${end.toFixed(2)}ms`);
 
             triggerNextLine(spokenLine);
             return;
-        } else {
-            console.log('🔑 Keyword match failed');
+        }
+
+        if (fuzzyMatchEndKeywords(spokenLine, lineEndKeywords)) {
+            const end = performance.now();
+            console.log(`🤏 Fuzzy match passed in ${(end - start).toFixed(2)}ms`);
+            triggerNextLine(spokenLine);
+            return;
         }
     };
 
@@ -197,15 +200,52 @@ export function useDeepgramSTT({
 
         if (matchesEndPhrase(spokenLine, lineEndKeywords)) {
             const end = performance.now();
-            console.log("🔑 Keyword match detected!");
-            console.log(`⚡ Total latency in this block: ${(end - start).toFixed(2)}ms`);
+            console.log(`🔑 Keyword match detected in: ${(end - start).toFixed(2)}ms`);
             console.log(`End timestamp: ${end.toFixed(2)}ms`);
 
             triggerNextLine(spokenLine);
             return;
-        } else {
-            console.log('🔑 Keyword match failed');
         }
+
+        if (fuzzyMatchEndKeywords(spokenLine, lineEndKeywords)) {
+            const end = performance.now();
+            console.log(`🤏 Fuzzy match passed in ${(end - start).toFixed(2)}ms`);
+            triggerNextLine(spokenLine);
+            return;
+        }
+    };
+
+
+    const normalize = (text: string) =>
+        text.toLowerCase().replace(/[\s.,!?'"“”\-]+/g, ' ').trim();
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const extractLastSentence = (text: string): string => {
+        const sentences = text.split(/(?<=[.!?])\s+/);
+        return sentences[sentences.length - 1] ?? text;
+    };
+
+    const fuzzyMatchEndKeywords = (
+        transcript: string,
+        keywords: string[],
+        threshold = 70
+    ): boolean => {
+        // const lastSentence = normalize(extractLastSentence(transcript));
+        // const words = lastSentence.split(/\s+/);
+
+        // console.log('fuzzy match last sentence: ', lastSentence);
+
+        const normTranscript = normalize(transcript);
+        const words = normTranscript.split(/\s+/);
+
+        return keywords.every((kw) => {
+            const normKw = normalize(kw);
+            return words.some((w) => {
+                const score = fuzz.ratio(normKw, w);
+                console.log(`🔍 Comparing "${normKw}" with "${w}" → Score: ${score}`);
+                return score >= threshold;
+            });
+        });
     };
 
     const initializeSTT = async () => {
@@ -303,7 +343,7 @@ export function useDeepgramSTT({
         }
 
         if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
-            wsRef.current = new WebSocket('ws://localhost:3001');
+            wsRef.current = new WebSocket('wss://moby-stt.fly.dev:3001');
         } else {
             console.warn('🔁 Reusing existing WebSocket');
         }

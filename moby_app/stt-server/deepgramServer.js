@@ -1,7 +1,6 @@
 const WebSocket = require('ws');
 const fetch = require('node-fetch');
 const http = require('http');
-require('dotenv').config();
 
 //
 // Need to add better error handling
@@ -24,7 +23,7 @@ wss.on('connection', (clientSocket) => {
         '&sample_rate=44100' +
         '&endpointing=1000' +
         '&utterance_end_ms=4000' +
-        '&smart_format=true' ,
+        '&smart_format=true',
         {
             headers: {
                 Authorization: `Token ${DEEPGRAM_API_KEY}`,
@@ -65,6 +64,7 @@ wss.on('connection', (clientSocket) => {
     });
 });
 
-server.listen(3001, () => {
-    console.log('🖥️ WebSocket Proxy listening on ws://localhost:3001');
+const PORT = 3001;
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🖥️ WebSocket Proxy listening on ws://0.0.0.0:${PORT}`);
 });

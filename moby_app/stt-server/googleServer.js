@@ -1,14 +1,28 @@
 const WebSocket = require('ws');
 const { SpeechClient } = require('@google-cloud/speech');
-require('dotenv').config();
 
 //
 // Need to add better error handling
 //
 
-const speechClient = new SpeechClient();
+let speechClient;
 
-const wss = new WebSocket.Server({ port: 3002 });
+if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+    // Production (Fly.io) using JSON secret
+    const creds = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+    speechClient = new SpeechClient({
+        credentials: {
+            client_email: creds.client_email,
+            private_key: creds.private_key,
+        },
+    });
+} else {
+    // Local (file path from GOOGLE_APPLICATION_CREDENTIALS)
+    speechClient = new SpeechClient();
+}
+
+const PORT = 3002;
+const wss = new WebSocket.Server({ port: PORT, host: '0.0.0.0' });
 console.log('🎤 Google STT proxy WebSocket server running on ws://localhost:3002');
 
 wss.on('connection', async (socket) => {

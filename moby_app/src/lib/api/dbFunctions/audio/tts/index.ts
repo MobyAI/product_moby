@@ -103,7 +103,6 @@ export async function updateTTSAudioBlob({
 }
 
 // Fetch voice samples
-
 interface VoiceSample {
     name: string;
     description: string;
@@ -121,3 +120,34 @@ export async function fetchAllVoiceSamples(): Promise<VoiceSample[]> {
     const data = await res.json();
     return data.samples;
 }
+
+// Upload voice samples
+interface UploadVoiceSampleParams {
+    file: File;
+    voiceId: string;
+    voiceName: string;
+    description: string;
+}
+
+export async function uploadVoiceSample({
+    file,
+    voiceId,
+    voiceName,
+    description,
+}: UploadVoiceSampleParams): Promise<void> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('voiceId', voiceId);
+    formData.append('voiceName', voiceName);
+    formData.append('description', description);
+
+    const res = await fetch('/api/tts/samples', {
+        method: 'POST',
+        body: formData,
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error?.error || 'Failed to upload voice sample');
+    }
+}  
