@@ -10,9 +10,6 @@ class LinearPCMProcessor extends AudioWorkletProcessor {
         const input = inputs[0][0];
         if (!input) return true;
 
-        // Temp for testing
-        console.log("[🔊 Worklet] Received samples:", input.length);
-
         this._buffer.push(...input);
 
         if (this._buffer.length >= this._samplesPerMessage) {

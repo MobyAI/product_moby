@@ -268,10 +268,6 @@ export function useGoogleSTT({
             const micStream = micStreamRef.current!;
             const source = audioCtx.createMediaStreamSource(micStream);
 
-            // Temp for testing
-            const gainNode = audioCtx.createGain();
-            gainNode.gain.value = 1.0;
-
             const workletNode = new AudioWorkletNode(audioCtx, 'linear-pcm-processor', {
                 numberOfInputs: 1,
                 numberOfOutputs: 1,
@@ -279,9 +275,6 @@ export function useGoogleSTT({
             });
 
             workletNode.port.onmessage = (e: MessageEvent<Float32Array>) => {
-                // Temp for testing
-                console.log("📦 Got audio chunk from worklet", e.data.length);
-
                 const floatInput = e.data;
                 const buffer = convertFloat32ToInt16(floatInput);
                 if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -441,7 +434,9 @@ export function useGoogleSTT({
 
         wsRef.current.onopen = async () => {
             if (!isActiveRef.current) return;
+
             // micCleanupRef.current = await streamMic(wsRef);
+
             resetSilenceTimeout();
         };
 
