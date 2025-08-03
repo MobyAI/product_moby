@@ -1,5 +1,5 @@
 {
-  "name": "stt-server",
+  "name": "deepgram-server",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {

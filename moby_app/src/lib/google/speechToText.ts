@@ -267,9 +267,21 @@ export function useGoogleSTT({
             const audioCtx = audioCtxRef.current!;
             const micStream = micStreamRef.current!;
             const source = audioCtx.createMediaStreamSource(micStream);
-            const workletNode = new AudioWorkletNode(audioCtx, 'linear-pcm-processor');
+
+            // Temp for testing
+            const gainNode = audioCtx.createGain();
+            gainNode.gain.value = 1.0;
+
+            const workletNode = new AudioWorkletNode(audioCtx, 'linear-pcm-processor', {
+                numberOfInputs: 1,
+                numberOfOutputs: 1,
+                channelCount: 1,
+            });
 
             workletNode.port.onmessage = (e: MessageEvent<Float32Array>) => {
+                // Temp for testing
+                console.log("📦 Got audio chunk from worklet", e.data.length);
+
                 const floatInput = e.data;
                 const buffer = convertFloat32ToInt16(floatInput);
                 if (wsRef.current?.readyState === WebSocket.OPEN) {
