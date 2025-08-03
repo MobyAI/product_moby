@@ -441,7 +441,12 @@ export function useGoogleSTT({
 
         wsRef.current.onopen = async () => {
             if (!isActiveRef.current) return;
+
             // micCleanupRef.current = await streamMic(wsRef);
+            const silence = new Int16Array(512); // 10ms of silence
+            wsRef.current?.send(silence.buffer);
+            console.log("🔊 Sent dummy audio on open");
+
             resetSilenceTimeout();
         };
 
