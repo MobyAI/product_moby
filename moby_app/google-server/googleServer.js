@@ -3,22 +3,28 @@ const WebSocket = require('ws');
 const { SpeechClient } = require('@google-cloud/speech');
 require('dotenv').config();
 
-//
-// Need to add better error handling
-//
-
 let speechClient;
 
-if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-    const creds = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+const base64Creds = process.env.GOOGLE_CREDENTIALS_BASE64;
+
+if (base64Creds) {
+    const jsonString = Buffer.from(base64Creds, 'base64').toString('utf-8');
+    const creds = JSON.parse(jsonString);
+    console.log("✅ Loaded credentials for:", creds.client_email);
+
     speechClient = new SpeechClient({
         credentials: {
             client_email: creds.client_email,
             private_key: creds.private_key,
         },
     });
+
+    console.log("✅ Google credentials loaded from base64 secret");
 } else {
+    // This will fall back to GOOGLE_APPLICATION_CREDENTIALS env var if set,
+    // or throw if no credentials found
     speechClient = new SpeechClient();
+    console.warn("⚠️ Using default Google credential loading — may fail on Fly");
 }
 
 const server = http.createServer();
