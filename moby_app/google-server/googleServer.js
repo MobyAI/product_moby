@@ -1,3 +1,4 @@
+const http = require('http');
 const WebSocket = require('ws');
 const { SpeechClient } = require('@google-cloud/speech');
 require('dotenv').config();
@@ -9,7 +10,6 @@ require('dotenv').config();
 let speechClient;
 
 if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-    // Production (Fly.io) using JSON secret
     const creds = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
     speechClient = new SpeechClient({
         credentials: {
@@ -18,13 +18,11 @@ if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
         },
     });
 } else {
-    // Local (file path from GOOGLE_APPLICATION_CREDENTIALS)
     speechClient = new SpeechClient();
 }
 
-const PORT = 3000;
-const wss = new WebSocket.Server({ port: PORT, host: '0.0.0.0' });
-console.log('🎤 Google STT proxy WebSocket server running on ws://0.0.0.0:3002');
+const server = http.createServer();
+const wss = new WebSocket.Server({ server });
 
 wss.on('connection', async (socket) => {
     console.log('🎧 Client connected to STT proxy');
@@ -45,8 +43,6 @@ wss.on('connection', async (socket) => {
             const alt = data.results[0]?.alternatives?.[0];
             const isFinal = data.results[0]?.isFinal;
 
-            // console.log(`🧠 Google STT returned: ${alt?.transcript || '[no transcript]'} (final: ${isFinal})`);
-
             if (alt) {
                 socket.send(JSON.stringify({
                     channel: { alternatives: [alt] },
@@ -60,7 +56,6 @@ wss.on('connection', async (socket) => {
         });
 
     socket.on('message', (audioChunk) => {
-        // console.log(`📥 Received audio chunk: ${audioChunk.length || audioChunk.byteLength} bytes`);
         recognizeStream.write(audioChunk);
     });
 
@@ -68,4 +63,9 @@ wss.on('connection', async (socket) => {
         console.log('❎ Client disconnected');
         recognizeStream.destroy();
     });
+});
+
+const PORT = 3000;
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🖥️ WebSocket server listening on ws://0.0.0.0:${PORT}`);
 });
