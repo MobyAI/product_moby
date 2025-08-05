@@ -82,7 +82,7 @@ class OptimizedSTTMatcher {
             // Use smaller window (2) for better performance than your original 3
             const windowEnd = Math.min(
                 this.state.normalizedScript.length,
-                searchStartIndex + 2
+                searchStartIndex + 3
             );
 
             for (let i = searchStartIndex; i < windowEnd; i++) {
