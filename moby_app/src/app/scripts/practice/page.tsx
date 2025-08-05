@@ -46,6 +46,8 @@ function RehearsalRoomContent() {
 	const [spokenWordMap, setSpokenWordMap] = useState<Record<number, number>>(
 		{}
 	);
+	const wordRefs = useRef<Map<number, HTMLSpanElement[]>>(new Map());
+	const matchedCountsRef = useRef<Map<number, number>>(new Map());
 
 	// Error handling
 	const [storageError, setStorageError] = useState(false);
@@ -286,7 +288,6 @@ function RehearsalRoomContent() {
 			line.role === "user" &&
 			typeof line.text === "string"
 		) {
-			console.log('setting current line text:', line.text);
 			setCurrentLineText(line.text);
 		}
 	};
@@ -357,6 +358,20 @@ function RehearsalRoomContent() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [current, isPlaying, isWaitingForUser]);
 
+	const refreshHighlightForLine = (index: number) => {
+		const spans = wordRefs.current.get(index);
+		const count = matchedCountsRef.current.get(index) ?? 0;
+
+		if (!spans) return;
+
+		spans.forEach((span, i) => {
+			span.className =
+				i < count
+					? "font-bold text-gray-900 transition-all duration-100"
+					: "text-gray-700 transition-all duration-100";
+		});
+	};
+
 	const autoAdvance = (delay = 1000) => {
 		if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
 
@@ -419,11 +434,11 @@ function RehearsalRoomContent() {
 		setCurrentIndex((i) => {
 			const prevIndex = Math.max(i - 1, 0);
 			const prevLine = script?.find((el) => el.index === prevIndex);
-			setSpokenWordMap((prevMap) => {
-				const newMap = { ...prevMap };
-				delete newMap[prevIndex];
-				return newMap;
-			});
+
+			refreshHighlightForLine(prevIndex);
+			matchedCountsRef.current.delete(prevIndex);
+			wordRefs.current.delete(prevIndex);
+
 			prepareUserLine(prevLine);
 			return prevIndex;
 		});
@@ -434,8 +449,16 @@ function RehearsalRoomContent() {
 		setIsWaitingForUser(false);
 		cleanupSTT();
 		setCurrentIndex(0);
-		setSpokenWordMap({});
-		prepareUserLine(script?.find((el) => el.index === 0));
+
+		for (const index of matchedCountsRef.current.keys()) {
+			matchedCountsRef.current.set(index, 0);
+			refreshHighlightForLine(index);
+		}
+		matchedCountsRef.current.clear();
+		wordRefs.current.clear();
+
+		const firstLine = script?.find((el) => el.index === 0);
+		prepareUserLine(firstLine);
 	};
 
 	// NEW: Handle line click to jump to specific line
@@ -451,17 +474,21 @@ function RehearsalRoomContent() {
 			advanceTimeoutRef.current = null;
 		}
 
-		// Clear spoken word progress for lines after the clicked line
-		setSpokenWordMap((prevMap) => {
-			const newMap = { ...prevMap };
-			Object.keys(newMap).forEach(key => {
-				const keyIndex = parseInt(key);
-				if (keyIndex >= lineIndex) {
-					delete newMap[keyIndex];
+		// Remove match counts and span refs for lines after the jump
+		if (scriptRef.current) {
+			for (let i = lineIndex; i < scriptRef.current.length; i++) {
+				matchedCountsRef.current.delete(i);
+
+				const spans = wordRefs.current.get(i);
+				if (spans) {
+					for (const span of spans) {
+						span.className = "text-gray-700 transition-all duration-100";
+					}
 				}
-			});
-			return newMap;
-		});
+
+				wordRefs.current.delete(i);
+			}
+		}
 
 		// Jump to the clicked line
 		setCurrentIndex(lineIndex);
@@ -526,10 +553,19 @@ function RehearsalRoomContent() {
 
 	const onProgressUpdate = useCallback((count: number) => {
 		if (current?.type === "line" && current.role === "user") {
-		  console.log('on progress update! updating spoken word map');
-		  setSpokenWordMap((prev) => ({ ...prev, [current.index]: count }));
+			matchedCountsRef.current.set(current.index, count);
+
+			const spans = wordRefs.current.get(current.index);
+			if (!spans) return;
+
+			for (let i = 0; i < spans.length; i++) {
+				spans[i].className =
+					i < count
+						? "font-bold text-gray-900 transition-all duration-100"
+						: "text-blue-900 font-medium transition-all duration-100";
+			}
 		}
-	  }, [current?.type, current?.role, current?.index]);
+	}, [current?.index, current?.role, current?.type]);
 
 	const { initializeSTT, startSTT, pauseSTT, cleanupSTT, setCurrentLineText } =
 		useSTT({
@@ -658,9 +694,10 @@ function RehearsalRoomContent() {
 					) : (
 						<OptimizedLineRenderer
 							element={element}
-							spokenWordCount={spokenWordMap[element.index] ?? 0}
 							isCurrent={isCurrent}
 							isWaitingForUser={isWaitingForUser}
+							spanRefMap={wordRefs}
+							matchedCount={matchedCountsRef.current.get(element.index) ?? 0}
 						/>
 					)}
 

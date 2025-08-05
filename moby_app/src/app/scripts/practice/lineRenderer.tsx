@@ -1,40 +1,45 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import type { ScriptElement } from "@/types/script";
 
 interface OptimizedLineRendererProps {
     element: ScriptElement;
-    spokenWordCount: number;
     isCurrent: boolean;
     isWaitingForUser: boolean;
+    spanRefMap: React.MutableRefObject<Map<number, HTMLSpanElement[]>>;
+    matchedCount: number;
 }
 
 export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
     element,
-    spokenWordCount,
     isCurrent,
-    isWaitingForUser
+    isWaitingForUser,
+    spanRefMap,
+    matchedCount
 }) => {
+    const containerRef = useRef<HTMLDivElement>(null);
     const words = useMemo(() => element.text.split(/\s+/), [element.text]);
 
-    const wordSpans = useMemo(() => {
-        return words.map((word, i) => {
-            const isMatched = i < spokenWordCount;
-            const isWaiting = isCurrent && isWaitingForUser && !isMatched;
+    useEffect(() => {
+        if (isCurrent && containerRef.current) {
+            const spans = Array.from(containerRef.current.querySelectorAll('span[data-word-index]')) as HTMLSpanElement[];
+            spanRefMap.current.set(element.index, spans);
+        }
+    }, [isCurrent, spanRefMap, element.index]);
 
-            const className = `${isMatched
-                ? "font-bold text-gray-900"
-                : isWaiting
-                    ? "text-blue-900 font-medium"
-                    : "text-gray-700"
-                } transition-all duration-150`;
+    useEffect(() => {
+        const spans = spanRefMap.current.get(element.index);
+        if (!spans) return;
 
-            return (
-                <span key={i} className={className}>
-                    {word + " "}
-                </span>
-            );
+        spans.forEach((span, i) => {
+            if (i < matchedCount) {
+                span.className = "font-bold text-gray-900 transition-all duration-100";
+            } else if (isWaitingForUser && isCurrent) {
+                span.className = "text-blue-900 font-medium transition-all duration-100";
+            } else {
+                span.className = "text-gray-700 transition-all duration-100";
+            }
         });
-    }, [words, spokenWordCount, isCurrent, isWaitingForUser]);
+    }, [matchedCount, isCurrent, isWaitingForUser, spanRefMap, element.index]);
 
     if (element.role !== "user") {
         return (
@@ -47,9 +52,13 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
     }
 
     return (
-        <div className="pl-4 border-l-3 border-gray-300">
+        <div className="pl-4 border-l-3 border-gray-300" ref={containerRef}>
             <div className="text-base leading-relaxed">
-                {wordSpans}
+                {words.map((word, i) => (
+                    <span key={i} data-word-index={i} className="text-gray-700 transition-all duration-100">
+                        {word + ' '}
+                    </span>
+                ))}
             </div>
         </div>
     );
