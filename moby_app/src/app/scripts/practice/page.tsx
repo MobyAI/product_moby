@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo, Suspense } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGoogleSTT } from "@/lib/google/speechToText";
 import { useDeepgramSTT } from "@/lib/deepgram/speechToText";
@@ -8,6 +8,7 @@ import type { ScriptElement } from "@/types/script";
 import { loadScript, hydrateScript, hydrateLine } from './loader';
 import { RoleSelector } from './roleSelector';
 import EditableLine from './editableLine';
+import { OptimizedLineRenderer } from './lineRenderer';
 import { restoreSession, saveSession } from "./session";
 import { clear } from "idb-keyval";
 import LoadingScreen from "./LoadingScreen";
@@ -285,6 +286,7 @@ function RehearsalRoomContent() {
 			line.role === "user" &&
 			typeof line.text === "string"
 		) {
+			console.log('setting current line text:', line.text);
 			setCurrentLineText(line.text);
 		}
 	};
@@ -522,6 +524,13 @@ function RehearsalRoomContent() {
 		return provider === "google" ? google : deepgram;
 	}
 
+	const onProgressUpdate = useCallback((count: number) => {
+		if (current?.type === "line" && current.role === "user") {
+		  console.log('on progress update! updating spoken word map');
+		  setSpokenWordMap((prev) => ({ ...prev, [current.index]: count }));
+		}
+	  }, [current?.type, current?.role, current?.index]);
+
 	const { initializeSTT, startSTT, pauseSTT, cleanupSTT, setCurrentLineText } =
 		useSTT({
 			provider: sttProvider,
@@ -532,11 +541,7 @@ function RehearsalRoomContent() {
 				console.log("⏱️ Timeout reached");
 				setIsWaitingForUser(false);
 			},
-			onProgressUpdate: (count) => {
-				if (current?.type === "line" && current.role === "user") {
-					setSpokenWordMap((prev) => ({ ...prev, [current.index]: count }));
-				}
-			},
+			onProgressUpdate,
 		});
 
 	// Clean up STT
@@ -651,32 +656,12 @@ function RehearsalRoomContent() {
 							hydrationStatus={ttsHydrationStatus[element.index]}
 						/>
 					) : (
-						<div className="pl-4 border-l-3 border-gray-300">
-							{element.role === "user" ? (
-								<div className="text-base leading-relaxed">
-									{element.text.split(/\s+/).map((word, i) => {
-										const matched = spokenWordMap[element.index] ?? 0;
-										return (
-											<span
-												key={i}
-												className={`${i < matched
-													? "font-bold text-gray-900"
-													: isCurrent && isWaitingForUser
-														? "text-blue-900 font-medium"
-														: "text-gray-700"
-													} transition-all duration-300`}
-											>
-												{word + " "}
-											</span>
-										);
-									})}
-								</div>
-							) : (
-								<p className="text-base leading-relaxed text-gray-700">
-									{element.text}
-								</p>
-							)}
-						</div>
+						<OptimizedLineRenderer
+							element={element}
+							spokenWordCount={spokenWordMap[element.index] ?? 0}
+							isCurrent={isCurrent}
+							isWaitingForUser={isWaitingForUser}
+						/>
 					)}
 
 					{/* Edit button */}
