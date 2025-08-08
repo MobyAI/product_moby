@@ -7,7 +7,6 @@ import VoiceLibrary from './voiceLibrary';
 import { useRouter } from 'next/navigation';
 import { saveScript } from '@/lib/api/dbFunctions/scripts';
 import { fetchAllVoiceSamples } from '@/lib/api/dbFunctions/audio/tts';
-// import { fetchEmbedding } from '@/lib/api/embed';
 import type { ScriptElement } from '@/types/script';
 import { Layout } from '@/components/ui/Layout';
 
@@ -65,6 +64,7 @@ export default function UploadPage() {
         });
 
         console.log('enriched script: ', enrichedScript);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [allCharacters]);
 
     const router = useRouter();
@@ -183,10 +183,10 @@ export default function UploadPage() {
     return (
         <Layout>
             {parsedData ? (
-                <div className="min-h-screen bg-gray-50 flex">
+                <div className="h-screen bg-gray-50 flex overflow-hidden">
                     {/* Left sidebar for role select */}
-                    <div className="w-80 p-6 bg-white border-r border-gray-200">
-                        <div className="sticky top-6 space-y-6">
+                    <div className="w-80 h-screen overflow-y-auto p-6 pb-15 bg-white border-r border-gray-200">
+                        <div className="space-y-6">
                             <button
                                 onClick={() => handleParsedScript(parsedData)}
                                 disabled={loading}
@@ -256,14 +256,16 @@ export default function UploadPage() {
                                                         ) : (
                                                             <div className="ml-2 text-sm text-gray-600 flex items-center gap-2">
                                                                 <span>
-                                                                    {voiceName ? `Played by ${voiceName}` : 'No voice selected'}
+                                                                    Played by
                                                                 </span>
                                                                 <button
                                                                     onClick={() => setSelectedCharacter(character)}
-                                                                    className="text-purple-700 underline text-md"
+                                                                    className="px-4 py-2 rounded-full border text-xs font-medium text-left transition bg-blue-100 border-blue-300 text-blue-800"
                                                                     title="Change voice"
                                                                 >
-                                                                    🔄
+                                                                    <span>
+                                                                        {voiceName}
+                                                                    </span>
                                                                 </button>
                                                             </div>
                                                         )
@@ -278,7 +280,7 @@ export default function UploadPage() {
                     </div>
 
                     {/* Main content area - centered */}
-                    <div className="flex-1 flex justify-center py-6">
+                    <div className="flex-1 flex justify-center h-screen overflow-y-auto py-6 px-6 bg-gray-50">
                         <div className="w-full max-w-4xl px-6">
                             <ParsedOutput data={parsedData} />
                         </div>

@@ -10,17 +10,43 @@ export async function saveScript(script: ScriptElement[], userID: string): Promi
 
     if (!res.ok) throw new Error('Failed to save script');
 
-    const data = await res.json();
-    return data.id;
+    try {
+        const contentType = res.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
+            const data = await res.json();
+            if (typeof data.id === 'string') return data.id;
+        }
+        console.warn('Unexpected response while saving script');
+    } catch (err) {
+        console.error('Error parsing save script response:', err);
+    }
+
+    throw new Error('Invalid save script response');
 }
 
 // Fetch single script
-export async function fetchScriptByID(userID: string, scriptID: string): Promise<{ script: ScriptElement[] }> {
+export async function fetchScriptByID(
+    userID: string,
+    scriptID: string
+): Promise<{ script: ScriptElement[] }> {
     const res = await fetch(`/api/scripts/${scriptID}?userID=${userID}`);
 
     if (!res.ok) throw new Error('Failed to fetch script');
 
-    return await res.json();
+    try {
+        const contentType = res.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
+            const data = await res.json();
+            if (Array.isArray(data?.script)) {
+                return { script: data.script };
+            }
+        }
+        console.warn('Unexpected script data structure');
+    } catch (err) {
+        console.error('Failed to parse fetched script:', err);
+    }
+
+    throw new Error('Invalid script response');
 }
 
 // Delete script

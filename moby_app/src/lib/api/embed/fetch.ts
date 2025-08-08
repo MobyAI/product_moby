@@ -10,6 +10,17 @@ export async function fetchEmbedding(expectedLine: string): Promise<number[] | n
         return null;
     }
 
-    const { expectedEmbedding } = await res.json();
-    return expectedEmbedding as number[];
+    try {
+        const contentType = res.headers.get("content-type");
+        if (contentType?.includes("application/json")) {
+            const data = await res.json();
+            return Array.isArray(data?.expectedEmbedding) ? data.expectedEmbedding : null;
+        } else {
+            console.warn("Unexpected response content type:", contentType);
+            return null;
+        }
+    } catch (err) {
+        console.error("Failed to parse embedding JSON:", err);
+        return null;
+    }
 }

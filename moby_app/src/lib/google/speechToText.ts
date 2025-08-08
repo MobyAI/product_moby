@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { fetchSimilarity } from '@/lib/api/embed';
+import * as fuzz from 'fuzzball';
 
 //
 // IMPORTANT: For openAI embedding: choose server near openAI's server for lower latency
@@ -144,7 +145,14 @@ export function useGoogleSTT({
 
         if (matchesEndPhrase(spokenLine, lineEndKeywords)) {
             const end = performance.now();
-            console.log(`⚡ Total latency: ${(end - start).toFixed(2)}ms`);
+            console.log(`⚡ Keyword match passed in: ${(end - start).toFixed(2)}ms`);
+            triggerNextLine(spokenLine);
+            return;
+        }
+
+        if (fuzzyMatchEndKeywords(spokenLine, lineEndKeywords)) {
+            const end = performance.now();
+            console.log(`🤏 Fuzzy match passed in ${(end - start).toFixed(2)}ms`);
             triggerNextLine(spokenLine);
             return;
         }
@@ -163,11 +171,51 @@ export function useGoogleSTT({
 
     const handleKeywordMatch = async (spokenLine: string) => {
         const start = performance.now();
+
         if (matchesEndPhrase(spokenLine, lineEndKeywords)) {
             const end = performance.now();
-            console.log(`⚡ Match latency: ${(end - start).toFixed(2)}ms`);
+            console.log(`⚡ Keyword match passed in: ${(end - start).toFixed(2)}ms`);
             triggerNextLine(spokenLine);
         }
+
+        if (fuzzyMatchEndKeywords(spokenLine, lineEndKeywords)) {
+            const end = performance.now();
+            console.log(`🤏 Fuzzy match passed in ${(end - start).toFixed(2)}ms`);
+            triggerNextLine(spokenLine);
+            return;
+        }
+    };
+
+    const normalize = (text: string) =>
+        text.toLowerCase().replace(/[\s.,!?'"“”\-]+/g, ' ').trim();
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const extractLastSentence = (text: string): string => {
+        const sentences = text.split(/(?<=[.!?])\s+/);
+        return sentences[sentences.length - 1] ?? text;
+    };
+
+    const fuzzyMatchEndKeywords = (
+        transcript: string,
+        keywords: string[],
+        threshold = 70
+    ): boolean => {
+        // const lastSentence = normalize(extractLastSentence(transcript));
+        // const words = lastSentence.split(/\s+/);
+
+        // console.log('fuzzy match last sentence: ', lastSentence);
+
+        const normTranscript = normalize(transcript);
+        const words = normTranscript.split(/\s+/);
+
+        return keywords.every((kw) => {
+            const normKw = normalize(kw);
+            return words.some((w) => {
+                const score = fuzz.ratio(normKw, w);
+                console.log(`🔍 Comparing "${normKw}" with "${w}" → Score: ${score}`);
+                return score >= threshold;
+            });
+        });
     };
 
     const initializeSTT = async () => {
@@ -219,7 +267,12 @@ export function useGoogleSTT({
             const audioCtx = audioCtxRef.current!;
             const micStream = micStreamRef.current!;
             const source = audioCtx.createMediaStreamSource(micStream);
-            const workletNode = new AudioWorkletNode(audioCtx, 'linear-pcm-processor');
+
+            const workletNode = new AudioWorkletNode(audioCtx, 'linear-pcm-processor', {
+                numberOfInputs: 1,
+                numberOfOutputs: 1,
+                channelCount: 1,
+            });
 
             workletNode.port.onmessage = (e: MessageEvent<Float32Array>) => {
                 const floatInput = e.data;
@@ -280,7 +333,7 @@ export function useGoogleSTT({
         }
 
         if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
-            wsRef.current = new WebSocket('ws://localhost:3002');
+            wsRef.current = new WebSocket('wss://google-stt.fly.dev');
         } else {
             console.warn('🔁 Reusing existing WebSocket');
         }
@@ -363,7 +416,7 @@ export function useGoogleSTT({
                 console.log(`🟡 Google is_final detected @ ${performance.now().toFixed(2)}ms: ${transcript}`);
 
                 fullTranscript.current.push(transcript);
-                
+
                 const fullSpokenLine = fullTranscript.current.join(' ');
                 const expectedWords = expectedScriptWordsRef.current;
                 const spokenWords = fullSpokenLine.trim().split(/\s+/);
@@ -381,7 +434,9 @@ export function useGoogleSTT({
 
         wsRef.current.onopen = async () => {
             if (!isActiveRef.current) return;
+
             // micCleanupRef.current = await streamMic(wsRef);
+
             resetSilenceTimeout();
         };
 

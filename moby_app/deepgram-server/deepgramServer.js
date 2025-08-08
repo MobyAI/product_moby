@@ -24,7 +24,7 @@ wss.on('connection', (clientSocket) => {
         '&sample_rate=44100' +
         '&endpointing=1000' +
         '&utterance_end_ms=4000' +
-        '&smart_format=true' ,
+        '&smart_format=true',
         {
             headers: {
                 Authorization: `Token ${DEEPGRAM_API_KEY}`,
@@ -66,6 +66,7 @@ wss.on('connection', (clientSocket) => {
     });
 });
 
-server.listen(3001, () => {
-    console.log('🖥️ WebSocket Proxy listening on ws://localhost:3001');
+const PORT = 3000;
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🖥️ WebSocket Proxy listening on ws://0.0.0.0:${PORT}`);
 });

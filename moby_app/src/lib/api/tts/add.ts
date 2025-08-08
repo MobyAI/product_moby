@@ -1,6 +1,14 @@
-import { useHumeTTS } from '@/lib/api/tts';
+import { fetchHumeTTS } from '@/lib/api/tts';
 import { uploadTTSAudioBlob, fetchTTSAudioUrl } from '@/lib/api/dbFunctions/audio/tts';
 import type { ScriptElement } from '@/types/script';
+
+// OPTIONAL: Include acting instructions in TTS audio gen
+// const blob = await fetchHumeTTS({
+//     text: sanitizeForTTS(element.text),
+//     voiceId,
+//     voiceDescription: element.actingInstructions || '',
+//     contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined,
+// });
 
 // Add TTS Audio
 export async function addTTS(
@@ -48,7 +56,6 @@ export async function addTTS(
             .slice(-4)
             .map((l) => ({
                 text: l.text,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 description: l.actingInstructions ?? '',
             }));
 
@@ -63,20 +70,12 @@ export async function addTTS(
                 .trim();
         };
 
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        const blob = await useHumeTTS({
+        const blob = await fetchHumeTTS({
             text: sanitizeForTTS(element.text),
             voiceId: element.voiceId ?? defaultVoiceId,
             voiceDescription: '',
             contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined,
         });
-
-        // const blob = await useHumeTTS({
-        //     text: sanitizeForTTS(element.text),
-        //     voiceId,
-        //     voiceDescription: element.actingInstructions || '',
-        //     contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined,
-        // });
 
         // Check once more before upload
         const latestLineBeforeUpload = getScriptLine(element.index);
@@ -134,20 +133,12 @@ export async function addTTSRegenerate(
                 .trim();
         };
 
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        const blob = await useHumeTTS({
+        const blob = await fetchHumeTTS({
             text: sanitizeForTTS(element.text),
             voiceId: element.voiceId ?? defaultVoiceId,
             voiceDescription: '',
             contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined,
         });
-
-        // const blob = await useHumeTTS({
-        //     text: sanitizeForTTS(element.text),
-        //     voiceId,
-        //     voiceDescription: element.actingInstructions || '',
-        //     contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined,
-        // });
 
         await uploadTTSAudioBlob({ userID, scriptID, index: element.index, blob });
 

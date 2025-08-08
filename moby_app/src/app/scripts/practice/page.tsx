@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useHumeTTS, useElevenTTS } from "@/lib/api/tts";
 import { useGoogleSTT } from "@/lib/google/speechToText";
 import { useDeepgramSTT } from "@/lib/deepgram/speechToText";
 import type { ScriptElement } from "@/types/script";
@@ -10,8 +9,6 @@ import { loadScript, hydrateScript, hydrateLine } from './loader';
 import { RoleSelector } from './roleSelector';
 import EditableLine from './editableLine';
 import { restoreSession, saveSession } from "./session";
-import Deepgram from "../../rehearsal-room/deepgram";
-import GoogleSTT from "../../rehearsal-room/google";
 import { clear } from "idb-keyval";
 import LoadingScreen from "./LoadingScreen";
 import { Button } from "@/components/ui/Buttons";
@@ -38,7 +35,7 @@ function RehearsalRoomContent() {
 	const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const [sttProvider, setSttProvider] = useState<"google" | "deepgram">(
-		"deepgram"
+		"google"
 	);
 
 	// Rehearsal flow
@@ -253,11 +250,12 @@ function RehearsalRoomContent() {
 
 				setScript((prev) => {
 					const next = prev?.map((el) =>
-						el.index === result.index ? result : el
+						el.index === result.index
+							? { ...el, ...result, text: updateLine.text }
+							: el
 					) ?? [];
 
 					scriptRef.current = next;
-
 					return next;
 				});
 			}
@@ -312,6 +310,7 @@ function RehearsalRoomContent() {
 				}
 				break;
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [current, currentIndex, isPlaying, isWaitingForUser]);
 
 	useEffect(() => {
@@ -341,6 +340,7 @@ function RehearsalRoomContent() {
 			audio.pause();
 			audio.src = "";
 		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [current, isPlaying, isWaitingForUser]);
 
 	useEffect(() => {
@@ -352,6 +352,7 @@ function RehearsalRoomContent() {
 		) {
 			startSTT();
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [current, isPlaying, isWaitingForUser]);
 
 	const autoAdvance = (delay = 1000) => {
@@ -552,83 +553,12 @@ function RehearsalRoomContent() {
 			window.removeEventListener("beforeunload", handleUnload);
 			console.log("🧹 STT cleaned up on unmount");
 		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const goBackHome = () => {
 		router.push('/home')
 	}
-
-	// Testing TTS audio manually
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const loadElevenTTS = async ({
-		text,
-		voiceId = "JBFqnCBsd6RMkjVDRZzb",
-		stability = 0.3,
-		similarityBoost = 0.8,
-	}: {
-		text: string;
-		voiceId?: string;
-		stability?: number;
-		similarityBoost?: number;
-	}) => {
-		try {
-			// eslint-disable-next-line react-hooks/rules-of-hooks
-			const blob = await useElevenTTS({
-				text,
-				voiceId,
-				voiceSettings: {
-					stability,
-					similarityBoost,
-				},
-			});
-
-			const url = URL.createObjectURL(blob);
-			const audio = new Audio(url);
-			await audio.play();
-
-			audio.onended = () => {
-				URL.revokeObjectURL(url);
-			};
-		} catch (err) {
-			console.error("❌ Failed to load or play TTS audio:", err);
-		}
-	};
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars	
-	const loadHumeTTS = async ({
-		text,
-		voiceId,
-		voiceDescription,
-		contextUtterance,
-	}: {
-		text: string;
-		voiceId: string;
-		voiceDescription: string;
-		contextUtterance?: {
-			text: string;
-			description: string;
-		}[];
-	}) => {
-		try {
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars, react-hooks/rules-of-hooks
-			const blob = await useHumeTTS({
-				text,
-				voiceId,
-				voiceDescription,
-				contextUtterance,
-			});
-
-			const url = URL.createObjectURL(blob);
-
-			const audio = new Audio(url);
-			await audio.play();
-
-			audio.onended = () => {
-				URL.revokeObjectURL(url);
-			};
-		} catch (err) {
-			console.error("❌ Failed to load or play Hume TTS audio:", err);
-		}
-	};
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const renderScriptElement = (element: ScriptElement, index: number) => {
@@ -1014,36 +944,6 @@ function RehearsalRoomContent() {
 								)}
 							</div>
 						</div>
-					</div>
-
-					{/* Hidden STT Components */}
-					<div className="hidden">
-						{current?.type === "line" &&
-							current?.role === "user" &&
-							typeof current.character === "string" &&
-							typeof current.text === "string" &&
-							Array.isArray(current.lineEndKeywords) &&
-							Array.isArray(current.expectedEmbedding) && (
-								<>
-									{sttProvider === "google" ? (
-										<GoogleSTT
-											character={current.character}
-											text={current.text}
-											expectedEmbedding={current.expectedEmbedding}
-											start={startSTT}
-											stop={pauseSTT}
-										/>
-									) : (
-										<Deepgram
-											character={current.character}
-											text={current.text}
-											expectedEmbedding={current.expectedEmbedding}
-											start={startSTT}
-											stop={pauseSTT}
-										/>
-									)}
-								</>
-							)}
 					</div>
 				</div>
 			)}

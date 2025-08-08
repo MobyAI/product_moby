@@ -40,13 +40,7 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
                     onMouseDown={handleSave}
                     disabled={hydrationStatus === 'updating'}
                 >
-                    {hydrationStatus === 'updating' ? 'Updating...' : 'Update'}
-                </button>
-                <button
-                    className="mt-2 px-3 py-1 text-sm bg-red-400 text-white rounded"
-                    onClick={onClose}
-                >
-                    Cancel
+                    {hydrationStatus === 'updating' ? 'Updating...' : 'Save'}
                 </button>
             </div>
         </div>

@@ -1,7 +1,5 @@
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-
-const pdfParse = require('pdf-parse/lib/pdf-parse.js');
+// @ts-expect-error - pdf-parse-fork doesn't have type definitions
+import pdfParse from 'pdf-parse-fork';
 
 export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
     const data = await pdfParse(buffer);

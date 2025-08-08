@@ -1,15 +1,34 @@
+const http = require('http');
 const WebSocket = require('ws');
 const { SpeechClient } = require('@google-cloud/speech');
 require('dotenv').config();
 
-//
-// Need to add better error handling
-//
+let speechClient;
 
-const speechClient = new SpeechClient();
+const base64Creds = process.env.GOOGLE_CREDENTIALS_BASE64;
 
-const wss = new WebSocket.Server({ port: 3002 });
-console.log('🎤 Google STT proxy WebSocket server running on ws://localhost:3002');
+if (base64Creds) {
+    const jsonString = Buffer.from(base64Creds, 'base64').toString('utf-8');
+    const creds = JSON.parse(jsonString);
+    console.log("✅ Loaded credentials for:", creds.client_email);
+
+    speechClient = new SpeechClient({
+        credentials: {
+            client_email: creds.client_email,
+            private_key: creds.private_key,
+        },
+    });
+
+    console.log("✅ Google credentials loaded from base64 secret");
+} else {
+    // This will fall back to GOOGLE_APPLICATION_CREDENTIALS env var if set,
+    // or throw if no credentials found
+    speechClient = new SpeechClient();
+    console.warn("⚠️ Using default Google credential loading — may fail on Fly");
+}
+
+const server = http.createServer();
+const wss = new WebSocket.Server({ server });
 
 wss.on('connection', async (socket) => {
     console.log('🎧 Client connected to STT proxy');
@@ -30,8 +49,6 @@ wss.on('connection', async (socket) => {
             const alt = data.results[0]?.alternatives?.[0];
             const isFinal = data.results[0]?.isFinal;
 
-            // console.log(`🧠 Google STT returned: ${alt?.transcript || '[no transcript]'} (final: ${isFinal})`);
-
             if (alt) {
                 socket.send(JSON.stringify({
                     channel: { alternatives: [alt] },
@@ -45,7 +62,6 @@ wss.on('connection', async (socket) => {
         });
 
     socket.on('message', (audioChunk) => {
-        // console.log(`📥 Received audio chunk: ${audioChunk.length || audioChunk.byteLength} bytes`);
         recognizeStream.write(audioChunk);
     });
 
@@ -53,4 +69,9 @@ wss.on('connection', async (socket) => {
         console.log('❎ Client disconnected');
         recognizeStream.destroy();
     });
+});
+
+const PORT = 3000;
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🖥️ WebSocket server listening on ws://0.0.0.0:${PORT}`);
 });

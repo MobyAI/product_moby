@@ -1,0 +1,24 @@
+# fly.toml app configuration file generated for deepgram-stt on 2025-08-02T15:22:16-07:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'deepgram-stt'
+primary_region = 'iad'
+
+[build]
+
+[[services]]
+  internal_port = 3000
+  protocol = "tcp"
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls"]
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+
+[[vm]]
+  size = 'performance-1x'
