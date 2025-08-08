@@ -54,6 +54,7 @@ wss.on('connection', (clientSocket) => {
 
     // Forward Deepgram transcripts to browser
     dgSocket.on('message', (data) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const message = data.toString();
         // console.log('🧠 Deepgram -> Server:', JSON.stringify(message, null, 2));
         clientSocket.send(data);
