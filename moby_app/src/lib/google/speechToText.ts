@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { fetchSimilarity } from '@/lib/api/embed';
 import * as fuzz from 'fuzzball';
 
@@ -12,6 +12,154 @@ interface UseGoogleSTTProps {
     onSilenceTimeout?: () => void;
     expectedEmbedding: number[];
     onProgressUpdate?: (matchedCount: number) => void;
+}
+
+interface OptimizedMatchingState {
+    normalizedScript: number[];
+    matchedIndices: Set<number>;
+    lastMatchedIndex: number;
+    lastReportedCount: number;
+    wordCache: Map<string, string>;
+}
+
+class OptimizedSTTMatcher {
+    private state: OptimizedMatchingState;
+    private onProgressUpdate: (count: number) => void;
+    private updateThrottleRef: ReturnType<typeof setTimeout> | null = null;
+    private prevTranscriptWords: number[] = [];
+
+    constructor(onProgressUpdate: (count: number) => void) {
+        this.onProgressUpdate = onProgressUpdate;
+        this.state = {
+            normalizedScript: [],
+            matchedIndices: new Set(),
+            lastMatchedIndex: -1,
+            lastReportedCount: 0,
+            wordCache: new Map()
+        };
+    }
+
+    setCurrentLineText(text: string) {
+        this.state.matchedIndices.clear();
+        this.state.lastMatchedIndex = -1;
+        this.state.lastReportedCount = 0;
+        this.state.wordCache.clear();
+
+        this.state.normalizedScript = text
+            .trim()
+            .split(/\s+/)
+            .map(word => this.hashWord(this.normalizeWordCached(word)));
+
+        this.prevTranscriptWords = [];
+    }
+
+    private normalizeWordCached(word: string): string {
+        if (this.state.wordCache.has(word)) {
+            return this.state.wordCache.get(word)!;
+        }
+
+        const normalized = word.toLowerCase().replace(/[^\w]/g, '');
+        this.state.wordCache.set(word, normalized);
+        return normalized;
+    }
+
+    private hashWord(word: string): number {
+        let hash = 0;
+        for (let i = 0; i < word.length; i++) {
+            hash = ((hash << 5) - hash) + word.charCodeAt(i);
+            hash |= 0;
+        }
+        return hash;
+    }
+
+    private optimizedProgressiveMatch(transcript: string): number {
+        if (!this.state.normalizedScript.length) return 0;
+
+        const transcriptWords = transcript
+            .trim()
+            .split(/\s+/)
+            .map(word => this.hashWord(this.normalizeWordCached(word)))
+            .filter(Boolean);
+
+        if (!transcriptWords.length) return this.state.lastMatchedIndex + 1;
+
+        let newWordsStartIndex = 0;
+
+        while (
+            newWordsStartIndex < transcriptWords.length &&
+            newWordsStartIndex < this.prevTranscriptWords.length &&
+            transcriptWords[newWordsStartIndex] === this.prevTranscriptWords[newWordsStartIndex]
+        ) {
+            newWordsStartIndex++;
+        }
+
+        const newWords = transcriptWords.slice(newWordsStartIndex);
+
+        this.prevTranscriptWords = transcriptWords;
+
+        let searchStartIndex = Math.max(0, this.state.lastMatchedIndex + 1);
+
+        for (const spokenWord of newWords) {
+            const windowEnd = Math.min(
+                this.state.normalizedScript.length,
+                searchStartIndex + 4
+            );
+
+            for (let i = searchStartIndex; i < windowEnd; i++) {
+                if (
+                    !this.state.matchedIndices.has(i) &&
+                    this.state.normalizedScript[i] === spokenWord
+                ) {
+                    this.state.matchedIndices.add(i);
+                    this.state.lastMatchedIndex = i;
+                    searchStartIndex = i + 1;
+                    break;
+                }
+            }
+        }
+
+        return this.state.lastMatchedIndex + 1;
+    }
+
+    private throttledUpdate(count: number) {
+        if (this.updateThrottleRef) {
+            clearTimeout(this.updateThrottleRef);
+        }
+
+        this.updateThrottleRef = setTimeout(() => {
+            if (count > this.state.lastReportedCount) {
+                this.state.lastReportedCount = count;
+                this.onProgressUpdate(count);
+            }
+            this.updateThrottleRef = null;
+        }, 50);
+    }
+
+    processTranscript(transcript: string, isInterim: boolean = false) {
+        const matchCount = this.optimizedProgressiveMatch(transcript);
+
+        if (isInterim) {
+            this.throttledUpdate(matchCount);
+        } else {
+            if (matchCount > this.state.lastReportedCount) {
+                this.state.lastReportedCount = matchCount;
+                this.onProgressUpdate(matchCount);
+            }
+        }
+    }
+
+    completeCurrentLine() {
+        if (this.state.normalizedScript.length > 0) {
+            this.state.lastReportedCount = this.state.normalizedScript.length;
+            this.onProgressUpdate(this.state.normalizedScript.length);
+        }
+
+        this.prevTranscriptWords = [];
+    }
+
+    getNormalizedScript(): number[] {
+        return this.state.normalizedScript;
+    }
 }
 
 export function useGoogleSTT({
@@ -38,72 +186,36 @@ export function useGoogleSTT({
     const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const hasTriggeredRef = useRef(false);
 
-    // Highlighting
-    const matchedScriptIndices = useRef<Set<number>>(new Set());
-    const expectedScriptWordsRef = useRef<string[] | null>(null);
-    const lastReportedCount = useRef(0);
+    // Initialize matcher
+    const matcherRef = useRef<OptimizedSTTMatcher | null>(null);
+    const currentLineTextRef = useRef<string>("");
 
-    // Highlighting helper functions
-    const normalizeWord = (word: string) =>
-        word.toLowerCase().replace(/[^\w]/g, '');
+    useEffect(() => {
+        if (onProgressUpdate) {
+            matcherRef.current = new OptimizedSTTMatcher(onProgressUpdate);
 
-    // Highlighting setup
-    const setCurrentLineText = (text: string) => {
-        matchedScriptIndices.current = new Set();
-        lastReportedCount.current = 0;
-
-        const normalizedWords = text.trim().split(/\s+/).map(normalizeWord);
-        expectedScriptWordsRef.current = normalizedWords;
-    };
-
-    // Match word to highlight
-    const progressiveWordMatch = (
-        scriptWords: string[],
-        transcript: string,
-        used: Set<number>,
-        windowSize = 3
-    ): number => {
-        const transcriptWords = transcript
-            .trim()
-            .split(/\s+/)
-            .map(w => w.toLowerCase().replace(/[^\w]/g, ''));
-
-        // Use highest matched index so far
-        let highest = -1;
-        for (const i of used) {
-            if (i > highest) highest = i;
-        }
-
-        let matchStartIndex = highest + 1;
-
-        for (const word of transcriptWords) {
-            const matchEndIndex = Math.min(scriptWords.length, matchStartIndex + windowSize);
-
-            for (let i = matchStartIndex; i < matchEndIndex; i++) {
-                if (!used.has(i) && scriptWords[i] === word) {
-                    // console.log('✅ script word:', scriptWords[i]);
-                    // console.log('🗣️ spoken word:', word);
-                    // console.log('matched index: ', i);
-
-                    used.add(i);
-                    if (i > highest) highest = i;
-
-                    matchStartIndex = i + 1;
-                    break;
-                }
+            if (currentLineTextRef.current) {
+                matcherRef.current.setCurrentLineText(currentLineTextRef.current);
             }
         }
+    }, [onProgressUpdate]);
 
-        return highest + 1;
-    };
+    const setCurrentLineText = useCallback((text: string) => {
+        currentLineTextRef.current = text;
+        if (matcherRef.current) {
+            matcherRef.current.setCurrentLineText(text);
+        } else {
+            console.warn('[Matcher] matcherRef.current is NULL!');
+        }
+    }, []);
 
     // STT helpers
     const triggerNextLine = (transcript: string) => {
         if (hasTriggeredRef.current) return false;
         hasTriggeredRef.current = true;
 
-        if (expectedScriptWordsRef.current && onProgressUpdate) {
-            onProgressUpdate(expectedScriptWordsRef.current.length);
+        if (matcherRef.current) {
+            matcherRef.current.completeCurrentLine();
         }
 
         pauseSTT();
@@ -160,7 +272,7 @@ export function useGoogleSTT({
         if (expectedEmbedding?.length) {
             const similarity = await fetchSimilarity(spokenLine, expectedEmbedding);
             console.log('Similarity: ', similarity);
-            if (similarity && similarity > 0.80) {
+            if (similarity && similarity > 0.9) {
                 console.log("✅ Similarity passed (Google)!");
                 triggerNextLine(spokenLine);
             } else {
@@ -212,7 +324,7 @@ export function useGoogleSTT({
             const normKw = normalize(kw);
             return words.some((w) => {
                 const score = fuzz.ratio(normKw, w);
-                console.log(`🔍 Comparing "${normKw}" with "${w}" → Score: ${score}`);
+                // console.log(`🔍 Comparing "${normKw}" with "${w}" → Score: ${score}`);
                 return score >= threshold;
             });
         });
@@ -363,19 +475,6 @@ export function useGoogleSTT({
                 resetSilenceTimeout();
                 resetSilenceTimer(transcript);
 
-                // if (onProgressUpdate && transcript) {
-                //     const scriptWords = expectedScriptWordsRef.current;
-
-                //     if (scriptWords && !hasTriggeredRef.current) {
-                //         const matchCount = progressiveWordMatch(scriptWords, transcript, matchedScriptIndices.current);
-
-                //         if (matchCount > lastReportedCount.current) {
-                //             lastReportedCount.current = matchCount;
-                //             onProgressUpdate(matchCount);
-                //         }
-                //     }
-                // }
-
                 if (transcript === lastTranscriptRef.current) {
                     repeatCountRef.current += 1;
                     if (!repeatStartTimeRef.current) {
@@ -385,17 +484,8 @@ export function useGoogleSTT({
                     repeatCountRef.current = 1;
                     repeatStartTimeRef.current = performance.now();
 
-                    if (onProgressUpdate) {
-                        const scriptWords = expectedScriptWordsRef.current;
-
-                        if (scriptWords && !hasTriggeredRef.current) {
-                            const matchCount = progressiveWordMatch(scriptWords, transcript, matchedScriptIndices.current);
-
-                            if (matchCount > lastReportedCount.current) {
-                                lastReportedCount.current = matchCount;
-                                onProgressUpdate(matchCount);
-                            }
-                        }
+                    if (matcherRef.current && !hasTriggeredRef.current) {
+                        matcherRef.current.processTranscript(transcript, !isFinal);
                     }
                 }
 
@@ -418,14 +508,20 @@ export function useGoogleSTT({
                 fullTranscript.current.push(transcript);
 
                 const fullSpokenLine = fullTranscript.current.join(' ');
-                const expectedWords = expectedScriptWordsRef.current;
+                const expectedWords = matcherRef.current?.getNormalizedScript();
                 const spokenWords = fullSpokenLine.trim().split(/\s+/);
 
-                const isLongEnough = expectedWords && spokenWords.length >= Math.floor(expectedWords.length * 0.75);
+                if (expectedWords && spokenWords.length >= expectedWords.length) {
+                    console.log("✅ Full line spoken — triggering next line automatically.");
+                    triggerNextLine(fullSpokenLine);
+                    return;
+                }
+
+                const isLongEnough = expectedWords && spokenWords.length >= Math.floor(expectedWords.length * 0.8);
 
                 if (isLongEnough) {
                     console.log(`🟡 Google Final transcript accepted @ ${performance.now().toFixed(2)}ms! Handling finalization...`);
-                    await handleFinalization(fullTranscript.current.join(' '));
+                    await handleFinalization(fullSpokenLine);
                 } else {
                     console.log(`⏹️ Google Final transcript too short — skipping!`);
                 }

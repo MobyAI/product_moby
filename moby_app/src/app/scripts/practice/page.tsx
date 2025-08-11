@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo, Suspense } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGoogleSTT } from "@/lib/google/speechToText";
 import { useDeepgramSTT } from "@/lib/deepgram/speechToText";
@@ -8,6 +8,7 @@ import type { ScriptElement } from "@/types/script";
 import { loadScript, hydrateScript, hydrateLine } from './loader';
 import { RoleSelector } from './roleSelector';
 import EditableLine from './editableLine';
+import { OptimizedLineRenderer } from './lineRenderer';
 import { restoreSession, saveSession } from "./session";
 import { clear } from "idb-keyval";
 import LoadingScreen from "./LoadingScreen";
@@ -42,9 +43,11 @@ function RehearsalRoomContent() {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [isWaitingForUser, setIsWaitingForUser] = useState(false);
-	const [spokenWordMap, setSpokenWordMap] = useState<Record<number, number>>(
-		{}
-	);
+	// const [spokenWordMap, setSpokenWordMap] = useState<Record<number, number>>(
+	// 	{}
+	// );
+	const wordRefs = useRef<Map<number, HTMLSpanElement[]>>(new Map());
+	const matchedCountsRef = useRef<Map<number, number>>(new Map());
 
 	// Error handling
 	const [storageError, setStorageError] = useState(false);
@@ -355,6 +358,20 @@ function RehearsalRoomContent() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [current, isPlaying, isWaitingForUser]);
 
+	const refreshHighlightForLine = (index: number) => {
+		const spans = wordRefs.current.get(index);
+		const count = matchedCountsRef.current.get(index) ?? 0;
+
+		if (!spans) return;
+
+		spans.forEach((span, i) => {
+			span.className =
+				i < count
+					? "font-bold text-gray-900 transition-all duration-100"
+					: "text-gray-700 transition-all duration-100";
+		});
+	};
+
 	const autoAdvance = (delay = 1000) => {
 		if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
 
@@ -386,6 +403,13 @@ function RehearsalRoomContent() {
 		await initializeSTT();
 		const currentLine = script?.find((el) => el.index === currentIndex);
 		prepareUserLine(currentLine);
+
+		matchedCountsRef.current.set(currentIndex, 0);
+		const spans = wordRefs.current.get(currentIndex);
+		if (spans && spans.length) {
+			refreshHighlightForLine(currentIndex);
+		}
+
 		setIsPlaying(true);
 	};
 
@@ -417,11 +441,11 @@ function RehearsalRoomContent() {
 		setCurrentIndex((i) => {
 			const prevIndex = Math.max(i - 1, 0);
 			const prevLine = script?.find((el) => el.index === prevIndex);
-			setSpokenWordMap((prevMap) => {
-				const newMap = { ...prevMap };
-				delete newMap[prevIndex];
-				return newMap;
-			});
+
+			refreshHighlightForLine(prevIndex);
+			matchedCountsRef.current.delete(prevIndex);
+			wordRefs.current.delete(prevIndex);
+
 			prepareUserLine(prevLine);
 			return prevIndex;
 		});
@@ -432,8 +456,16 @@ function RehearsalRoomContent() {
 		setIsWaitingForUser(false);
 		cleanupSTT();
 		setCurrentIndex(0);
-		setSpokenWordMap({});
-		prepareUserLine(script?.find((el) => el.index === 0));
+
+		for (const index of matchedCountsRef.current.keys()) {
+			matchedCountsRef.current.set(index, 0);
+			refreshHighlightForLine(index);
+		}
+		matchedCountsRef.current.clear();
+		wordRefs.current.clear();
+
+		const firstLine = script?.find((el) => el.index === 0);
+		prepareUserLine(firstLine);
 	};
 
 	// NEW: Handle line click to jump to specific line
@@ -449,17 +481,21 @@ function RehearsalRoomContent() {
 			advanceTimeoutRef.current = null;
 		}
 
-		// Clear spoken word progress for lines after the clicked line
-		setSpokenWordMap((prevMap) => {
-			const newMap = { ...prevMap };
-			Object.keys(newMap).forEach(key => {
-				const keyIndex = parseInt(key);
-				if (keyIndex >= lineIndex) {
-					delete newMap[keyIndex];
+		// Remove match counts and span refs for lines after the jump
+		if (scriptRef.current) {
+			for (let i = lineIndex; i < scriptRef.current.length; i++) {
+				matchedCountsRef.current.delete(i);
+
+				const spans = wordRefs.current.get(i);
+				if (spans) {
+					for (const span of spans) {
+						span.className = "text-gray-700 transition-all duration-100";
+					}
 				}
-			});
-			return newMap;
-		});
+
+				wordRefs.current.delete(i);
+			}
+		}
 
 		// Jump to the clicked line
 		setCurrentIndex(lineIndex);
@@ -522,6 +558,22 @@ function RehearsalRoomContent() {
 		return provider === "google" ? google : deepgram;
 	}
 
+	const onProgressUpdate = useCallback((count: number) => {
+		if (current?.type === "line" && current.role === "user") {
+			matchedCountsRef.current.set(current.index, count);
+
+			const spans = wordRefs.current.get(current.index);
+			if (!spans) return;
+
+			for (let i = 0; i < spans.length; i++) {
+				spans[i].className =
+					i < count
+						? "font-bold text-gray-900 transition-all duration-100"
+						: "text-blue-900 font-medium transition-all duration-100";
+			}
+		}
+	}, [current?.index, current?.role, current?.type]);
+
 	const { initializeSTT, startSTT, pauseSTT, cleanupSTT, setCurrentLineText } =
 		useSTT({
 			provider: sttProvider,
@@ -532,11 +584,7 @@ function RehearsalRoomContent() {
 				console.log("⏱️ Timeout reached");
 				setIsWaitingForUser(false);
 			},
-			onProgressUpdate: (count) => {
-				if (current?.type === "line" && current.role === "user") {
-					setSpokenWordMap((prev) => ({ ...prev, [current.index]: count }));
-				}
-			},
+			onProgressUpdate,
 		});
 
 	// Clean up STT
@@ -651,32 +699,13 @@ function RehearsalRoomContent() {
 							hydrationStatus={ttsHydrationStatus[element.index]}
 						/>
 					) : (
-						<div className="pl-4 border-l-3 border-gray-300">
-							{element.role === "user" ? (
-								<div className="text-base leading-relaxed">
-									{element.text.split(/\s+/).map((word, i) => {
-										const matched = spokenWordMap[element.index] ?? 0;
-										return (
-											<span
-												key={i}
-												className={`${i < matched
-													? "font-bold text-gray-900"
-													: isCurrent && isWaitingForUser
-														? "text-blue-900 font-medium"
-														: "text-gray-700"
-													} transition-all duration-300`}
-											>
-												{word + " "}
-											</span>
-										);
-									})}
-								</div>
-							) : (
-								<p className="text-base leading-relaxed text-gray-700">
-									{element.text}
-								</p>
-							)}
-						</div>
+						<OptimizedLineRenderer
+							element={element}
+							isCurrent={isCurrent}
+							isWaitingForUser={isWaitingForUser}
+							spanRefMap={wordRefs.current}
+							matchedCount={matchedCountsRef.current.get(element.index) ?? 0}
+						/>
 					)}
 
 					{/* Edit button */}
