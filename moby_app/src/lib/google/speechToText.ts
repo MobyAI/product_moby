@@ -102,7 +102,7 @@ class OptimizedSTTMatcher {
         for (const spokenWord of newWords) {
             const windowEnd = Math.min(
                 this.state.normalizedScript.length,
-                searchStartIndex + 3
+                searchStartIndex + 4
             );
 
             for (let i = searchStartIndex; i < windowEnd; i++) {
@@ -272,7 +272,7 @@ export function useGoogleSTT({
         if (expectedEmbedding?.length) {
             const similarity = await fetchSimilarity(spokenLine, expectedEmbedding);
             console.log('Similarity: ', similarity);
-            if (similarity && similarity > 0.80) {
+            if (similarity && similarity > 0.9) {
                 console.log("✅ Similarity passed (Google)!");
                 triggerNextLine(spokenLine);
             } else {
@@ -324,7 +324,7 @@ export function useGoogleSTT({
             const normKw = normalize(kw);
             return words.some((w) => {
                 const score = fuzz.ratio(normKw, w);
-                console.log(`🔍 Comparing "${normKw}" with "${w}" → Score: ${score}`);
+                // console.log(`🔍 Comparing "${normKw}" with "${w}" → Score: ${score}`);
                 return score >= threshold;
             });
         });
@@ -475,19 +475,6 @@ export function useGoogleSTT({
                 resetSilenceTimeout();
                 resetSilenceTimer(transcript);
 
-                // if (onProgressUpdate && transcript) {
-                //     const scriptWords = expectedScriptWordsRef.current;
-
-                //     if (scriptWords && !hasTriggeredRef.current) {
-                //         const matchCount = progressiveWordMatch(scriptWords, transcript, matchedScriptIndices.current);
-
-                //         if (matchCount > lastReportedCount.current) {
-                //             lastReportedCount.current = matchCount;
-                //             onProgressUpdate(matchCount);
-                //         }
-                //     }
-                // }
-
                 if (transcript === lastTranscriptRef.current) {
                     repeatCountRef.current += 1;
                     if (!repeatStartTimeRef.current) {
@@ -497,7 +484,6 @@ export function useGoogleSTT({
                     repeatCountRef.current = 1;
                     repeatStartTimeRef.current = performance.now();
 
-                    // Use optimized matcher for highlighting
                     if (matcherRef.current && !hasTriggeredRef.current) {
                         matcherRef.current.processTranscript(transcript, !isFinal);
                     }
@@ -531,7 +517,7 @@ export function useGoogleSTT({
                     return;
                 }
 
-                const isLongEnough = expectedWords && spokenWords.length >= Math.floor(expectedWords.length * 0.75);
+                const isLongEnough = expectedWords && spokenWords.length >= Math.floor(expectedWords.length * 0.8);
 
                 if (isLongEnough) {
                     console.log(`🟡 Google Final transcript accepted @ ${performance.now().toFixed(2)}ms! Handling finalization...`);

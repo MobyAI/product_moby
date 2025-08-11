@@ -26,9 +26,29 @@ body {
 }
 
 .hide-scrollbar {
-	scrollbar-width: none; /* Firefox */
-	-ms-overflow-style: none; /* IE 10+ */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE 10+ */
 }
+
 .hide-scrollbar::-webkit-scrollbar {
-	display: none; /* Chrome, Safari, Opera */
+  display: none;
+  /* Chrome, Safari, Opera */
+}
+
+/* Blue for unmatched words while waiting; matched words stay bold/gray-900 */
+.waiting .word:not(.matched) {
+  color: rgb(30 58 138);
+  /* Tailwind blue-900 */
+  font-weight: 500;
+  /* Tailwind font-medium */
+}
+
+/* Bold/gray for matched words (so JS only toggles a single class) */
+.word.matched {
+  color: rgb(17 24 39);
+  /* Tailwind gray-900 */
+  font-weight: 700;
+  /* Tailwind font-bold */
 }

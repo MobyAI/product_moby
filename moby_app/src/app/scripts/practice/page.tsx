@@ -403,6 +403,13 @@ function RehearsalRoomContent() {
 		await initializeSTT();
 		const currentLine = script?.find((el) => el.index === currentIndex);
 		prepareUserLine(currentLine);
+
+		matchedCountsRef.current.set(currentIndex, 0);
+		const spans = wordRefs.current.get(currentIndex);
+		if (spans && spans.length) {
+			refreshHighlightForLine(currentIndex);
+		}
+
 		setIsPlaying(true);
 	};
 
@@ -696,7 +703,7 @@ function RehearsalRoomContent() {
 							element={element}
 							isCurrent={isCurrent}
 							isWaitingForUser={isWaitingForUser}
-							spanRefMap={wordRefs}
+							spanRefMap={wordRefs.current}
 							matchedCount={matchedCountsRef.current.get(element.index) ?? 0}
 						/>
 					)}
