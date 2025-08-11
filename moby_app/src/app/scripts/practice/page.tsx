@@ -43,9 +43,9 @@ function RehearsalRoomContent() {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [isWaitingForUser, setIsWaitingForUser] = useState(false);
-	const [spokenWordMap, setSpokenWordMap] = useState<Record<number, number>>(
-		{}
-	);
+	// const [spokenWordMap, setSpokenWordMap] = useState<Record<number, number>>(
+	// 	{}
+	// );
 	const wordRefs = useRef<Map<number, HTMLSpanElement[]>>(new Map());
 	const matchedCountsRef = useRef<Map<number, number>>(new Map());
 
