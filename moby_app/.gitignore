@@ -50,5 +50,9 @@ next-env.d.ts
 moby-google-key.json
 **/moby-google-key.json
 
+# firebase
+moby-firebase-service-account-key.json
+moby_app/moby-firebase-service-account-key.json
+
 # alternates
 /src/alternates/

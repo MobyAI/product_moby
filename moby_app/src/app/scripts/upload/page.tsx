@@ -9,6 +9,8 @@ import { saveScript } from '@/lib/api/dbFunctions/scripts';
 import { fetchAllVoiceSamples } from '@/lib/api/dbFunctions/audio/tts';
 import type { ScriptElement } from '@/types/script';
 import { Layout } from '@/components/ui/Layout';
+import { LogoutButton } from '@/components/ui/LogoutButton';
+import { useAuthUser } from "@/components/providers/UserProvider";
 
 interface VoiceSample {
     name: string;
@@ -25,6 +27,10 @@ type CharacterInfo = {
 }
 
 export default function UploadPage() {
+    const { uid } = useAuthUser();
+    const userID = uid;
+    const router = useRouter();
+
     const [loading, setLoading] = useState(false);
     const [parsedData, setParsedData] = useState<ScriptElement[] | null>(null);
     const [allCharacters, setAllCharacters] = useState<CharacterInfo[]>([]);
@@ -66,9 +72,6 @@ export default function UploadPage() {
         console.log('enriched script: ', enrichedScript);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [allCharacters]);
-
-    const router = useRouter();
-    const userID = 'demo-user'; // Replace with real auth ID later
 
     async function handleParsedScript(script: ScriptElement[]) {
         try {
@@ -182,6 +185,7 @@ export default function UploadPage() {
 
     return (
         <Layout>
+            <LogoutButton />
             {parsedData ? (
                 <div className="h-screen bg-gray-50 flex overflow-hidden">
                     {/* Left sidebar for role select */}

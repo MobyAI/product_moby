@@ -16,11 +16,11 @@ const Homepage = () => {
   }, []);
 
   const router = useRouter();
-  
+
   const startFn = () => {
     // router.push('/upload')
     router.push('/scripts/upload')
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -53,11 +53,11 @@ const Homepage = () => {
             <br />
             to be your reader
           </h1>
-          
+
           <p className="text-xl text-gray-600 mb-4 max-w-2xl mx-auto">
             No more scheduling conflicts. No more sister complaining that you&apos;re taking too long. No more excuses.
           </p>
-          
+
           <Button onClick={startFn}>
             Try it now
           </Button>

@@ -1,2 +1,3 @@
 # Ignore stt-server directory during Vercel builds
-stt-server/
+google-server/
+deepgram-server/
