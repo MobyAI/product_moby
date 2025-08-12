@@ -9,6 +9,7 @@ import { saveScript } from '@/lib/api/dbFunctions/scripts';
 import { fetchAllVoiceSamples } from '@/lib/api/dbFunctions/audio/tts';
 import type { ScriptElement } from '@/types/script';
 import { Layout } from '@/components/ui/Layout';
+import { LogoutButton } from '@/components/ui/LogoutButton';
 
 interface VoiceSample {
     name: string;
@@ -182,6 +183,7 @@ export default function UploadPage() {
 
     return (
         <Layout>
+            <LogoutButton />
             {parsedData ? (
                 <div className="h-screen bg-gray-50 flex overflow-hidden">
                     {/* Left sidebar for role select */}

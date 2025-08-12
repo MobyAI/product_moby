@@ -13,6 +13,7 @@ import { restoreSession, saveSession } from "./session";
 import { clear } from "idb-keyval";
 import LoadingScreen from "./LoadingScreen";
 import { Button } from "@/components/ui/Buttons";
+import { LogoutButton } from "@/components/ui/LogoutButton";
 
 // export default function RehearsalRoomPage() {
 function RehearsalRoomContent() {
@@ -752,14 +753,15 @@ function RehearsalRoomContent() {
 			) : (
 				<div className="min-h-screen flex relative" style={{ backgroundColor: '#1c1d1d' }}>
 					{/* Back to Scripts Button - Top Right Corner */}
-					{/* <div className="absolute top-4 right-4 z-10">
-						<Button
+					<div className="absolute top-4 right-4 z-10">
+						{/* <Button
 							onClick={goBackHome}
 							className="px-6 py-2 bg-blue hover:bg-gray-100 text-gray-800 rounded-lg shadow-sm transition-all duration-200 font-medium"
 						>
 							Upload a new script
-						</Button>
-					</div> */}
+						</Button> */}
+						<LogoutButton />
+					</div>
 
 					{/* Left Control Panel - Dark Theme */}
 					<div className="w-80 h-screen text-white shadow-xl flex flex-col" style={{ backgroundColor: '#1c1d1d' }}>
