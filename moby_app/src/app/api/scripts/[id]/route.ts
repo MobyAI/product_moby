@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getScript, updateScript, deleteScript } from '@/server/script';
+import { getScript, updateScript, deleteScript } from '@/lib/firebase/scripts';
 
 // userID sent in URL:
 //

@@ -1,4 +1,4 @@
-import { auth } from '@/server/firebase/config';
+import { auth } from '@/lib/firebase/config/client';
 import {
     signInWithPopup,
     GoogleAuthProvider,
