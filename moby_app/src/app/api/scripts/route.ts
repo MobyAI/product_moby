@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
         }
 
-        const id = await addScript(script, userID);
+        const id = await addScript(script);
         return NextResponse.json({ id });
     } catch (err) {
         console.error('Error in POST /api/scripts:', err);
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'Missing userID' }, { status: 400 });
         }
 
-        const scripts = await getAllScripts(userID);
+        const scripts = await getAllScripts();
         return NextResponse.json({ scripts });
     } catch (err) {
         console.error('Error in GET /api/scripts:', err);

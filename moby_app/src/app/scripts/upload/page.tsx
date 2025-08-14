@@ -5,7 +5,7 @@ import UploadForm from './uploadFile';
 import ParsedOutput from './parsedScript';
 import VoiceLibrary from './voiceLibrary';
 import { useRouter } from 'next/navigation';
-import { saveScript } from '@/lib/api/dbFunctions/scripts';
+import { addScript } from '@/lib/firebase/scripts';
 import { fetchAllVoiceSamples } from '@/lib/api/dbFunctions/audio/tts';
 import type { ScriptElement } from '@/types/script';
 import { Layout } from '@/components/ui/Layout';
@@ -89,7 +89,7 @@ export default function UploadPage() {
                 };
             });
 
-            const scriptID = await saveScript(enrichedScript, userID);
+            const scriptID = await addScript(enrichedScript);
             // router.push(`/rehearsal-room?userID=${userID}&scriptID=${scriptID}`);
             router.push(`/scripts/practice?userID=${userID}&scriptID=${scriptID}`);
         } catch (err) {
