@@ -8,8 +8,8 @@ export default async function ServerAuthProvider({ children }: { children: React
 
     const value: AuthUser = {
         uid: user.uid,
-        email: user.email as string,
-        emailVerified: Boolean(user.emailVerified),
+        email: user.email ?? null,
+        emailVerified: !!user.emailVerified,
     };
 
     return (

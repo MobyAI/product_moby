@@ -1,7 +1,7 @@
-import ServerAuthProvider from '@/components/providers/ServerAuthProvider';
-
+export const runtime = 'nodejs';
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
+
+import ServerAuthProvider from '@/components/providers/ServerAuthProvider';
 
 export default async function ScriptsLayout({ children }: { children: React.ReactNode }) {
     return <ServerAuthProvider>{children}</ServerAuthProvider>;
