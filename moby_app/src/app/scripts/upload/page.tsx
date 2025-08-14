@@ -10,6 +10,7 @@ import { fetchAllVoiceSamples } from '@/lib/api/dbFunctions/audio/tts';
 import type { ScriptElement } from '@/types/script';
 import { Layout } from '@/components/ui/Layout';
 import { LogoutButton } from '@/components/ui/LogoutButton';
+import { useAuthUser } from '@/components/providers/UserProvider';
 
 interface VoiceSample {
     name: string;
@@ -26,6 +27,10 @@ type CharacterInfo = {
 }
 
 export default function UploadPage() {
+    const { uid } = useAuthUser();
+    const userID = uid;
+    const router = useRouter();
+
     const [loading, setLoading] = useState(false);
     const [parsedData, setParsedData] = useState<ScriptElement[] | null>(null);
     const [allCharacters, setAllCharacters] = useState<CharacterInfo[]>([]);
@@ -68,9 +73,6 @@ export default function UploadPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [allCharacters]);
 
-    const router = useRouter();
-    const userID = 'demo-user'; // Replace with real auth ID later
-
     async function handleParsedScript(script: ScriptElement[]) {
         try {
             setLoading(true);
@@ -91,7 +93,7 @@ export default function UploadPage() {
 
             const scriptID = await addScript(enrichedScript);
             // router.push(`/rehearsal-room?userID=${userID}&scriptID=${scriptID}`);
-            router.push(`/scripts/practice?userID=${userID}&scriptID=${scriptID}`);
+            router.push(`/scripts/practice?scriptID=${scriptID}`);
         } catch (err) {
             console.error('Failed to save script:', err);
             alert('Failed to save script. Please try again.');

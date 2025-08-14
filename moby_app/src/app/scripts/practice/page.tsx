@@ -14,12 +14,16 @@ import { clear } from "idb-keyval";
 import LoadingScreen from "./LoadingScreen";
 import { Button } from "@/components/ui/Buttons";
 import { LogoutButton } from "@/components/ui/LogoutButton";
+import { useAuthUser } from '@/components/providers/UserProvider';
 
 // export default function RehearsalRoomPage() {
 function RehearsalRoomContent() {
 	const searchParams = useSearchParams();
-	const userID = searchParams.get("userID");
 	const scriptID = searchParams.get("scriptID");
+	
+    const { uid } = useAuthUser();
+    const userID = uid;
+
 	const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const currentLineRef = useRef<HTMLDivElement>(null);
 	const router = useRouter();
