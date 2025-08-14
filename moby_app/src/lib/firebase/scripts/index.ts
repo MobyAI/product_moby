@@ -1,5 +1,6 @@
 import { db } from '@/lib/firebase/config/client';
 import { requireUid } from '@/lib/firebase/verify';
+import { toFirestoreScript } from '@/lib/firebase/utils/mapper';
 import {
     collection,
     doc,
@@ -59,7 +60,7 @@ export async function getAllScripts() {
 export async function updateScript(scriptID: string, newScript: ScriptElement[]) {
     const { doc } = userScriptsRefs();
     await updateDoc(doc(scriptID), {
-        script: newScript,
+        script: toFirestoreScript(newScript),
         updatedAt: serverTimestamp(),
     });
 }
