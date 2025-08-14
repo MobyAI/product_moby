@@ -10,7 +10,6 @@ import { fetchAllVoiceSamples } from '@/lib/api/dbFunctions/audio/tts';
 import type { ScriptElement } from '@/types/script';
 import { Layout } from '@/components/ui/Layout';
 import { LogoutButton } from '@/components/ui/LogoutButton';
-import { useAuthUser } from '@/components/providers/UserProvider';
 
 interface VoiceSample {
     name: string;
@@ -27,8 +26,6 @@ type CharacterInfo = {
 }
 
 export default function UploadPage() {
-    const { uid } = useAuthUser();
-    const userID = uid;
     const router = useRouter();
 
     const [loading, setLoading] = useState(false);

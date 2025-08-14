@@ -2,7 +2,7 @@ import { get, set } from 'idb-keyval';
 import type { ScriptElement } from '@/types/script';
 import { addEmbedding } from '@/lib/api/embed';
 import { addTTS, addTTSRegenerate } from '@/lib/api/tts';
-import { fetchScriptByID, updateScriptByID } from '@/lib/api/dbFunctions/scripts';
+import { getScript, updateScript } from '@/lib/firebase/scripts';
 import pLimit from 'p-limit';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -54,7 +54,7 @@ export const loadScript = async ({
             return cached;
         } else {
             setLoadStage('🌐 Fetching script from Firestore...');
-            const data = await fetchScriptByID(userID, scriptID);
+            const data = await getScript(scriptID);
             const script = data.script;
 
             // Attempt to cache
@@ -304,7 +304,7 @@ export const hydrateScript = async ({
         setLoadStage('💾 Updating database...');
         const sanitizedScript = stripExpectedEmbeddings(withTTS);
         try {
-            await updateScriptByID(userID, scriptID, sanitizedScript);
+            await updateScript(scriptID, sanitizedScript);
         } catch (err) {
             console.warn('⚠️ Failed to save update to database:', err)
         }
@@ -371,7 +371,7 @@ export const hydrateLine = async ({
         // Attempt to save update
         const sanitizedScript = stripExpectedEmbeddings(updatedScript);
         try {
-            await updateScriptByID(userID, scriptID, sanitizedScript);
+            await updateScript(scriptID, sanitizedScript);
         } catch (err) {
             console.warn('⚠️ Failed to save update to database:', err)
         }
