@@ -1,5 +1,5 @@
 import { uploadEmbeddingBlob, fetchEmbeddingFromStorage } from '@/lib/api/dbFunctions/embeddings';
-import { getEmbeddingUrl } from '@/lib/firebase/embeddings';
+import { getEmbeddingUrl, saveEmbeddingBlob } from '@/lib/firebase/embeddings';
 import { fetchEmbedding } from '@/lib/api/embed';
 import type { ScriptElement } from '@/types/script';
 
@@ -33,7 +33,7 @@ export async function addEmbedding(
 
         try {
             const blob = new Blob([JSON.stringify(embedding)], { type: 'application/json' });
-            await uploadEmbeddingBlob({ userID, scriptID, index: element.index, blob });
+            await saveEmbeddingBlob(userID, scriptID, element.index, blob);
         } catch (uploadErr) {
             console.warn(`⚠️ Failed to upload embedding for line ${element.index}`, uploadErr);
         }

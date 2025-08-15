@@ -1,5 +1,6 @@
 import { fetchHumeTTS } from '@/lib/api/tts';
 import { uploadTTSAudioBlob, fetchTTSAudioUrl } from '@/lib/api/dbFunctions/audio/tts';
+import { getAudioUrl, saveAudioBlob } from '@/lib/firebase/tts';
 import type { ScriptElement } from '@/types/script';
 
 // OPTIONAL: Include acting instructions in TTS audio gen
@@ -40,7 +41,7 @@ export async function addTTS(
         let url: string | undefined;
 
         try {
-            url = await fetchTTSAudioUrl({ userID, scriptID, index: element.index });
+            url = await getAudioUrl(userID, scriptID, element.index);
 
             if (url) {
                 console.log(`✅ TTS already exists for line ${element.index}`);
@@ -85,9 +86,9 @@ export async function addTTS(
             return element;
         }
 
-        await uploadTTSAudioBlob({ userID, scriptID, index: element.index, blob });
+        await saveAudioBlob(userID, scriptID, element.index, blob);
 
-        url = await fetchTTSAudioUrl({ userID, scriptID, index: element.index });
+        url = await getAudioUrl(userID, scriptID, element.index);
 
         return { ...element, ttsUrl: url };
     } catch (err) {
@@ -140,9 +141,9 @@ export async function addTTSRegenerate(
             contextUtterance: contextUtterance.length > 0 ? contextUtterance : undefined,
         });
 
-        await uploadTTSAudioBlob({ userID, scriptID, index: element.index, blob });
+        await saveAudioBlob(userID, scriptID, element.index, blob);
 
-        const url = await fetchTTSAudioUrl({ userID, scriptID, index: element.index });
+        const url = await getAudioUrl(userID, scriptID, element.index);
 
         return { ...element, ttsUrl: url };
     } catch (err) {

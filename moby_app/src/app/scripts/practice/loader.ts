@@ -130,13 +130,32 @@ export const hydrateScript = async ({
     setTTSFailedLines([]);
 
     // Check if all TTS audio urls are hydrated
-    const unhydratedTTSLines = script
-        .filter((element: ScriptElement) =>
-            element.type === 'line' &&
-            (typeof element.ttsUrl !== 'string' || element.ttsUrl.length === 0)
-        )
-        .map((element: ScriptElement) => element.index);
+    const unhydratedTTSLines: number[] = [];
+    
+    for (const element of script) {
+        if (element.type !== 'line') continue;
 
+        // Check if URL exists
+        if (!element.ttsUrl || element.ttsUrl.length === 0) {
+            unhydratedTTSLines.push(element.index);
+            continue;
+        }
+
+        // Validate URL is working
+        try {
+            const response = await fetch(element.ttsUrl, {
+                method: 'HEAD',
+                mode: 'cors'
+            });
+
+            if (!response.ok) {
+                unhydratedTTSLines.push(element.index);
+            }
+        } catch (error) {
+            // URL is invalid or network error
+            unhydratedTTSLines.push(element.index);
+        }
+    }
 
     // Check if all embeddings are hydrated
     const unhydratedEmbeddingLines = script

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { saveAudioBlob, getAudioUrl, deleteAudioBlob } from '@/server/audio/tts';
+import { saveAudioBlob, getAudioUrl, deleteAudioBlob } from '@/lib/firebase/tts';
 
 type RouteParams = {
     userID: string;
