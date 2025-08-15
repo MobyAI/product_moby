@@ -239,6 +239,7 @@ function RehearsalRoomContent() {
 
 	const onUpdateLine = async (updateLine: ScriptElement) => {
 		setEditingLineIndex(null);
+		setLoadStage('🚰 Rehydrating...');
 
 		if (!script) {
 			console.warn('❌ Tried to update line before script was loaded.');
@@ -279,6 +280,8 @@ function RehearsalRoomContent() {
 					scriptRef.current = next;
 					return next;
 				});
+
+				setLoadStage('✅ Line successfully updated!');
 			}
 		} catch (err) {
 			console.error(`❌ Failed to update line ${updateLine.index}:`, err);
@@ -792,22 +795,34 @@ function RehearsalRoomContent() {
 							{/* Progress Section */}
 							<div className="mb-8">
 								<div className="text-sm text-gray-400 mb-2">Progress</div>
-								<div className="bg-gray-800 rounded-lg p-4">
-									<div className="text-xl font-bold mb-2">
-										{currentIndex + 1} / {script?.length || 0}
+								{isScriptFullyHydrated ? (
+									<div className="bg-gray-800 rounded-lg p-4">
+										<div className="text-xl font-bold mb-2">
+											{currentIndex + 1} / {script?.length || 0}
+										</div>
+										<div className="w-full bg-gray-700 rounded-full h-3 mb-2">
+											<div
+												className="bg-blue-500 h-3 rounded-full transition-all duration-500"
+												style={{
+													width: `${((currentIndex + 1) / (script?.length || 1)) * 100}%`,
+												}}
+											></div>
+										</div>
+										<div className="text-xs text-gray-400">
+											{Math.round(((currentIndex + 1) / (script?.length || 1)) * 100)}% complete
+										</div>
 									</div>
-									<div className="w-full bg-gray-700 rounded-full h-3 mb-2">
-										<div
-											className="bg-blue-500 h-3 rounded-full transition-all duration-500"
-											style={{
-												width: `${((currentIndex + 1) / (script?.length || 1)) * 100}%`,
-											}}
-										></div>
+								) : (
+									<div className="bg-gray-800 rounded-lg p-4">
+										<div className="text-lg font-bold mb-2">
+											{loadStage || 'Loading…'}
+										</div>
+										{/* Add loading progress bar */}
+										<div className="text-xs text-gray-400">
+											Hang tight! We're setting up the practice room for you 🙌
+										</div>
 									</div>
-									<div className="text-xs text-gray-400">
-										{Math.round(((currentIndex + 1) / (script?.length || 1)) * 100)}% complete
-									</div>
-								</div>
+								)}
 							</div>
 
 							{/* Current Status */}

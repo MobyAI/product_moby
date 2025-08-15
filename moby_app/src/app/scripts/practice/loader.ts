@@ -73,7 +73,7 @@ export const loadScript = async ({
             const end = performance.now();
             console.log(`⏱️ Script loaded from cache in ${(end - start).toFixed(2)} ms`);
 
-            setLoadStage('✅ Script ready!');
+            setLoadStage('📓 Script ready!');
 
             return script;
         }
@@ -312,7 +312,7 @@ export const hydrateScript = async ({
         const end = performance.now();
         console.log(`⏱️ Script hydrated in ${(end - start).toFixed(2)} ms`);
 
-        setLoadStage('✅ Script ready!');
+        setLoadStage('✅ Resources loaded!');
         setScript(withTTS);
     } catch (err) {
         // Display load error page
