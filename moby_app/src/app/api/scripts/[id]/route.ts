@@ -26,7 +26,7 @@ export async function GET(req: NextRequest, { params }: Context) {
             return NextResponse.json({ error: 'Missing userID' }, { status: 400 });
         }
 
-        const script = await getScript(userID, id);
+        const script = await getScript(id);
         return NextResponse.json(script);
     } catch (err) {
         console.error('Error in GET /api/scripts/[id]:', err);
@@ -46,7 +46,7 @@ export async function PATCH(req: NextRequest, { params }: Context) {
             return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
         }
 
-        await updateScript(userID, id, body.script);
+        await updateScript(id, body.script);
         return NextResponse.json({ success: true });
     } catch (err) {
         console.error('Error in PATCH /api/scripts/[id]:', err);
@@ -65,7 +65,7 @@ export async function DELETE(req: NextRequest, { params }: Context) {
             return NextResponse.json({ error: 'Missing userID' }, { status: 400 });
         }
 
-        await deleteScript(userID, id);
+        await deleteScript(id);
         return NextResponse.json({ success: true });
     } catch (err) {
         console.error('Error in DELETE /api/scripts/[id]:', err);

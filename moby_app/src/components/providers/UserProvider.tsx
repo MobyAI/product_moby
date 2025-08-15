@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
+import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase/config/client";
 
 export type AuthUser = {
@@ -16,9 +17,11 @@ export function UserProvider({
     value,
     children,
 }: {
-    value: AuthUser | null;
+    value: AuthUser | null; // non-null in protected trees (passed by ServerAuthProvider)
     children: React.ReactNode;
 }) {
+    const router = useRouter();
+    const initiallyAuthed = !!value; // true for protected routes
     const [user, setUser] = useState<AuthUser | null>(value ?? null);
 
     // Keep context in sync with client-side Firebase Auth
@@ -30,10 +33,25 @@ export function UserProvider({
         return unsub;
     }, []);
 
-    // If the server-provided user changes (rare), reflect it
+    // Reflect server-provided user if it changes (rare)
     useEffect(() => {
         setUser(value ?? null);
     }, [value]);
+
+    // If this is a protected subtree and auth is lost on the client, redirect and don't render children
+    const redirecting = initiallyAuthed && user === null;
+
+    useEffect(() => {
+        if (redirecting) {
+            const next =
+                typeof window !== "undefined"
+                    ? window.location.pathname + window.location.search
+                    : "/home";
+            router.replace(`/login?next=${encodeURIComponent(next)}`);
+        }
+    }, [redirecting, router]);
+
+    if (redirecting) return null; // prevent children from rendering during logout
 
     return <UserContext.Provider value={user}>{children}</UserContext.Provider>;
 }
@@ -43,7 +61,7 @@ export function useUser() {
     return useContext(UserContext);
 }
 
-/** Non-nullable hook for protected routes (guaranteed by ServerAuthProvider) */
+/** Non-nullable hook for protected routes */
 export function useAuthUser(): AuthUser {
     const user = useContext(UserContext);
     if (!user) {
