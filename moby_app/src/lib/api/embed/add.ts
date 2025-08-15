@@ -1,4 +1,5 @@
 import { uploadEmbeddingBlob, fetchEmbeddingFromStorage } from '@/lib/api/dbFunctions/embeddings';
+import { getEmbeddingUrl } from '@/lib/firebase/embeddings';
 import { fetchEmbedding } from '@/lib/api/embed';
 import type { ScriptElement } from '@/types/script';
 
@@ -13,7 +14,14 @@ export async function addEmbedding(
 
     // Check Firebase Storage first
     try {
-        embedding = await fetchEmbeddingFromStorage({ userID, scriptID, index: element.index });
+        const url = await getEmbeddingUrl(userID, scriptID, element.index);
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch embedding: ${response.statusText}`);
+        }
+        const data = await response.json();
+
+        embedding = Array.isArray(data) ? data : data.embedding;
     } catch (err) {
         console.warn(`⚠️ No embedding in storage for line ${element.index}, generating...`, err);
     }
