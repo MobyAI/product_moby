@@ -15,14 +15,16 @@ import LoadingScreen from "./LoadingScreen";
 import { Button } from "@/components/ui/Buttons";
 import { LogoutButton } from "@/components/ui/LogoutButton";
 import { useAuthUser } from '@/components/providers/UserProvider';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase/config/client';
 
 // export default function RehearsalRoomPage() {
 function RehearsalRoomContent() {
 	const searchParams = useSearchParams();
 	const scriptID = searchParams.get("scriptID");
-	
-    const { uid } = useAuthUser();
-    const userID = uid;
+
+	const { uid } = useAuthUser();
+	const userID = uid;
 
 	const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const currentLineRef = useRef<HTMLDivElement>(null);
@@ -33,6 +35,7 @@ function RehearsalRoomContent() {
 	}
 
 	// Page setup
+	const [authReady, setAuthReady] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [loadStage, setLoadStage] = useState<string | null>(null);
 	const [script, setScript] = useState<ScriptElement[] | null>(null);
@@ -69,7 +72,17 @@ function RehearsalRoomContent() {
 
 	// Load script and restore session
 	useEffect(() => {
-		if (!userID || !scriptID) return;
+		const unsubscribe = onAuthStateChanged(auth, (user) => {
+			if (user) {
+				setAuthReady(true);
+			}
+		});
+
+		return () => unsubscribe();
+	}, []);
+
+	useEffect(() => {
+		if (!userID || !scriptID || !authReady) return;
 
 		const init = async () => {
 			setLoading(true);
@@ -117,7 +130,7 @@ function RehearsalRoomContent() {
 		};
 
 		init();
-	}, [userID, scriptID]);
+	}, [userID, scriptID, authReady]);
 
 	// Auto-scroll to current line
 	useEffect(() => {

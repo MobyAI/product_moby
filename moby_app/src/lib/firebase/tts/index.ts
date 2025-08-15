@@ -5,7 +5,7 @@ import {
     getDownloadURL,
     deleteObject,
     getMetadata,
-    listAll
+    listAll,
 } from 'firebase/storage';
 
 //

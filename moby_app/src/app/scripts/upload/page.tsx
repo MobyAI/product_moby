@@ -10,6 +10,8 @@ import { fetchAllVoiceSamples } from '@/lib/api/dbFunctions/audio/tts';
 import type { ScriptElement } from '@/types/script';
 import { Layout } from '@/components/ui/Layout';
 import { LogoutButton } from '@/components/ui/LogoutButton';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase/config/client';
 
 interface VoiceSample {
     name: string;
@@ -33,11 +35,24 @@ export default function UploadPage() {
     const [allCharacters, setAllCharacters] = useState<CharacterInfo[]>([]);
 
     // Voice library setup
+    const [authReady, setAuthReady] = useState(false);
     const [voiceSamples, setVoiceSamples] = useState<VoiceSample[] | null>(null);
     const [selectedCharacter, setSelectedCharacter] = useState<string | null>(null);
 
     // Load voice library audio
     useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setAuthReady(true);
+            }
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    useEffect(() => {
+        if (!authReady) return;
+
         const loadVoiceSamples = async () => {
             try {
                 const data = await fetchAllVoiceSamples();
@@ -48,7 +63,7 @@ export default function UploadPage() {
         };
 
         loadVoiceSamples();
-    }, []);
+    }, [authReady]);
 
     // For testing
     useEffect(() => {
