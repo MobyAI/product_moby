@@ -1,5 +1,7 @@
+export const runtime = "nodejs";
+
 import { adminAuth } from "@/lib/firebase/admin/config/app";
-import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
     try {
@@ -18,19 +20,26 @@ export async function POST(req: Request) {
             expiresIn,
         });
 
-        const cookieStore = await cookies();
-        cookieStore.set("__session", sessionCookie, {
+        const res = NextResponse.json({ success: true, message: "Session set" });
+
+        res.cookies.set("__session", sessionCookie, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            maxAge: expiresIn / 1000, // seconds
-            path: "/",
             sameSite: "lax",
+            path: "/",
+            maxAge: expiresIn / 1000,
         });
 
-        return new Response(
-            JSON.stringify({ success: true, message: "Session set" }),
-            { status: 200 }
-        );
+        // const cookieStore = await cookies();
+        // cookieStore.set("__session", sessionCookie, {
+        //     httpOnly: true,
+        //     secure: process.env.NODE_ENV === "production",
+        //     maxAge: expiresIn / 1000, // seconds
+        //     path: "/",
+        //     sameSite: "lax",
+        // });
+
+        return res;
     } catch (err) {
         console.error("Error in sessionLogin:", err);
         return new Response(
