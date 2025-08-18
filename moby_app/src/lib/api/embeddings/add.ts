@@ -1,5 +1,6 @@
-import { uploadEmbeddingBlob, fetchEmbeddingFromStorage } from '@/lib/api/dbFunctions/embeddings';
-import { fetchEmbedding } from '@/lib/api/embed';
+// import { uploadEmbeddingBlob, fetchEmbeddingFromStorage } from '@/lib/api/dbFunctions/embeddings';
+import { getEmbeddingUrl, saveEmbeddingBlob } from '@/lib/firebase/client/embeddings';
+import { fetchEmbedding } from '@/lib/api/embeddings';
 import type { ScriptElement } from '@/types/script';
 
 export async function addEmbedding(
@@ -13,7 +14,14 @@ export async function addEmbedding(
 
     // Check Firebase Storage first
     try {
-        embedding = await fetchEmbeddingFromStorage({ userID, scriptID, index: element.index });
+        const url = await getEmbeddingUrl(userID, scriptID, element.index);
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch embedding: ${response.statusText}`);
+        }
+        const data = await response.json();
+
+        embedding = Array.isArray(data) ? data : data.embedding;
     } catch (err) {
         console.warn(`⚠️ No embedding in storage for line ${element.index}, generating...`, err);
     }
@@ -25,7 +33,7 @@ export async function addEmbedding(
 
         try {
             const blob = new Blob([JSON.stringify(embedding)], { type: 'application/json' });
-            await uploadEmbeddingBlob({ userID, scriptID, index: element.index, blob });
+            await saveEmbeddingBlob(userID, scriptID, element.index, blob);
         } catch (uploadErr) {
             console.warn(`⚠️ Failed to upload embedding for line ${element.index}`, uploadErr);
         }

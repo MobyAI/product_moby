@@ -1,11 +1,11 @@
-import { storage } from '@/server/firebase/config';
+import { storage } from '@/lib/firebase/client/config/app';
 import {
     ref,
     uploadBytes,
     getDownloadURL,
     deleteObject,
     getMetadata,
-    listAll
+    listAll,
 } from 'firebase/storage';
 
 //

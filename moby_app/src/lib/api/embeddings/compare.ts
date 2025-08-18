@@ -1,5 +1,5 @@
 export async function fetchSimilarity(spokenLine: string, expectedEmbedding: number[]) {
-    const res = await fetch("/api/embed/compare", {
+    const res = await fetch("/api/embeddings/compare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ spokenLine, expectedEmbedding }),

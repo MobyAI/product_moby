@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { verifySession } from "@/server/auth/verifySession";
+import { verifySession } from "@/lib/firebase/admin/auth/verifySession";
 import { UserProvider, type AuthUser } from "./UserProvider";
 
 export default async function ServerAuthProvider({ children }: { children: React.ReactNode }) {
@@ -8,8 +8,8 @@ export default async function ServerAuthProvider({ children }: { children: React
 
     const value: AuthUser = {
         uid: user.uid,
-        email: user.email as string,
-        emailVerified: Boolean(user.emailVerified),
+        email: user.email ?? null,
+        emailVerified: !!user.emailVerified,
     };
 
     return (

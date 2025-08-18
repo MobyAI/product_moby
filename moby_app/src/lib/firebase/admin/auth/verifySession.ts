@@ -1,5 +1,6 @@
+import 'server-only';
 import { cookies } from "next/headers";
-import { adminAuth } from "@/server/firebase/admin";
+import { adminAuth } from "@/lib/firebase/admin/config/app";
 
 export async function verifySession() {
     try {

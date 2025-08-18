@@ -14,12 +14,18 @@ import { clear } from "idb-keyval";
 import LoadingScreen from "./LoadingScreen";
 import { Button } from "@/components/ui/Buttons";
 import { LogoutButton } from "@/components/ui/LogoutButton";
+import { useAuthUser } from '@/components/providers/UserProvider';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase/client/config/app';
 
 // export default function RehearsalRoomPage() {
 function RehearsalRoomContent() {
 	const searchParams = useSearchParams();
-	const userID = searchParams.get("userID");
 	const scriptID = searchParams.get("scriptID");
+
+	const { uid } = useAuthUser();
+	const userID = uid;
+
 	const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const currentLineRef = useRef<HTMLDivElement>(null);
 	const router = useRouter();
@@ -29,6 +35,7 @@ function RehearsalRoomContent() {
 	}
 
 	// Page setup
+	const [authReady, setAuthReady] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [loadStage, setLoadStage] = useState<string | null>(null);
 	const [script, setScript] = useState<ScriptElement[] | null>(null);
@@ -65,7 +72,17 @@ function RehearsalRoomContent() {
 
 	// Load script and restore session
 	useEffect(() => {
-		if (!userID || !scriptID) return;
+		const unsubscribe = onAuthStateChanged(auth, (user) => {
+			if (user) {
+				setAuthReady(true);
+			}
+		});
+
+		return () => unsubscribe();
+	}, []);
+
+	useEffect(() => {
+		if (!userID || !scriptID || !authReady) return;
 
 		const init = async () => {
 			setLoading(true);
@@ -113,7 +130,7 @@ function RehearsalRoomContent() {
 		};
 
 		init();
-	}, [userID, scriptID]);
+	}, [userID, scriptID, authReady]);
 
 	// Auto-scroll to current line
 	useEffect(() => {
@@ -222,6 +239,7 @@ function RehearsalRoomContent() {
 
 	const onUpdateLine = async (updateLine: ScriptElement) => {
 		setEditingLineIndex(null);
+		setLoadStage('🚰 Rehydrating...');
 
 		if (!script) {
 			console.warn('❌ Tried to update line before script was loaded.');
@@ -262,6 +280,8 @@ function RehearsalRoomContent() {
 					scriptRef.current = next;
 					return next;
 				});
+
+				setLoadStage('✅ Line successfully updated!');
 			}
 		} catch (err) {
 			console.error(`❌ Failed to update line ${updateLine.index}:`, err);
@@ -775,22 +795,34 @@ function RehearsalRoomContent() {
 							{/* Progress Section */}
 							<div className="mb-8">
 								<div className="text-sm text-gray-400 mb-2">Progress</div>
-								<div className="bg-gray-800 rounded-lg p-4">
-									<div className="text-xl font-bold mb-2">
-										{currentIndex + 1} / {script?.length || 0}
+								{isScriptFullyHydrated ? (
+									<div className="bg-gray-800 rounded-lg p-4">
+										<div className="text-xl font-bold mb-2">
+											{currentIndex + 1} / {script?.length || 0}
+										</div>
+										<div className="w-full bg-gray-700 rounded-full h-3 mb-2">
+											<div
+												className="bg-blue-500 h-3 rounded-full transition-all duration-500"
+												style={{
+													width: `${((currentIndex + 1) / (script?.length || 1)) * 100}%`,
+												}}
+											></div>
+										</div>
+										<div className="text-xs text-gray-400">
+											{Math.round(((currentIndex + 1) / (script?.length || 1)) * 100)}% complete
+										</div>
 									</div>
-									<div className="w-full bg-gray-700 rounded-full h-3 mb-2">
-										<div
-											className="bg-blue-500 h-3 rounded-full transition-all duration-500"
-											style={{
-												width: `${((currentIndex + 1) / (script?.length || 1)) * 100}%`,
-											}}
-										></div>
+								) : (
+									<div className="bg-gray-800 rounded-lg p-4">
+										<div className="text-lg font-bold mb-2">
+											{loadStage || 'Loading…'}
+										</div>
+										{/* Add loading progress bar */}
+										<div className="text-xs text-gray-400">
+											{"Hang tight! We're setting up the practice room for you 🙌"}
+										</div>
 									</div>
-									<div className="text-xs text-gray-400">
-										{Math.round(((currentIndex + 1) / (script?.length || 1)) * 100)}% complete
-									</div>
-								</div>
+								)}
 							</div>
 
 							{/* Current Status */}
