@@ -1,6 +1,6 @@
 import { fetchHumeTTS } from '@/lib/api/tts';
-import { uploadTTSAudioBlob, fetchTTSAudioUrl } from '@/lib/api/dbFunctions/audio/tts';
-import { getAudioUrl, saveAudioBlob } from '@/lib/firebase/tts';
+// import { uploadTTSAudioBlob, fetchTTSAudioUrl } from '@/lib/api/dbFunctions/audio/tts';
+import { getAudioUrl, saveAudioBlob } from '@/lib/firebase/client/tts';
 import type { ScriptElement } from '@/types/script';
 
 // OPTIONAL: Include acting instructions in TTS audio gen

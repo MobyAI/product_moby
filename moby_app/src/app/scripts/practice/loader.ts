@@ -1,8 +1,8 @@
 import { get, set } from 'idb-keyval';
 import type { ScriptElement } from '@/types/script';
-import { addEmbedding } from '@/lib/api/embed';
+import { addEmbedding } from '@/lib/api/embeddings';
 import { addTTS, addTTSRegenerate } from '@/lib/api/tts';
-import { getScript, updateScript } from '@/lib/firebase/scripts';
+import { getScript, updateScript } from '@/lib/firebase/client/scripts';
 import pLimit from 'p-limit';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -137,6 +137,38 @@ export const hydrateScript = async ({
         )
         .map((element: ScriptElement) => element.index);
 
+    // Attempting to check if url is valid
+    // const unhydratedTTSLines: number[] = [];
+    // async function validateAudioUrl(url: string, index: number): Promise<boolean> {
+    //     return new Promise((resolve) => {
+    //         const audio = new Audio();
+
+    //         audio.onloadstart = () => {
+    //             console.log('audio check passed!', index);
+    //             resolve(true);
+    //         };  // Started loading = URL valid
+
+    //         audio.onerror = () => {
+    //             console.log('audio check failed...', index);
+    //             resolve(false);
+    //         };     // Failed = URL invalid
+
+    //         audio.src = url;
+    //     });
+    // }
+    // for (const element of script) {
+    //     if (element.type !== 'line') continue;
+
+    //     if (!element.ttsUrl || element.ttsUrl.length === 0) {
+    //         unhydratedTTSLines.push(element.index);
+    //         continue;
+    //     }
+
+    //     const isValid = await validateAudioUrl(element.ttsUrl, element.index);
+    //     if (!isValid) {
+    //         unhydratedTTSLines.push(element.index);
+    //     }
+    // }
 
     // Check if all embeddings are hydrated
     const unhydratedEmbeddingLines = script

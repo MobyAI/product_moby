@@ -3,7 +3,7 @@ import {
     loginWithEmailPassword,
     registerWithEmailPassword,
     logout as firebaseLogout,
-} from "@/lib/firebase/auth";
+} from "@/lib/firebase/client/auth";
 
 type AuthResult = { success: true } | { success: false; error: string };
 

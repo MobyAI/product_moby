@@ -1,4 +1,4 @@
-import { storage } from '@/lib/firebase/config/client';
+import { storage } from '@/lib/firebase/client/config/app';
 import {
     ref,
     uploadBytes,

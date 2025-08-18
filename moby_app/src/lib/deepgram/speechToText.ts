@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { fetchSimilarity } from '@/lib/api/embed';
+import { fetchSimilarity } from '@/lib/api/embeddings';
 import * as fuzz from 'fuzzball';
 
 //

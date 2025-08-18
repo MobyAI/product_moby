@@ -5,13 +5,13 @@ import UploadForm from './uploadFile';
 import ParsedOutput from './parsedScript';
 import VoiceLibrary from './voiceLibrary';
 import { useRouter } from 'next/navigation';
-import { addScript } from '@/lib/firebase/scripts';
-import { fetchAllVoiceSamples } from '@/lib/api/dbFunctions/audio/tts';
+import { addScript } from '@/lib/firebase/client/scripts';
+import { getAllVoiceSamples } from '@/lib/firebase/client/tts';
 import type { ScriptElement } from '@/types/script';
 import { Layout } from '@/components/ui/Layout';
 import { LogoutButton } from '@/components/ui/LogoutButton';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase/config/client';
+import { auth } from '@/lib/firebase/client/config/app';
 
 interface VoiceSample {
     name: string;
@@ -55,7 +55,7 @@ export default function UploadPage() {
 
         const loadVoiceSamples = async () => {
             try {
-                const data = await fetchAllVoiceSamples();
+                const data = await getAllVoiceSamples();
                 setVoiceSamples(data);
             } catch (err) {
                 console.error('Failed to load voice samples:', err);

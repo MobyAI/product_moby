@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { auth } from "@/lib/firebase/config/client";
+import { auth } from "@/lib/firebase/client/config/app";
 
 export type AuthUser = {
     uid: string;

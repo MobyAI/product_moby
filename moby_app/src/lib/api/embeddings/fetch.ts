@@ -1,5 +1,5 @@
 export async function fetchEmbedding(expectedLine: string): Promise<number[] | null> {
-    const res = await fetch("/api/embed", {
+    const res = await fetch("/api/embeddings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ expectedLine }),

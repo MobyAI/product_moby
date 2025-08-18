@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { verifySession } from "@/server/auth/verifySession";
+import { verifySession } from "@/lib/firebase/admin/auth/verifySession";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

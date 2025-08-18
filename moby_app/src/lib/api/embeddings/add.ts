@@ -1,6 +1,6 @@
-import { uploadEmbeddingBlob, fetchEmbeddingFromStorage } from '@/lib/api/dbFunctions/embeddings';
-import { getEmbeddingUrl, saveEmbeddingBlob } from '@/lib/firebase/embeddings';
-import { fetchEmbedding } from '@/lib/api/embed';
+// import { uploadEmbeddingBlob, fetchEmbeddingFromStorage } from '@/lib/api/dbFunctions/embeddings';
+import { getEmbeddingUrl, saveEmbeddingBlob } from '@/lib/firebase/client/embeddings';
+import { fetchEmbedding } from '@/lib/api/embeddings';
 import type { ScriptElement } from '@/types/script';
 
 export async function addEmbedding(

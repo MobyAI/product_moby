@@ -1,5 +1,5 @@
 import { useMemo, useRef } from 'react';
-import { updateScript } from '@/lib/firebase/scripts';
+import { updateScript } from '@/lib/firebase/client/scripts';
 import { set } from 'idb-keyval';
 import type { ScriptElement } from '@/types/script';
 

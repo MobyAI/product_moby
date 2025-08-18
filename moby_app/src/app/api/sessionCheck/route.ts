@@ -1,4 +1,4 @@
-import { verifySession } from "@/server/auth/verifySession";
+import { verifySession } from "@/lib/firebase/admin/auth/verifySession";
 
 export async function GET() {
     const user = await verifySession();

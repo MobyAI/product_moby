@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/Buttons";
 import { LogoutButton } from "@/components/ui/LogoutButton";
 import { useAuthUser } from '@/components/providers/UserProvider';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase/config/client';
+import { auth } from '@/lib/firebase/client/config/app';
 
 // export default function RehearsalRoomPage() {
 function RehearsalRoomContent() {
@@ -819,7 +819,7 @@ function RehearsalRoomContent() {
 										</div>
 										{/* Add loading progress bar */}
 										<div className="text-xs text-gray-400">
-											Hang tight! We're setting up the practice room for you 🙌
+											{"Hang tight! We're setting up the practice room for you 🙌"}
 										</div>
 									</div>
 								)}

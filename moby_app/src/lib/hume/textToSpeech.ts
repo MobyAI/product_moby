@@ -1,3 +1,4 @@
+import 'server-only'
 import { HumeClient } from "hume";
 
 const client = new HumeClient({ apiKey: process.env.HUME_API_KEY! });
