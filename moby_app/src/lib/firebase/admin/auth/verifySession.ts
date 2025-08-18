@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import 'server-only';
 import { cookies } from "next/headers";
 import { adminAuth } from "@/lib/firebase/admin/config/app";
