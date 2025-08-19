@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
 import { getAllScripts } from "@/lib/firebase/client/scripts";
 import { useAuthUser } from "@/components/providers/UserProvider";
 import { onAuthStateChanged } from "firebase/auth";
@@ -9,7 +8,7 @@ import { auth } from "@/lib/firebase/client/config/app";
 import type { ScriptDoc } from "@/types/script";
 import type { BasicError } from "@/types/error";
 import { toBasicError } from "@/types/error";
-import { Layout, LogoutButton } from '@/components/ui';
+import { Layout, LogoutButton } from "@/components/ui";
 
 function ScriptsListContent() {
     const { uid } = useAuthUser();
@@ -36,6 +35,7 @@ function ScriptsListContent() {
 
         try {
             const scripts = await getAllScripts();
+            console.log('all scripts: ', scripts);
             setAllScripts(scripts);
         } catch (e: unknown) {
             const err = toBasicError(e);
@@ -58,6 +58,10 @@ function ScriptsListContent() {
         <Layout>
             <LogoutButton />
 
+            {loading && (
+                <p className="text-gray-600">Getting your saved scripts for you!</p>
+            )}
+
             {!loading && error && (
                 <div className="rounded-md border border-red-200 bg-red-50 p-4 mb-4">
                     <p className="text-red-700 font-medium">Failed to load scripts</p>
@@ -70,6 +74,20 @@ function ScriptsListContent() {
                 </div>
             )}
 
+            {!loading && !error && allScripts.length === 0 && (
+                <p className="text-gray-600">No saved scripts yet. Upload one to get started!</p>
+            )}
+
+            {!loading && !error && allScripts.length > 0 && (
+                <ul className="space-y-2">
+                    {allScripts.map((s) => (
+                        <li key={s.ownerUid} className="rounded-md border p-3">
+                            <div className="font-medium">{s.ownerUid}</div>
+                            {/* render more fields as needed */}
+                        </li>
+                    ))}
+                </ul>
+            )}
         </Layout>
     )
 }
