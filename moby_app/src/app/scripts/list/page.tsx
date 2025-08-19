@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import { getAllScripts } from "@/lib/firebase/client/scripts";
 import { useAuthUser } from "@/components/providers/UserProvider";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/config/app";
-import type { ScriptDoc } from "@/types/script";
+import type { ScriptDocWithId } from "@/types/script";
 import type { BasicError } from "@/types/error";
 import { toBasicError } from "@/types/error";
 import { Layout, LogoutButton } from "@/components/ui";
@@ -16,8 +17,11 @@ function ScriptsListContent() {
 
     const [authReady, setAuthReady] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [hasFetched, setHasFetched] = useState(false);
     const [error, setError] = useState<BasicError | null>(null);
-    const [allScripts, setAllScripts] = useState<ScriptDoc[]>([]);
+    const [allScripts, setAllScripts] = useState<ScriptDocWithId[]>([]);
+
+    const router = useRouter();
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -44,6 +48,7 @@ function ScriptsListContent() {
             setAllScripts([]);
         } finally {
             setLoading(false);
+            setHasFetched(true);
         }
     };
 
@@ -74,16 +79,25 @@ function ScriptsListContent() {
                 </div>
             )}
 
-            {!loading && !error && allScripts.length === 0 && (
+            {!loading && !error && hasFetched && allScripts.length === 0 && (
                 <p className="text-gray-600">No saved scripts yet. Upload one to get started!</p>
             )}
 
             {!loading && !error && allScripts.length > 0 && (
                 <ul className="space-y-2">
                     {allScripts.map((s) => (
-                        <li key={s.ownerUid} className="rounded-md border p-3">
-                            <div className="font-medium">{s.ownerUid}</div>
-                            {/* render more fields as needed */}
+                        <li key={s.id} className="rounded-md border p-3">
+                            <div className="font-medium">{s.id}</div>
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    router.push(`/scripts/practice?scriptID=${s.id}`)
+                                }
+                                className="mt-2 inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-gray-50"
+                                aria-label={`Practice script ${s.id}`}
+                            >
+                                Practice
+                            </button>
                         </li>
                     ))}
                 </ul>
