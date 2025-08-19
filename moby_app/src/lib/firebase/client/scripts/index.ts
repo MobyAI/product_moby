@@ -17,14 +17,7 @@ import {
     type Timestamp,
     type FieldValue,
 } from 'firebase/firestore';
-import type { ScriptElement } from '@/types/script';
-
-export type ScriptDoc = {
-    script: ScriptElement[];
-    ownerUid: string;
-    createdAt: Timestamp | FieldValue | null;
-    updatedAt: Timestamp | FieldValue | null;
-};
+import type { ScriptElement, ScriptDoc } from '@/types/script';
 
 function userScriptsRefs() {
     const uid = requireUid();
