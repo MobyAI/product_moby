@@ -8,8 +8,7 @@ import { useRouter } from 'next/navigation';
 import { addScript } from '@/lib/firebase/client/scripts';
 import { getAllVoiceSamples } from '@/lib/firebase/client/tts';
 import type { ScriptElement } from '@/types/script';
-import { Layout } from '@/components/ui/Layout';
-import { LogoutButton } from '@/components/ui/LogoutButton';
+import { LogoutButton, Layout } from '@/components/ui';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client/config/app';
 

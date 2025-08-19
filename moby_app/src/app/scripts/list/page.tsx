@@ -9,8 +9,7 @@ import { auth } from "@/lib/firebase/client/config/app";
 import type { ScriptDoc } from "@/types/script";
 import type { BasicError } from "@/types/error";
 import { toBasicError } from "@/types/error";
-import { Layout } from '@/components/ui/Layout';
-import { LogoutButton } from '@/components/ui/LogoutButton';
+import { Layout, LogoutButton } from '@/components/ui';
 
 function ScriptsListContent() {
     const { uid } = useAuthUser();
@@ -62,20 +61,15 @@ function ScriptsListContent() {
             {!loading && error && (
                 <div className="rounded-md border border-red-200 bg-red-50 p-4 mb-4">
                     <p className="text-red-700 font-medium">Failed to load scripts</p>
-                    <p className="text-red-700/80 text-sm">
-                        {error.message} {error.status ? `(status ${error.status})` : ""}
-                    </p>
                     <button
                         onClick={loadScripts}
                         className="mt-3 inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-gray-50"
                     >
-                        Retry
+                        {"Retry 🔄"}
                     </button>
-                    {/* If you prefer hard refresh instead:
-              onClick={() => window.location.reload()} */}
                 </div>
             )}
-            
+
         </Layout>
     )
 }
