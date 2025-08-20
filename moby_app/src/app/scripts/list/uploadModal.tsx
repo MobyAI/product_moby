@@ -8,6 +8,7 @@ import { ScriptElement } from '@/types/script';
 import { getAllVoiceSamples } from '@/lib/firebase/client/tts';
 
 // Add proper error handling! Especially for api calls. What to do if failed?
+// What if stage has an error (like parsed script) and nothing is shown?
 
 interface ScriptUploadModalProps {
     isOpen: boolean;
@@ -52,7 +53,7 @@ export default function ScriptUploadModal({
     const [currentStage, setCurrentStage] = useState(0);
     const [extractedText, setExtractedText] = useState<ExtractedTextResult | null>(null);
     const [extractedRoles, setExtractedRoles] = useState<string[] | null>([]);
-    const [parsedScript, setParsedScript] = useState<ScriptElement | null>(null);
+    const [parsedScript, setParsedScript] = useState<ScriptElement[] | null>(null);
 
     // User Inputs State
     const [scriptName, setScriptName] = useState('');
@@ -70,7 +71,10 @@ export default function ScriptUploadModal({
     } | null>(null);
 
     // Processing State
-    const [processingStage, setProcessingStage] = useState('');
+    const [processingStage, setProcessingStage] = useState<{
+        message: string;
+        isComplete: boolean;
+    }>({ message: '', isComplete: false });
     const [isParsingInBackground, setIsParsingInBackground] = useState(false);
 
     // Animation State
@@ -87,7 +91,7 @@ export default function ScriptUploadModal({
         setRoleAssignments({});
         setVoiceAssignments({});
         setUserRole('');
-        setProcessingStage('');
+        setProcessingStage({ message: '', isComplete: false });
         setIsParsingInBackground(false);
         setIsTransitioning(false);
     };
@@ -143,7 +147,7 @@ export default function ScriptUploadModal({
 
         try {
             // Stage 1: Extract Text
-            setProcessingStage('Extracting text from document...');
+            setProcessingStage({ message: 'Extracting text from document...', isComplete: false });
             setCurrentStage(1);
 
             // TODO: Replace with actual API call
@@ -151,23 +155,23 @@ export default function ScriptUploadModal({
             setExtractedText(textResult);
 
             // Stage 2: Extract Roles (automatic)
-            setProcessingStage('Identifying characters...');
+            setProcessingStage({ message: 'Identifying characters...', isComplete: false });
             const rolesResult = await extractRolesFromText(textResult.text);
             setExtractedRoles(rolesResult);
             setCurrentStage(2); // Move to name input
 
             // Stage 3: Start parsing in background
             setIsParsingInBackground(true);
-            setProcessingStage('Parsing script structure...');
+            setProcessingStage({ message: 'Parsing script structure...', isComplete: false });
             parseScriptFromText(textResult.text).then(result => {
                 setParsedScript(result);
                 setIsParsingInBackground(false);
-                setProcessingStage('Script parsing complete');
+                setProcessingStage({ message: 'Script parsing complete', isComplete: true });
             });
 
         } catch (error) {
             console.error('Processing error:', error);
-            setProcessingStage('Error occurred');
+            setProcessingStage({ message: 'Error occurred', isComplete: false });
         }
     };
 
@@ -179,6 +183,16 @@ export default function ScriptUploadModal({
             setIsTransitioning(false);
         }, 300);
     };
+
+    // Auto advance from stage 5 to 6 when script is parsed
+    useEffect(() => {
+        if (currentStage === 5 && parsedScript) {
+            const timer = setTimeout(() => {
+                moveToNextStage();
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [currentStage, parsedScript]);
 
     // const moveToPreviousStage = () => {
     //     setIsTransitioning(true);
@@ -249,16 +263,23 @@ export default function ScriptUploadModal({
                 </div>
 
                 {/* Content Area with Progressive Inputs */}
-                <div className="p-6 overflow-y-auto max-h-[60vh]">
+                <div className={`p-6 overflow-y-auto ${currentStage === 6 ? 'max-h-[100vh]' : 'max-h-[60vh]'}`}>
                     <div className={`transition-all duration-300 ${isTransitioning ? 'opacity-0 transform translate-x-full' : 'opacity-100 transform translate-x-0'}`}>
 
                         {/* Stage 1: Loading */}
                         {currentStage === 1 && (
                             <div className="text-center py-12">
-                                <div className="w-16 h-16 mx-auto mb-4">
-                                    <div className="w-full h-full border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                                {/* Animated Logo/Icon */}
+                                <div className="w-24 h-24 mx-auto mb-6 relative">
+                                    <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full"></div>
+                                    <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin"></div>
+                                    <div className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin animate-reverse" style={{ animationDuration: '1.5s' }}></div>
                                 </div>
                                 <p className="text-gray-600">Processing your script...</p>
+                                {/* Fun Loading Messages */}
+                                <div className="mt-8 text-white/60 text-sm">
+                                    <RotatingTips tipSet="processing" />
+                                </div>
                             </div>
                         )}
 
@@ -393,31 +414,97 @@ export default function ScriptUploadModal({
                             <div className="text-center py-8">
                                 {!parsedScript ? (
                                     <>
-                                        <div className="w-16 h-16 mx-auto mb-4">
-                                            <div className="w-full h-full border-4 border-green-200 border-t-green-600 rounded-full animate-spin"></div>
+                                        <div className="w-24 h-24 mx-auto mb-6 relative">
+                                            <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full"></div>
+                                            <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin"></div>
+                                            <div className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin animate-reverse" style={{ animationDuration: '1.5s' }}></div>
                                         </div>
                                         <p className="text-gray-600 mb-2">Finalizing your script...</p>
                                         <p className="text-sm text-gray-500">This may take a moment</p>
+                                        {/* Fun Loading Messages */}
+                                        <div className="mt-8 text-white/60 text-sm">
+                                            <RotatingTips tipSet="finalizing" />
+                                        </div>
                                     </>
                                 ) : (
-                                    <>
+                                    <div className="text-center">
                                         <div className="w-16 h-16 mx-auto mb-4 text-green-500">
                                             <svg className="w-full h-full" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                             </svg>
                                         </div>
-                                        <h3 className="text-xl font-semibold mb-2">Script Ready!</h3>
-                                        <p className="text-gray-600 mb-6">Your script has been processed successfully</p>
-                                        <button
-                                            onClick={handleComplete}
-                                            disabled={!canComplete}
-                                            className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition"
-                                        >
-                                            Start Rehearsing
-                                        </button>
-                                    </>
+                                        <p className="text-gray-600">Script ready for preview!</p>
+                                    </div>
                                 )}
                             </div>
+                        )}
+
+                        {/* Stage 6: Preview and Edit Script */}
+                        {currentStage === 6 && (
+                            <InputStage
+                                title="Review Your Script"
+                                description="Review and make any final edits before rehearsing"
+                            >
+                                <div className="space-y-4">
+                                    {/* Script Preview Container */}
+                                    <div
+                                        className="border border-gray-200 rounded-lg p-4 overflow-y-auto bg-gray-50 flex-1"
+                                        style={{ maxHeight: 'calc(90vh - 400px)' }}
+                                    >
+                                        <div className="space-y-3">
+                                            {parsedScript && parsedScript.map((item: ScriptElement, index: number) => {
+                                                switch (item.type) {
+                                                    case 'scene':
+                                                        return (
+                                                            <div key={index} className="mb-6">
+                                                                <div className="text-center font-bold text-gray-800 uppercase tracking-wide text-left">
+                                                                    {item.text}
+                                                                </div>
+                                                            </div>
+                                                        );
+
+                                                    case 'line':
+                                                        return (
+                                                            <div key={index} className="mb-4 mx-8 lg:mx-16 px-16">
+                                                                <div className="flex flex-col">
+                                                                    {/* Centered character name */}
+                                                                    <span className="font-bold text-gray-900 uppercase tracking-wide text-black text-center mb-1">
+                                                                        {item.character}
+                                                                    </span>
+
+                                                                    {/* Dialogue text */}
+                                                                    <div className="text-gray-800 leading-relaxed pl-4 text-black">
+                                                                        {item.text}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+
+                                                    case 'direction':
+                                                        return (
+                                                            <div key={index} className="mb-4 mx-12 lg:mx-20">
+                                                                <div className="text-gray-600 italic text-left">
+                                                                    ({item.text})
+                                                                </div>
+                                                            </div>
+                                                        );
+
+                                                    default:
+                                                        return null;
+                                                }
+                                            })}
+                                        </div>
+                                    </div>
+                                    <div className="mt-auto bg-white sticky bottom-0">
+                                        <button
+                                            onClick={handleComplete}
+                                            className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium"
+                                        >
+                                            Save
+                                        </button>
+                                    </div>
+                                </div>
+                            </InputStage>
                         )}
                     </div>
                 </div>
@@ -425,7 +512,7 @@ export default function ScriptUploadModal({
                 {/* Progress Indicators */}
                 <div className="px-6 pb-4">
                     <div className="flex justify-center space-x-2">
-                        {[1, 2, 3, 4, 5].map(stage => (
+                        {[1, 2, 3, 4, 5, 6].map(stage => (
                             <div
                                 key={stage}
                                 className={`w-2 h-2 rounded-full transition-all ${currentStage >= stage ? 'bg-blue-600 w-8' : 'bg-gray-300'
@@ -440,22 +527,61 @@ export default function ScriptUploadModal({
 };
 
 // Sub-components
-const ProcessingIndicator = ({ stage }: { stage: string }) => {
+const ProcessingIndicator = ({ stage }: { stage: { message: string; isComplete: boolean } }) => {
     const [dots, setDots] = useState('');
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            setDots(prev => prev.length >= 3 ? '' : prev + '.');
-        }, 500);
-        return () => clearInterval(interval);
-    }, []);
+        if (!stage.isComplete) {
+            const interval = setInterval(() => {
+                setDots(prev => prev.length >= 3 ? '' : prev + '.');
+            }, 500);
+            return () => clearInterval(interval);
+        }
+    }, [stage.isComplete]);
 
-    if (!stage) return null;
+    if (!stage.message) return null;
 
     return (
         <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-            <span className="text-sm text-white/90">{stage}{dots}</span>
+            <div className={`w-2 h-2 rounded-full ${stage.isComplete ? 'bg-green-400' : 'bg-white animate-pulse'}`} />
+            <span className="text-sm text-white/90">
+                {stage.message}{stage.isComplete ? '!' : dots}
+            </span>
+        </div>
+    );
+};
+
+const RotatingTips = ({ tipSet }: { tipSet: 'processing' | 'finalizing' }) => {
+    const [currentTipIndex, setCurrentTipIndex] = useState(0);
+
+    const tips = {
+        processing: [
+            "💡 Tip: You can change your role later, but your script name and voice selections are final!",
+            "💡 Tip: Preview how voices sound before making a selection",
+            "💡 Tip: Select voices that match your character's personality",
+        ],
+        finalizing: [
+            "💡 Tip: Make sure you're in a quiet environment for the best speech recognition",
+            "💡 Tip: Practice makes perfect - rehearse each scene multiple times",
+            "🎬 Tip: Try different emotional approaches to find your character",
+            "🎬 Tip: Take notes on your character's motivations",
+            "🎯 Tip: Focus on one scene at a time for better results",
+        ]
+    };
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentTipIndex(prev => (prev + 1) % tips[tipSet].length);
+        }, 3000); // Change tip every 3 seconds
+
+        return () => clearInterval(interval);
+    }, [tipSet, tips[tipSet].length]);
+
+    return (
+        <div className="mt-6 min-h-[24px] flex items-center justify-center">
+            <p className="text-sm text-gray-500 animate-fadeIn">
+                {tips[tipSet][currentTipIndex]}
+            </p>
         </div>
     );
 };
