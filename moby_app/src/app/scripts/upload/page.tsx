@@ -5,10 +5,13 @@ import UploadForm from './uploadFile';
 import ParsedOutput from './parsedScript';
 import VoiceLibrary from './voiceLibrary';
 import { useRouter } from 'next/navigation';
-import { saveScript } from '@/lib/api/dbFunctions/scripts';
-import { fetchAllVoiceSamples } from '@/lib/api/dbFunctions/audio/tts';
+import { addScript } from '@/lib/firebase/client/scripts';
+import { getAllVoiceSamples } from '@/lib/firebase/client/tts';
 import type { ScriptElement } from '@/types/script';
 import { Layout } from '@/components/ui/Layout';
+import { LogoutButton } from '@/components/ui/LogoutButton';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase/client/config/app';
 
 interface VoiceSample {
     name: string;
@@ -25,19 +28,34 @@ type CharacterInfo = {
 }
 
 export default function UploadPage() {
+    const router = useRouter();
+
     const [loading, setLoading] = useState(false);
     const [parsedData, setParsedData] = useState<ScriptElement[] | null>(null);
     const [allCharacters, setAllCharacters] = useState<CharacterInfo[]>([]);
 
     // Voice library setup
+    const [authReady, setAuthReady] = useState(false);
     const [voiceSamples, setVoiceSamples] = useState<VoiceSample[] | null>(null);
     const [selectedCharacter, setSelectedCharacter] = useState<string | null>(null);
 
     // Load voice library audio
     useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setAuthReady(true);
+            }
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    useEffect(() => {
+        if (!authReady) return;
+
         const loadVoiceSamples = async () => {
             try {
-                const data = await fetchAllVoiceSamples();
+                const data = await getAllVoiceSamples();
                 setVoiceSamples(data);
             } catch (err) {
                 console.error('Failed to load voice samples:', err);
@@ -45,7 +63,7 @@ export default function UploadPage() {
         };
 
         loadVoiceSamples();
-    }, []);
+    }, [authReady]);
 
     // For testing
     useEffect(() => {
@@ -67,9 +85,6 @@ export default function UploadPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [allCharacters]);
 
-    const router = useRouter();
-    const userID = 'demo-user'; // Replace with real auth ID later
-
     async function handleParsedScript(script: ScriptElement[]) {
         try {
             setLoading(true);
@@ -88,9 +103,9 @@ export default function UploadPage() {
                 };
             });
 
-            const scriptID = await saveScript(enrichedScript, userID);
+            const scriptID = await addScript(enrichedScript);
             // router.push(`/rehearsal-room?userID=${userID}&scriptID=${scriptID}`);
-            router.push(`/scripts/practice?userID=${userID}&scriptID=${scriptID}`);
+            router.push(`/scripts/practice?scriptID=${scriptID}`);
         } catch (err) {
             console.error('Failed to save script:', err);
             alert('Failed to save script. Please try again.');
@@ -182,6 +197,7 @@ export default function UploadPage() {
 
     return (
         <Layout>
+            <LogoutButton />
             {parsedData ? (
                 <div className="h-screen bg-gray-50 flex overflow-hidden">
                     {/* Left sidebar for role select */}

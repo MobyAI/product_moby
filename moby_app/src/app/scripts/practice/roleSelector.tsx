@@ -1,5 +1,5 @@
 import { useMemo, useRef } from 'react';
-import { updateScriptByID } from '@/lib/api/dbFunctions/scripts';
+import { updateScript } from '@/lib/firebase/client/scripts';
 import { set } from 'idb-keyval';
 import type { ScriptElement } from '@/types/script';
 
@@ -36,7 +36,7 @@ export function RoleSelector({
             );
 
             try {
-                await updateScriptByID(userID, scriptID, sanitizedScript);
+                await updateScript(scriptID, sanitizedScript);
                 console.log('📤 Saved latest script to Firestore');
             } catch (err) {
                 console.error('❌ Failed to save script:', err);

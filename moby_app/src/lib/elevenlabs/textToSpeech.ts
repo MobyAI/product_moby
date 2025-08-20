@@ -1,3 +1,4 @@
+import 'server-only'
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 
 const elevenlabs = new ElevenLabsClient({

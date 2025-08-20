@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "dev:full": "concurrently \"npm run dev\" \"node stt-server/googleServer.js\" \"node stt-server/deepgramServer.js\""
+    "dev:full": "concurrently \"npm run dev\" \"node google-server/googleServer.js\" \"node deepgram-server/deepgramServer.js\"",
+    "dev:google": "concurrently \"npm run dev\" \"node google-server/googleServer.js\"",
+    "dev:deepgram": "concurrently \"npm run dev\" \"node deepgram-server/deepgramServer.js\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.56.0",
@@ -17,6 +19,7 @@
     "clsx": "^2.1.1",
     "dotenv": "^17.2.0",
     "firebase": "^11.10.0",
+    "firebase-admin": "^13.4.0",
     "fuzzball": "^2.2.2",
     "hume": "^0.12.1",
     "idb-keyval": "^6.2.2",

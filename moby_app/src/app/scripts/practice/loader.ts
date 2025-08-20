@@ -1,8 +1,8 @@
 import { get, set } from 'idb-keyval';
 import type { ScriptElement } from '@/types/script';
-import { addEmbedding } from '@/lib/api/embed';
+import { addEmbedding } from '@/lib/api/embeddings';
 import { addTTS, addTTSRegenerate } from '@/lib/api/tts';
-import { fetchScriptByID, updateScriptByID } from '@/lib/api/dbFunctions/scripts';
+import { getScript, updateScript } from '@/lib/firebase/client/scripts';
 import pLimit from 'p-limit';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -54,7 +54,7 @@ export const loadScript = async ({
             return cached;
         } else {
             setLoadStage('🌐 Fetching script from Firestore...');
-            const data = await fetchScriptByID(userID, scriptID);
+            const data = await getScript(scriptID);
             const script = data.script;
 
             // Attempt to cache
@@ -73,7 +73,7 @@ export const loadScript = async ({
             const end = performance.now();
             console.log(`⏱️ Script loaded from cache in ${(end - start).toFixed(2)} ms`);
 
-            setLoadStage('✅ Script ready!');
+            setLoadStage('📓 Script ready!');
 
             return script;
         }
@@ -137,6 +137,38 @@ export const hydrateScript = async ({
         )
         .map((element: ScriptElement) => element.index);
 
+    // Attempting to check if url is valid
+    // const unhydratedTTSLines: number[] = [];
+    // async function validateAudioUrl(url: string, index: number): Promise<boolean> {
+    //     return new Promise((resolve) => {
+    //         const audio = new Audio();
+
+    //         audio.onloadstart = () => {
+    //             console.log('audio check passed!', index);
+    //             resolve(true);
+    //         };  // Started loading = URL valid
+
+    //         audio.onerror = () => {
+    //             console.log('audio check failed...', index);
+    //             resolve(false);
+    //         };     // Failed = URL invalid
+
+    //         audio.src = url;
+    //     });
+    // }
+    // for (const element of script) {
+    //     if (element.type !== 'line') continue;
+
+    //     if (!element.ttsUrl || element.ttsUrl.length === 0) {
+    //         unhydratedTTSLines.push(element.index);
+    //         continue;
+    //     }
+
+    //     const isValid = await validateAudioUrl(element.ttsUrl, element.index);
+    //     if (!isValid) {
+    //         unhydratedTTSLines.push(element.index);
+    //     }
+    // }
 
     // Check if all embeddings are hydrated
     const unhydratedEmbeddingLines = script
@@ -304,7 +336,7 @@ export const hydrateScript = async ({
         setLoadStage('💾 Updating database...');
         const sanitizedScript = stripExpectedEmbeddings(withTTS);
         try {
-            await updateScriptByID(userID, scriptID, sanitizedScript);
+            await updateScript(scriptID, sanitizedScript);
         } catch (err) {
             console.warn('⚠️ Failed to save update to database:', err)
         }
@@ -312,7 +344,7 @@ export const hydrateScript = async ({
         const end = performance.now();
         console.log(`⏱️ Script hydrated in ${(end - start).toFixed(2)} ms`);
 
-        setLoadStage('✅ Script ready!');
+        setLoadStage('✅ Resources loaded!');
         setScript(withTTS);
     } catch (err) {
         // Display load error page
@@ -371,7 +403,7 @@ export const hydrateLine = async ({
         // Attempt to save update
         const sanitizedScript = stripExpectedEmbeddings(updatedScript);
         try {
-            await updateScriptByID(userID, scriptID, sanitizedScript);
+            await updateScript(scriptID, sanitizedScript);
         } catch (err) {
             console.warn('⚠️ Failed to save update to database:', err)
         }

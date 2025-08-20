@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo, Suspense } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGoogleSTT } from "@/lib/google/speechToText";
 import { useDeepgramSTT } from "@/lib/deepgram/speechToText";
@@ -8,16 +8,24 @@ import type { ScriptElement } from "@/types/script";
 import { loadScript, hydrateScript, hydrateLine } from './loader';
 import { RoleSelector } from './roleSelector';
 import EditableLine from './editableLine';
+import { OptimizedLineRenderer } from './lineRenderer';
 import { restoreSession, saveSession } from "./session";
 import { clear } from "idb-keyval";
 import LoadingScreen from "./LoadingScreen";
 import { Button } from "@/components/ui/Buttons";
+import { LogoutButton } from "@/components/ui/LogoutButton";
+import { useAuthUser } from '@/components/providers/UserProvider';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase/client/config/app';
 
 // export default function RehearsalRoomPage() {
 function RehearsalRoomContent() {
 	const searchParams = useSearchParams();
-	const userID = searchParams.get("userID");
 	const scriptID = searchParams.get("scriptID");
+
+	const { uid } = useAuthUser();
+	const userID = uid;
+
 	const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const currentLineRef = useRef<HTMLDivElement>(null);
 	const router = useRouter();
@@ -27,6 +35,7 @@ function RehearsalRoomContent() {
 	}
 
 	// Page setup
+	const [authReady, setAuthReady] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [loadStage, setLoadStage] = useState<string | null>(null);
 	const [script, setScript] = useState<ScriptElement[] | null>(null);
@@ -42,9 +51,11 @@ function RehearsalRoomContent() {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [isWaitingForUser, setIsWaitingForUser] = useState(false);
-	const [spokenWordMap, setSpokenWordMap] = useState<Record<number, number>>(
-		{}
-	);
+	// const [spokenWordMap, setSpokenWordMap] = useState<Record<number, number>>(
+	// 	{}
+	// );
+	const wordRefs = useRef<Map<number, HTMLSpanElement[]>>(new Map());
+	const matchedCountsRef = useRef<Map<number, number>>(new Map());
 
 	// Error handling
 	const [storageError, setStorageError] = useState(false);
@@ -61,7 +72,17 @@ function RehearsalRoomContent() {
 
 	// Load script and restore session
 	useEffect(() => {
-		if (!userID || !scriptID) return;
+		const unsubscribe = onAuthStateChanged(auth, (user) => {
+			if (user) {
+				setAuthReady(true);
+			}
+		});
+
+		return () => unsubscribe();
+	}, []);
+
+	useEffect(() => {
+		if (!userID || !scriptID || !authReady) return;
 
 		const init = async () => {
 			setLoading(true);
@@ -109,7 +130,7 @@ function RehearsalRoomContent() {
 		};
 
 		init();
-	}, [userID, scriptID]);
+	}, [userID, scriptID, authReady]);
 
 	// Auto-scroll to current line
 	useEffect(() => {
@@ -218,6 +239,7 @@ function RehearsalRoomContent() {
 
 	const onUpdateLine = async (updateLine: ScriptElement) => {
 		setEditingLineIndex(null);
+		setLoadStage('🚰 Rehydrating...');
 
 		if (!script) {
 			console.warn('❌ Tried to update line before script was loaded.');
@@ -258,6 +280,8 @@ function RehearsalRoomContent() {
 					scriptRef.current = next;
 					return next;
 				});
+
+				setLoadStage('✅ Line successfully updated!');
 			}
 		} catch (err) {
 			console.error(`❌ Failed to update line ${updateLine.index}:`, err);
@@ -355,6 +379,20 @@ function RehearsalRoomContent() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [current, isPlaying, isWaitingForUser]);
 
+	const refreshHighlightForLine = (index: number) => {
+		const spans = wordRefs.current.get(index);
+		const count = matchedCountsRef.current.get(index) ?? 0;
+
+		if (!spans) return;
+
+		spans.forEach((span, i) => {
+			span.className =
+				i < count
+					? "font-bold text-gray-900 transition-all duration-100"
+					: "text-gray-700 transition-all duration-100";
+		});
+	};
+
 	const autoAdvance = (delay = 1000) => {
 		if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
 
@@ -386,6 +424,13 @@ function RehearsalRoomContent() {
 		await initializeSTT();
 		const currentLine = script?.find((el) => el.index === currentIndex);
 		prepareUserLine(currentLine);
+
+		matchedCountsRef.current.set(currentIndex, 0);
+		const spans = wordRefs.current.get(currentIndex);
+		if (spans && spans.length) {
+			refreshHighlightForLine(currentIndex);
+		}
+
 		setIsPlaying(true);
 	};
 
@@ -417,11 +462,11 @@ function RehearsalRoomContent() {
 		setCurrentIndex((i) => {
 			const prevIndex = Math.max(i - 1, 0);
 			const prevLine = script?.find((el) => el.index === prevIndex);
-			setSpokenWordMap((prevMap) => {
-				const newMap = { ...prevMap };
-				delete newMap[prevIndex];
-				return newMap;
-			});
+
+			refreshHighlightForLine(prevIndex);
+			matchedCountsRef.current.delete(prevIndex);
+			wordRefs.current.delete(prevIndex);
+
 			prepareUserLine(prevLine);
 			return prevIndex;
 		});
@@ -432,8 +477,16 @@ function RehearsalRoomContent() {
 		setIsWaitingForUser(false);
 		cleanupSTT();
 		setCurrentIndex(0);
-		setSpokenWordMap({});
-		prepareUserLine(script?.find((el) => el.index === 0));
+
+		for (const index of matchedCountsRef.current.keys()) {
+			matchedCountsRef.current.set(index, 0);
+			refreshHighlightForLine(index);
+		}
+		matchedCountsRef.current.clear();
+		wordRefs.current.clear();
+
+		const firstLine = script?.find((el) => el.index === 0);
+		prepareUserLine(firstLine);
 	};
 
 	// NEW: Handle line click to jump to specific line
@@ -449,17 +502,21 @@ function RehearsalRoomContent() {
 			advanceTimeoutRef.current = null;
 		}
 
-		// Clear spoken word progress for lines after the clicked line
-		setSpokenWordMap((prevMap) => {
-			const newMap = { ...prevMap };
-			Object.keys(newMap).forEach(key => {
-				const keyIndex = parseInt(key);
-				if (keyIndex >= lineIndex) {
-					delete newMap[keyIndex];
+		// Remove match counts and span refs for lines after the jump
+		if (scriptRef.current) {
+			for (let i = lineIndex; i < scriptRef.current.length; i++) {
+				matchedCountsRef.current.delete(i);
+
+				const spans = wordRefs.current.get(i);
+				if (spans) {
+					for (const span of spans) {
+						span.className = "text-gray-700 transition-all duration-100";
+					}
 				}
-			});
-			return newMap;
-		});
+
+				wordRefs.current.delete(i);
+			}
+		}
 
 		// Jump to the clicked line
 		setCurrentIndex(lineIndex);
@@ -522,6 +579,22 @@ function RehearsalRoomContent() {
 		return provider === "google" ? google : deepgram;
 	}
 
+	const onProgressUpdate = useCallback((count: number) => {
+		if (current?.type === "line" && current.role === "user") {
+			matchedCountsRef.current.set(current.index, count);
+
+			const spans = wordRefs.current.get(current.index);
+			if (!spans) return;
+
+			for (let i = 0; i < spans.length; i++) {
+				spans[i].className =
+					i < count
+						? "font-bold text-gray-900 transition-all duration-100"
+						: "text-blue-900 font-medium transition-all duration-100";
+			}
+		}
+	}, [current?.index, current?.role, current?.type]);
+
 	const { initializeSTT, startSTT, pauseSTT, cleanupSTT, setCurrentLineText } =
 		useSTT({
 			provider: sttProvider,
@@ -532,11 +605,7 @@ function RehearsalRoomContent() {
 				console.log("⏱️ Timeout reached");
 				setIsWaitingForUser(false);
 			},
-			onProgressUpdate: (count) => {
-				if (current?.type === "line" && current.role === "user") {
-					setSpokenWordMap((prev) => ({ ...prev, [current.index]: count }));
-				}
-			},
+			onProgressUpdate,
 		});
 
 	// Clean up STT
@@ -651,32 +720,13 @@ function RehearsalRoomContent() {
 							hydrationStatus={ttsHydrationStatus[element.index]}
 						/>
 					) : (
-						<div className="pl-4 border-l-3 border-gray-300">
-							{element.role === "user" ? (
-								<div className="text-base leading-relaxed">
-									{element.text.split(/\s+/).map((word, i) => {
-										const matched = spokenWordMap[element.index] ?? 0;
-										return (
-											<span
-												key={i}
-												className={`${i < matched
-													? "font-bold text-gray-900"
-													: isCurrent && isWaitingForUser
-														? "text-blue-900 font-medium"
-														: "text-gray-700"
-													} transition-all duration-300`}
-											>
-												{word + " "}
-											</span>
-										);
-									})}
-								</div>
-							) : (
-								<p className="text-base leading-relaxed text-gray-700">
-									{element.text}
-								</p>
-							)}
-						</div>
+						<OptimizedLineRenderer
+							element={element}
+							isCurrent={isCurrent}
+							isWaitingForUser={isWaitingForUser}
+							spanRefMap={wordRefs.current}
+							matchedCount={matchedCountsRef.current.get(element.index) ?? 0}
+						/>
 					)}
 
 					{/* Edit button */}
@@ -723,14 +773,15 @@ function RehearsalRoomContent() {
 			) : (
 				<div className="min-h-screen flex relative" style={{ backgroundColor: '#1c1d1d' }}>
 					{/* Back to Scripts Button - Top Right Corner */}
-					{/* <div className="absolute top-4 right-4 z-10">
-						<Button
+					<div className="absolute top-4 right-4 z-10">
+						{/* <Button
 							onClick={goBackHome}
 							className="px-6 py-2 bg-blue hover:bg-gray-100 text-gray-800 rounded-lg shadow-sm transition-all duration-200 font-medium"
 						>
 							Upload a new script
-						</Button>
-					</div> */}
+						</Button> */}
+						<LogoutButton />
+					</div>
 
 					{/* Left Control Panel - Dark Theme */}
 					<div className="w-80 h-screen text-white shadow-xl flex flex-col" style={{ backgroundColor: '#1c1d1d' }}>
@@ -744,22 +795,34 @@ function RehearsalRoomContent() {
 							{/* Progress Section */}
 							<div className="mb-8">
 								<div className="text-sm text-gray-400 mb-2">Progress</div>
-								<div className="bg-gray-800 rounded-lg p-4">
-									<div className="text-xl font-bold mb-2">
-										{currentIndex + 1} / {script?.length || 0}
+								{isScriptFullyHydrated ? (
+									<div className="bg-gray-800 rounded-lg p-4">
+										<div className="text-xl font-bold mb-2">
+											{currentIndex + 1} / {script?.length || 0}
+										</div>
+										<div className="w-full bg-gray-700 rounded-full h-3 mb-2">
+											<div
+												className="bg-blue-500 h-3 rounded-full transition-all duration-500"
+												style={{
+													width: `${((currentIndex + 1) / (script?.length || 1)) * 100}%`,
+												}}
+											></div>
+										</div>
+										<div className="text-xs text-gray-400">
+											{Math.round(((currentIndex + 1) / (script?.length || 1)) * 100)}% complete
+										</div>
 									</div>
-									<div className="w-full bg-gray-700 rounded-full h-3 mb-2">
-										<div
-											className="bg-blue-500 h-3 rounded-full transition-all duration-500"
-											style={{
-												width: `${((currentIndex + 1) / (script?.length || 1)) * 100}%`,
-											}}
-										></div>
+								) : (
+									<div className="bg-gray-800 rounded-lg p-4">
+										<div className="text-lg font-bold mb-2">
+											{loadStage || 'Loading…'}
+										</div>
+										{/* Add loading progress bar */}
+										<div className="text-xs text-gray-400">
+											{"Hang tight! We're setting up the practice room for you 🙌"}
+										</div>
 									</div>
-									<div className="text-xs text-gray-400">
-										{Math.round(((currentIndex + 1) / (script?.length || 1)) * 100)}% complete
-									</div>
-								</div>
+								)}
 							</div>
 
 							{/* Current Status */}
