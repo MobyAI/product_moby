@@ -7,7 +7,7 @@ import { parseScriptFromText } from '@/lib/api/parse/parse';
 import { ScriptElement } from '@/types/script';
 import { getAllVoiceSamples } from '@/lib/firebase/client/tts';
 
-// Add proper error handling! Especially for api calls. What to do if failed?
+// Error handling! Especially for api calls. What to do if failed?
 // What if stage has an error (like parsed script) and nothing is shown?
 
 interface ScriptUploadModalProps {
@@ -43,6 +43,18 @@ interface RoleVoiceAssignmentProps {
     isLoading?: boolean;
 }
 
+interface ScriptRendererProps {
+    script: ScriptElement[] | null;
+    onScriptUpdate?: (updatedScript: ScriptElement[]) => void;
+    editable?: boolean;
+}
+
+interface EditableLineProps {
+    item: ScriptElement;
+    onUpdate: (updatedItem: ScriptElement) => void;
+    onClose: () => void;
+}
+
 export default function ScriptUploadModal({
     isOpen,
     onClose,
@@ -59,6 +71,7 @@ export default function ScriptUploadModal({
     const [scriptName, setScriptName] = useState('');
     const [roleAssignments, setRoleAssignments] = useState({});
     const [userRole, setUserRole] = useState('');
+    const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
     // Voice library state
     const [voiceSamples, setVoiceSamples] = useState<VoiceSample[] | null>(null);
@@ -91,13 +104,19 @@ export default function ScriptUploadModal({
         setRoleAssignments({});
         setVoiceAssignments({});
         setUserRole('');
+        setShowCloseConfirm(false);
         setProcessingStage({ message: '', isComplete: false });
         setIsParsingInBackground(false);
         setIsTransitioning(false);
     };
 
-    // Reset when modal closes
+    // Update handleClose to show confirmation
     const handleClose = () => {
+        setShowCloseConfirm(true);
+    };
+
+    const confirmClose = () => {
+        setShowCloseConfirm(false);
         resetModal();
         onClose();
     };
@@ -317,39 +336,47 @@ export default function ScriptUploadModal({
                         {currentStage === 3 && extractedRoles && extractedRoles.length > 0 && (
                             <InputStage
                                 title="Assign Voices"
-                                description={`Character ${Object.keys(voiceAssignments).length + 1} of ${extractedRoles.length}`}
+                                description={`Role ${Object.keys(voiceAssignments).length + 1} of ${extractedRoles.length}`}
                             >
-                                <RoleVoiceAssignment
-                                    key={extractedRoles[Object.keys(voiceAssignments).length]}
-                                    role={extractedRoles[Object.keys(voiceAssignments).length]}
-                                    voiceSamples={voiceSamples}
-                                    isLoading={voicesLoading}
-                                    onAssign={(assignment) => {
-                                        const currentRole = extractedRoles[Object.keys(voiceAssignments).length];
-                                        // Show confirmation modal instead of immediately assigning
-                                        setConfirmationModal({
-                                            isOpen: true,
-                                            role: currentRole,
-                                            assignment
-                                        });
-                                    }}
-                                />
+                                {/* Only show the assignment UI if there are roles left to assign */}
+                                {Object.keys(voiceAssignments).length < extractedRoles.length ? (
+                                    <RoleVoiceAssignment
+                                        key={extractedRoles[Object.keys(voiceAssignments).length]}
+                                        role={extractedRoles[Object.keys(voiceAssignments).length]}
+                                        voiceSamples={voiceSamples}
+                                        isLoading={voicesLoading}
+                                        onAssign={(assignment) => {
+                                            const currentRole = extractedRoles[Object.keys(voiceAssignments).length];
+                                            setConfirmationModal({
+                                                isOpen: true,
+                                                role: currentRole,
+                                                assignment
+                                            });
+                                        }}
+                                    />
+                                ) : (
+                                    // Show a loading state while transitioning
+                                    <div className="w-24 h-24 mx-auto mb-6 relative">
+                                        <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full"></div>
+                                        <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin"></div>
+                                        <div className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin animate-reverse" style={{ animationDuration: '1.5s' }}></div>
+                                    </div>
+                                )}
 
                                 {/* Confirmation Modal */}
                                 {confirmationModal?.isOpen && (
                                     <div className="fixed inset-0 z-60 flex items-center justify-center pointer-events-none">
-                                        <div className="relative bg-white rounded-lg p-6 max-w-sm mx-4 shadow-2xl pointer-events-auto">
-                                            <h3 className="text-lg font-semibold mb-3">Confirm Voice Selection</h3>
-                                            <p className="text-gray-600 mb-4">
-                                                Assign <span className="font-medium">{confirmationModal.assignment.voiceName}</span> to <span className="font-medium">{confirmationModal.role}</span>?
+                                        <div className="relative bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 rounded-lg p-6 max-w-sm mx-4 shadow-2xl pointer-events-auto">
+                                            <p className="text-white/90 mb-4">
+                                                Assign <span className="font-medium text-white">{confirmationModal.assignment.voiceName}</span> to <span className="font-medium text-white">{confirmationModal.role}</span>?
                                             </p>
-                                            <p className="text-sm text-red-500 mb-6">
-                                                This selection cannot be changed later.
+                                            <p className="text-sm text-yellow-300 mb-6">
+                                                ⚠️ This selection cannot be changed later.
                                             </p>
                                             <div className="flex gap-3">
                                                 <button
                                                     onClick={() => setConfirmationModal(null)}
-                                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                                                    className="flex-1 px-4 py-2 border border-white/30 text-white rounded-lg hover:bg-white/10 transition"
                                                 >
                                                     Cancel
                                                 </button>
@@ -369,7 +396,7 @@ export default function ScriptUploadModal({
                                                             }
                                                         }, 300);
                                                     }}
-                                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                                                    className="flex-1 px-4 py-2 bg-white text-blue-900 font-medium rounded-lg hover:bg-white/90 transition"
                                                 >
                                                     Confirm
                                                 </button>
@@ -443,7 +470,7 @@ export default function ScriptUploadModal({
                         {currentStage === 6 && (
                             <InputStage
                                 title="Review Your Script"
-                                description="Review and make any final edits before rehearsing"
+                                description="Make any final line edits before rehearsing"
                             >
                                 <div className="space-y-4">
                                     {/* Script Preview Container */}
@@ -451,56 +478,18 @@ export default function ScriptUploadModal({
                                         className="border border-gray-200 rounded-lg p-4 overflow-y-auto bg-gray-50 flex-1"
                                         style={{ maxHeight: 'calc(90vh - 400px)' }}
                                     >
-                                        <div className="space-y-3">
-                                            {parsedScript && parsedScript.map((item: ScriptElement, index: number) => {
-                                                switch (item.type) {
-                                                    case 'scene':
-                                                        return (
-                                                            <div key={index} className="mb-6">
-                                                                <div className="text-center font-bold text-gray-800 uppercase tracking-wide text-left">
-                                                                    {item.text}
-                                                                </div>
-                                                            </div>
-                                                        );
-
-                                                    case 'line':
-                                                        return (
-                                                            <div key={index} className="mb-4 mx-8 lg:mx-16 px-16">
-                                                                <div className="flex flex-col">
-                                                                    {/* Centered character name */}
-                                                                    <span className="font-bold text-gray-900 uppercase tracking-wide text-black text-center mb-1">
-                                                                        {item.character}
-                                                                    </span>
-
-                                                                    {/* Dialogue text */}
-                                                                    <div className="text-gray-800 leading-relaxed pl-4 text-black">
-                                                                        {item.text}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        );
-
-                                                    case 'direction':
-                                                        return (
-                                                            <div key={index} className="mb-4 mx-12 lg:mx-20">
-                                                                <div className="text-gray-600 italic text-left">
-                                                                    ({item.text})
-                                                                </div>
-                                                            </div>
-                                                        );
-
-                                                    default:
-                                                        return null;
-                                                }
-                                            })}
-                                        </div>
+                                        <ScriptRenderer
+                                            script={parsedScript}
+                                            onScriptUpdate={(updatedScript) => setParsedScript(updatedScript)}
+                                            editable={true}
+                                        />
                                     </div>
                                     <div className="mt-auto bg-white sticky bottom-0">
                                         <button
                                             onClick={handleComplete}
                                             className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium"
                                         >
-                                            Save
+                                            Confirm & Save
                                         </button>
                                     </div>
                                 </div>
@@ -521,6 +510,33 @@ export default function ScriptUploadModal({
                         ))}
                     </div>
                 </div>
+
+                {/* Close Confirmation Modal */}
+                {showCloseConfirm && (
+                    <div className="fixed inset-0 z-70 flex items-center justify-center">
+                        <div className="absolute inset-0 bg-black/50" />
+                        <div className="relative bg-white rounded-lg p-6 max-w-sm mx-4 shadow-2xl">
+                            <h3 className="text-lg font-semibold mb-3">Confirm Close</h3>
+                            <p className="text-gray-600 mb-6">
+                                Are you sure you want to close? All your progress will be lost.
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowCloseConfirm(false)}
+                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmClose}
+                                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -579,7 +595,7 @@ const RotatingTips = ({ tipSet }: { tipSet: 'processing' | 'finalizing' }) => {
 
     return (
         <div className="mt-6 min-h-[24px] flex items-center justify-center">
-            <p className="text-sm text-gray-500 animate-fadeIn">
+            <p className="text-md text-gray-500 animate-fadeIn">
                 {tips[tipSet][currentTipIndex]}
             </p>
         </div>
@@ -707,6 +723,161 @@ const RoleVoiceAssignment = ({
                     </div>
                 ))}
             </div>
+        </div>
+    );
+};
+
+const EditableLine = ({ item, onUpdate, onClose }: EditableLineProps) => {
+    const [draftText, setDraftText] = useState(item.text);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+        }
+    }, [draftText]);
+
+    const handleSave = () => {
+        onUpdate({ ...item, text: draftText });
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleSave();
+        } else if (e.key === 'Escape') {
+            onClose();
+        }
+    };
+
+    return (
+        <div className="pl-4 border-l-4 border-blue-400">
+            <div className="text-base leading-relaxed">
+                <textarea
+                    ref={textareaRef}
+                    className="w-full border rounded p-2 text-base leading-relaxed text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={draftText}
+                    onChange={(e) => setDraftText(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    onBlur={onClose}
+                    autoFocus
+                    placeholder="Enter text..."
+                />
+                <div className="mt-2 flex gap-2">
+                    <button
+                        className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                        onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleSave();
+                        }}
+                    >
+                        Save
+                    </button>
+                    <button
+                        className="px-3 py-1 text-sm bg-gray-400 text-white rounded hover:bg-gray-500 transition"
+                        onMouseDown={(e) => {
+                            e.preventDefault();
+                            onClose();
+                        }}
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const ScriptRenderer = ({
+    script,
+    onScriptUpdate,
+    editable = false
+}: ScriptRendererProps) => {
+    // Error handling if there is no parsed script here
+    if (!script) return null;
+
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+    const handleLineClick = (index: number, item: ScriptElement) => {
+        if (editable && item.type === 'line') {
+            setEditingIndex(index);
+        }
+    };
+
+    const handleUpdate = (index: number, updatedItem: ScriptElement) => {
+        const updatedScript = [...script];
+        updatedScript[index] = updatedItem;
+        onScriptUpdate?.(updatedScript);
+        setEditingIndex(null);
+    };
+
+    const renderScriptElement = (item: ScriptElement, index: number) => {
+        const isEditing = editingIndex === index;
+
+        switch (item.type) {
+            case 'scene':
+                return (
+                    <div key={index} className="mb-6">
+                        <div className="font-bold text-gray-800 uppercase tracking-wide">
+                            {item.text}
+                        </div>
+                    </div>
+                );
+
+            case 'line':
+                if (isEditing) {
+                    return (
+                        <div key={index} className="mb-4 mx-4 sm:mx-8 lg:mx-12">
+                            <div className="flex flex-col">
+                                <span className="font-bold text-gray-900 uppercase tracking-wide text-center mb-2">
+                                    {item.character}
+                                </span>
+                                <EditableLine
+                                    item={item}
+                                    onUpdate={(updatedItem) => handleUpdate(index, updatedItem)}
+                                    onClose={() => setEditingIndex(null)}
+                                />
+                            </div>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div
+                        key={index}
+                        className={`mb-4 mx-4 sm:mx-8 lg:mx-12 ${editable ? 'cursor-pointer hover:bg-gray-100 border-gray-200 hover:shadow-sm rounded-lg p-2 transition-colors' : ''
+                            }`}
+                        onClick={() => handleLineClick(index, item)}
+                    >
+                        <div className="flex flex-col">
+                            <span className="font-bold text-gray-900 uppercase tracking-wide text-center mb-1">
+                                {item.character}
+                            </span>
+                            <div className="text-gray-800 leading-relaxed pl-4 relative group">
+                                {item.text}
+                            </div>
+                        </div>
+                    </div>
+                );
+
+            case 'direction':
+                return (
+                    <div key={index} className="mb-4 mx-6 sm:mx-12 lg:mx-16">
+                        <div className="text-gray-600 italic">
+                            ({item.text})
+                        </div>
+                    </div>
+                );
+
+            default:
+                return null;
+        }
+    };
+
+    return (
+        <div className="space-y-3">
+            {script.map((item, index) => renderScriptElement(item, index))}
         </div>
     );
 };
