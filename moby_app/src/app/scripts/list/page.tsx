@@ -6,22 +6,43 @@ import { getAllScripts } from "@/lib/firebase/client/scripts";
 import { useAuthUser } from "@/components/providers/UserProvider";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/config/app";
-import type { ScriptDocWithId } from "@/types/script";
+import type { ScriptElement, ScriptDocWithId } from "@/types/script";
 import type { BasicError } from "@/types/error";
 import { toBasicError } from "@/types/error";
 import { Layout, LogoutButton } from "@/components/ui";
+import ScriptUploadModal from "./uploadModal";
 
 function ScriptsListContent() {
     const { uid } = useAuthUser();
     const userID = uid;
+    const router = useRouter();
 
+    // List page setup
     const [authReady, setAuthReady] = useState(false);
     const [loading, setLoading] = useState(false);
     const [hasFetched, setHasFetched] = useState(false);
     const [error, setError] = useState<BasicError | null>(null);
     const [allScripts, setAllScripts] = useState<ScriptDocWithId[]>([]);
 
-    const router = useRouter();
+    // Script upload modal
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+    const handleFileSelect = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.pdf,.docx';
+        input.onchange = (e: Event) => {
+            if (!e.target) return;
+            const target = e.target as HTMLInputElement;
+            const file = target.files?.[0];
+            if (file) {
+                setSelectedFile(file);
+                setIsModalOpen(true);
+            }
+        };
+        input.click();
+    };
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -79,6 +100,27 @@ function ScriptsListContent() {
                 </div>
             )}
 
+            {!loading && !error && hasFetched && (
+                <>
+                    <button
+                        onClick={handleFileSelect}
+                        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
+                    >
+                        Add Script
+                    </button>
+
+                    <ScriptUploadModal
+                        isOpen={isModalOpen}
+                        onClose={() => setIsModalOpen(false)}
+                        file={selectedFile}
+                        onComplete={(data: ScriptElement) => {
+                            console.log('Script data:', data);
+                            setIsModalOpen(false);
+                        }}
+                    />
+                </>
+            )}
+
             {!loading && !error && hasFetched && allScripts.length === 0 && (
                 <p className="text-gray-600">No saved scripts yet. Upload one to get started!</p>
             )}
@@ -96,7 +138,7 @@ function ScriptsListContent() {
                                 className="mt-2 inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-gray-50"
                                 aria-label={`Practice script ${s.id}`}
                             >
-                                Practice
+                                Practice!
                             </button>
                         </li>
                     ))}

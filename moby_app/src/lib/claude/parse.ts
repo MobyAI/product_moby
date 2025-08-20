@@ -5,7 +5,6 @@ const anthropic = new Anthropic({
     apiKey: process.env.CLAUDE_API_KEY,
 });
 
-// Catch scene directions inside lines and separate them from the line?
 export async function parseWithClaude(scriptText: string) {
     const prompt = `
 Parse the script into JSON. Each object must include:
@@ -60,7 +59,7 @@ Script:
     const response = await anthropic.messages.create({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 10000,
-        temperature: 0.3,
+        temperature: 0,
         system: 'You are a script parsing assistant for actors.',
         messages: [
             { role: 'user', content: prompt }
