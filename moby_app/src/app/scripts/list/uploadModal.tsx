@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { addScript } from '@/lib/firebase/client/scripts';
 import { auth } from '@/lib/firebase/client/config/app';
 import { onAuthStateChanged } from 'firebase/auth';
 import { extractScriptText } from '@/lib/api/parse/extract';
@@ -14,7 +15,7 @@ interface ScriptUploadModalProps {
     isOpen: boolean;
     onClose: () => void;
     file: File | null;
-    onComplete: (data: ScriptElement) => void;
+    onComplete: () => void;
 }
 
 interface ExtractedTextResult {
@@ -66,12 +67,13 @@ export default function ScriptUploadModal({
     const [extractedText, setExtractedText] = useState<ExtractedTextResult | null>(null);
     const [extractedRoles, setExtractedRoles] = useState<string[] | null>([]);
     const [parsedScript, setParsedScript] = useState<ScriptElement[] | null>(null);
+    const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+    const [scriptSaving, setScriptSaving] = useState(false);
 
     // User Inputs State
     const [scriptName, setScriptName] = useState('');
-    const [roleAssignments, setRoleAssignments] = useState({});
+    const [roleAssignments, setRoleAssignments] = useState<Record<string, 'user' | 'scene-partner'>>({});
     const [userRole, setUserRole] = useState('');
-    const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
     // Voice library state
     const [voiceSamples, setVoiceSamples] = useState<VoiceSample[] | null>(null);
@@ -208,7 +210,7 @@ export default function ScriptUploadModal({
         if (currentStage === 5 && parsedScript) {
             const timer = setTimeout(() => {
                 moveToNextStage();
-            }, 2000);
+            }, 1500);
             return () => clearTimeout(timer);
         }
     }, [currentStage, parsedScript]);
@@ -230,24 +232,68 @@ export default function ScriptUploadModal({
             parsedScript;
     };
 
-    const handleComplete = () => {
-        console.log('handle complete: ', parsedScript);
-        console.log('script name: ', scriptName);
-        console.log('voice assignments: ', voiceAssignments);
-        console.log('role assignments: ', roleAssignments);
-        console.log('user role: ', userRole);
+    const handleComplete = async () => {
+        if (!parsedScript || !scriptName) {
+            console.error('Missing script data or name');
+            return;
+        }
 
-        // const combinedData = {
-        //     scriptName,
-        //     extractedText,
-        //     extractedRoles,
-        //     parsedScript,
-        //     roleAssignments,
-        //     voiceAssignments,
-        //     userRole
-        // };
-        // onComplete(combinedData);
-        // resetModal();
+        // Show loading state while saving
+        setProcessingStage({ message: 'Saving script...', isComplete: false });
+        setScriptSaving(true);
+
+        try {
+            // Create normalized lookup maps and enrich the script
+            const normalizedVoiceAssignments: Record<string, VoiceAssignment> = {};
+            const normalizedRoleAssignments: Record<string, string> = {};
+
+            Object.entries(voiceAssignments).forEach(([character, assignment]) => {
+                normalizedVoiceAssignments[character.toLowerCase().trim()] = assignment;
+            });
+
+            Object.entries(roleAssignments).forEach(([character, role]) => {
+                normalizedRoleAssignments[character.toLowerCase().trim()] = role;
+            });
+
+            const enrichedScript = parsedScript.map((item) => {
+                if (item.type === 'line' && item.character) {
+                    const normalizedCharacter = item.character.toLowerCase().trim();
+                    const voiceAssignment = normalizedVoiceAssignments[normalizedCharacter];
+                    const roleAssignment = normalizedRoleAssignments[normalizedCharacter];
+
+                    return {
+                        ...item,
+                        voiceId: voiceAssignment?.voiceId || '',
+                        voiceName: voiceAssignment?.voiceName || '',
+                        role: (roleAssignment as 'user' | 'scene-partner') || 'scene-partner'
+                    };
+                }
+                return item;
+            });
+
+            // Save to Firestore
+            await addScript(scriptName, enrichedScript);
+            console.log('Script saved:', scriptName);
+
+            setProcessingStage({ message: 'Script saved successfully!', isComplete: true });
+
+            // Pass the script ID and enriched data to parent
+            onComplete();
+
+            // Small delay to show success message
+            setTimeout(() => {
+                resetModal();
+            }, 500);
+
+        } catch (error) {
+            console.error('Failed to save script:', error);
+            setProcessingStage({ message: 'Failed to save script', isComplete: true });
+
+            // Show error to user
+            alert('Failed to save script. Please try again.');
+        } finally {
+            setScriptSaving(false);
+        }
     };
 
     if (!isOpen) return null;
@@ -295,6 +341,7 @@ export default function ScriptUploadModal({
                                     <div className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin animate-reverse" style={{ animationDuration: '1.5s' }}></div>
                                 </div>
                                 <p className="text-gray-600">Processing your script...</p>
+
                                 {/* Fun Loading Messages */}
                                 <div className="mt-8 text-white/60 text-sm">
                                     <RotatingTips tipSet="processing" />
@@ -420,7 +467,7 @@ export default function ScriptUploadModal({
                                             onClick={() => {
                                                 setUserRole(role);
                                                 // Automatically assign other roles
-                                                const assignments: Record<string, string> = {};
+                                                const assignments: Record<string, 'user' | 'scene-partner'> = {};
                                                 extractedRoles.forEach(r => {
                                                     assignments[r] = r === role ? 'user' : 'scene-partner';
                                                 });
@@ -448,6 +495,7 @@ export default function ScriptUploadModal({
                                         </div>
                                         <p className="text-gray-600 mb-2">Finalizing your script...</p>
                                         <p className="text-sm text-gray-500">This may take a moment</p>
+
                                         {/* Fun Loading Messages */}
                                         <div className="mt-8 text-white/60 text-sm">
                                             <RotatingTips tipSet="finalizing" />
@@ -467,34 +515,51 @@ export default function ScriptUploadModal({
                         )}
 
                         {/* Stage 6: Preview and Edit Script */}
-                        {currentStage === 6 && (
-                            <InputStage
-                                title="Review Your Script"
-                                description="Make any final line edits before rehearsing"
-                            >
-                                <div className="space-y-4">
-                                    {/* Script Preview Container */}
-                                    <div
-                                        className="border border-gray-200 rounded-lg p-4 overflow-y-auto bg-gray-50 flex-1"
-                                        style={{ maxHeight: 'calc(90vh - 400px)' }}
-                                    >
-                                        <ScriptRenderer
-                                            script={parsedScript}
-                                            onScriptUpdate={(updatedScript) => setParsedScript(updatedScript)}
-                                            editable={true}
-                                        />
-                                    </div>
-                                    <div className="mt-auto bg-white sticky bottom-0">
-                                        <button
-                                            onClick={handleComplete}
-                                            className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium"
+                        {currentStage === 6 && !scriptSaving ?
+                            (
+                                <InputStage
+                                    title="Review Your Script"
+                                    description="Make any final line edits before rehearsing"
+                                >
+                                    <div className="space-y-4">
+                                        {/* Script Preview Container */}
+                                        <div
+                                            className="border border-gray-200 rounded-lg p-4 overflow-y-auto bg-gray-50 flex-1"
+                                            style={{ maxHeight: 'calc(90vh - 400px)' }}
                                         >
-                                            Confirm & Save
-                                        </button>
+                                            <ScriptRenderer
+                                                script={parsedScript}
+                                                onScriptUpdate={(updatedScript) => setParsedScript(updatedScript)}
+                                                editable={true}
+                                            />
+                                        </div>
+                                        <div className="mt-auto bg-white sticky bottom-0">
+                                            <button
+                                                onClick={handleComplete}
+                                                disabled={!canComplete}
+                                                className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium"
+                                            >
+                                                Confirm & Save
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            </InputStage>
-                        )}
+                                </InputStage>
+                            ) : (
+                                <>
+                                    <div className="w-24 h-24 mx-auto mb-6 relative">
+                                        <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full"></div>
+                                        <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin"></div>
+                                        <div className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin animate-reverse" style={{ animationDuration: '1.5s' }}></div>
+                                    </div>
+                                    <p className="text-gray-600 mb-2">Saving your script...</p>
+
+                                    {/* Fun Loading Messages */}
+                                    <div className="mt-8 text-white/60 text-sm">
+                                        <RotatingTips tipSet="finalizing" />
+                                    </div>
+                                </>
+                            )
+                        }
                     </div>
                 </div>
 
@@ -568,13 +633,13 @@ const ProcessingIndicator = ({ stage }: { stage: { message: string; isComplete: 
 };
 
 const RotatingTips = ({ tipSet }: { tipSet: 'processing' | 'finalizing' }) => {
-    const [currentTipIndex, setCurrentTipIndex] = useState(0);
 
     const tips = {
         processing: [
             "💡 Tip: You can change your role later, but your script name and voice selections are final!",
             "💡 Tip: Preview how voices sound before making a selection",
             "💡 Tip: Select voices that match your character's personality",
+            "⏳ Sorry, this is taking longer than expected...",
         ],
         finalizing: [
             "💡 Tip: Make sure you're in a quiet environment for the best speech recognition",
@@ -585,13 +650,43 @@ const RotatingTips = ({ tipSet }: { tipSet: 'processing' | 'finalizing' }) => {
         ]
     };
 
+    const [currentTipIndex, setCurrentTipIndex] = useState(() =>
+        tipSet === "finalizing"
+            ? Math.floor(Math.random() * tips.finalizing.length)
+            : 0
+    );
+
     useEffect(() => {
+        // Reset start index when tipSet changes
+        setCurrentTipIndex(
+            tipSet === "finalizing"
+                ? Math.floor(Math.random() * tips.finalizing.length)
+                : 0
+        );
+    }, [tipSet]);
+
+    useEffect(() => {
+        const isProcessing = tipSet === "processing";
+        const isAtLastTip =
+            isProcessing && currentTipIndex === tips.processing.length - 1;
+
+        // If we're at the final processing tip, stop rotating
+        if (isAtLastTip) return;
+
         const interval = setInterval(() => {
-            setCurrentTipIndex(prev => (prev + 1) % tips[tipSet].length);
-        }, 3000); // Change tip every 3 seconds
+            setCurrentTipIndex((prev) => {
+                if (isProcessing) {
+                    // Stop at last index
+                    return Math.min(prev + 1, tips.processing.length - 1);
+                } else {
+                    // Keep cycling for finalizing
+                    return (prev + 1) % tips.finalizing.length;
+                }
+            });
+        }, 3000);
 
         return () => clearInterval(interval);
-    }, [tipSet, tips[tipSet].length]);
+    }, [tipSet, currentTipIndex, tips.processing.length, tips.finalizing.length]);
 
     return (
         <div className="mt-6 min-h-[24px] flex items-center justify-center">
@@ -805,7 +900,66 @@ const ScriptRenderer = ({
         }
     };
 
+    const COMMON_WORDS = new Set([
+        'the', 'a', 'an', 'to', 'and', 'but', 'or', 'for', 'at', 'by', 'in', 'on', 'of', 'then', 'so'
+    ]);
+
+    function extractLineEndKeywords(text: string): string[] {
+        const words = text
+            .toLowerCase()
+            .replace(/[^a-z0-9\s']/gi, '')
+            .split(/\s+/)
+            .filter(Boolean);
+
+        // Filter out common words and duplicates
+        const meaningful = words
+            .filter((word, index) => {
+                return (
+                    !COMMON_WORDS.has(word) &&
+                    words.lastIndexOf(word) === index
+                );
+            });
+
+        const selected = meaningful.slice(-2);
+
+        if (selected.length === 2) return selected;
+
+        if (selected.length === 1) {
+            const keyword = selected[0];
+
+            // Find index of that keyword in original `words` array
+            const idx = words.lastIndexOf(keyword);
+
+            let neighbor = '';
+
+            // Prefer word before
+            if (idx > 0) {
+                neighbor = words[idx - 1];
+            } else {
+                neighbor = words[idx + 1];
+            }
+
+            // Only return the keyword and neighbor if neighbor exists
+            return neighbor ? [neighbor, keyword] : [keyword];
+        }
+
+        if (selected.length === 0 && words.length > 0) {
+            return words.slice(-2);
+        }
+
+        return [];
+    }
+
     const handleUpdate = (index: number, updatedItem: ScriptElement) => {
+        // Add lineEndKeywords if it's a line element
+        if (updatedItem.type === 'line' && typeof updatedItem.text === 'string') {
+            updatedItem = {
+                ...updatedItem,
+                lineEndKeywords: extractLineEndKeywords(updatedItem.text)
+            };
+            console.log('Updated keywords:', updatedItem.lineEndKeywords);
+        }
+
         const updatedScript = [...script];
         updatedScript[index] = updatedItem;
         onScriptUpdate?.(updatedScript);

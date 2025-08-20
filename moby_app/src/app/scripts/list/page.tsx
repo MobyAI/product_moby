@@ -113,10 +113,7 @@ function ScriptsListContent() {
                         isOpen={isModalOpen}
                         onClose={() => setIsModalOpen(false)}
                         file={selectedFile}
-                        onComplete={(data: ScriptElement) => {
-                            console.log('Script data:', data);
-                            setIsModalOpen(false);
-                        }}
+                        onComplete={loadScripts}
                     />
                 </>
             )}

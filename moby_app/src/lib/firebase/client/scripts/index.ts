@@ -26,9 +26,10 @@ function userScriptsRefs() {
     return { uid, coll, doc: d };
 }
 
-export async function addScript(script: ScriptElement[]) {
+export async function addScript(name: string, script: ScriptElement[]) {
     const { uid, coll } = userScriptsRefs();
     const ref = await addDoc(coll, {
+        name,
         script,
         ownerUid: uid,
         createdAt: serverTimestamp(),

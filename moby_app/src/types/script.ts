@@ -3,6 +3,7 @@ import type { Timestamp, FieldValue } from "firebase/firestore";
 export type FireDate = Timestamp | FieldValue | null;
 
 export type ScriptDoc = {
+    name: string;
     script: ScriptElement[];
     ownerUid: string;
     createdAt: Timestamp | FieldValue | null;
