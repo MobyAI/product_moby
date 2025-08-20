@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { getAllScripts } from "@/lib/firebase/client/scripts";
+import { getAllScripts, deleteScript } from "@/lib/firebase/client/scripts";
 import { useAuthUser } from "@/components/providers/UserProvider";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/config/app";
@@ -11,6 +11,7 @@ import type { BasicError } from "@/types/error";
 import { toBasicError } from "@/types/error";
 import { Layout, LogoutButton } from "@/components/ui";
 import ScriptUploadModal from "./uploadModal";
+import { ConfirmModal } from "@/components/ui";
 
 function ScriptsListContent() {
     const { uid } = useAuthUser();
@@ -28,6 +29,10 @@ function ScriptsListContent() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+    // Delete confirm modal
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [scriptToDelete, setScriptToDelete] = useState<string | null>(null);
+
     const handleFileSelect = () => {
         const input = document.createElement('input');
         input.type = 'file';
@@ -42,6 +47,25 @@ function ScriptsListContent() {
             }
         };
         input.click();
+    };
+
+    const handleDeleteClick = (id: string) => {
+        setScriptToDelete(id);
+        setConfirmOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!scriptToDelete) return;
+        try {
+            await deleteScript(scriptToDelete);
+            loadScripts();
+        } catch (err) {
+            console.error("Failed to delete script:", err);
+            alert("Failed to delete script. Please try again.");
+        } finally {
+            setConfirmOpen(false);
+            setScriptToDelete(null);
+        }
     };
 
     useEffect(() => {
@@ -82,8 +106,6 @@ function ScriptsListContent() {
 
     return (
         <Layout>
-            <LogoutButton />
-
             {loading && (
                 <p className="text-gray-600">Getting your saved scripts for you!</p>
             )}
@@ -102,12 +124,18 @@ function ScriptsListContent() {
 
             {!loading && !error && hasFetched && (
                 <>
-                    <button
-                        onClick={handleFileSelect}
-                        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
-                    >
-                        Add Script
-                    </button>
+                    <div className="flex items-center justify-between mb-6">
+                        {/* Left side */}
+                        <LogoutButton />
+
+                        {/* Right side */}
+                        <button
+                            onClick={handleFileSelect}
+                            className="bg-blue-400 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+                        >
+                            Add Script
+                        </button>
+                    </div>
 
                     <ScriptUploadModal
                         isOpen={isModalOpen}
@@ -123,23 +151,52 @@ function ScriptsListContent() {
             )}
 
             {!loading && !error && allScripts.length > 0 && (
-                <ul className="space-y-2">
-                    {allScripts.map((s) => (
-                        <li key={s.id} className="rounded-md border p-3">
-                            <div className="font-medium">{s.id}</div>
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    router.push(`/scripts/practice?scriptID=${s.id}`)
-                                }
-                                className="mt-2 inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-gray-50"
-                                aria-label={`Practice script ${s.id}`}
+                <div className="mt-8">
+                    <h2 className="text-lg font-semibold mb-4 text-center">Your Scripts</h2>
+                    <ul className="space-y-3">
+                        {allScripts.map((s) => (
+                            <li
+                                key={s.id}
+                                className="mx-auto flex w-full max-w-md items-center justify-between rounded-md border bg-white p-4 shadow-sm"
                             >
-                                Practice!
-                            </button>
-                        </li>
-                    ))}
-                </ul>
+                                <div className="font-medium">{s.name}</div>
+                                <div className="space-x-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeleteClick(s.id)}
+                                        className="inline-flex items-center rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
+                                    >
+                                        Delete
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            router.push(`/scripts/practice?scriptID=${s.id}`)
+                                        }
+                                        className="inline-flex items-center rounded-md border border-blue-300 px-3 py-1.5 text-sm text-blue-600 font-medium hover:bg-blue-100 transition"
+                                        aria-label={`Practice script ${s.name}`}
+                                    >
+                                        Practice!
+                                    </button>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+
+                    {/* Delete confirmation modal */}
+                    <ConfirmModal
+                        isOpen={confirmOpen}
+                        title="Delete Script"
+                        message="Are you sure you want to delete this script? This action cannot be undone."
+                        confirmLabel="Delete"
+                        cancelLabel="Cancel"
+                        onConfirm={confirmDelete}
+                        onCancel={() => {
+                            setConfirmOpen(false);
+                            setScriptToDelete(null);
+                        }}
+                    />
+                </div>
             )}
         </Layout>
     )

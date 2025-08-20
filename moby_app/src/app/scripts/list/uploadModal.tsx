@@ -7,6 +7,7 @@ import { extractRolesFromText } from '@/lib/api/parse/roles';
 import { parseScriptFromText } from '@/lib/api/parse/parse';
 import { ScriptElement } from '@/types/script';
 import { getAllVoiceSamples } from '@/lib/firebase/client/tts';
+import { ConfirmModal } from "@/components/ui";
 
 // Error handling! Especially for api calls. What to do if failed?
 // What if stage has an error (like parsed script) and nothing is shown?
@@ -273,17 +274,11 @@ export default function ScriptUploadModal({
 
             // Save to Firestore
             await addScript(scriptName, enrichedScript);
-            console.log('Script saved:', scriptName);
 
             setProcessingStage({ message: 'Script saved successfully!', isComplete: true });
-
-            // Pass the script ID and enriched data to parent
             onComplete();
-
-            // Small delay to show success message
-            setTimeout(() => {
-                resetModal();
-            }, 500);
+            resetModal();
+            onClose();
 
         } catch (error) {
             console.error('Failed to save script:', error);
@@ -303,7 +298,7 @@ export default function ScriptUploadModal({
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                onClick={handleClose}
+                onClick={scriptSaving ? undefined : handleClose}
             />
 
             {/* Modal */}
@@ -320,6 +315,7 @@ export default function ScriptUploadModal({
                         </div>
                         <button
                             onClick={handleClose}
+                            disabled={scriptSaving}
                             className="text-white/80 hover:text-white text-2xl"
                         >
                             ×
@@ -515,51 +511,53 @@ export default function ScriptUploadModal({
                         )}
 
                         {/* Stage 6: Preview and Edit Script */}
-                        {currentStage === 6 && !scriptSaving ?
-                            (
-                                <InputStage
-                                    title="Review Your Script"
-                                    description="Make any final line edits before rehearsing"
-                                >
-                                    <div className="space-y-4">
-                                        {/* Script Preview Container */}
-                                        <div
-                                            className="border border-gray-200 rounded-lg p-4 overflow-y-auto bg-gray-50 flex-1"
-                                            style={{ maxHeight: 'calc(90vh - 400px)' }}
-                                        >
+                        {currentStage === 6 && (
+                            <InputStage
+                                title="Review Your Script"
+                                description="Make any final line edits before rehearsing"
+                            >
+                                <div className="space-y-4">
+                                    {/* Script Preview Container OR Saving UI */}
+                                    <div
+                                        className="border border-gray-200 rounded-lg p-4 bg-gray-50 flex-1 overflow-y-auto"
+                                        style={{ maxHeight: 'calc(90vh - 400px)' }}
+                                    >
+                                        {scriptSaving ? (
+                                            <div
+                                                className="w-24 h-24 mx-auto mb-6 relative"
+                                                role="status"
+                                                aria-busy="true"
+                                                aria-live="polite"
+                                            >
+                                                <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full" />
+                                                <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin" />
+                                                <div
+                                                    className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin animate-reverse"
+                                                    style={{ animationDuration: '1.5s' }}
+                                                />
+                                            </div>
+                                        ) : (
                                             <ScriptRenderer
                                                 script={parsedScript}
                                                 onScriptUpdate={(updatedScript) => setParsedScript(updatedScript)}
                                                 editable={true}
                                             />
-                                        </div>
-                                        <div className="mt-auto bg-white sticky bottom-0">
-                                            <button
-                                                onClick={handleComplete}
-                                                disabled={!canComplete}
-                                                className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium"
-                                            >
-                                                Confirm & Save
-                                            </button>
-                                        </div>
+                                        )}
                                     </div>
-                                </InputStage>
-                            ) : (
-                                <>
-                                    <div className="w-24 h-24 mx-auto mb-6 relative">
-                                        <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full"></div>
-                                        <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin"></div>
-                                        <div className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin animate-reverse" style={{ animationDuration: '1.5s' }}></div>
-                                    </div>
-                                    <p className="text-gray-600 mb-2">Saving your script...</p>
 
-                                    {/* Fun Loading Messages */}
-                                    <div className="mt-8 text-white/60 text-sm">
-                                        <RotatingTips tipSet="finalizing" />
+                                    {/* Sticky action */}
+                                    <div className="mt-auto bg-white sticky bottom-0">
+                                        <button
+                                            onClick={handleComplete}
+                                            disabled={!canComplete || scriptSaving}
+                                            className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                                        >
+                                            {scriptSaving ? 'Saving…' : 'Confirm & Save'}
+                                        </button>
                                     </div>
-                                </>
-                            )
-                        }
+                                </div>
+                            </InputStage>
+                        )}
                     </div>
                 </div>
 
@@ -577,31 +575,15 @@ export default function ScriptUploadModal({
                 </div>
 
                 {/* Close Confirmation Modal */}
-                {showCloseConfirm && (
-                    <div className="fixed inset-0 z-70 flex items-center justify-center">
-                        <div className="absolute inset-0 bg-black/50" />
-                        <div className="relative bg-white rounded-lg p-6 max-w-sm mx-4 shadow-2xl">
-                            <h3 className="text-lg font-semibold mb-3">Confirm Close</h3>
-                            <p className="text-gray-600 mb-6">
-                                Are you sure you want to close? All your progress will be lost.
-                            </p>
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => setShowCloseConfirm(false)}
-                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={confirmClose}
-                                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                                >
-                                    Close
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <ConfirmModal
+                    isOpen={showCloseConfirm}
+                    title="Confirm Close"
+                    message="Are you sure you want to close? All your progress will be lost."
+                    confirmLabel="Close"
+                    cancelLabel="Cancel"
+                    onConfirm={confirmClose}
+                    onCancel={() => setShowCloseConfirm(false)}
+                />
             </div>
         </div>
     );
