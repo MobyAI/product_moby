@@ -29,8 +29,6 @@ export async function POST(req: Request) {
 
         const res = NextResponse.json({ success: true, message: "Session set" });
 
-        console.log('response: ', res);
-
         res.cookies.set("__session", sessionCookie, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
@@ -38,6 +36,8 @@ export async function POST(req: Request) {
             path: "/",
             maxAge: expiresIn / 1000,
         });
+
+        console.log('response: ', res);
 
         // const cookieStore = await cookies();
         // cookieStore.set("__session", sessionCookie, {
