@@ -6,7 +6,7 @@ import { getAllScripts, deleteScript } from "@/lib/firebase/client/scripts";
 import { useAuthUser } from "@/components/providers/UserProvider";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/config/app";
-import type { ScriptElement, ScriptDocWithId } from "@/types/script";
+import type { ScriptDocWithId } from "@/types/script";
 import type { BasicError } from "@/types/error";
 import { toBasicError } from "@/types/error";
 import { Layout, LogoutButton } from "@/components/ui";
@@ -183,7 +183,7 @@ function ScriptsListContent() {
                         ))}
                     </ul>
 
-                    {/* Delete confirmation modal */}
+                    {/* Delete Confirmation Modal */}
                     <ConfirmModal
                         isOpen={confirmOpen}
                         title="Delete Script"
