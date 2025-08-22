@@ -45,7 +45,7 @@ function isStringArray(x: unknown): x is string[] {
 }
 
 function normalizeRolesField(data: unknown): string[] | null {
-    let roles: unknown = (data as any)?.roles;
+    let roles: unknown = (data as Record<string, unknown> | null)?.roles;
 
     // Back-compat: if an older handler returns a JSON string
     if (typeof roles === "string") {

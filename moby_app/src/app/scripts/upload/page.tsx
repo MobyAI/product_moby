@@ -102,7 +102,7 @@ export default function UploadPage() {
                 };
             });
 
-            const scriptID = await addScript(enrichedScript);
+            const scriptID = await addScript("Untitled Script", enrichedScript);
             // router.push(`/rehearsal-room?userID=${userID}&scriptID=${scriptID}`);
             router.push(`/scripts/practice?scriptID=${scriptID}`);
         } catch (err) {

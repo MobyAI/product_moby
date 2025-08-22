@@ -65,6 +65,7 @@ export default function ScriptUploadModal({
 }: ScriptUploadModalProps) {
     // Core State
     const [currentStage, setCurrentStage] = useState(0);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [extractedText, setExtractedText] = useState<ExtractedTextResult | null>(null);
     const [extractedRoles, setExtractedRoles] = useState<string[] | null>([]);
     const [parsedScript, setParsedScript] = useState<ScriptElement[] | null>(null);
@@ -92,6 +93,7 @@ export default function ScriptUploadModal({
         message: string;
         isComplete: boolean;
     }>({ message: '', isComplete: false });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [isParsingInBackground, setIsParsingInBackground] = useState(false);
 
     // Animation State
@@ -150,6 +152,7 @@ export default function ScriptUploadModal({
         if (file) {
             startProcessing();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, file]);
 
     // Separate the voice loading function
@@ -700,6 +703,7 @@ const RotatingTips = ({ tipSet }: { tipSet: 'processing' | 'finalizing' }) => {
                 ? Math.floor(Math.random() * tips.finalizing.length)
                 : 0
         );
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tipSet]);
 
     useEffect(() => {
@@ -945,10 +949,10 @@ const ScriptRenderer = ({
     onScriptUpdate,
     editable = false
 }: ScriptRendererProps) => {
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
     // Error handling if there is no parsed script here
     if (!script) return null;
-
-    const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
     const handleLineClick = (index: number, item: ScriptElement) => {
         if (editable && item.type === 'line') {

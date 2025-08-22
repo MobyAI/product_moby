@@ -101,7 +101,6 @@ function ScriptsListContent() {
         if (!userID || !authReady) return;
 
         loadScripts();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [authReady, userID]);
 
     return (

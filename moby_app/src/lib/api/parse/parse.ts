@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export async function parseScriptFromText(
     text: string
 ): Promise<any | null> {
@@ -53,7 +54,6 @@ function normalizeParsedArray(data: unknown): any | null {
         try {
             parsed = JSON.parse(parsed);
         } catch (err) {
-            const s = parsed;
             console.error("Failed to parse `parsed` JSON:", err);
             return null;
         }
@@ -65,8 +65,6 @@ function normalizeParsedArray(data: unknown): any | null {
     // Fallback: some handlers might return the array directly (no `parsed` key)
     if (isObjectArray(data)) return data;
 
-    console.error("Invalid `parsed` payload (expected array of objects)", {
-        sample: Array.isArray(parsed) ? parsed.slice(0, 3) : parsed,
-    });
+    console.error("Invalid `parsed` payload (expected array of objects)");
     return null;
 }

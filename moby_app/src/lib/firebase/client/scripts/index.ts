@@ -14,8 +14,6 @@ import {
     orderBy,
     type CollectionReference,
     type DocumentReference,
-    type Timestamp,
-    type FieldValue,
 } from 'firebase/firestore';
 import type { ScriptElement, ScriptDoc } from '@/types/script';
 

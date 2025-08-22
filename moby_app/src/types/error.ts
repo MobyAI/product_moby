@@ -8,6 +8,7 @@ export type BasicError = {
 export function toBasicError(e: unknown): BasicError {
     if (e instanceof Error) {
         const be: BasicError = { message: e.message, name: e.name };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const anyE = e as any;
         if (typeof anyE?.status === "number") be.status = anyE.status;
         if (anyE?.code != null) be.code = String(anyE.code);
