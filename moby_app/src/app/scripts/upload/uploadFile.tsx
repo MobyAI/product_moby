@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react';
-import { Layout } from '@/components/ui/Layout';
+import { Layout } from '@/components/ui';
 import { parseScriptFile } from '@/lib/api/parse';
 import { ScriptElement } from '@/types/script';
 import LoadingScreen from '../practice/LoadingScreen';
