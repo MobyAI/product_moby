@@ -1,3 +1,19 @@
+import type { Timestamp, FieldValue } from "firebase/firestore";
+
+export type FireDate = Timestamp | FieldValue | null;
+
+export type ScriptDoc = {
+    name: string;
+    script: ScriptElement[];
+    ownerUid: string;
+    createdAt: Timestamp | FieldValue | null;
+    updatedAt: Timestamp | FieldValue | null;
+};
+
+export type WithId<T> = T & { id: string };
+
+export type ScriptDocWithId = WithId<ScriptDoc>;
+
 export type ScriptElement = {
     index: number;
     type: 'scene' | 'line' | 'direction';

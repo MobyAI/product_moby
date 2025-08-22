@@ -8,8 +8,7 @@ import { useRouter } from 'next/navigation';
 import { addScript } from '@/lib/firebase/client/scripts';
 import { getAllVoiceSamples } from '@/lib/firebase/client/tts';
 import type { ScriptElement } from '@/types/script';
-import { Layout } from '@/components/ui/Layout';
-import { LogoutButton } from '@/components/ui/LogoutButton';
+import { LogoutButton, Layout } from '@/components/ui';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client/config/app';
 
@@ -103,7 +102,7 @@ export default function UploadPage() {
                 };
             });
 
-            const scriptID = await addScript(enrichedScript);
+            const scriptID = await addScript("Untitled Script", enrichedScript);
             // router.push(`/rehearsal-room?userID=${userID}&scriptID=${scriptID}`);
             router.push(`/scripts/practice?scriptID=${scriptID}`);
         } catch (err) {

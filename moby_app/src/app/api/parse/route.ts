@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { extractTextFromPDF } from '@/lib/extract/pdf';
 import { extractTextFromDOCX } from '@/lib/extract/docx';
 import { parseWithClaude } from '@/lib/claude/parse';
+// import { getRolesWithClaude } from '@/lib/claude/extractRoles';
 
 // export async function POST() {
 //     return new Response(JSON.stringify({ message: "Temporarily disabled" }), {
@@ -13,6 +14,8 @@ import { parseWithClaude } from '@/lib/claude/parse';
 // }
 
 export async function POST(req: NextRequest) {
+    const t0 = performance.now();
+
     const formData = await req.formData();
     const file = formData.get('file') as File;
 
@@ -44,8 +47,10 @@ export async function POST(req: NextRequest) {
 
         // const response = await parseWithGPT(text);
         const response = await parseWithClaude(text);
+        // const response = await getRolesWithClaude(text);
 
         console.log('parsed script: ', response);
+        console.log(`✅ done | total ${Math.round(performance.now() - t0)}ms`);
 
         return NextResponse.json({ parsed: response });
     } catch (error) {
