@@ -423,11 +423,11 @@ export default function AuditionManager() {
                                 {selectedFiles.length > 0 && (
                                     <div className="mt-4 space-y-2">
                                         {selectedFiles.map((file, index) => {
-                                            const IconComponent = getFileIcon(file.name);
+                                            // const IconComponent = getFileIcon(file.name);
                                             return (
                                                 <div key={index} className="bg-white p-3 rounded-lg shadow-sm border flex items-center justify-between">
                                                     <div className="flex items-center gap-3">
-                                                        <IconComponent className="w-5 h-5 text-indigo-500" />
+                                                        {/* <IconComponent className="w-5 h-5 text-indigo-500" /> */}
                                                         <span className="text-sm font-medium text-gray-700">{file.name}</span>
                                                     </div>
                                                     <button
@@ -435,7 +435,7 @@ export default function AuditionManager() {
                                                         onClick={() => removeFile(index)}
                                                         className="p-1 rounded hover:bg-red-50 hover:text-red-500 transition-colors duration-200"
                                                     >
-                                                        <X className="w-4 h-4" />
+                                                        {/* <X className="w-4 h-4" /> */}
                                                     </button>
                                                 </div>
                                             );
