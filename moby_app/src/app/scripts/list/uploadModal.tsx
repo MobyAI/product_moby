@@ -75,6 +75,7 @@ export default function ScriptUploadModal({
     const [scriptName, setScriptName] = useState('');
     const [roleAssignments, setRoleAssignments] = useState<Record<string, 'user' | 'scene-partner'>>({});
     const [userRole, setUserRole] = useState('');
+    const [missingCharacters, setMissingCharacters] = useState<string[]>([]);
 
     // Voice library state
     const [voiceSamples, setVoiceSamples] = useState<VoiceSample[] | null>(null);
@@ -206,20 +207,6 @@ export default function ScriptUploadModal({
         }, 300);
     };
 
-    // Auto advance from stage 3 to 4 when voices are assigned
-    useEffect(() => {
-        if (currentStage === 3 && extractedRoles) {
-            const unassignedRoles = extractedRoles.filter(
-                role => !Object.keys(voiceAssignments).includes(role)
-            );
-
-            if (unassignedRoles.length === 0 && extractedRoles.length > 0) {
-                // All roles assigned, move to next stage
-                moveToNextStage();
-            }
-        }
-    }, [currentStage, extractedRoles, voiceAssignments]);
-
     // Auto advance from stage 5 to 6 when script is parsed
     useEffect(() => {
         if (currentStage === 5 && parsedScript) {
@@ -227,44 +214,30 @@ export default function ScriptUploadModal({
             const scriptCharacters = new Set<string>();
             parsedScript.forEach(item => {
                 if (item.type === 'line' && item.character) {
-                    scriptCharacters.add(item.character.toLowerCase().trim());
+                    const normalized = item.character.toLowerCase().trim();
+                    if (!scriptCharacters.has(normalized)) {
+                        scriptCharacters.add(item.character); // Keep original casing
+                    }
                 }
             });
 
-            // Check if all script characters have voice assignments
-            const normalizedExtractedRoles = new Set(
-                extractedRoles?.map(role => role.toLowerCase().trim()) || []
+            // Find characters without voice assignments
+            const charactersArray = Array.from(scriptCharacters);
+            const missing = charactersArray.filter(
+                char => !Object.keys(voiceAssignments).some(
+                    assigned => assigned.toLowerCase().trim() === char.toLowerCase().trim()
+                )
             );
 
-            const missingCharacters = Array.from(scriptCharacters).filter(
-                char => !normalizedExtractedRoles.has(char)
-            );
+            setMissingCharacters(missing);
 
-            if (missingCharacters.length > 0) {
-                console.log('Found missing characters:', missingCharacters);
-                // Add missing characters to extractedRoles
-                const denormalizedMissing = parsedScript
-                    .filter(item =>
-                        item.type === 'line' &&
-                        item.character &&
-                        missingCharacters.includes(item.character.toLowerCase().trim())
-                    )
-                    .map(item => item.character!)
-                    .filter((char, index, self) => self.indexOf(char) === index); // Remove duplicates
-
-                setExtractedRoles(prev => [...(prev || []), ...denormalizedMissing]);
-
-                // Go back to voice assignment stage
-                setCurrentStage(3);
-            } else {
-                // All characters have assignments, proceed to preview
-                const timer = setTimeout(() => {
-                    moveToNextStage();
-                }, 2000);
+            // Auto-advance if no missing characters
+            if (missing.length === 0) {
+                const timer = setTimeout(() => moveToNextStage(), 1500);
                 return () => clearTimeout(timer);
             }
         }
-    }, [currentStage, parsedScript, extractedRoles, voiceAssignments]);
+    }, [currentStage, parsedScript, voiceAssignments]);
 
     // Check if can proceed to completion
     const canComplete = () => {
@@ -346,7 +319,7 @@ export default function ScriptUploadModal({
             {/* Modal */}
             <div
                 ref={modalRef}
-                className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
+                className={`relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden ${currentStage === 6 ? 'h-[95vh]' : 'max-h-[90vh]'}`}
             >
                 {/* Header with Loading Progress */}
                 <div className="bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 p-6 text-white">
@@ -366,7 +339,11 @@ export default function ScriptUploadModal({
                 </div>
 
                 {/* Content Area with Progressive Inputs */}
-                <div className={`p-6 overflow-y-auto ${currentStage === 6 ? 'max-h-[100vh]' : 'max-h-[60vh]'}`}>
+                <div className={
+                    currentStage === 6
+                        ? 'flex flex-col h-[calc(90vh-100px)]'
+                        : 'p-6 overflow-y-auto max-h-[60vh]'
+                }>
                     <div className={`transition-all duration-300 ${isTransitioning ? 'opacity-0 transform translate-x-full' : 'opacity-100 transform translate-x-0'}`}>
 
                         {/* Stage 1: Loading */}
@@ -420,36 +397,27 @@ export default function ScriptUploadModal({
                         {/* Stage 3: Assign Voices */}
                         {currentStage === 3 && extractedRoles && extractedRoles.length > 0 && (
                             (() => {
-                                // Find the first unassigned role
-                                const unassignedRoles = extractedRoles.filter(
-                                    role => !Object.keys(voiceAssignments).includes(role)
+                                // Get the current index based on how many voices have been assigned
+                                const currentIndex = Object.keys(voiceAssignments).length;
+
+                                // Check if we've assigned all roles
+                                if (currentIndex >= extractedRoles.length) return (
+                                    <div className="text-center">
+                                        <div className="w-16 h-16 mx-auto mb-4 text-green-500">
+                                            <svg className="w-full h-full" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <p className="text-gray-600">Voices assigned to all roles!</p>
+                                    </div>
                                 );
 
-                                if (unassignedRoles.length === 0) {
-                                    // Show loading while transitioning
-                                    return (
-                                        <div className="text-center">
-                                            <div className="w-16 h-16 mx-auto mb-4 text-green-500">
-                                                <svg className="w-full h-full" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                                </svg>
-                                            </div>
-                                            <p className="text-gray-600">Voices assigned to all roles! Moving on...</p>
-                                        </div>
-                                    );
-                                }
-
-                                const currentRole = unassignedRoles[0];
-                                const currentIndex = extractedRoles.indexOf(currentRole) + 1;
+                                const currentRole = extractedRoles[currentIndex];
 
                                 return (
                                     <InputStage
                                         title="Assign Voices"
-                                        description={
-                                            unassignedRoles.length === extractedRoles.length
-                                                ? `Character ${currentIndex} of ${extractedRoles.length}`
-                                                : `⚠️ New character found! Assigning voice for: ${currentRole}`
-                                        }
+                                        description={`Character ${currentIndex + 1} of ${extractedRoles.length}`}
                                     >
                                         <RoleVoiceAssignment
                                             key={currentRole}
@@ -464,20 +432,6 @@ export default function ScriptUploadModal({
                                                 });
                                             }}
                                         />
-
-                                        {/* Show progress with already assigned roles */}
-                                        {Object.keys(voiceAssignments).length > 0 && (
-                                            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                                                <p className="text-xs text-gray-600 mb-2">Already assigned:</p>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {Object.entries(voiceAssignments).map(([char, voice]) => (
-                                                        <span key={char} className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">
-                                                            {char}: {voice.voiceName}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
 
                                         {/* Confirmation Modal */}
                                         {confirmationModal?.isOpen && (
@@ -504,7 +458,12 @@ export default function ScriptUploadModal({
                                                                     [confirmationModal.role]: confirmationModal.assignment
                                                                 }));
                                                                 setConfirmationModal(null);
-                                                                // The useEffect will handle moving to next stage when all are assigned
+
+                                                                // Check if this was the last role
+                                                                if (currentIndex + 1 >= extractedRoles.length) {
+                                                                    // Auto-advance after last role
+                                                                    setTimeout(() => moveToNextStage(), 500);
+                                                                }
                                                             }}
                                                             className="flex-1 px-4 py-2 bg-white text-blue-900 font-medium rounded-lg hover:bg-white/90 transition"
                                                         >
@@ -552,6 +511,7 @@ export default function ScriptUploadModal({
                         {currentStage === 5 && (
                             <div className="text-center py-8">
                                 {!parsedScript ? (
+                                    // Loading state - waiting for script to parse
                                     <>
                                         <div className="w-24 h-24 mx-auto mb-6 relative">
                                             <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full"></div>
@@ -560,74 +520,100 @@ export default function ScriptUploadModal({
                                         </div>
                                         <p className="text-gray-600 mb-2">Finalizing your script...</p>
                                         <p className="text-sm text-gray-500">This may take a moment</p>
-
-                                        {/* Fun Loading Messages */}
                                         <div className="mt-8 text-white/60 text-sm">
                                             <RotatingTips tipSet="finalizing" />
                                         </div>
                                     </>
+                                ) : missingCharacters.length > 0 ? (
+                                    // Show voice assignment for missing characters
+                                    <InputStage
+                                        title="Additional Characters Found"
+                                        description={`We found ${missingCharacters.length} more character${missingCharacters.length > 1 ? 's' : ''} in your script`}
+                                    >
+                                        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                            <p className="text-sm text-yellow-800">
+                                                ⚠️ Assigning voice for: <span className="font-semibold">{missingCharacters[0]}</span>
+                                            </p>
+                                            <p className="text-xs text-yellow-700 mt-1">
+                                                {missingCharacters.length - 1} more character{missingCharacters.length - 1 !== 1 ? 's' : ''} remaining
+                                            </p>
+                                        </div>
+
+                                        <RoleVoiceAssignment
+                                            key={missingCharacters[0]}
+                                            role={missingCharacters[0]}
+                                            voiceSamples={voiceSamples}
+                                            isLoading={voicesLoading}
+                                            onAssign={(assignment) => {
+                                                // Assign voice
+                                                setVoiceAssignments(prev => ({
+                                                    ...prev,
+                                                    [missingCharacters[0]]: assignment
+                                                }));
+
+                                                // Add to extracted roles if needed
+                                                if (!extractedRoles?.includes(missingCharacters[0])) {
+                                                    setExtractedRoles(prev => [...(prev || []), missingCharacters[0]]);
+                                                }
+                                            }}
+                                        />
+                                    </InputStage>
                                 ) : (
+                                    // All characters have voices - show success
                                     <div className="text-center">
                                         <div className="w-16 h-16 mx-auto mb-4 text-green-500">
                                             <svg className="w-full h-full" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                             </svg>
                                         </div>
-                                        <p className="text-gray-600">Validating characters...</p>
+                                        <p className="text-gray-600">All characters verified!</p>
+                                        <p className="text-sm text-gray-500 mt-2">Moving to script review...</p>
                                     </div>
                                 )}
                             </div>
                         )}
+                    </div>
 
-                        {/* Stage 6: Preview and Edit Script */}
-                        {currentStage === 6 && (
-                            <InputStage
-                                title="Review Your Script"
-                                description="Make any final line edits before rehearsing"
-                            >
-                                <div className="space-y-4">
-                                    {/* Script Preview Container OR Saving UI */}
-                                    <div
-                                        className="border border-gray-200 rounded-lg p-4 bg-gray-50 flex-1 overflow-y-auto"
-                                        style={{ maxHeight: 'calc(90vh - 400px)' }}
-                                    >
-                                        {scriptSaving ? (
-                                            <div
-                                                className="w-24 h-24 mx-auto mb-6 relative"
-                                                role="status"
-                                                aria-busy="true"
-                                                aria-live="polite"
-                                            >
+                    {/* Stage 6: Script Review */}
+                    {currentStage === 6 && (
+                        <InputStage
+                            title="Review Your Script"
+                            fullHeight={true}
+                        >
+                            <div className="flex flex-col h-full">
+                                {/* Script container */}
+                                <div className="flex-1 border border-gray-200 rounded-lg p-4 bg-gray-50 overflow-y-auto min-h-0">
+                                    {scriptSaving ? (
+                                        <div className="flex items-center justify-center h-full">
+                                            <div className="w-24 h-24 relative">
                                                 <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full" />
                                                 <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin" />
-                                                <div
-                                                    className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin animate-reverse"
-                                                    style={{ animationDuration: '1.5s' }}
-                                                />
+                                                <div className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin animate-reverse"
+                                                    style={{ animationDuration: '1.5s' }} />
                                             </div>
-                                        ) : (
-                                            <ScriptRenderer
-                                                script={parsedScript}
-                                                onScriptUpdate={(updatedScript) => setParsedScript(updatedScript)}
-                                                editable={true}
-                                            />
-                                        )}
-                                    </div>
-
-                                    {/* Sticky action */}
-                                    <div className="mt-auto bg-white sticky bottom-0">
-                                        <button
-                                            onClick={handleComplete}
-                                            disabled={!canComplete || scriptSaving}
-                                            className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium disabled:opacity-60 disabled:cursor-not-allowed"
-                                        >
-                                            {scriptSaving ? 'Saving…' : 'Confirm & Save'}
-                                        </button>
-                                    </div>
+                                        </div>
+                                    ) : (
+                                        <ScriptRenderer
+                                            script={parsedScript}
+                                            onScriptUpdate={(updatedScript) => setParsedScript(updatedScript)}
+                                            editable={true}
+                                        />
+                                    )}
                                 </div>
-                            </InputStage>
-                        )}
-                    </div>
+
+                                {/* Save button */}
+                                <div className="pt-4 flex-shrink-0">
+                                    <button
+                                        onClick={handleComplete}
+                                        disabled={!canComplete || scriptSaving}
+                                        className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                                    >
+                                        {scriptSaving ? 'Saving…' : 'Confirm & Save'}
+                                    </button>
+                                </div>
+                            </div>
+                        </InputStage>
+                    )}
                 </div>
 
                 {/* Progress Indicators */}
@@ -748,11 +734,30 @@ const RotatingTips = ({ tipSet }: { tipSet: 'processing' | 'finalizing' }) => {
     );
 };
 
-const InputStage = ({ title, description, children }: {
+const InputStage = ({
+    title,
+    description,
+    children,
+    fullHeight = false
+}: {
     title: string;
-    description: string;
+    description?: string;
     children: React.ReactNode;
+    fullHeight?: boolean;
 }) => {
+    if (fullHeight) {
+        return (
+            <div className="animate-fadeIn flex flex-col h-full p-8">
+                <div className="flex-shrink-0 mb-4">
+                    <h3 className="text-xl font-semibold">{title}</h3>
+                </div>
+                <div className="flex-1 min-h-0">
+                    {children}
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="animate-fadeIn">
             <h3 className="text-xl font-semibold mb-2">{title}</h3>
