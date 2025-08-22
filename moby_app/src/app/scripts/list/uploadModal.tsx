@@ -206,23 +206,65 @@ export default function ScriptUploadModal({
         }, 300);
     };
 
+    // Auto advance from stage 3 to 4 when voices are assigned
+    useEffect(() => {
+        if (currentStage === 3 && extractedRoles) {
+            const unassignedRoles = extractedRoles.filter(
+                role => !Object.keys(voiceAssignments).includes(role)
+            );
+
+            if (unassignedRoles.length === 0 && extractedRoles.length > 0) {
+                // All roles assigned, move to next stage
+                moveToNextStage();
+            }
+        }
+    }, [currentStage, extractedRoles, voiceAssignments]);
+
     // Auto advance from stage 5 to 6 when script is parsed
     useEffect(() => {
         if (currentStage === 5 && parsedScript) {
-            const timer = setTimeout(() => {
-                moveToNextStage();
-            }, 1500);
-            return () => clearTimeout(timer);
-        }
-    }, [currentStage, parsedScript]);
+            // Extract unique characters from parsed script
+            const scriptCharacters = new Set<string>();
+            parsedScript.forEach(item => {
+                if (item.type === 'line' && item.character) {
+                    scriptCharacters.add(item.character.toLowerCase().trim());
+                }
+            });
 
-    // const moveToPreviousStage = () => {
-    //     setIsTransitioning(true);
-    //     setTimeout(() => {
-    //         setCurrentStage(prev => prev - 1);
-    //         setIsTransitioning(false);
-    //     }, 300);
-    // };
+            // Check if all script characters have voice assignments
+            const normalizedExtractedRoles = new Set(
+                extractedRoles?.map(role => role.toLowerCase().trim()) || []
+            );
+
+            const missingCharacters = Array.from(scriptCharacters).filter(
+                char => !normalizedExtractedRoles.has(char)
+            );
+
+            if (missingCharacters.length > 0) {
+                console.log('Found missing characters:', missingCharacters);
+                // Add missing characters to extractedRoles
+                const denormalizedMissing = parsedScript
+                    .filter(item =>
+                        item.type === 'line' &&
+                        item.character &&
+                        missingCharacters.includes(item.character.toLowerCase().trim())
+                    )
+                    .map(item => item.character!)
+                    .filter((char, index, self) => self.indexOf(char) === index); // Remove duplicates
+
+                setExtractedRoles(prev => [...(prev || []), ...denormalizedMissing]);
+
+                // Go back to voice assignment stage
+                setCurrentStage(3);
+            } else {
+                // All characters have assignments, proceed to preview
+                const timer = setTimeout(() => {
+                    moveToNextStage();
+                }, 2000);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [currentStage, parsedScript, extractedRoles, voiceAssignments]);
 
     // Check if can proceed to completion
     const canComplete = () => {
@@ -377,77 +419,104 @@ export default function ScriptUploadModal({
 
                         {/* Stage 3: Assign Voices */}
                         {currentStage === 3 && extractedRoles && extractedRoles.length > 0 && (
-                            <InputStage
-                                title="Assign Voices"
-                                description={`Role ${Object.keys(voiceAssignments).length + 1} of ${extractedRoles.length}`}
-                            >
-                                {/* Only show the assignment UI if there are roles left to assign */}
-                                {Object.keys(voiceAssignments).length < extractedRoles.length ? (
-                                    <RoleVoiceAssignment
-                                        key={extractedRoles[Object.keys(voiceAssignments).length]}
-                                        role={extractedRoles[Object.keys(voiceAssignments).length]}
-                                        voiceSamples={voiceSamples}
-                                        isLoading={voicesLoading}
-                                        onAssign={(assignment) => {
-                                            const currentRole = extractedRoles[Object.keys(voiceAssignments).length];
-                                            setConfirmationModal({
-                                                isOpen: true,
-                                                role: currentRole,
-                                                assignment
-                                            });
-                                        }}
-                                    />
-                                ) : (
-                                    // Show a loading state while transitioning
-                                    <div className="w-24 h-24 mx-auto mb-6 relative">
-                                        <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full"></div>
-                                        <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin"></div>
-                                        <div className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin animate-reverse" style={{ animationDuration: '1.5s' }}></div>
-                                    </div>
-                                )}
+                            (() => {
+                                // Find the first unassigned role
+                                const unassignedRoles = extractedRoles.filter(
+                                    role => !Object.keys(voiceAssignments).includes(role)
+                                );
 
-                                {/* Confirmation Modal */}
-                                {confirmationModal?.isOpen && (
-                                    <div className="fixed inset-0 z-60 flex items-center justify-center pointer-events-none">
-                                        <div className="relative bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 rounded-lg p-6 max-w-sm mx-4 shadow-2xl pointer-events-auto">
-                                            <p className="text-white/90 mb-4">
-                                                Assign <span className="font-medium text-white">{confirmationModal.assignment.voiceName}</span> to <span className="font-medium text-white">{confirmationModal.role}</span>?
-                                            </p>
-                                            <p className="text-sm text-yellow-300 mb-6">
-                                                ⚠️ This selection cannot be changed later.
-                                            </p>
-                                            <div className="flex gap-3">
-                                                <button
-                                                    onClick={() => setConfirmationModal(null)}
-                                                    className="flex-1 px-4 py-2 border border-white/30 text-white rounded-lg hover:bg-white/10 transition"
-                                                >
-                                                    Cancel
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        // Confirm the assignment
-                                                        setVoiceAssignments(prev => ({
-                                                            ...prev,
-                                                            [confirmationModal.role]: confirmationModal.assignment
-                                                        }));
-                                                        setConfirmationModal(null);
-
-                                                        // Auto-advance after confirmation
-                                                        setTimeout(() => {
-                                                            if (Object.keys(voiceAssignments).length + 1 === extractedRoles.length) {
-                                                                moveToNextStage();
-                                                            }
-                                                        }, 300);
-                                                    }}
-                                                    className="flex-1 px-4 py-2 bg-white text-blue-900 font-medium rounded-lg hover:bg-white/90 transition"
-                                                >
-                                                    Confirm
-                                                </button>
+                                if (unassignedRoles.length === 0) {
+                                    // Show loading while transitioning
+                                    return (
+                                        <div className="text-center">
+                                            <div className="w-16 h-16 mx-auto mb-4 text-green-500">
+                                                <svg className="w-full h-full" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                </svg>
                                             </div>
+                                            <p className="text-gray-600">Voices assigned to all roles! Moving on...</p>
                                         </div>
-                                    </div>
-                                )}
-                            </InputStage>
+                                    );
+                                }
+
+                                const currentRole = unassignedRoles[0];
+                                const currentIndex = extractedRoles.indexOf(currentRole) + 1;
+
+                                return (
+                                    <InputStage
+                                        title="Assign Voices"
+                                        description={
+                                            unassignedRoles.length === extractedRoles.length
+                                                ? `Character ${currentIndex} of ${extractedRoles.length}`
+                                                : `⚠️ New character found! Assigning voice for: ${currentRole}`
+                                        }
+                                    >
+                                        <RoleVoiceAssignment
+                                            key={currentRole}
+                                            role={currentRole}
+                                            voiceSamples={voiceSamples}
+                                            isLoading={voicesLoading}
+                                            onAssign={(assignment) => {
+                                                setConfirmationModal({
+                                                    isOpen: true,
+                                                    role: currentRole,
+                                                    assignment
+                                                });
+                                            }}
+                                        />
+
+                                        {/* Show progress with already assigned roles */}
+                                        {Object.keys(voiceAssignments).length > 0 && (
+                                            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                                                <p className="text-xs text-gray-600 mb-2">Already assigned:</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {Object.entries(voiceAssignments).map(([char, voice]) => (
+                                                        <span key={char} className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">
+                                                            {char}: {voice.voiceName}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Confirmation Modal */}
+                                        {confirmationModal?.isOpen && (
+                                            <div className="fixed inset-0 z-60 flex items-center justify-center pointer-events-none">
+                                                <div className="relative bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 rounded-lg p-6 max-w-sm mx-4 shadow-2xl pointer-events-auto">
+                                                    <p className="text-white/90 mb-4">
+                                                        Assign <span className="font-medium text-white">{confirmationModal.assignment.voiceName}</span> to <span className="font-medium text-white">{confirmationModal.role}</span>?
+                                                    </p>
+                                                    <p className="text-sm text-yellow-300 mb-6">
+                                                        ⚠️ This selection cannot be changed later.
+                                                    </p>
+                                                    <div className="flex gap-3">
+                                                        <button
+                                                            onClick={() => setConfirmationModal(null)}
+                                                            className="flex-1 px-4 py-2 border border-white/30 text-white rounded-lg hover:bg-white/10 transition"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                // Confirm the assignment
+                                                                setVoiceAssignments(prev => ({
+                                                                    ...prev,
+                                                                    [confirmationModal.role]: confirmationModal.assignment
+                                                                }));
+                                                                setConfirmationModal(null);
+                                                                // The useEffect will handle moving to next stage when all are assigned
+                                                            }}
+                                                            className="flex-1 px-4 py-2 bg-white text-blue-900 font-medium rounded-lg hover:bg-white/90 transition"
+                                                        >
+                                                            Confirm
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </InputStage>
+                                );
+                            })()
                         )}
 
                         {/* Stage 4: Select User Role */}
@@ -504,7 +573,7 @@ export default function ScriptUploadModal({
                                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                             </svg>
                                         </div>
-                                        <p className="text-gray-600">Script ready for preview!</p>
+                                        <p className="text-gray-600">Validating characters...</p>
                                     </div>
                                 )}
                             </div>
@@ -665,7 +734,7 @@ const RotatingTips = ({ tipSet }: { tipSet: 'processing' | 'finalizing' }) => {
                     return (prev + 1) % tips.finalizing.length;
                 }
             });
-        }, 3000);
+        }, 4000);
 
         return () => clearInterval(interval);
     }, [tipSet, currentTipIndex, tips.processing.length, tips.finalizing.length]);
