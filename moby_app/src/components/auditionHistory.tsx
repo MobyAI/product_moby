@@ -1,5 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronUp, Calendar, Film, Tv, Video, Megaphone, User, Filter } from 'lucide-react';
+'use client';
+
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import {
+    ChevronDown,
+    ChevronUp,
+    Calendar,
+    Film,
+    Tv,
+    Video,
+    Megaphone,
+    User,
+    Filter,
+    Search,
+    X
+} from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 export interface AuditionData {
     id: number | string;
@@ -23,7 +38,8 @@ interface SortConfig {
     direction: 'asc' | 'desc';
 }
 
-const AuditionHistory = () => {
+export default function AuditionHistory() {
+    // State Management
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'date', direction: 'desc' });
     const [filterType, setFilterType] = useState<ProjectTypeFilter>('all');
     const [filterStatus, setFilterStatus] = useState<StatusFilter>('all');
@@ -31,8 +47,15 @@ const AuditionHistory = () => {
     const [showStatusFilter, setShowStatusFilter] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [auditionsData, setAuditionsData] = useState<AuditionData[]>([]);
+    const [searchTerm, setSearchTerm] = useState<string>('');
+    const [showSearch, setShowSearch] = useState(false);
+
+    // Refs
     const typeFilterRef = useRef<HTMLDivElement>(null);
     const statusFilterRef = useRef<HTMLDivElement>(null);
+    const searchInputRef = useRef(null);
+    const parentRef = useRef(null);
+    const observerTarget = useRef(null);
 
     // Close filter dropdowns when clicking outside
     useEffect(() => {
@@ -127,7 +150,7 @@ const AuditionHistory = () => {
                             source: 'Agent Submission',
                             billing: 'star',
                             status: 'callback'
-                        }
+                        },
                     ]);
                     setIsLoading(false);
                 }, 500); // Simulate loading time
@@ -154,9 +177,9 @@ const AuditionHistory = () => {
     const getStatusStyle = (status: AuditionData['status']) => {
         switch (status) {
             case 'completed': return 'bg-gray-100 text-gray-600';
-            case 'declined': return 'bg-gray-100 text-red-600';
+            case 'declined': return 'bg-red-100 text-red-600';
             case 'callback': return 'bg-blue-100 text-blue-800';
-            case 'hold': return 'bg-gray-100 text-purple-600';
+            case 'hold': return 'bg-purple-100 text-purple-600';
             case 'booked': return 'bg-green-100 text-green-800';
             default: return 'bg-gray-100 text-gray-800';
         }
@@ -182,21 +205,39 @@ const AuditionHistory = () => {
     };
 
     // Filter and sort data
-    const filteredAndSortedAuditions = auditionsData
-        .filter(audition => {
-            const typeMatch = filterType === 'all' || audition.projectType === filterType;
-            const statusMatch = filterStatus === 'all' || audition.status === filterStatus;
-            return typeMatch && statusMatch;
-        })
-        .sort((a, b) => {
-            if (sortConfig.key) {
-                const aValue = a[sortConfig.key];
-                const bValue = b[sortConfig.key];
-                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-            }
-            return 0;
-        });
+    const filteredAndSortedAuditions = useMemo(() => {
+        return auditionsData
+            .filter(audition => {
+                const typeMatch = filterType === 'all' || audition.projectType === filterType;
+                const statusMatch = filterStatus === 'all' || audition.status === filterStatus;
+
+                // Search filter
+                const searchMatch = searchTerm === '' ||
+                    audition.projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    audition.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    audition.castingDirector.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    audition.source.toLowerCase().includes(searchTerm.toLowerCase());
+
+                return typeMatch && statusMatch && searchMatch;
+            })
+            .sort((a, b) => {
+                if (sortConfig.key) {
+                    const aValue = a[sortConfig.key];
+                    const bValue = b[sortConfig.key];
+                    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+    }, [auditionsData, filterType, filterStatus, searchTerm, sortConfig]);
+
+    // Virtual scrolling setup
+    const virtualizer = useVirtualizer({
+        count: filteredAndSortedAuditions.length,
+        getScrollElement: () => parentRef.current,
+        estimateSize: () => 60, // Estimated row height
+        overscan: 5, // Number of items to render outside of view
+    });
 
     // Loading state
     if (isLoading) {
@@ -213,37 +254,122 @@ const AuditionHistory = () => {
         <div className="w-full bg-white rounded-lg shadow-sm">
             {/* Header */}
             <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Audition History</h2>
+                <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold text-gray-900">Audition History</h2>
+
+                    {/* Search bar */}
+                    <div className="flex items-center">
+                        <div className={`flex items-center transition-all duration-300 ease-in-out ${showSearch ? 'w-64' : 'w-0'
+                            } overflow-hidden`}>
+                            <div className="relative w-full">
+                                <input
+                                    ref={searchInputRef}
+                                    type="text"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder="Search auditions..."
+                                    className={`w-full h-9 px-3 pr-8 text-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${showSearch ? 'rounded-l-md border-r-0' : ''
+                                        }`}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Escape') {
+                                            setShowSearch(false);
+                                            setSearchTerm('');
+                                        }
+                                    }}
+                                />
+                                {searchTerm && (
+                                    <button
+                                        onClick={() => setSearchTerm('')}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                setShowSearch(!showSearch);
+                                if (showSearch) {
+                                    setSearchTerm('');
+                                }
+                            }}
+                            className={`h-9 px-3 border transition-colors ${showSearch
+                                    ? 'bg-blue-100 text-blue-600 border-gray-300 rounded-r-md rounded-l-none'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-gray-300 rounded-md'
+                                }`}
+                        >
+                            <Search className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Active filters indicator */}
+                {(filterType !== 'all' || filterStatus !== 'all' || searchTerm) && (
+                    <div className="mt-3 flex items-center gap-2 text-sm">
+                        <span className="text-gray-500">Active filters:</span>
+                        {filterType !== 'all' && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-800">
+                                Type: {filterType}
+                                <button
+                                    onClick={() => setFilterType('all')}
+                                    className="ml-1 hover:text-blue-600"
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            </span>
+                        )}
+                        {filterStatus !== 'all' && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-800">
+                                Status: {filterStatus}
+                                <button
+                                    onClick={() => setFilterStatus('all')}
+                                    className="ml-1 hover:text-blue-600"
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            </span>
+                        )}
+                        {searchTerm && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-800">
+                                Search: "{searchTerm}"
+                                <button
+                                    onClick={() => setSearchTerm('')}
+                                    className="ml-1 hover:text-blue-600"
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            </span>
+                        )}
+                    </div>
+                )}
             </div>
 
-            {/* Table */}
+            {/* Table Header */}
             <div className="overflow-x-auto">
-                <table className="w-full">
-                    <thead>
-                        <tr className="border-b border-gray-200">
-                            <th
+                <div className="min-w-full">
+                    <div className="bg-gray-50 border-b border-gray-200">
+                        <div className="flex px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <div
                                 onClick={() => handleSort('date')}
-                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-50"
+                                className="flex-none w-32 flex items-center gap-1 cursor-pointer hover:text-gray-700"
                             >
-                                <div className="flex items-center gap-1">
-                                    Date
-                                    {sortConfig.key === 'date' && (
-                                        sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
-                                    )}
-                                </div>
-                            </th>
-                            <th
+                                Date
+                                {sortConfig.key === 'date' && (
+                                    sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                                )}
+                            </div>
+                            <div
                                 onClick={() => handleSort('projectName')}
-                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-50"
+                                className="flex-1 min-w-[200px] flex items-center gap-1 cursor-pointer hover:text-gray-700"
                             >
-                                <div className="flex items-center gap-1">
-                                    Project
-                                    {sortConfig.key === 'projectName' && (
-                                        sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
-                                    )}
-                                </div>
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative">
+                                Project
+                                {sortConfig.key === 'projectName' && (
+                                    sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                                )}
+                            </div>
+                            <div className="flex-none w-32">
                                 <div
                                     ref={typeFilterRef}
                                     className="relative inline-block"
@@ -256,9 +382,8 @@ const AuditionHistory = () => {
                                         <Filter className={`w-3 h-3 ${filterType !== 'all' ? 'text-blue-600' : ''}`} />
                                     </button>
 
-                                    {/* Dropdown filter */}
                                     {showTypeFilter && (
-                                        <div className="absolute top-full left-0 mt-1 bg-white rounded-md shadow-lg border border-gray-200 z-50 min-w-[120px]">
+                                        <div className="absolute top-full left-0 mt-1 bg-white rounded-md shadow-lg border border-gray-200 z-[60] min-w-[120px]">
                                             <button
                                                 onClick={() => {
                                                     setFilterType('all');
@@ -305,20 +430,12 @@ const AuditionHistory = () => {
                                         </div>
                                     )}
                                 </div>
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Casting
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Role
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Source
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Billing
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative">
+                            </div>
+                            <div className="flex-1 min-w-[150px]">Casting</div>
+                            <div className="flex-1 min-w-[120px]">Role</div>
+                            <div className="flex-1 min-w-[150px]">Source</div>
+                            <div className="flex-none w-28">Billing</div>
+                            <div className="flex-none w-28">
                                 <div
                                     ref={statusFilterRef}
                                     className="relative inline-block"
@@ -331,9 +448,8 @@ const AuditionHistory = () => {
                                         <Filter className={`w-3 h-3 ${filterStatus !== 'all' ? 'text-blue-600' : ''}`} />
                                     </button>
 
-                                    {/* Dropdown filter */}
                                     {showStatusFilter && (
-                                        <div className="absolute top-full right-0 mt-1 bg-white rounded-md shadow-lg border border-gray-200 z-50 min-w-[120px]">
+                                        <div className="absolute top-full right-0 mt-1 bg-white rounded-md shadow-lg border border-gray-200 z-[60] min-w-[120px]">
                                             <button
                                                 onClick={() => {
                                                     setFilterStatus('all');
@@ -346,26 +462,38 @@ const AuditionHistory = () => {
                                             </button>
                                             <button
                                                 onClick={() => {
-                                                    setFilterStatus('completed');
+                                                    setFilterStatus('booked');
                                                     setShowStatusFilter(false);
                                                 }}
                                                 className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${filterStatus === 'completed' ? 'bg-gray-100 font-medium' : ''
                                                     }`}
                                             >
-                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">
                                                     Completed
                                                 </span>
                                             </button>
                                             <button
                                                 onClick={() => {
-                                                    setFilterStatus('declined');
+                                                    setFilterStatus('booked');
                                                     setShowStatusFilter(false);
                                                 }}
                                                 className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${filterStatus === 'declined' ? 'bg-gray-100 font-medium' : ''
                                                     }`}
                                             >
-                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">
                                                     Declined
+                                                </span>
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setFilterStatus('booked');
+                                                    setShowStatusFilter(false);
+                                                }}
+                                                className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${filterStatus === 'booked' ? 'bg-gray-100 font-medium' : ''
+                                                    }`}
+                                            >
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">
+                                                    Booked
                                                 </span>
                                             </button>
                                             <button
@@ -382,18 +510,6 @@ const AuditionHistory = () => {
                                             </button>
                                             <button
                                                 onClick={() => {
-                                                    setFilterStatus('hold');
-                                                    setShowStatusFilter(false);
-                                                }}
-                                                className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${filterStatus === 'hold' ? 'bg-gray-100 font-medium' : ''
-                                                    }`}
-                                            >
-                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">
-                                                    Hold
-                                                </span>
-                                            </button>
-                                            <button
-                                                onClick={() => {
                                                     setFilterStatus('booked');
                                                     setShowStatusFilter(false);
                                                 }}
@@ -401,63 +517,93 @@ const AuditionHistory = () => {
                                                     }`}
                                             >
                                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">
-                                                    Booked
+                                                    Hold
                                                 </span>
                                             </button>
                                         </div>
                                     )}
                                 </div>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                        {filteredAndSortedAuditions.map((audition) => (
-                            <tr key={audition.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <div className="flex items-center gap-2">
-                                        <Calendar className="w-4 h-4 text-gray-400" />
-                                        {new Date(audition.date).toLocaleDateString('en-US', {
-                                            month: 'short',
-                                            day: 'numeric',
-                                            year: 'numeric'
-                                        })}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {audition.projectName}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                    <div className="flex items-center gap-2">
-                                        {getProjectIcon(audition.projectType)}
-                                        <span className="capitalize">{audition.projectType}</span>
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                    <div className="flex items-center gap-2">
-                                        <User className="w-4 h-4 text-gray-400" />
-                                        {audition.castingDirector}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {audition.role}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                    {audition.source}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getBillingStyle(audition.billing)}`}>
-                                        {audition.billing}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusStyle(audition.status)}`}>
-                                        {audition.status}
-                                    </span>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Virtual Scroll Container */}
+                    <div
+                        ref={parentRef}
+                        className="overflow-auto"
+                        style={{ height: '500px' }}
+                    >
+                        <div
+                            style={{
+                                height: `${virtualizer.getTotalSize()}px`,
+                                width: '100%',
+                                position: 'relative',
+                            }}
+                        >
+                            {filteredAndSortedAuditions.length === 0 ? (
+                                <div className="flex justify-center items-center h-32 text-gray-500">
+                                    No auditions found matching your filters
+                                </div>
+                            ) : (
+                                virtualizer.getVirtualItems().map(virtualRow => {
+                                    const audition = filteredAndSortedAuditions[virtualRow.index];
+
+                                    return (
+                                        <div
+                                            key={virtualRow.key}
+                                            style={{
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0,
+                                                width: '100%',
+                                                height: `${virtualRow.size}px`,
+                                                transform: `translateY(${virtualRow.start}px)`,
+                                            }}
+                                        >
+                                            <div className="flex px-6 py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors text-sm">
+                                                <div className="flex-none w-32 flex items-center gap-2">
+                                                    <Calendar className="w-4 h-4 text-gray-400" />
+                                                    {new Date(audition.date).toLocaleDateString('en-US', {
+                                                        month: 'short',
+                                                        day: 'numeric',
+                                                        year: 'numeric'
+                                                    })}
+                                                </div>
+                                                <div className="flex-1 min-w-[200px] font-medium text-gray-900">
+                                                    {audition.projectName}
+                                                </div>
+                                                <div className="flex-none w-32 flex items-center gap-2 text-gray-600">
+                                                    {getProjectIcon(audition.projectType)}
+                                                    <span className="capitalize">{audition.projectType}</span>
+                                                </div>
+                                                <div className="flex-1 min-w-[150px] flex items-center gap-2 text-gray-600">
+                                                    <User className="w-4 h-4 text-gray-400" />
+                                                    {audition.castingDirector}
+                                                </div>
+                                                <div className="flex-1 min-w-[120px] text-gray-900">
+                                                    {audition.role}
+                                                </div>
+                                                <div className="flex-1 min-w-[150px] text-gray-600">
+                                                    {audition.source}
+                                                </div>
+                                                <div className="flex-none w-28">
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getBillingStyle(audition.billing)}`}>
+                                                        {audition.billing}
+                                                    </span>
+                                                </div>
+                                                <div className="flex-none w-28">
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusStyle(audition.status)}`}>
+                                                        {audition.status}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Footer with count */}
@@ -467,5 +613,3 @@ const AuditionHistory = () => {
         </div>
     );
 };
-
-export default AuditionHistory;
