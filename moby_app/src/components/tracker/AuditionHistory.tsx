@@ -17,23 +17,8 @@ import {
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/config/app";
+import type { AuditionData, ProjectTypeFilter, StatusFilter } from '@/types/auditions';
 import AuditionCounts from "./AuditionCounts";
-
-export interface AuditionData {
-    id: number | string;
-    date: string; // ISO date string format (YYYY-MM-DD)
-    projectName: string;
-    projectType: 'tv' | 'film' | 'commercial' | 'theater' | 'voiceover' | 'other';
-    castingDirector: string;
-    role: string;
-    source: string;
-    billing: 'star' | 'co-star' | 'guest-star' | 'recurring' | 'extra' | 'featured' | 'lead' | 'supporting';
-    status: 'completed' | 'booked' | 'callback' | 'declined' | 'hold';
-}
-
-// Filter types
-type ProjectTypeFilter = AuditionData['projectType'] | 'all';
-type StatusFilter = AuditionData['status'] | 'all';
 
 // Sort configuration type
 interface SortConfig {
@@ -486,7 +471,7 @@ export default function AuditionHistory() {
                                                 </button>
                                                 <button
                                                     onClick={() => {
-                                                        setFilterStatus('booked');
+                                                        setFilterStatus('completed');
                                                         setShowStatusFilter(false);
                                                     }}
                                                     className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${filterStatus === 'completed' ? 'bg-gray-100 font-medium' : ''
@@ -498,7 +483,7 @@ export default function AuditionHistory() {
                                                 </button>
                                                 <button
                                                     onClick={() => {
-                                                        setFilterStatus('booked');
+                                                        setFilterStatus('declined');
                                                         setShowStatusFilter(false);
                                                     }}
                                                     className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${filterStatus === 'declined' ? 'bg-gray-100 font-medium' : ''
@@ -534,7 +519,7 @@ export default function AuditionHistory() {
                                                 </button>
                                                 <button
                                                     onClick={() => {
-                                                        setFilterStatus('booked');
+                                                        setFilterStatus('hold');
                                                         setShowStatusFilter(false);
                                                     }}
                                                     className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${filterStatus === 'booked' ? 'bg-gray-100 font-medium' : ''

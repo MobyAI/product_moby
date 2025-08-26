@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getCountingStats } from "@/lib/firebase/client/user";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/config/app";
+import type { StatusFilter } from '@/types/auditions';
 
 type CountingStats = {
     auditions: number;
@@ -20,8 +21,6 @@ type StatCardProps = {
     bgColor: string;
     textColor?: string;
 };
-
-type StatusFilter = 'completed' | 'booked' | 'callback' | 'declined' | 'hold' | 'all';
 
 type AuditionCountsProps = {
     setFilterStatus: React.Dispatch<React.SetStateAction<StatusFilter>>;
