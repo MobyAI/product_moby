@@ -82,6 +82,16 @@ export default function OnboardingPage() {
         <div className="min-h-screen grid place-items-center p-6">
             <div className="w-full max-w-md">
                 <div className="space-y-6">
+                    {/* Header Message */}
+                    <div className="text-center space-y-1 pb-4">
+                        <h1 className="text-2xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                            Complete Your Profile
+                        </h1>
+                        <p className="text-md text-gray-500">
+                            Tell us a little about yourself before getting started!
+                        </p>
+                    </div>
+
                     {/* Progress Bar */}
                     <div className="space-y-2">
                         <div className="flex justify-between text-sm text-gray-600">
@@ -103,7 +113,6 @@ export default function OnboardingPage() {
                                     <User className="w-8 h-8 text-purple-600" />
                                 </div>
                                 <h2 className="text-2xl font-semibold">What's your name?</h2>
-                                <p className="text-gray-500">Let's get to know you better</p>
                             </div>
                             <div className="space-y-3">
                                 <input
@@ -203,8 +212,8 @@ export default function OnboardingPage() {
                                         key={eth.value}
                                         onClick={() => setProfile({ ...profile, ethnicity: eth.value })}
                                         className={`p-4 rounded-xl border-2 transition-all ${profile.ethnicity === eth.value
-                                                ? "border-purple-500 bg-purple-50 shadow-md"
-                                                : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                                            ? "border-purple-500 bg-purple-50 shadow-md"
+                                            : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                                             }`}
                                     >
                                         <div className="text-2xl mb-2">{eth.emoji}</div>
@@ -250,8 +259,8 @@ export default function OnboardingPage() {
                                     <button
                                         onClick={() => setHeightUnit("cm")}
                                         className={`px-4 py-2 rounded-lg font-medium transition-all ${heightUnit === "cm"
-                                                ? "bg-purple-500 text-white"
-                                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                            ? "bg-purple-500 text-white"
+                                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                                             }`}
                                     >
                                         cm
@@ -259,8 +268,8 @@ export default function OnboardingPage() {
                                     <button
                                         onClick={() => setHeightUnit("ft")}
                                         className={`px-4 py-2 rounded-lg font-medium transition-all ${heightUnit === "ft"
-                                                ? "bg-purple-500 text-white"
-                                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                            ? "bg-purple-500 text-white"
+                                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                                             }`}
                                     >
                                         inches

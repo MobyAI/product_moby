@@ -4,13 +4,14 @@ import { UserProvider, type AuthUser } from "./UserProvider";
 
 export default async function ServerAuthProvider({ children }: { children: React.ReactNode }) {
     const userStatus = await verifyUserInfo();
+    console.log('user status: ', userStatus);
 
     if (!isAuthenticated(userStatus)) {
-        redirect("/login?next=/home");
+        redirect("/login");
     }
 
     if (!hasProfile(userStatus)) {
-        redirect("/onboarding?next=/home");
+        redirect("/onboarding");
     }
 
     const value: AuthUser = {
