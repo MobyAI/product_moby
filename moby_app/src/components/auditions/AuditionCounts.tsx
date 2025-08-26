@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { getCountingStats } from "@/lib/firebase/client/user";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/config/app";
-import type { StatusFilter } from '@/types/auditions';
+import type { StatusFilter } from '@/types/audition';
 
 type CountingStats = {
     auditions: number;

@@ -1,6 +1,6 @@
 "use client";
 
-import AuditionHistory from '@/components/tracker/AuditionHistory';
+import AuditionHistory from '@/components/auditions/AuditionHistory';
 
 export default function TrackerPage() {
     return (

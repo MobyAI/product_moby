@@ -2,8 +2,10 @@
 
 import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Check, User, Ruler, Calendar, Globe } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, User, Ruler, Calendar, Globe, Camera, FileText, Upload } from "lucide-react";
+import { uploadHeadshot, uploadResume } from "@/lib/firebase/client/media";
 import { addUser } from "@/lib/firebase/client/user";
+import { auth } from "@/lib/firebase/client/config/app";
 
 type UserProfile = {
     firstName: string;
@@ -12,6 +14,8 @@ type UserProfile = {
     ethnicity: string;
     height: number; // in cm
 };
+
+type LoadingState = "idle" | "headshot" | "resume" | "profile";
 
 const ethnicities = [
     { value: "asian", label: "Asian", emoji: "🌐" },
@@ -30,6 +34,7 @@ function OnboardingContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const finalDestination = searchParams.get("next") || "/home";
+    const totalSteps = 6;
 
     const [step, setStep] = useState(1);
     const [profile, setProfile] = useState<UserProfile>({
@@ -39,11 +44,9 @@ function OnboardingContent() {
         ethnicity: "",
         height: 170,
     });
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState<LoadingState>("idle");
     const [error, setError] = useState<string | null>(null);
-    const [heightUnit, setHeightUnit] = useState<"cm" | "ft">("cm");
-
-    const totalSteps = 4;
+    const [heightUnit, setHeightUnit] = useState<"cm" | "ft">("ft");
 
     async function handleProfileSubmit() {
         if (!profile.firstName || !profile.lastName) {
@@ -52,7 +55,7 @@ function OnboardingContent() {
         }
 
         try {
-            setLoading(true);
+            setLoading("profile");
             const res = await addUser(profile);
             if (res.success) {
                 router.replace(finalDestination);
@@ -66,7 +69,7 @@ function OnboardingContent() {
                 setError("Failed to save profile.");
             }
         } finally {
-            setLoading(false);
+            setLoading("idle");
         }
     }
 
@@ -306,11 +309,180 @@ function OnboardingContent() {
                                     Back
                                 </button>
                                 <button
-                                    onClick={handleProfileSubmit}
-                                    disabled={loading}
-                                    className="flex-1 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 font-medium hover:shadow-lg transition-all disabled:opacity-50"
+                                    onClick={() => profile.height && setStep(5)}
+                                    disabled={!profile.height}
+                                    className="flex-1 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all"
                                 >
-                                    {loading ? "Saving..." : "Complete Profile"}
+                                    Continue
+                                    <ChevronRight className="w-4 h-4 inline ml-2" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Step 5: Headshot */}
+                    {step === 5 && (
+                        <div className="space-y-6 animate-fadeIn">
+                            <div className="text-center space-y-2">
+                                <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-full flex items-center justify-center mx-auto">
+                                    <Camera className="w-8 h-8 text-indigo-600" />
+                                </div>
+                                <h2 className="text-2xl font-semibold">Upload Your Headshot</h2>
+                                <p className="text-gray-500">Professional photo for your profile</p>
+                            </div>
+
+                            <div className="space-y-4">
+                                {loading === "headshot" ? (
+                                    <div className="flex flex-col items-center justify-center h-64">
+                                        <div className="w-24 h-24 mx-auto mb-6 relative">
+                                            <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full"></div>
+                                            <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin"></div>
+                                            <div className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin animate-reverse" style={{ animationDuration: '1.5s' }}></div>
+                                        </div>
+                                        <p className="text-gray-600">Processing your headshot...</p>
+                                    </div>
+                                ) : (
+                                    <label className="block">
+                                        <div className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                                            <Upload className="w-10 h-10 mb-3 text-gray-400" />
+                                            <p className="mb-2 text-sm text-gray-500">
+                                                <span className="font-semibold">Click to upload</span>
+                                            </p>
+                                            <p className="text-xs text-gray-500">PNG, JPG up to 15MB</p>
+                                        </div>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    setLoading("headshot");
+                                                    setError(null);
+                                                    try {
+                                                        const result = await uploadHeadshot(file, auth.currentUser?.uid || '');
+                                                        if (!result.success) {
+                                                            setError(result.error || 'Upload failed');
+                                                        }
+                                                        setStep(6);
+                                                    } catch (err) {
+                                                        setError('Failed to upload headshot');
+                                                    } finally {
+                                                        setLoading("idle");
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    </label>
+                                )}
+                            </div>
+
+                            {error && <p className="text-sm text-red-600 text-center">Upload failed. Try again?</p>}
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setStep(4)}
+                                    disabled={loading === "headshot"}
+                                    className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                    Back
+                                </button>
+                                <button
+                                    onClick={() => setStep(6)}
+                                    disabled={loading === "headshot"}
+                                    className="flex-1 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Skip for now
+                                    <ChevronRight className="w-4 h-4 inline ml-2" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Step 6: Resume */}
+                    {step === 6 && (
+                        <div className="space-y-6 animate-fadeIn">
+                            <div className="text-center space-y-2">
+                                <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-full flex items-center justify-center mx-auto">
+                                    <FileText className="w-8 h-8 text-emerald-600" />
+                                </div>
+                                <h2 className="text-2xl font-semibold">Upload Your Resume</h2>
+                                <p className="text-gray-500">PDF or DOCX format</p>
+                            </div>
+
+                            <div className="space-y-4">
+                                {loading === "resume" ? (
+                                    <div className="flex flex-col items-center justify-center h-64">
+                                        <div className="w-24 h-24 mx-auto mb-6 relative">
+                                            <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full"></div>
+                                            <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin"></div>
+                                            <div className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin animate-reverse" style={{ animationDuration: '1.5s' }}></div>
+                                        </div>
+                                        <p className="text-gray-600">Processing your resume...</p>
+                                    </div>
+                                ) : loading === "profile" ? (
+                                    <div className="flex flex-col items-center justify-center h-64">
+                                        <div className="w-24 h-24 mx-auto mb-6 relative">
+                                            <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full"></div>
+                                            <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin"></div>
+                                            <div className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin animate-reverse" style={{ animationDuration: '1.5s' }}></div>
+                                        </div>
+                                        <p className="text-gray-600">Saving your profile...</p>
+                                    </div>
+                                ) : (
+                                    <label className="block">
+                                        <div className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                                            <Upload className="w-10 h-10 mb-3 text-gray-400" />
+                                            <p className="mb-2 text-sm text-gray-500">
+                                                <span className="font-semibold">Click to upload</span>
+                                            </p>
+                                            <p className="text-xs text-gray-500">PDF or DOCX up to 25MB</p>
+                                        </div>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    setLoading("resume");
+                                                    setError(null);
+                                                    try {
+                                                        const result = await uploadResume(file, auth.currentUser?.uid || '');
+                                                        if (!result.success) {
+                                                            setError('Upload failed');
+                                                        }
+                                                        handleProfileSubmit();
+                                                    } catch (err) {
+                                                        setError('Failed to upload resume');
+                                                    } finally {
+                                                        setLoading("idle");
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    </label>
+                                )}
+                            </div>
+
+                            {error && <p className="text-sm text-red-600 text-center">Upload failed. Try again?</p>}
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setStep(5)}
+                                    disabled={loading === "resume"}
+                                    className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                    Back
+                                </button>
+                                <button
+                                    onClick={handleProfileSubmit}
+                                    disabled={loading === "resume"}
+                                    className="flex-1 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {loading === "profile" ? "Saving..." : "Complete Profile"}
                                     <Check className="w-4 h-4 inline ml-2" />
                                 </button>
                             </div>
