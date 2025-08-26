@@ -21,7 +21,7 @@ type StatCardProps = {
     textColor?: string;
 };
 
-type StatusFilter = 'Completed' | 'Booked' | 'Callback' | 'Declined' | 'Hold' | 'all';
+type StatusFilter = 'completed' | 'booked' | 'callback' | 'declined' | 'hold' | 'all';
 
 type AuditionCountsProps = {
     setFilterStatus: React.Dispatch<React.SetStateAction<StatusFilter>>;
@@ -112,7 +112,7 @@ export default function AuditionCounts({ setFilterStatus }: AuditionCountsProps)
     }
 
     const statCards = [
-        { label: "Auditions", count: stats.auditions, bgColor: "bg-yellow-100", textColor: "text-gray-900" },
+        { label: "Audition", count: stats.auditions, bgColor: "bg-yellow-100", textColor: "text-gray-900" },
         { label: "Completed", count: stats.completed, bgColor: "bg-purple-100", textColor: "text-gray-900" },
         { label: "Declined", count: stats.declined, bgColor: "bg-red-100", textColor: "text-gray-900" },
         { label: "Callbacks", count: stats.callbacks, bgColor: "bg-blue-100", textColor: "text-gray-900" },
@@ -132,19 +132,19 @@ export default function AuditionCounts({ setFilterStatus }: AuditionCountsProps)
                                 setFilterStatus("all");
                                 break;
                             case "Completed":
-                                setFilterStatus("Completed");
+                                setFilterStatus("completed");
                                 break;
                             case "Declined":
-                                setFilterStatus("Declined");
+                                setFilterStatus("declined");
                                 break;
                             case "Callbacks":
-                                setFilterStatus("Callback");
+                                setFilterStatus("callback");
                                 break;
                             case "Hold":
-                                setFilterStatus("Hold");
+                                setFilterStatus("hold");
                                 break;
                             case "Bookings":
-                                setFilterStatus("Booked");
+                                setFilterStatus("booked");
                                 break;
                             default:
                                 setFilterStatus("all");
