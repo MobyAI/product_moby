@@ -1,10 +1,10 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { verifySession } from "@/lib/firebase/admin/auth/verifySession";
-
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 export default async function AuthLayout({ children }: { children: ReactNode }) {
     const user = await verifySession();
