@@ -4,9 +4,11 @@ import {
     serverTimestamp,
     getDoc,
     Timestamp,
-    FieldValue
+    FieldValue,
+    type DocumentReference,
 } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client/config/app';
+import { requireUid } from '@/lib/firebase/client/verify';
 
 export type UserProfile = {
     firstName: string;
@@ -32,6 +34,12 @@ export type UserData = UserProfile & {
     createdAt: Timestamp | FieldValue;
     updatedAt: Timestamp | FieldValue;
 };
+
+function userDataRef() {
+    const uid = requireUid();
+    const docRef = doc(db, 'users', uid) as DocumentReference<UserData>;
+    return { uid, docRef };
+}
 
 /**
  * Adds or updates user profile data in Firestore
