@@ -55,7 +55,6 @@ export default function AuditionHistory() {
     const statusFilterRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef(null);
     const parentRef = useRef(null);
-    const observerTarget = useRef(null);
 
     // Close filter dropdowns when clicking outside
     useEffect(() => {
@@ -333,7 +332,7 @@ export default function AuditionHistory() {
                         )}
                         {searchTerm && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-800">
-                                Search: "{searchTerm}"
+                                {`Search: "${searchTerm}"`}
                                 <button
                                     onClick={() => setSearchTerm('')}
                                     className="ml-1 hover:text-blue-600"

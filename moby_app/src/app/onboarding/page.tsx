@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Check, User, Ruler, Calendar, Globe } from "lucide-react";
 import { addUser } from "@/lib/firebase/client/user";
@@ -26,7 +26,7 @@ const ethnicities = [
     { value: "prefer-not", label: "Prefer not to say", emoji: "🤐" },
 ];
 
-export default function OnboardingPage() {
+function OnboardingContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const finalDestination = searchParams.get("next") || "/home";
@@ -112,7 +112,7 @@ export default function OnboardingPage() {
                                 <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto">
                                     <User className="w-8 h-8 text-purple-600" />
                                 </div>
-                                <h2 className="text-2xl font-semibold">What's your name?</h2>
+                                <h2 className="text-2xl font-semibold">{"What's your name?"}</h2>
                             </div>
                             <div className="space-y-3">
                                 <input
@@ -354,5 +354,24 @@ export default function OnboardingPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function OnboardingPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen grid place-items-center p-6">
+                <div className="w-full max-w-md">
+                    <div className="text-center">
+                        <div className="animate-pulse">
+                            <div className="h-8 bg-gray-200 rounded w-3/4 mx-auto mb-4"></div>
+                            <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }>
+            <OnboardingContent />
+        </Suspense>
     );
 }

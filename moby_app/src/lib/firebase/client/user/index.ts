@@ -2,7 +2,9 @@ import {
     doc,
     setDoc,
     serverTimestamp,
-    getDoc
+    getDoc,
+    Timestamp,
+    FieldValue
 } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client/config/app';
 
@@ -27,8 +29,8 @@ export type UserData = UserProfile & {
     email: string | null;
     uid: string;
     countingStats: CountingStats;
-    createdAt: any;
-    updatedAt: any;
+    createdAt: Timestamp | FieldValue;
+    updatedAt: Timestamp | FieldValue;
 };
 
 /**
