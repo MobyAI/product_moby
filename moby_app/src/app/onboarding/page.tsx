@@ -365,7 +365,7 @@ function OnboardingContent() {
                                                             setError(result.error || 'Upload failed');
                                                         }
                                                         setStep(6);
-                                                    } catch (err) {
+                                                    } catch {
                                                         setError('Failed to upload headshot');
                                                     } finally {
                                                         setLoading("idle");
@@ -454,7 +454,7 @@ function OnboardingContent() {
                                                             setError('Upload failed');
                                                         }
                                                         handleProfileSubmit();
-                                                    } catch (err) {
+                                                    } catch {
                                                         setError('Failed to upload resume');
                                                     } finally {
                                                         setLoading("idle");
