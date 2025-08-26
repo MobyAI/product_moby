@@ -21,10 +21,19 @@ type StatCardProps = {
     textColor?: string;
 };
 
+type StatusFilter = 'Completed' | 'Booked' | 'Callback' | 'Declined' | 'Hold' | 'all';
+
+type AuditionCountsProps = {
+    setFilterStatus: React.Dispatch<React.SetStateAction<StatusFilter>>;
+};
+
 function StatCard({ label, count, bgColor, textColor = "text-black" }: StatCardProps) {
     return (
         <div
-            className={`${bgColor} rounded-2xl p-4 min-w-[150px] shadow-sm hover:shadow-md transition-shadow`}
+            className={`${bgColor} rounded-2xl p-4 m-2 min-w-[150px]
+            shadow-sm hover:shadow-md
+            border border-transparent hover:border-gray-400
+            transition-all`}
         >
             <div className={`text-md font-light ${textColor} mb-2`}>
                 {label}
@@ -36,7 +45,7 @@ function StatCard({ label, count, bgColor, textColor = "text-black" }: StatCardP
     );
 }
 
-export default function AuditionCounts() {
+export default function AuditionCounts({ setFilterStatus }: AuditionCountsProps) {
     const [stats, setStats] = useState<CountingStats>({
         auditions: 0,
         completed: 0,
@@ -112,15 +121,43 @@ export default function AuditionCounts() {
     ];
 
     return (
-        <div className="flex gap-4 overflow-x-auto space-x-1">
+        <div className="flex gap-4 overflow-x-auto">
             {statCards.map((stat) => (
-                <StatCard
+                <div
                     key={stat.label}
-                    label={stat.label}
-                    count={stat.count}
-                    bgColor={stat.bgColor}
-                    textColor={stat.textColor}
-                />
+                    className="cursor-pointer"
+                    onClick={() => {
+                        switch (stat.label) {
+                            case "Audition":
+                                setFilterStatus("all");
+                                break;
+                            case "Completed":
+                                setFilterStatus("Completed");
+                                break;
+                            case "Declined":
+                                setFilterStatus("Declined");
+                                break;
+                            case "Callbacks":
+                                setFilterStatus("Callback");
+                                break;
+                            case "Hold":
+                                setFilterStatus("Hold");
+                                break;
+                            case "Bookings":
+                                setFilterStatus("Booked");
+                                break;
+                            default:
+                                setFilterStatus("all");
+                        }
+                    }}
+                >
+                    <StatCard
+                        label={stat.label}
+                        count={stat.count}
+                        bgColor={stat.bgColor}
+                        textColor={stat.textColor}
+                    />
+                </div>
             ))}
         </div>
     );

@@ -23,12 +23,12 @@ export interface AuditionData {
     id: number | string;
     date: string; // ISO date string format (YYYY-MM-DD)
     projectName: string;
-    projectType: 'tv' | 'film' | 'commercial' | 'theater' | 'voiceover' | 'other';
+    projectType: 'TV' | 'Film' | 'Commercial' | 'Theater' | 'Voiceover' | 'Other';
     castingDirector: string;
     role: string;
     source: string;
-    billing: 'star' | 'co-star' | 'guest-star' | 'recurring' | 'extra' | 'featured' | 'lead' | 'supporting';
-    status: 'completed' | 'booked' | 'callback' | 'declined' | 'hold';
+    billing: 'Star' | 'Co-Star' | 'Guest-Star' | 'Recurring' | 'Extra' | 'Featured' | 'Lead' | 'Supporting';
+    status: 'Completed' | 'Booked' | 'Callback' | 'Declined' | 'Hold';
 }
 
 // Filter types
@@ -104,67 +104,67 @@ export default function AuditionHistory() {
                             id: 1,
                             date: '2024-03-15',
                             projectName: 'The Morning Show',
-                            projectType: 'tv',
+                            projectType: 'TV',
                             castingDirector: 'Sarah Johnson',
                             role: 'Reporter',
                             source: 'Agent Submission',
-                            billing: 'co-star',
-                            status: 'callback'
+                            billing: 'Co-Star',
+                            status: 'Callback'
                         },
                         {
                             id: 2,
                             date: '2024-03-12',
                             projectName: 'Nike Summer Campaign',
-                            projectType: 'commercial',
+                            projectType: 'Commercial',
                             castingDirector: 'Mike Chen',
                             role: 'Lead Runner',
                             source: 'Direct Booking',
-                            billing: 'star',
-                            status: 'booked'
+                            billing: 'Star',
+                            status: 'Booked'
                         },
                         {
                             id: 3,
                             date: '2024-03-08',
                             projectName: 'Midnight Dreams',
-                            projectType: 'film',
+                            projectType: 'Film',
                             castingDirector: 'Emily Rodriguez',
                             role: 'Detective Harris',
                             source: 'Self Submission',
-                            billing: 'star',
-                            status: 'declined'
+                            billing: 'Star',
+                            status: 'Declined'
                         },
                         {
                             id: 4,
                             date: '2024-03-05',
                             projectName: 'Law & Order: SVU',
-                            projectType: 'tv',
+                            projectType: 'TV',
                             castingDirector: 'David Park',
                             role: 'Witness',
                             source: 'Agent Submission',
-                            billing: 'co-star',
-                            status: 'completed'
+                            billing: 'Co-Star',
+                            status: 'Completed'
                         },
                         {
                             id: 5,
                             date: '2024-02-28',
                             projectName: 'Apple Tech Launch',
-                            projectType: 'commercial',
+                            projectType: 'Commercial',
                             castingDirector: 'Lisa Wang',
                             role: 'Tech Professional',
                             source: 'Casting Network',
-                            billing: 'extra',
-                            status: 'hold'
+                            billing: 'Extra',
+                            status: 'Hold'
                         },
                         {
                             id: 6,
                             date: '2024-02-25',
                             projectName: 'The Inheritance',
-                            projectType: 'film',
+                            projectType: 'Film',
                             castingDirector: 'Robert Taylor',
                             role: 'Son',
                             source: 'Agent Submission',
-                            billing: 'star',
-                            status: 'callback'
+                            billing: 'Star',
+                            status: 'Callback'
                         },
                     ]);
                     setLoading(false);
@@ -181,9 +181,9 @@ export default function AuditionHistory() {
     // Project type icon mapping
     const getProjectIcon = (type: AuditionData['projectType']) => {
         switch (type) {
-            case 'tv': return <Tv className="w-4 h-4" />;
-            case 'film': return <Film className="w-4 h-4" />;
-            case 'commercial': return <Megaphone className="w-4 h-4" />;
+            case 'TV': return <Tv className="w-4 h-4" />;
+            case 'Film': return <Film className="w-4 h-4" />;
+            case 'Commercial': return <Megaphone className="w-4 h-4" />;
             default: return <Video className="w-4 h-4" />;
         }
     };
@@ -191,11 +191,11 @@ export default function AuditionHistory() {
     // Status color mapping
     const getStatusStyle = (status: AuditionData['status']) => {
         switch (status) {
-            case 'completed': return 'bg-gray-100 text-gray-600';
-            case 'declined': return 'bg-red-100 text-red-600';
-            case 'callback': return 'bg-blue-100 text-blue-800';
-            case 'hold': return 'bg-purple-100 text-purple-600';
-            case 'booked': return 'bg-green-100 text-green-800';
+            case 'Completed': return 'bg-purple-100 text-purple-600';
+            case 'Declined': return 'bg-red-100 text-red-600';
+            case 'Callback': return 'bg-blue-100 text-blue-800';
+            case 'Hold': return 'bg-pink-100 text-pink-600';
+            case 'Booked': return 'bg-green-100 text-green-800';
             default: return 'bg-gray-100 text-gray-800';
         }
     };
@@ -203,9 +203,9 @@ export default function AuditionHistory() {
     // Billing badge style
     const getBillingStyle = (billing: AuditionData['billing']): string => {
         switch (billing) {
-            case 'star': return 'bg-purple-100 text-purple-800';
-            case 'co-star': return 'bg-indigo-100 text-indigo-800';
-            case 'extra': return 'bg-gray-100 text-gray-600';
+            case 'Star': return 'bg-purple-100 text-purple-800';
+            case 'Co-Star': return 'bg-indigo-100 text-indigo-800';
+            case 'Extra': return 'bg-gray-100 text-gray-600';
             default: return 'bg-gray-100 text-gray-800';
         }
     };
@@ -268,7 +268,7 @@ export default function AuditionHistory() {
     return (
         <>
             <div className="flex justify-center m-2">
-                <AuditionCounts />
+                <AuditionCounts setFilterStatus={setFilterStatus} />
             </div>
             <div className="w-full bg-white rounded-lg shadow-sm">
                 {/* Header */}
@@ -415,10 +415,10 @@ export default function AuditionHistory() {
                                                 </button>
                                                 <button
                                                     onClick={() => {
-                                                        setFilterType('tv');
+                                                        setFilterType('TV');
                                                         setShowTypeFilter(false);
                                                     }}
-                                                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 ${filterType === 'tv' ? 'bg-gray-100 font-medium' : ''
+                                                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 ${filterType === 'TV' ? 'bg-gray-100 font-medium' : ''
                                                         }`}
                                                 >
                                                     <Tv className="w-4 h-4" />
@@ -426,10 +426,10 @@ export default function AuditionHistory() {
                                                 </button>
                                                 <button
                                                     onClick={() => {
-                                                        setFilterType('film');
+                                                        setFilterType('Film');
                                                         setShowTypeFilter(false);
                                                     }}
-                                                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 ${filterType === 'film' ? 'bg-gray-100 font-medium' : ''
+                                                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 ${filterType === 'Film' ? 'bg-gray-100 font-medium' : ''
                                                         }`}
                                                 >
                                                     <Film className="w-4 h-4" />
@@ -437,10 +437,10 @@ export default function AuditionHistory() {
                                                 </button>
                                                 <button
                                                     onClick={() => {
-                                                        setFilterType('commercial');
+                                                        setFilterType('Commercial');
                                                         setShowTypeFilter(false);
                                                     }}
-                                                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 ${filterType === 'commercial' ? 'bg-gray-100 font-medium' : ''
+                                                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 ${filterType === 'Commercial' ? 'bg-gray-100 font-medium' : ''
                                                         }`}
                                                 >
                                                     <Megaphone className="w-4 h-4" />
@@ -481,34 +481,34 @@ export default function AuditionHistory() {
                                                 </button>
                                                 <button
                                                     onClick={() => {
-                                                        setFilterStatus('booked');
+                                                        setFilterStatus('Booked');
                                                         setShowStatusFilter(false);
                                                     }}
-                                                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${filterStatus === 'completed' ? 'bg-gray-100 font-medium' : ''
+                                                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${filterStatus === 'Completed' ? 'bg-gray-100 font-medium' : ''
                                                         }`}
                                                 >
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-800">
                                                         Completed
                                                     </span>
                                                 </button>
                                                 <button
                                                     onClick={() => {
-                                                        setFilterStatus('booked');
+                                                        setFilterStatus('Booked');
                                                         setShowStatusFilter(false);
                                                     }}
-                                                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${filterStatus === 'declined' ? 'bg-gray-100 font-medium' : ''
+                                                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${filterStatus === 'Declined' ? 'bg-gray-100 font-medium' : ''
                                                         }`}
                                                 >
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-800">
                                                         Declined
                                                     </span>
                                                 </button>
                                                 <button
                                                     onClick={() => {
-                                                        setFilterStatus('booked');
+                                                        setFilterStatus('Booked');
                                                         setShowStatusFilter(false);
                                                     }}
-                                                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${filterStatus === 'booked' ? 'bg-gray-100 font-medium' : ''
+                                                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${filterStatus === 'Booked' ? 'bg-gray-100 font-medium' : ''
                                                         }`}
                                                 >
                                                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">
@@ -517,10 +517,10 @@ export default function AuditionHistory() {
                                                 </button>
                                                 <button
                                                     onClick={() => {
-                                                        setFilterStatus('callback');
+                                                        setFilterStatus('Callback');
                                                         setShowStatusFilter(false);
                                                     }}
-                                                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${filterStatus === 'callback' ? 'bg-gray-100 font-medium' : ''
+                                                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${filterStatus === 'Callback' ? 'bg-gray-100 font-medium' : ''
                                                         }`}
                                                 >
                                                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-800">
@@ -529,13 +529,13 @@ export default function AuditionHistory() {
                                                 </button>
                                                 <button
                                                     onClick={() => {
-                                                        setFilterStatus('booked');
+                                                        setFilterStatus('Booked');
                                                         setShowStatusFilter(false);
                                                     }}
-                                                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${filterStatus === 'booked' ? 'bg-gray-100 font-medium' : ''
+                                                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${filterStatus === 'Booked' ? 'bg-gray-100 font-medium' : ''
                                                         }`}
                                                 >
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-pink-100 text-pink-800">
                                                         Hold
                                                     </span>
                                                 </button>
@@ -593,7 +593,7 @@ export default function AuditionHistory() {
                                                     </div>
                                                     <div className="flex-none w-32 flex items-center gap-2 text-gray-600">
                                                         {getProjectIcon(audition.projectType)}
-                                                        <span className="capitalize">{audition.projectType}</span>
+                                                        <span>{audition.projectType}</span>
                                                     </div>
                                                     <div className="flex-1 min-w-[150px] flex items-center gap-2 text-gray-600">
                                                         <User className="w-4 h-4 text-gray-400" />
