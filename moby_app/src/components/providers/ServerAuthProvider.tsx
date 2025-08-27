@@ -1,15 +1,21 @@
 import { redirect } from "next/navigation";
-import { verifySession } from "@/lib/firebase/admin/auth/verifySession";
+import { verifyUserInfo, isAuthenticated, hasProfile } from "@/lib/firebase/admin/auth/verifySession";
 import { UserProvider, type AuthUser } from "./UserProvider";
 
 export default async function ServerAuthProvider({ children }: { children: React.ReactNode }) {
-    const user = await verifySession();
-    if (!user) redirect("/login?next=/home");
+    const userStatus = await verifyUserInfo();
+    console.log('user status: ', userStatus);
+
+    if (!isAuthenticated(userStatus)) {
+        redirect("/login");
+    }
+
+    if (!hasProfile(userStatus)) {
+        redirect("/onboarding");
+    }
 
     const value: AuthUser = {
-        uid: user.uid,
-        email: user.email ?? null,
-        emailVerified: !!user.emailVerified,
+        uid: userStatus.uid
     };
 
     return (
