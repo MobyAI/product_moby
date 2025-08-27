@@ -21,7 +21,9 @@ export default function SignupPage() {
                 if (res.success) {
                     router.replace(onboardingUrl);
                 } else {
-                    alert(res.error);
+                    if (res.error?.includes('popup-closed-by-user')) {
+                        return;
+                    }
                     throw new Error(res.error || "Failed to save profile");
                 }
             }}
@@ -30,7 +32,6 @@ export default function SignupPage() {
                 if (res.success) {
                     router.replace(onboardingUrl);
                 } else {
-                    alert(res.error);
                     throw new Error(res.error);
                 }
             }}

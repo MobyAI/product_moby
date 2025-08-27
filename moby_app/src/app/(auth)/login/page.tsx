@@ -32,7 +32,10 @@ export default function LoginPage() {
                 if (res.success) {
                     await handleSuccessfulLogin();
                 } else {
-                    alert(res.error);
+                    if (res.error?.includes('popup-closed-by-user')) {
+                        return;
+                    }
+                    throw new Error(res.error);
                 }
             }}
             onEmailPassword={async (email, password) => {
@@ -40,7 +43,7 @@ export default function LoginPage() {
                 if (res.success) {
                     await handleSuccessfulLogin();
                 } else {
-                    alert(res.error);
+                    throw new Error(res.error);
                 }
             }}
             switchHref={`/signup?next=${encodeURIComponent(next)}`}
