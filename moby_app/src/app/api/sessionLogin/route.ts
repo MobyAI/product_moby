@@ -17,15 +17,11 @@ export async function POST(req: Request) {
             );
         }
 
-        console.log('login ID token: ', idToken);
-
         const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
 
         const sessionCookie = await adminAuth.createSessionCookie(idToken, {
             expiresIn,
         });
-
-        console.log('session cookie: ', sessionCookie);
 
         const res = NextResponse.json({ success: true, message: "Session set" });
 
@@ -36,8 +32,6 @@ export async function POST(req: Request) {
             path: "/",
             maxAge: expiresIn / 1000,
         });
-
-        console.log('response: ', res);
 
         // const cookieStore = await cookies();
         // cookieStore.set("__session", sessionCookie, {

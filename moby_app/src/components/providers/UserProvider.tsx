@@ -7,8 +7,6 @@ import { auth } from "@/lib/firebase/client/config/app";
 
 export type AuthUser = {
     uid: string;
-    email: string | null;
-    emailVerified: boolean;
 };
 
 const UserContext = createContext<AuthUser | null>(null);
@@ -27,7 +25,7 @@ export function UserProvider({
     // Keep context in sync with client-side Firebase Auth
     useEffect(() => {
         const map = (u: FirebaseUser | null): AuthUser | null =>
-            u ? { uid: u.uid, email: u.email ?? null, emailVerified: u.emailVerified } : null;
+            u ? { uid: u.uid } : null;
 
         const unsub = onAuthStateChanged(auth, (u) => setUser(map(u)));
         return unsub;
