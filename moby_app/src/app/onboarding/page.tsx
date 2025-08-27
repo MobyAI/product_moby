@@ -6,29 +6,9 @@ import { ChevronLeft, ChevronRight, Check, User, Ruler, Calendar, Globe, Camera,
 import { uploadHeadshot, uploadResume } from "@/lib/firebase/client/media";
 import { addUser } from "@/lib/firebase/client/user";
 import { auth } from "@/lib/firebase/client/config/app";
-
-type UserProfile = {
-    firstName: string;
-    lastName: string;
-    age: number;
-    ethnicity: string;
-    height: number; // in cm
-};
+import { UserProfile, ethnicities } from "@/types/profile";
 
 type LoadingState = "idle" | "headshot" | "resume" | "profile";
-
-const ethnicities = [
-    { value: "asian", label: "Asian", emoji: "🌐" },
-    { value: "black", label: "Black/African", emoji: "🌐" },
-    { value: "hispanic", label: "Hispanic/Latino", emoji: "🌐" },
-    { value: "middle-eastern", label: "Middle Eastern", emoji: "🌐" },
-    { value: "native", label: "Native/Indigenous", emoji: "🌐" },
-    { value: "pacific", label: "Pacific Islander", emoji: "🌐" },
-    { value: "white", label: "White/Caucasian", emoji: "🌐" },
-    { value: "mixed", label: "Mixed/Multiple", emoji: "🌐" },
-    { value: "other", label: "Other", emoji: "✨" },
-    { value: "prefer-not", label: "Prefer not to say", emoji: "🤐" },
-];
 
 function OnboardingContent() {
     const router = useRouter();
@@ -41,12 +21,11 @@ function OnboardingContent() {
         firstName: "",
         lastName: "",
         age: 25,
-        ethnicity: "",
-        height: 170,
+        ethnicity: [],
+        height: 68,
     });
     const [loading, setLoading] = useState<LoadingState>("idle");
     const [error, setError] = useState<string | null>(null);
-    const [heightUnit, setHeightUnit] = useState<"cm" | "ft">("ft");
 
     async function handleProfileSubmit() {
         if (!profile.firstName || !profile.lastName) {
@@ -72,14 +51,6 @@ function OnboardingContent() {
             setLoading("idle");
         }
     }
-
-    const convertHeight = (cm: number, toUnit: "cm" | "ft"): string => {
-        if (toUnit === "cm") return `${cm} cm`;
-        const totalInches = cm / 2.54;
-        const feet = Math.floor(totalInches / 12);
-        const inches = Math.round(totalInches % 12);
-        return `${feet}'${inches}"`;
-    };
 
     return (
         <div className="min-h-screen grid place-items-center p-6">
@@ -207,20 +178,27 @@ function OnboardingContent() {
                                     <Globe className="w-8 h-8 text-orange-600" />
                                 </div>
                                 <h2 className="text-2xl font-semibold">Your background</h2>
-                                <p className="text-gray-500">Select the option that best describes you</p>
+                                <p className="text-gray-500">Select all that apply</p>
                             </div>
                             <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
                                 {ethnicities.map((eth) => (
                                     <button
                                         key={eth.value}
-                                        onClick={() => setProfile({ ...profile, ethnicity: eth.value })}
-                                        className={`p-4 rounded-xl border-2 transition-all ${profile.ethnicity === eth.value
-                                            ? "border-purple-500 bg-purple-50 shadow-md"
-                                            : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                                        onClick={() => {
+                                            setProfile(prev => ({
+                                                ...prev,
+                                                ethnicity: prev.ethnicity.includes(eth.value)
+                                                    ? prev.ethnicity.filter(e => e !== eth.value)
+                                                    : [...prev.ethnicity, eth.value]
+                                            }));
+                                        }}
+                                        className={`p-4 rounded-xl border-2 transition-all ${profile.ethnicity.includes(eth.value)
+                                                ? "border-purple-500 bg-purple-50 shadow-md"
+                                                : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                                             }`}
                                     >
                                         <div className="text-2xl mb-2">{eth.emoji}</div>
-                                        <div className={`text-sm font-medium ${profile.ethnicity === eth.value ? "text-purple-700" : "text-gray-700"
+                                        <div className={`text-sm font-medium ${profile.ethnicity.includes(eth.value) ? "text-purple-700" : "text-gray-700"
                                             }`}>
                                             {eth.label}
                                         </div>
@@ -236,8 +214,8 @@ function OnboardingContent() {
                                     Back
                                 </button>
                                 <button
-                                    onClick={() => profile.ethnicity && setStep(4)}
-                                    disabled={!profile.ethnicity}
+                                    onClick={() => profile.ethnicity.length > 0 && setStep(4)}
+                                    disabled={profile.ethnicity.length === 0}
                                     className="flex-1 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all"
                                 >
                                     Continue
@@ -258,45 +236,25 @@ function OnboardingContent() {
                                 <p className="text-gray-500">Slide to set your height</p>
                             </div>
                             <div className="space-y-4">
-                                <div className="flex justify-center gap-2">
-                                    <button
-                                        onClick={() => setHeightUnit("cm")}
-                                        className={`px-4 py-2 rounded-lg font-medium transition-all ${heightUnit === "cm"
-                                            ? "bg-purple-500 text-white"
-                                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                                            }`}
-                                    >
-                                        cm
-                                    </button>
-                                    <button
-                                        onClick={() => setHeightUnit("ft")}
-                                        className={`px-4 py-2 rounded-lg font-medium transition-all ${heightUnit === "ft"
-                                            ? "bg-purple-500 text-white"
-                                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                                            }`}
-                                    >
-                                        inches
-                                    </button>
-                                </div>
                                 <div className="text-center">
                                     <div className="text-5xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-                                        {convertHeight(profile.height, heightUnit)}
+                                        {Math.floor(profile.height / 12)}'{profile.height % 12}"
                                     </div>
                                 </div>
                                 <input
                                     type="range"
-                                    min="120"
-                                    max="220"
+                                    min="48"  // inches
+                                    max="84"  // inches
                                     value={profile.height}
                                     onChange={(e) => setProfile({ ...profile, height: parseInt(e.target.value) })}
                                     className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                                     style={{
-                                        background: `linear-gradient(to right, rgb(59, 130, 246) 0%, rgb(147, 51, 234) ${((profile.height - 120) / 100) * 100}%, rgb(229, 231, 235) ${((profile.height - 120) / 100) * 100}%, rgb(229, 231, 235) 100%)`
+                                        background: `linear-gradient(to right, rgb(59, 130, 246) 0%, rgb(147, 51, 234) ${((profile.height - 48) / 36) * 100}%, rgb(229, 231, 235) ${((profile.height - 48) / 36) * 100}%, rgb(229, 231, 235) 100%)`
                                     }}
                                 />
                                 <div className="flex justify-between text-sm text-gray-500">
-                                    <span>{heightUnit === "cm" ? "120 cm" : "3'11\""}</span>
-                                    <span>{heightUnit === "cm" ? "220 cm" : "7'3\""}</span>
+                                    <span>4'0"</span>
+                                    <span>7'0"</span>
                                 </div>
                             </div>
                             {error && <p className="text-sm text-red-600 text-center">{error}</p>}

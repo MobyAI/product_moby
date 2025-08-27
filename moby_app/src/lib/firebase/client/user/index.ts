@@ -7,14 +7,7 @@ import {
     FieldValue,
 } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client/config/app';
-
-export type UserProfile = {
-    firstName: string;
-    lastName: string;
-    age: number;
-    ethnicity: string;
-    height: number; // in cm
-};
+import { UserProfile } from "@/types/profile";
 
 export type CountingStats = {
     auditions: number;
