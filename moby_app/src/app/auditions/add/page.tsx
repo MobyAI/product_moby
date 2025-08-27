@@ -1,7 +1,7 @@
-"use client"
+"use client";
 import { useState, useRef } from 'react';
 
-export default function AuditionManager() {
+export default function AddAuditionButton() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [dragOver, setDragOver] = useState(false);
@@ -13,7 +13,7 @@ export default function AuditionManager() {
         castingDirector: '',
         auditionType: '',
         auditionRole: '',
-        auditonRoleLevel: '',
+        auditionRoleLevel: '',
         source: '',
         currentStatus: '',
         files: '',
@@ -48,7 +48,7 @@ export default function AuditionManager() {
             castingDirector: '',
             auditionType: '',
             auditionRole: '',
-            auditonRoleLevel: '',
+            auditionRoleLevel: '',
             source: '',
             currentStatus: '',
             files: '',
@@ -96,32 +96,6 @@ export default function AuditionManager() {
         setSelectedFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    const getFileIcon = (filename) => {
-        const extension = filename.split('.').pop().toLowerCase();
-
-        switch (extension) {
-            case 'pdf':
-            case 'doc':
-            case 'docx':
-                return '📄';
-            case 'jpg':
-            case 'jpeg':
-            case 'png':
-            case 'gif':
-                return '🖼️';
-            case 'mp4':
-            case 'mov':
-            case 'avi':
-                return '🎥';
-            case 'mp3':
-            case 'wav':
-            case 'aac':
-                return '🎵';
-            default:
-                return '📁';
-        }
-    };
-
     const handleSubmit = () => {
         // Validate required fields
         if (!formData.projectTitle || !formData.auditionRole || !formData.auditionType || !formData.date) {
@@ -153,27 +127,16 @@ export default function AuditionManager() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 flex items-center justify-center p-5">
-            <div className="text-center max-w-lg w-full">
-                {/* Header */}
-                <div className="text-white mb-10">
-                    <h1 className="text-5xl font-bold mb-3 text-shadow-lg animate-fade-in-up">
-                        Audition Manager
-                    </h1>
-                    <p className="text-xl opacity-90 animate-fade-in-up animation-delay-200">
-                        Manage your casting calls and auditions
-                    </p>
-                </div>
-
-                {/* Add Button */}
-                <button
-                    onClick={openModal}
-                    className="bg-gradient-to-r from-red-500 to-orange-500 text-white px-10 py-4 rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 inline-flex items-center gap-3 animate-fade-in-up animation-delay-400"
-                >
-                    <span className="text-xl">➕</span>
-                    Add New Audition
-                </button>
-            </div>
+        <>
+            {/* Floating Add Button */}
+            <button
+                onClick={openModal}
+                className="fixed top-4 right-4 bg-gradient-to-r from-red-500 to-orange-500 text-white p-3 rounded-full font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 flex items-center gap-2 z-40"
+                title="Add New Audition"
+            >
+                <span className="text-xl">➕</span>
+                <span className="hidden sm:inline">Add Audition</span>
+            </button>
 
             {/* Modal Overlay */}
             {isModalOpen && (
@@ -198,24 +161,23 @@ export default function AuditionManager() {
                         <div className="space-y-6">
                             <div>
                                 <label htmlFor="date" className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Date
+                                    Date *
                                 </label>
                                 <input
-                                    type="text"
+                                    type="date"
                                     id="date"
                                     name="date"
                                     value={formData.date}
                                     onChange={handleInputChange}
                                     required
-                                    placeholder="Date"
                                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-gray-50 focus:bg-white"
                                 />
                             </div>
 
-                            {/* Role Name */}
+                            {/* Project Title */}
                             <div>
                                 <label htmlFor="projectTitle" className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Project Title
+                                    Project Title *
                                 </label>
                                 <input
                                     type="text"
@@ -240,7 +202,6 @@ export default function AuditionManager() {
                                     name="castingDirector"
                                     value={formData.castingDirector}
                                     onChange={handleInputChange}
-                                    required
                                     placeholder="Who is the casting director?"
                                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-gray-50 focus:bg-white"
                                 />
@@ -249,7 +210,7 @@ export default function AuditionManager() {
                             {/* Audition Type */}
                             <div>
                                 <label htmlFor="auditionType" className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Audition Type 
+                                    Audition Type *
                                 </label>
                                 <select
                                     id="auditionType"
@@ -262,7 +223,7 @@ export default function AuditionManager() {
                                     <option value="">Select audition type</option>
                                     {auditionTypes.map(type => (
                                         <option key={type.value} value={type.value}>
-                                            {type.label}
+                                            {type.icon} {type.label}
                                         </option>
                                     ))}
                                 </select>
@@ -271,7 +232,7 @@ export default function AuditionManager() {
                             {/* Audition Role */}
                             <div>
                                 <label htmlFor="auditionRole" className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Audition Role
+                                    Audition Role *
                                 </label>
                                 <input
                                     type="text"
@@ -294,9 +255,8 @@ export default function AuditionManager() {
                                     type="text"
                                     id="auditionRoleLevel"
                                     name="auditionRoleLevel"
-                                    value={formData.auditonRoleLevel}
+                                    value={formData.auditionRoleLevel}
                                     onChange={handleInputChange}
-                                    required
                                     placeholder="What is the level of your role (e.g. Main, supporting, etc)?"
                                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-gray-50 focus:bg-white"
                                 />
@@ -313,8 +273,7 @@ export default function AuditionManager() {
                                     name="source"
                                     value={formData.source}
                                     onChange={handleInputChange}
-                                    required
-                                    placeholder=""
+                                    placeholder="Where did you find this audition?"
                                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-gray-50 focus:bg-white"
                                 />
                             </div>
@@ -324,16 +283,21 @@ export default function AuditionManager() {
                                 <label htmlFor="currentStatus" className="block text-sm font-semibold text-gray-700 mb-2">
                                     Current Status
                                 </label>
-                                <input
-                                    type="text"
+                                <select
                                     id="currentStatus"
                                     name="currentStatus"
                                     value={formData.currentStatus}
                                     onChange={handleInputChange}
-                                    required
-                                    placeholder="What is the status of your audition?"
                                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-gray-50 focus:bg-white"
-                                />
+                                >
+                                    <option value="">Select status</option>
+                                    <option value="applied">Applied</option>
+                                    <option value="auditioned">Auditioned</option>
+                                    <option value="callback">Callback</option>
+                                    <option value="booked">Booked</option>
+                                    <option value="rejected">Rejected</option>
+                                    <option value="pending">Pending</option>
+                                </select>
                             </div>
 
                             {/* Location */}
@@ -347,8 +311,7 @@ export default function AuditionManager() {
                                     name="location"
                                     value={formData.location}
                                     onChange={handleInputChange}
-                                    required
-                                    placeholder="location"
+                                    placeholder="Audition location"
                                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-gray-50 focus:bg-white"
                                 />
                             </div>
@@ -358,32 +321,14 @@ export default function AuditionManager() {
                                 <label htmlFor="description" className="block text-sm font-semibold text-gray-700 mb-2">
                                     Description
                                 </label>
-                                <input
-                                    type="text"
+                                <textarea
                                     id="description"
                                     name="description"
                                     value={formData.description}
                                     onChange={handleInputChange}
-                                    required
-                                    placeholder="description"
-                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-gray-50 focus:bg-white"
-                                />
-                            </div>
-
-                            {/* Casting Director */}
-                            <div>
-                                <label htmlFor="castingDirector" className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Casting Director
-                                </label>
-                                <input
-                                    type="text"
-                                    id="castingDirector"
-                                    name="castingDirector"
-                                    value={formData.castingDirector}
-                                    onChange={handleInputChange}
-                                    required
-                                    placeholder="Who is the casting director?"
-                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-gray-50 focus:bg-white"
+                                    placeholder="Additional notes about the audition"
+                                    rows={3}
+                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-gray-50 focus:bg-white resize-vertical"
                                 />
                             </div>
 
@@ -422,24 +367,22 @@ export default function AuditionManager() {
                                 {/* Selected Files */}
                                 {selectedFiles.length > 0 && (
                                     <div className="mt-4 space-y-2">
-                                        {selectedFiles.map((file, index) => {
-                                            // const IconComponent = getFileIcon(file.name);
-                                            return (
-                                                <div key={index} className="bg-white p-3 rounded-lg shadow-sm border flex items-center justify-between">
-                                                    <div className="flex items-center gap-3">
-                                                        {/* <IconComponent className="w-5 h-5 text-indigo-500" /> */}
-                                                        <span className="text-sm font-medium text-gray-700">{file.name}</span>
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeFile(index)}
-                                                        className="p-1 rounded hover:bg-red-50 hover:text-red-500 transition-colors duration-200"
-                                                    >
-                                                        {/* <X className="w-4 h-4" /> */}
-                                                    </button>
+                                        {selectedFiles.map((file, index) => (
+                                            <div key={index} className="bg-white p-3 rounded-lg shadow-sm border flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-lg">📄</span>
+                                                    <span className="text-sm font-medium text-gray-700">{file.name}</span>
+                                                    <span className="text-xs text-gray-500">({Math.round(file.size / 1024)}KB)</span>
                                                 </div>
-                                            );
-                                        })}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeFile(index)}
+                                                    className="p-1 rounded hover:bg-red-50 hover:text-red-500 transition-colors duration-200 text-sm"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </div>
@@ -466,31 +409,6 @@ export default function AuditionManager() {
                     </div>
                 </div>
             )}
-
-            <style jsx>{`
-        @keyframes fade-in-up {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fade-in-up {
-          animation: fade-in-up 0.8s ease-out forwards;
-        }
-        .animation-delay-200 {
-          animation-delay: 0.2s;
-        }
-        .animation-delay-400 {
-          animation-delay: 0.4s;
-        }
-        .text-shadow-lg {
-          text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        }
-      `}</style>
-        </div>
+        </>
     );
 }
