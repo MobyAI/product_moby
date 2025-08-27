@@ -26,6 +26,8 @@ function OnboardingContent() {
     });
     const [loading, setLoading] = useState<LoadingState>("idle");
     const [error, setError] = useState<string | null>(null);
+    const [isDraggingHeadshot, setIsDraggingHeadshot] = useState(false);
+    const [isDraggingResume, setIsDraggingResume] = useState(false);
 
     async function handleProfileSubmit() {
         if (!profile.firstName || !profile.lastName) {
@@ -193,8 +195,8 @@ function OnboardingContent() {
                                             }));
                                         }}
                                         className={`p-4 rounded-xl border-2 transition-all ${profile.ethnicity.includes(eth.value)
-                                                ? "border-purple-500 bg-purple-50 shadow-md"
-                                                : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                                            ? "border-purple-500 bg-purple-50 shadow-md"
+                                            : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                                             }`}
                                     >
                                         <div className="text-2xl mb-2">{eth.emoji}</div>
@@ -300,11 +302,47 @@ function OnboardingContent() {
                                         <p className="text-gray-600">Processing your headshot...</p>
                                     </div>
                                 ) : (
-                                    <label className="block">
-                                        <div className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                                            <Upload className="w-10 h-10 mb-3 text-gray-400" />
+                                    <label
+                                        className="block"
+                                        onDragOver={(e) => {
+                                            e.preventDefault();
+                                            setIsDraggingHeadshot(true);
+                                        }}
+                                        onDragLeave={(e) => {
+                                            e.preventDefault();
+                                            setIsDraggingHeadshot(false);
+                                        }}
+                                        onDrop={async (e) => {
+                                            e.preventDefault();
+                                            setIsDraggingHeadshot(false);
+
+                                            const file = e.dataTransfer.files?.[0];
+                                            if (file && file.type.startsWith('image/')) {
+                                                setLoading("headshot");
+                                                setError(null);
+                                                try {
+                                                    const result = await uploadHeadshot(file, auth.currentUser?.uid || '');
+                                                    if (!result.success) {
+                                                        setError(result.error || 'Upload failed');
+                                                    }
+                                                    setStep(6);
+                                                } catch {
+                                                    setError('Failed to upload headshot');
+                                                } finally {
+                                                    setLoading("idle");
+                                                }
+                                            } else {
+                                                setError('Please upload an image file');
+                                            }
+                                        }}
+                                    >
+                                        <div className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer transition-all ${isDraggingHeadshot
+                                            ? 'border-purple-500 bg-purple-50'
+                                            : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                                            }`}>
+                                            <Upload className={`w-10 h-10 mb-3 ${isDraggingHeadshot ? 'text-purple-500' : 'text-gray-400'}`} />
                                             <p className="mb-2 text-sm text-gray-500">
-                                                <span className="font-semibold">Click to upload</span>
+                                                <span className="font-semibold">Click to upload or drag and drop</span>
                                             </p>
                                             <p className="text-xs text-gray-500">PNG, JPG up to 15MB</p>
                                         </div>
@@ -389,11 +427,48 @@ function OnboardingContent() {
                                         <p className="text-gray-600">Saving your profile...</p>
                                     </div>
                                 ) : (
-                                    <label className="block">
-                                        <div className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                                            <Upload className="w-10 h-10 mb-3 text-gray-400" />
+                                    <label
+                                        className="block"
+                                        onDragOver={(e) => {
+                                            e.preventDefault();
+                                            setIsDraggingResume(true);
+                                        }}
+                                        onDragLeave={(e) => {
+                                            e.preventDefault();
+                                            setIsDraggingResume(false);
+                                        }}
+                                        onDrop={async (e) => {
+                                            e.preventDefault();
+                                            setIsDraggingResume(false);
+
+                                            const file = e.dataTransfer.files?.[0];
+                                            if (file && (file.type === 'application/pdf' ||
+                                                file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')) {
+                                                setLoading("resume");
+                                                setError(null);
+                                                try {
+                                                    const result = await uploadResume(file, auth.currentUser?.uid || '');
+                                                    if (!result.success) {
+                                                        setError('Upload failed');
+                                                    }
+                                                    handleProfileSubmit();
+                                                } catch {
+                                                    setError('Failed to upload resume');
+                                                } finally {
+                                                    setLoading("idle");
+                                                }
+                                            } else {
+                                                setError('Please upload a PDF or DOCX file');
+                                            }
+                                        }}
+                                    >
+                                        <div className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer transition-all ${isDraggingResume
+                                            ? 'border-emerald-500 bg-emerald-50'
+                                            : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                                            }`}>
+                                            <Upload className={`w-10 h-10 mb-3 ${isDraggingResume ? 'text-emerald-500' : 'text-gray-400'}`} />
                                             <p className="mb-2 text-sm text-gray-500">
-                                                <span className="font-semibold">Click to upload</span>
+                                                <span className="font-semibold">Click to upload or drag and drop</span>
                                             </p>
                                             <p className="text-xs text-gray-500">PDF or DOCX up to 25MB</p>
                                         </div>
@@ -483,7 +558,7 @@ function OnboardingContent() {
                     `}</style>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
 
