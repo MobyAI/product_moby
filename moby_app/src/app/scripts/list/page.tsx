@@ -12,6 +12,7 @@ import { toBasicError } from "@/types/error";
 import { Layout, LogoutButton } from "@/components/ui";
 import ScriptUploadModal from "./uploadModal";
 import { ConfirmModal } from "@/components/ui";
+import UploadForm from '../upload/uploadFile';
 
 function ScriptsListContent() {
     const { uid } = useAuthUser();
@@ -105,6 +106,7 @@ function ScriptsListContent() {
 
     return (
         <Layout>
+            <div style={{ padding: 20 }}>
             {loading && (
                 <p className="text-gray-600">Getting your saved scripts for you!</p>
             )}
@@ -146,7 +148,8 @@ function ScriptsListContent() {
             )}
 
             {!loading && !error && hasFetched && allScripts.length === 0 && (
-                <p className="text-gray-600">No saved scripts yet. Upload one to get started!</p>
+                // <p className="text-gray-600">No saved scripts yet. Upload one to get started!</p>
+                <UploadForm onFileUpload={handleFileSelect}/>
             )}
 
             {!loading && !error && allScripts.length > 0 && (
@@ -197,6 +200,7 @@ function ScriptsListContent() {
                     />
                 </div>
             )}
+            </div>
         </Layout>
     )
 }
