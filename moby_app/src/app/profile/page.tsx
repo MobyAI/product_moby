@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
     User,
@@ -17,10 +18,12 @@ import {
     ChevronRight,
     Upload,
 } from "lucide-react";
+import { Timestamp, FieldValue } from 'firebase/firestore';
+import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/config/app";
 import { getUser, updateUserProfile } from "@/lib/firebase/client/user";
 import { deleteHeadshot, deleteResume, getHeadshots, getResume } from "@/lib/firebase/client/media";
-import { onAuthStateChanged } from "firebase/auth";
+import { useAuthUser } from "@/components/providers/UserProvider";
 import { UserProfile } from "@/types/profile";
 import HeadshotUploadModal from "./headshotUploadModal";
 import ResumeUploadModal from "./resumeUploadModal";
@@ -31,7 +34,7 @@ type HeadshotData = {
     thumbnailUrl: string;
     fileName: string;
     fileSize: number;
-    uploadedAt: any;
+    uploadedAt: Timestamp | FieldValue;
 };
 
 type ResumeData = {
@@ -40,7 +43,7 @@ type ResumeData = {
     fileName: string;
     fileSize: number;
     mimeType: string;
-    uploadedAt: any;
+    uploadedAt: Timestamp | FieldValue;
 };
 
 const ethnicityLabels: Record<string, string> = {
@@ -56,10 +59,11 @@ const ethnicityLabels: Record<string, string> = {
     "prefer-not": "Prefer not to say",
 };
 
-
-
 export default function ProfilePage() {
     const router = useRouter();
+    const { uid } = useAuthUser();
+    const userID = uid;
+
     const [authReady, setAuthReady] = useState(false);
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState<'headshot' | 'resume' | null>(null);
@@ -88,18 +92,12 @@ export default function ProfilePage() {
         if (!authReady) return;
 
         loadUserData();
-    }, [authReady]);
+    }, [authReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
     async function loadUserData() {
         try {
-            const user = auth.currentUser;
-            if (!user) {
-                router.push('/login');
-                return;
-            }
-
             // Load user data
-            const userResult = await getUser();
+            const userResult = await getUser(userID);
             if (userResult.success && userResult.data) {
                 setProfile(userResult.data);
                 setEditedProfile(userResult.data);
@@ -108,13 +106,13 @@ export default function ProfilePage() {
             }
 
             // Load headshots
-            const headshotsResult = await getHeadshots(user.uid);
+            const headshotsResult = await getHeadshots(userID);
             if (headshotsResult.success) {
                 setHeadshots(headshotsResult.data || []);
             }
 
             // Load resume
-            const resumeResult = await getResume(user.uid);
+            const resumeResult = await getResume(userID);
             if (resumeResult.success) {
                 setResume(resumeResult.data);
             }
@@ -141,7 +139,7 @@ export default function ProfilePage() {
             } else {
                 setError(result.error || 'Failed to save profile');
             }
-        } catch (error) {
+        } catch {
             setError('Failed to save profile');
         } finally {
             setSaving(false);
@@ -367,7 +365,7 @@ export default function ProfilePage() {
                                         </div>
                                     ) : (
                                         <p className="text-gray-900">
-                                            {Math.floor(profile.height / 12)}'{profile.height % 12}"
+                                            {`${Math.floor(profile.height / 12)}'${profile.height % 12}"`}
                                         </p>
                                     )}
                                 </div>
@@ -451,10 +449,13 @@ export default function ProfilePage() {
                                     {headshots.length > 0 ? (
                                         <div className="space-y-4">
                                             <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
-                                                <img
+                                                <Image
                                                     src={headshots[selectedHeadshotIndex]?.thumbnailUrl}
                                                     alt="Headshot"
-                                                    className="w-full h-full object-cover"
+                                                    fill
+                                                    priority
+                                                    className="object-cover"
+                                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                                                 />
                                             </div>
                                             {headshots.length > 1 && (

@@ -22,7 +22,7 @@ function OnboardingContent() {
         lastName: "",
         age: 25,
         ethnicity: [],
-        height: 68,
+        height: 66,
     });
     const [loading, setLoading] = useState<LoadingState>("idle");
     const [error, setError] = useState<string | null>(null);
@@ -240,23 +240,23 @@ function OnboardingContent() {
                             <div className="space-y-4">
                                 <div className="text-center">
                                     <div className="text-5xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-                                        {Math.floor(profile.height / 12)}'{profile.height % 12}"
+                                        {`${Math.floor(profile.height / 12)}'${profile.height % 12}"`}
                                     </div>
                                 </div>
                                 <input
                                     type="range"
-                                    min="48"  // inches
-                                    max="84"  // inches
+                                    min="36"  // inches
+                                    max="96"  // inches
                                     value={profile.height}
                                     onChange={(e) => setProfile({ ...profile, height: parseInt(e.target.value) })}
                                     className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                                     style={{
-                                        background: `linear-gradient(to right, rgb(59, 130, 246) 0%, rgb(147, 51, 234) ${((profile.height - 48) / 36) * 100}%, rgb(229, 231, 235) ${((profile.height - 48) / 36) * 100}%, rgb(229, 231, 235) 100%)`
+                                        background: `linear-gradient(to right, rgb(59, 130, 246) 0%, rgb(147, 51, 234) ${((profile.height - 36) / 60) * 100}%, rgb(229, 231, 235) ${((profile.height - 36) / 60) * 100}%, rgb(229, 231, 235) 100%)`
                                     }}
                                 />
                                 <div className="flex justify-between text-sm text-gray-500">
-                                    <span>4'0"</span>
-                                    <span>7'0"</span>
+                                    <span>{`3'0"`}</span>
+                                    <span>{`8'0"`}</span>
                                 </div>
                             </div>
                             {error && <p className="text-sm text-red-600 text-center">{error}</p>}
