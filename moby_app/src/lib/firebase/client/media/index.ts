@@ -1,6 +1,6 @@
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage, db } from '@/lib/firebase/client/config/app';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { storage, db, auth } from '@/lib/firebase/client/config/app';
+import { doc, collection, setDoc, getDocs, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import type { HeadshotData, ResumeData } from '@/types/media';
 
 const HEADSHOT_MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
@@ -18,9 +18,19 @@ export async function uploadHeadshot(file: File, userId: string) {
             throw new Error('File size must be under 10MB');
         }
 
+        // Check current headshot count
+        const headshotsSnapshot = await getDocs(
+            collection(db, 'users', userId, 'headshots')
+        );
+        // Limit 3
+        if (headshotsSnapshot.size >= 3) {
+            throw new Error('Maximum of 3 headshots allowed. Please delete an existing headshot before uploading a new one.');
+        }
+
         // New upload replaces old one
-        const headshotId = "current";
-        // const headshotId = `${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+        // const headshotId = "current";
+
+        const headshotId = `${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 
         // Upload original
         const originalRef = ref(storage, `users/${userId}/headshots/${headshotId}/original`);
@@ -66,6 +76,74 @@ export async function uploadHeadshot(file: File, userId: string) {
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Upload failed'
+        };
+    }
+}
+
+export async function getHeadshots(userId: string) {
+    const targetUserId = userId || auth.currentUser?.uid;
+
+    if (!targetUserId) {
+        return {
+            success: false,
+            error: 'No user ID provided',
+            data: null
+        };
+    }
+
+    try {
+        const headshotsSnapshot = await getDocs(
+            collection(db, 'users', targetUserId, 'headshots')
+        );
+
+        const headshots = headshotsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        } as HeadshotData));
+
+        return {
+            success: true,
+            data: headshots
+        };
+    } catch (error) {
+        console.error('Error fetching headshots:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to fetch headshots',
+            data: null
+        };
+    }
+}
+
+export async function deleteHeadshot(headshotId: string, userId: string) {
+    try {
+        // Delete from Storage (both original and thumbnail)
+        const originalRef = ref(storage, `users/${userId}/headshots/${headshotId}/original`);
+        const thumbnailRef = ref(storage, `users/${userId}/headshots/${headshotId}/thumbnail`);
+
+        // Delete files from storage
+        await Promise.all([
+            deleteObject(originalRef).catch(err => {
+                console.warn('Original file may not exist:', err);
+            }),
+            deleteObject(thumbnailRef).catch(err => {
+                console.warn('Thumbnail file may not exist:', err);
+            })
+        ]);
+
+        // Delete from Firestore
+        await deleteDoc(doc(db, 'users', userId, 'headshots', headshotId));
+
+        return {
+            success: true,
+            message: 'Headshot deleted successfully'
+        };
+
+    } catch (error) {
+        console.error('Error deleting headshot:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to delete headshot'
         };
     }
 }
@@ -186,4 +264,73 @@ export async function uploadResume(file: File, userId: string) {
     );
 
     return { success: true, data: resumeData };
+}
+
+export async function getResume(userId: string) {
+    const targetUserId = userId || auth.currentUser?.uid;
+
+    if (!targetUserId) {
+        return {
+            success: false,
+            error: 'No user ID provided',
+            data: null
+        };
+    }
+
+    try {
+        const resumeSnapshot = await getDocs(
+            collection(db, 'users', targetUserId, 'resumes')
+        );
+
+        if (resumeSnapshot.empty) {
+            return {
+                success: true,
+                data: null
+            };
+        }
+
+        const resumeDoc = resumeSnapshot.docs[0];
+        const resume = {
+            id: resumeDoc.id,
+            ...resumeDoc.data()
+        } as ResumeData;
+
+        return {
+            success: true,
+            data: resume
+        };
+    } catch (error) {
+        console.error('Error fetching resume:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to fetch resume',
+            data: null
+        };
+    }
+}
+
+export async function deleteResume(resumeId: string, userId: string) {
+    try {
+        // Delete from Storage
+        const resumeRef = ref(storage, `users/${userId}/resumes/${resumeId}`);
+
+        await deleteObject(resumeRef).catch(err => {
+            console.warn('Resume file may not exist in storage:', err);
+        });
+
+        // Delete from Firestore
+        await deleteDoc(doc(db, 'users', userId, 'resumes', resumeId));
+
+        return {
+            success: true,
+            message: 'Resume deleted successfully'
+        };
+
+    } catch (error) {
+        console.error('Error deleting resume:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to delete resume'
+        };
+    }
 }

@@ -34,12 +34,8 @@ export default function Form({
         try {
             setLoading("email");
             await onEmailPassword(email, pw);
-        } catch (err: unknown) {
-            if (err instanceof Error) {
-                setError(err.message);
-            } else {
-                setError("Sign in failed.");
-            }
+        } catch {
+            setError("Sign in failed. Please check your email/password and try again.");
         } finally {
             setLoading(null);
         }
@@ -50,12 +46,8 @@ export default function Form({
         try {
             setLoading("google");
             await onGoogle();
-        } catch (err: unknown) {
-            if (err instanceof Error) {
-                setError(err.message);
-            } else {
-                setError("Google sign in failed.");
-            }
+        } catch {
+            setError("Google sign in failed.");
         } finally {
             setLoading(null);
         }
