@@ -580,10 +580,11 @@ export default function ScriptUploadModal({
                     {/* Stage 6: Script Review */}
                     {currentStage === 6 && (
                         <InputStage
-                            title="Review Your Script"
+                            title="Edit Your Script"
                             fullHeight={true}
                         >
                             <div className="flex flex-col h-full">
+                                <p>Feel free to click on the lines to edit them if you need to.</p>
                                 {/* Script container */}
                                 <div className="flex-1 border border-gray-200 rounded-lg p-4 bg-gray-50 overflow-y-auto min-h-0">
                                     {scriptSaving ? (
