@@ -955,7 +955,7 @@ function RehearsalRoomContent() {
 									onClick={goBackHome}
 									className="px-6 py-2 bg-green-600 hover:bg-green-800 text-gray-800 rounded-lg shadow-md shadow-black hover:shadow-lg hover:shadow-black transition-all duration-200 font-medium"
 								>
-									Upload a new script
+									Go back home
 								</Button>
 							</div>
 						</div>
