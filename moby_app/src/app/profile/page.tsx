@@ -18,7 +18,7 @@ import {
     ChevronRight,
     Upload,
 } from "lucide-react";
-import { Timestamp, FieldValue } from 'firebase/firestore';
+import { Timestamp, FieldValue } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/config/app";
 import { getUser, updateUserProfile } from "@/lib/firebase/client/user";
