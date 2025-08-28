@@ -625,7 +625,8 @@ function RehearsalRoomContent() {
 	}, []);
 
 	const goBackHome = () => {
-		router.push('/home')
+		// router.push('/home')
+		router.push('/scripts/list')
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
