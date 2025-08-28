@@ -24,7 +24,7 @@ import { auth } from "@/lib/firebase/client/config/app";
 import { getUser, updateUserProfile } from "@/lib/firebase/client/user";
 import { deleteHeadshot, deleteResume, getHeadshots, getResume } from "@/lib/firebase/client/media";
 import { useAuthUser } from "@/components/providers/UserProvider";
-import { UserProfile } from "@/types/profile";
+import { UserProfile, ethnicities } from "@/types/profile";
 import HeadshotUploadModal from "./headshotUploadModal";
 import ResumeUploadModal from "./resumeUploadModal";
 
@@ -46,18 +46,9 @@ type ResumeData = {
     uploadedAt: Timestamp | FieldValue;
 };
 
-const ethnicityLabels: Record<string, string> = {
-    "asian": "Asian",
-    "black": "Black/African",
-    "hispanic": "Hispanic/Latino",
-    "middle-eastern": "Middle Eastern",
-    "native": "Native/Indigenous",
-    "pacific": "Pacific Islander",
-    "white": "White/Caucasian",
-    "mixed": "Mixed/Multiple",
-    "other": "Other",
-    "prefer-not": "Prefer not to say",
-};
+const ethnicityLabels = Object.fromEntries(
+    ethnicities.map(eth => [eth.value, eth.label])
+);
 
 export default function ProfilePage() {
     const router = useRouter();

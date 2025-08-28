@@ -14,7 +14,6 @@ export const ethnicities = [
     { value: "native", label: "Native/Indigenous", emoji: "🌐" },
     { value: "pacific", label: "Pacific Islander", emoji: "🌐" },
     { value: "white", label: "White/Caucasian", emoji: "🌐" },
-    { value: "mixed", label: "Mixed/Multiple", emoji: "🌐" },
     { value: "other", label: "Other", emoji: "✨" },
     { value: "prefer-not", label: "Prefer not to say", emoji: "🤐" },
 ];
