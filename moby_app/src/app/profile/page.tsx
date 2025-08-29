@@ -52,7 +52,12 @@ const ethnicityLabels = Object.fromEntries(
 
 export default function ProfilePage() {
     const router = useRouter();
+
     const { uid } = useAuthUser();
+    if (!uid) {
+        router.push('/login');
+        return null;
+    }
     const userID = uid;
 
     const [authReady, setAuthReady] = useState(false);
@@ -80,13 +85,19 @@ export default function ProfilePage() {
     }, []);
 
     useEffect(() => {
-        if (!authReady) return;
+        if (!authReady || !userID) return;
 
         loadUserData();
-    }, [authReady]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [authReady, userID]); // eslint-disable-line react-hooks/exhaustive-deps
 
     async function loadUserData() {
         try {
+            if (!userID) {
+                console.error('No user ID available');
+                router.push('/login');
+                return;
+            }
+
             // Load user data
             const userResult = await getUser(userID);
             if (userResult.success && userResult.data) {
@@ -440,14 +451,16 @@ export default function ProfilePage() {
                                     {headshots.length > 0 ? (
                                         <div className="space-y-4">
                                             <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
-                                                <Image
-                                                    src={headshots[selectedHeadshotIndex]?.thumbnailUrl}
-                                                    alt="Headshot"
-                                                    fill
-                                                    priority
-                                                    className="object-cover"
-                                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                                />
+                                                {headshots[selectedHeadshotIndex]?.thumbnailUrl && (
+                                                    <Image
+                                                        src={headshots[selectedHeadshotIndex].thumbnailUrl}
+                                                        alt="Headshot"
+                                                        fill
+                                                        priority
+                                                        className="object-cover"
+                                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                                    />
+                                                )}
                                             </div>
                                             {headshots.length > 1 && (
                                                 <div className="flex items-center justify-between">

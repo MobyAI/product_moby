@@ -13,7 +13,8 @@ type LoadingState = "idle" | "headshot" | "resume" | "profile";
 function OnboardingContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const finalDestination = searchParams.get("next") || "/profile";
+    // const finalDestination = searchParams.get("next") || "/home";
+    const finalDestination = searchParams.get("next") || "/scripts/list";
     const totalSteps = 6;
 
     const [step, setStep] = useState(1);
