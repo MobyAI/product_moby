@@ -51,15 +51,6 @@ const ethnicityLabels = Object.fromEntries(
 );
 
 export default function ProfilePage() {
-    const router = useRouter();
-
-    const { uid } = useAuthUser();
-    if (!uid) {
-        router.push('/login');
-        return null;
-    }
-    const userID = uid;
-
     const [authReady, setAuthReady] = useState(false);
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState<'headshot' | 'resume' | null>(null);
@@ -73,6 +64,10 @@ export default function ProfilePage() {
     const [showResumeUploadModal, setShowResumeUploadModal] = useState(false);
     const [selectedHeadshotIndex, setSelectedHeadshotIndex] = useState(0);
     const [error, setError] = useState<string | null>(null);
+
+    const router = useRouter();
+    const { uid } = useAuthUser();
+    const userID = uid;
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
