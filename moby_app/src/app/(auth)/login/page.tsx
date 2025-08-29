@@ -11,7 +11,8 @@ import { checkUserProfileExists } from "@/lib/firebase/client/user";
 export default function LoginPage() {
     const search = useSearchParams();
     const router = useRouter();
-    const next = search.get("next") || "/home";
+    // const next = search.get("next") || "home";
+    const next = search.get("next") || "/scripts/list";
 
     async function handleSuccessfulLogin() {
         // Check if user has completed profile

@@ -17,7 +17,7 @@ import {
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/config/app";
-import type { AuditionData, ProjectTypeFilter, StatusFilter } from '@/types/audition';
+import type { AuditionData, ProjectTypeFilter, StatusFilter } from "@/types/audition";
 import AuditionCounts from "./AuditionCounts";
 
 // Sort configuration type
