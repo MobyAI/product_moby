@@ -8,9 +8,6 @@ import { addUser } from "@/lib/firebase/client/user";
 import { auth } from "@/lib/firebase/client/config/app";
 import { UserProfile, ethnicities } from "@/types/profile";
 
-// For auth shell use
-export const requireProfile = false;
-
 type LoadingState = "idle" | "headshot" | "resume" | "profile";
 
 function OnboardingContent() {

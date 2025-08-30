@@ -15,13 +15,14 @@ type Route = { href: string; label: string; icon: IconType };
 
 type NavBarProps = {
     width?: string;
+    remWidth?: number;
 };
 
-export default function NavBar({ width }: NavBarProps) {
+export default function NavBar({ width, remWidth }: NavBarProps) {
     const router = useRouter();
 
     const routes: Route[] = [
-        { href: "/tracker", label: "Tracker", icon: LayoutDashboard },
+        // { href: "/tracker", label: "Tracker", icon: LayoutDashboard },
         { href: "/scripts/list", label: "Scripts", icon: FileText },
     ];
 
@@ -82,18 +83,10 @@ export default function NavBar({ width }: NavBarProps) {
                                         "group relative flex items-center gap-3 rounded-xl transition-colors",
                                         "w-full",
                                         isCollapsed ? "justify-center h-10 w-10 mx-auto" : "px-2 py-2",
-                                        active ? "bg-action-primary" : "hover:bg-white/10"
+                                        (!isCollapsed && active) ? "bg-action-primary" : "hover:bg-white/10"
                                     ].join(" ")}
                                     tabIndex={isCollapsed ? -1 : 0}
                                 >
-                                    {/* Active indicator */}
-                                    {/* {active && (
-                                    <span className={[
-                                        "absolute rounded-full bg-white",
-                                        isCollapsed ? "-left-2.5 h-7 w-1" : "-left-2 h-8 w-1"
-                                    ].join(" ")} />
-                                )} */}
-
                                     {/* Icon */}
                                     <Icon className={[
                                         "h-6 w-6 flex-shrink-0",
@@ -190,7 +183,7 @@ export default function NavBar({ width }: NavBarProps) {
             </aside>
 
             {/* Toggle Button - Always Visible */}
-            {/* <button
+            <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
                 className={[
                     "fixed top-1/2 -translate-y-1/2 z-50",
@@ -202,7 +195,7 @@ export default function NavBar({ width }: NavBarProps) {
                     "group"
                 ].join(" ")}
                 style={{
-                    left: isCollapsed ? "1rem" : "5.4rem"
+                    left: isCollapsed ? "1rem" : `${remWidth}rem`
                 }}
                 aria-label={isCollapsed ? "Show navigation" : "Hide navigation"}
                 title={isCollapsed ? "Show navigation" : "Hide navigation"}
@@ -215,7 +208,7 @@ export default function NavBar({ width }: NavBarProps) {
                         isCollapsed ? "rotate-0" : "rotate-180"
                     ].join(" ")}
                 />
-            </button> */}
+            </button>
         </>
     );
 }

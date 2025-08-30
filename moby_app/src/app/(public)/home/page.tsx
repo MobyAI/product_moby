@@ -1,4 +1,5 @@
 'use client';
+
 import { Button } from '@/components/ui';
 import { useRouter } from 'next/navigation';
 // import React, { useState, useEffect } from 'react';
@@ -65,7 +66,7 @@ const Homepage = () => {
             No more scheduling conflicts. No more sister complaining that you&apos;re taking too long. No more excuses.
           </p> */}
 
-          <Button onClick={startFn} variant={"secondary"} style={{ padding: '20 15 20 15' }}>
+          <Button onClick={startFn} variant={"primary"} style={{ padding: '20 15 20 15' }}>
             Try it now
           </Button>
         </div>

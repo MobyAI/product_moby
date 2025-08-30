@@ -52,15 +52,15 @@ const ethnicityLabels = Object.fromEntries(
 function SetProfilePicButton({ url }: { url: string }) {
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState<string | null>(null);
-    const [ok, setOk] = useState(false);
+
+    const router = useRouter();
 
     const onClick = async () => {
         setLoading(true);
         setErr(null);
-        setOk(false);
         try {
             await setAuthPhotoURL(url);
-            setOk(true);
+            router.refresh();
         } catch (e: any) {
             setErr(e?.message ?? "Failed to update photo.");
         } finally {
@@ -78,7 +78,6 @@ function SetProfilePicButton({ url }: { url: string }) {
             >
                 {loading ? "Updating…" : "Set as Profile Photo"}
             </button>
-            {ok && <span className="text-green-600 text-sm">Updated!</span>}
             {err && <span className="text-red-600 text-sm">{err}</span>}
         </div>
     );

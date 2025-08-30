@@ -9,7 +9,11 @@ const AUTO_COLLAPSE_ROUTES = [
     "/scripts/upload",
     "/scripts/practice",
     "/onboarding",
-    // Add more routes as needed
+];
+
+// Routes with dark background
+const DARK_BG_ROUTES = [
+    "/scripts/practice",
 ];
 
 // Context for sharing collapsed state with NavBar
@@ -46,6 +50,11 @@ export default function NavBarShell({
         pathname.startsWith(route)
     );
 
+    // Check if current route should auto-collapse
+    const shouldDarken = DARK_BG_ROUTES.some(route =>
+        pathname.startsWith(route)
+    );
+
     // Initialize with localStorage if available, otherwise use auto-collapse logic
     const [isCollapsed, setIsCollapsed] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -75,28 +84,24 @@ export default function NavBarShell({
     // Dynamic padding based on collapsed state
     // const dynamicLeftPadding = isCollapsed ? "pl-16" : (leftPaddingClass || "pl-24");
 
-    // Nav bar sizing
-    const NAV_BAR_CONTAINER = "w-50";
-    const NAV_BAR_WIDTH = "w-45";
-
     return (
         <NavBarContext.Provider value={{ isCollapsed, setIsCollapsed: handleSetCollapsed }}>
             <div className="h-screen flex overflow-hidden">
                 {/* Left sidebar area - transparent to show gradient */}
-                <aside 
+                <aside
                     className={`
                         relative flex-shrink-0 transition-all duration-300 ease-in-out
-                        ${isCollapsed ? 'w-15' : NAV_BAR_CONTAINER}
+                        ${isCollapsed ? 'w-15' : 'w-[12.5rem]'}
                     `}
                 >
-                    <NavBar width={NAV_BAR_WIDTH} />
+                    <NavBar width="w-[11.25rem]" remWidth={10.5} />
                 </aside>
 
                 {/* Main content area with card-like appearance */}
                 <div className="flex-1 p-4 overflow-hidden">
                     <main
                         className={`
-                            h-full bg-white rounded-4xl shadow-xl
+                            h-full ${shouldDarken ? "bg-[#1c1d1d]" : "bg-gray-50/75"} rounded-3xl shadow-xl
                             p-8 overflow-auto ${contentClassName ?? ""}
                         `}
                     >

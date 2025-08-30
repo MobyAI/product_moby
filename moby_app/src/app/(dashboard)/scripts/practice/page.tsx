@@ -761,13 +761,13 @@ function RehearsalRoomContent() {
 				<div className="min-h-screen flex relative" style={{ backgroundColor: '#1c1d1d' }}>
 					{/* Back to Scripts Button - Top Right Corner */}
 					<div className="absolute top-4 right-4 z-10">
-						{/* <Button
+						<Button
 							onClick={goBackHome}
 							className="px-6 py-2 bg-blue hover:bg-gray-100 text-gray-800 rounded-lg shadow-sm transition-all duration-200 font-medium"
 						>
-							Upload a new script
-						</Button> */}
-						<LogoutButton />
+							Go Back
+						</Button>
+						{/* <LogoutButton /> */}
 					</div>
 
 					{/* Left Control Panel - Dark Theme */}
@@ -937,14 +937,14 @@ function RehearsalRoomContent() {
 							)}
 
 							{/* Back to Scripts Button - Top Right Corner */}
-							<div className="absolute bottom-20 left-4 z-10">
+							{/* <div className="absolute bottom-20 left-4 z-10">
 								<Button
 									onClick={goBackHome}
 									className="px-6 py-2 bg-green-600 hover:bg-green-800 text-gray-800 rounded-lg shadow-md shadow-black hover:shadow-lg hover:shadow-black transition-all duration-200 font-medium"
 								>
 									Go back home
 								</Button>
-							</div>
+							</div> */}
 						</div>
 					</div>
 
