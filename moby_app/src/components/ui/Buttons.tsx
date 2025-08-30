@@ -19,8 +19,8 @@ export function Button({
 			className={clsx(
 				"font-medium rounded-lg transition-colors",
 				{
-					"bg-blue-600 text-white hover:bg-blue-700": variant === "primary",
-					"bg-gray-200 text-gray-800 hover:bg-gray-300":
+					"bg-primary text-white hover:bg-blue-700": variant === "primary",
+					"bg-primary-accent text-gray-500 hover:bg-white":
 						variant === "secondary",
 					"bg-red-600 text-white hover:bg-red-700": variant === "danger",
 					"px-3 py-1 text-sm": size === "sm",

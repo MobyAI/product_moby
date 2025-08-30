@@ -14,8 +14,6 @@ import { clear } from "idb-keyval";
 import LoadingScreen from "./LoadingScreen";
 import { Button, LogoutButton } from "@/components/ui";
 import { useAuthUser } from '@/components/providers/UserProvider';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client/config/app';
 
 // export default function RehearsalRoomPage() {
 function RehearsalRoomContent() {
@@ -34,7 +32,6 @@ function RehearsalRoomContent() {
 	}
 
 	// Page setup
-	const [authReady, setAuthReady] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [loadStage, setLoadStage] = useState<string | null>(null);
 	const [script, setScript] = useState<ScriptElement[] | null>(null);
@@ -71,17 +68,7 @@ function RehearsalRoomContent() {
 
 	// Load script and restore session
 	useEffect(() => {
-		const unsubscribe = onAuthStateChanged(auth, (user) => {
-			if (user) {
-				setAuthReady(true);
-			}
-		});
-
-		return () => unsubscribe();
-	}, []);
-
-	useEffect(() => {
-		if (!userID || !scriptID || !authReady) return;
+		if (!userID || !scriptID) return;
 
 		const init = async () => {
 			setLoading(true);
@@ -129,7 +116,7 @@ function RehearsalRoomContent() {
 		};
 
 		init();
-	}, [userID, scriptID, authReady]);
+	}, [userID, scriptID]);
 
 	// Auto-scroll to current line
 	useEffect(() => {

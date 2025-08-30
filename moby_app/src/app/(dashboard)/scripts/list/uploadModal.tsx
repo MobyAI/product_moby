@@ -581,10 +581,10 @@ export default function ScriptUploadModal({
                     {currentStage === 6 && (
                         <InputStage
                             title="Edit Your Script"
+                            description="Feel free to click on the lines to edit them if you need to."
                             fullHeight={true}
                         >
                             <div className="flex flex-col h-full">
-                                <p>Feel free to click on the lines to edit them if you need to.</p>
                                 {/* Script container */}
                                 <div className="flex-1 border border-gray-200 rounded-lg p-4 bg-gray-50 overflow-y-auto min-h-0">
                                     {scriptSaving ? (
@@ -753,8 +753,9 @@ const InputStage = ({
     if (fullHeight) {
         return (
             <div className="animate-fadeIn flex flex-col h-full p-8">
-                <div className="flex-shrink-0 mb-4">
+                <div className="flex-shrink-0">
                     <h3 className="text-xl font-semibold">{title}</h3>
+                    <p className="text-gray-600 mb-4">{description}</p>
                 </div>
                 <div className="flex-1 min-h-0">
                     {children}

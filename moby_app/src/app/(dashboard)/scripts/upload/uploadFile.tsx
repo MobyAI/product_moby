@@ -1,5 +1,6 @@
-'use client'
-import { Layout } from '@/components/ui';
+"use client"
+
+import { Layout } from "@/components/ui";
 
 interface UploadFormProps {
     onFileUpload: () => void;

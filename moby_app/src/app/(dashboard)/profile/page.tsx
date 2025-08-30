@@ -19,10 +19,9 @@ import {
     Upload,
 } from "lucide-react";
 import { Timestamp, FieldValue } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/config/app";
 import { getUser, updateUserProfile } from "@/lib/firebase/client/user";
-import { deleteHeadshot, deleteResume, getHeadshots, getResume } from "@/lib/firebase/client/media";
+import { deleteHeadshot, deleteResume, getHeadshots, getResume, setAuthPhotoURL } from "@/lib/firebase/client/media";
 import { useAuthUser } from "@/components/providers/UserProvider";
 import { UserProfile, ethnicities } from "@/types/profile";
 import HeadshotUploadModal from "./headshotUploadModal";
@@ -50,8 +49,42 @@ const ethnicityLabels = Object.fromEntries(
     ethnicities.map(eth => [eth.value, eth.label])
 );
 
+function SetProfilePicButton({ url }: { url: string }) {
+    const [loading, setLoading] = useState(false);
+    const [err, setErr] = useState<string | null>(null);
+    const [ok, setOk] = useState(false);
+
+    const onClick = async () => {
+        setLoading(true);
+        setErr(null);
+        setOk(false);
+        try {
+            await setAuthPhotoURL(url);
+            setOk(true);
+        } catch (e: any) {
+            setErr(e?.message ?? "Failed to update photo.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="inline-flex items-center gap-2">
+            <button
+                type="button"
+                onClick={onClick}
+                disabled={loading}
+                className="rounded-md bg-black px-3 py-2 text-white disabled:opacity-50"
+            >
+                {loading ? "Updating…" : "Set as Profile Photo"}
+            </button>
+            {ok && <span className="text-green-600 text-sm">Updated!</span>}
+            {err && <span className="text-red-600 text-sm">{err}</span>}
+        </div>
+    );
+}
+
 export default function ProfilePage() {
-    const [authReady, setAuthReady] = useState(false);
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState<'headshot' | 'resume' | null>(null);
     const [saving, setSaving] = useState(false);
@@ -70,20 +103,10 @@ export default function ProfilePage() {
     const userID = uid;
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                setAuthReady(true);
-            }
-        });
-
-        return () => unsubscribe();
-    }, []);
-
-    useEffect(() => {
-        if (!authReady || !userID) return;
+        if (!userID) return;
 
         loadUserData();
-    }, [authReady, userID]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [userID]); // eslint-disable-line react-hooks/exhaustive-deps
 
     async function loadUserData() {
         try {
@@ -493,6 +516,9 @@ export default function ProfilePage() {
                                                 >
                                                     Delete
                                                 </button>
+                                                {headshots[selectedHeadshotIndex]?.thumbnailUrl && (
+                                                    <SetProfilePicButton url={headshots[selectedHeadshotIndex].thumbnailUrl} />
+                                                )}
                                             </div>
                                         </div>
                                     ) : (

@@ -5,65 +5,74 @@ import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase/client/config/app";
 
-export type AuthUser = {
-    uid: string;
+export type AuthUser = { uid: string };
+
+type AuthContextValue = {
+    user: AuthUser | null;          // effective user for your app
+    clientReady: boolean;           // true after first onAuthStateChanged fires
+    initiallyAuthed: boolean;       // server said this subtree is protected
 };
 
-const UserContext = createContext<AuthUser | null>(null);
+const UserContext = createContext<AuthContextValue | null>(null);
 
 export function UserProvider({
     value,
     children,
 }: {
-    value: AuthUser | null; // non-null in protected trees (passed by ServerAuthProvider)
+    value: AuthUser | null; // non-null in protected trees (from ServerAuthProvider)
     children: React.ReactNode;
 }) {
     const router = useRouter();
-    const initiallyAuthed = !!value; // true for protected routes
+    const initiallyAuthed = !!value;
+
+    // Start with the server user so there is no flicker/hydration mismatch
     const [user, setUser] = useState<AuthUser | null>(value ?? null);
+    const [clientReady, setClientReady] = useState(false);
 
-    // Keep context in sync with client-side Firebase Auth
     useEffect(() => {
-        const map = (u: FirebaseUser | null): AuthUser | null =>
-            u ? { uid: u.uid } : null;
+        const map = (u: FirebaseUser | null): AuthUser | null => (u ? { uid: u.uid } : null);
 
-        const unsub = onAuthStateChanged(auth, (u) => setUser(map(u)));
+        const unsub = onAuthStateChanged(auth, (u) => {
+            setClientReady(true);
+
+            // If this subtree is protected by the server and the client SDK reports null,
+            // keep the server user to avoid a flash/incorrect redirect.
+            const mapped = map(u);
+            setUser(mapped ?? (initiallyAuthed ? value : null));
+        });
         return unsub;
-    }, []);
+    }, [initiallyAuthed, value]);
 
-    // Reflect server-provided user if it changes (rare)
+    // Keep in sync if the server-provided value changes (rare)
     useEffect(() => {
-        setUser(value ?? null);
+        setUser((prev) => prev ?? value ?? null);
     }, [value]);
 
-    // If this is a protected subtree and auth is lost on the client, redirect and don't render children
-    const redirecting = initiallyAuthed && user === null;
-
+    // If you want to redirect only in optional-auth areas:
     useEffect(() => {
-        if (redirecting) {
-            const next =
-                typeof window !== "undefined"
-                    ? window.location.pathname + window.location.search
-                    : "/home";
-            router.replace(`/login?next=${encodeURIComponent(next)}`);
-        }
-    }, [redirecting, router]);
+        // Example: for optional-auth routes, if clientReady and no user, you might redirect
+        // For your protected /scripts subtree, server already redirected — no need here.
+    }, [clientReady, user, router]);
 
-    if (redirecting) return null; // prevent children from rendering during logout
-
-    return <UserContext.Provider value={user}>{children}</UserContext.Provider>;
+    return (
+        <UserContext.Provider value={{ user, clientReady, initiallyAuthed }}>
+            {children}
+        </UserContext.Provider>
+    );
 }
 
-/** Nullable hook for optional-auth routes */
 export function useUser() {
-    return useContext(UserContext);
+    return useContext(UserContext); // can be null in optional-auth routes
 }
 
-/** Non-nullable hook for protected routes */
 export function useAuthUser(): AuthUser {
-    const user = useContext(UserContext);
-    if (!user) {
-        throw new Error("useAuthUser must be used within an authenticated tree");
-    }
-    return user;
+    const ctx = useContext(UserContext);
+    if (!ctx?.user) throw new Error("useAuthUser must be used within an authenticated tree");
+    return ctx.user;
+}
+
+export function useAuthState() {
+    const ctx = useContext(UserContext);
+    if (!ctx) throw new Error("useAuthState must be used within UserProvider");
+    return ctx; // { user, clientReady, initiallyAuthed }
 }

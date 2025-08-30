@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { handleLogout } from '@/lib/api/auth';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { handleLogout } from "@/lib/api/auth";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export function LogoutButton({ className }: { className?: string }) {
     const router = useRouter();

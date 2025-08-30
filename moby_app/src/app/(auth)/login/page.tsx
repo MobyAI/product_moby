@@ -36,7 +36,7 @@ export default function LoginPage() {
                     if (res.error?.includes('popup-closed-by-user')) {
                         return;
                     }
-                    throw new Error(res.error);
+                    throw new Error("Google sign-in failed.");
                 }
             }}
             onEmailPassword={async (email, password) => {
@@ -44,7 +44,7 @@ export default function LoginPage() {
                 if (res.success) {
                     await handleSuccessfulLogin();
                 } else {
-                    throw new Error(res.error);
+                    throw new Error("Email/password sign-in failed.");
                 }
             }}
             switchHref={`/signup?next=${encodeURIComponent(next)}`}

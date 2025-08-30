@@ -7,7 +7,7 @@ import React from 'react';
 const Homepage = () => {
   // const [currentWord, setCurrentWord] = useState(0);
   // const words = ['mom', 'girlfriend', 'roommate'];
-  
+
   // useEffect(() => {
   //   const interval = setInterval(() => {
   //     setCurrentWord((prev) => (prev + 1) % words.length);
@@ -17,7 +17,7 @@ const Homepage = () => {
   // }, []);
 
   const router = useRouter();
-  
+
   const startFn = () => {
     // router.push('/upload')
     // router.push('/scripts/upload')
@@ -25,9 +25,9 @@ const Homepage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen flex flex-col">
       {/* Navigation */}
-      <nav className="bg-white border-b border-gray-200">
+      {/* <nav className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
@@ -35,15 +35,15 @@ const Homepage = () => {
             </div>
           </div>
         </div>
-      </nav>
+      </nav> */}
 
       {/* Hero Section - Centered */}
       <div className="flex-1 flex items-center justify-center">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           {/* <div className="text-sm text-gray-500 mb-8">PLAY</div> */}
-          
-          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-8">
-            {/* Stop calling your{' '}
+
+          {/* <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-8">
+            Stop calling your{' '}
             <span className="relative inline-block w-60 text-left">
               <span
                 key={currentWord}
@@ -53,16 +53,20 @@ const Homepage = () => {
               </span>
             </span>
             <br />
-            to be your reader */}
+            to be your reader
             PLAY
+          </h1> */}
+          <h1 className="text-6xl font-[950] mb-[50px] ml-2">
+            <span className="text-white">play</span>
+            <span className="text-accent">r</span>
           </h1>
-          
+
           {/* <p className="text-xl text-gray-600 mb-4 max-w-2xl mx-auto">
             No more scheduling conflicts. No more sister complaining that you&apos;re taking too long. No more excuses.
           </p> */}
-          
-          <Button onClick={startFn} style={{ padding: '20 15 20 15' }}>
-            Login
+
+          <Button onClick={startFn} variant={"secondary"} style={{ padding: '20 15 20 15' }}>
+            Try it now
           </Button>
         </div>
       </div>

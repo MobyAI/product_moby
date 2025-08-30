@@ -1,7 +1,8 @@
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { storage, db, auth } from '@/lib/firebase/client/config/app';
-import { doc, collection, setDoc, getDocs, serverTimestamp, deleteDoc } from 'firebase/firestore';
-import type { HeadshotData, ResumeData } from '@/types/media';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { doc, collection, setDoc, getDocs, serverTimestamp, deleteDoc } from "firebase/firestore";
+import { updateProfile } from "firebase/auth";
+import { storage, db, auth } from "@/lib/firebase/client/config/app";
+import type { HeadshotData, ResumeData } from "@/types/media";
 
 const HEADSHOT_MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
 const RESUME_MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -333,4 +334,28 @@ export async function deleteResume(resumeId: string, userId: string) {
             error: error instanceof Error ? error.message : 'Failed to delete resume'
         };
     }
+}
+
+export async function setAuthPhotoURL(photoURL: string): Promise<string> {
+    try {
+        const u = new URL(photoURL);
+        if (!/^https?:/.test(u.protocol)) {
+            throw new Error("URL must be http(s).");
+        }
+    } catch {
+        throw new Error("Invalid photo URL.");
+    }
+
+    const user = auth.currentUser;
+    if (!user) {
+        throw new Error("Not signed in.");
+    }
+
+    // Update profile
+    await updateProfile(user, { photoURL });
+
+    // Ensure local user object reflects change (often not strictly necessary, but safe)
+    await user.reload();
+
+    return user.photoURL ?? photoURL;
 }
