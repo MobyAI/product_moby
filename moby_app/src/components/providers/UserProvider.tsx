@@ -5,7 +5,12 @@ import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase/client/config/app";
 
-export type AuthUser = { uid: string };
+interface AuthUser {
+    uid: string;
+    email?: string;
+    displayName?: string;
+    photoURL?: string;
+}
 
 type AuthContextValue = {
     user: AuthUser | null;          // effective user for your app
@@ -30,7 +35,15 @@ export function UserProvider({
     const [clientReady, setClientReady] = useState(false);
 
     useEffect(() => {
-        const map = (u: FirebaseUser | null): AuthUser | null => (u ? { uid: u.uid } : null);
+        const map = (u: FirebaseUser | null): AuthUser | null =>
+            u
+                ? {
+                    uid: u.uid,
+                    email: u.email ?? undefined,
+                    displayName: u.displayName ?? undefined,
+                    photoURL: u.photoURL ?? undefined,
+                }
+                : null;
 
         const unsub = onAuthStateChanged(auth, (u) => {
             setClientReady(true);

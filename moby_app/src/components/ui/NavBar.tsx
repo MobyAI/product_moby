@@ -96,8 +96,8 @@ export default function NavBar({ width, toggleBtnX }: NavBarProps) {
                                     {/* Label - only show when not collapsed */}
                                     {!isCollapsed && (
                                         <span className={[
-                                            "font-medium",
-                                            active ? "text-white" : "text-white/80 group-hover:text-white"
+                                            "font-medium text-md",
+                                            active ? "text-white" : "text-white"
                                         ].join(" ")}>
                                             {label}
                                         </span>
@@ -129,10 +129,7 @@ export default function NavBar({ width, toggleBtnX }: NavBarProps) {
                         />
                         {!isCollapsed && (
                             <span
-                                className={[
-                                    "font-medium",
-                                    "text-white/80 group-hover:text-white"
-                                ].join(" ")}
+                                className="font-medium text-md text-white"
                             >
                                 Logout
                             </span>

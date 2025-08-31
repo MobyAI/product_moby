@@ -17,12 +17,16 @@ import {
     ChevronLeft,
     ChevronRight,
     Upload,
+    Star,
+    ExternalLink,
+    Flag,
 } from "lucide-react";
 import { Timestamp, FieldValue } from "firebase/firestore";
 import { auth } from "@/lib/firebase/client/config/app";
 import { getUser, updateUserProfile } from "@/lib/firebase/client/user";
 import { deleteHeadshot, deleteResume, getHeadshots, getResume, setAuthPhotoURL } from "@/lib/firebase/client/media";
 import { useAuthUser } from "@/components/providers/UserProvider";
+import { Button } from "@/components/ui";
 import { UserProfile, ethnicities } from "@/types/profile";
 import HeadshotUploadModal from "./headshotUploadModal";
 import ResumeUploadModal from "./resumeUploadModal";
@@ -70,15 +74,13 @@ function SetProfilePicButton({ url }: { url: string }) {
 
     return (
         <div className="inline-flex items-center gap-2">
-            <button
-                type="button"
+            <Button
+                iconOnly={true}
                 onClick={onClick}
-                disabled={loading}
-                className="rounded-md bg-black px-3 py-2 text-white disabled:opacity-50"
-            >
-                {loading ? "Updating…" : "Set as Profile Photo"}
-            </button>
-            {err && <span className="text-red-600 text-sm">{err}</span>}
+                size="lg"
+                variant="primary"
+                icon={Star}
+            />
         </div>
     );
 }
@@ -98,8 +100,9 @@ export default function ProfilePage() {
     const [error, setError] = useState<string | null>(null);
 
     const router = useRouter();
-    const { uid } = useAuthUser();
+    const { uid, photoURL } = useAuthUser();
     const userID = uid;
+    const userPhotoURL = photoURL;
 
     useEffect(() => {
         if (!userID) return;
@@ -225,63 +228,62 @@ export default function ProfilePage() {
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
                     <p className="text-gray-600 mb-4">No profile found</p>
-                    <button
+                    <Button
                         onClick={() => router.push('/onboarding')}
-                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                    >
-                        Complete Profile
-                    </button>
+                        size="md"
+                        variant="primary"
+                    />
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8">
+        <div className="h-full pt-4">
             <div className="max-w-4xl mx-auto px-4">
-                {/* Header */}
-                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                    <div className="flex justify-between items-center">
-                        <h1 className="text-2xl font-semibold">{`Hey, ${profile.firstName}!`}</h1>
-                        {!editMode ? (
-                            <button
-                                onClick={() => setEditMode(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                            >
-                                <Edit2 className="w-4 h-4" />
-                                Edit Profile
-                            </button>
-                        ) : (
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={handleCancel}
-                                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                    disabled={saving}
-                                >
-                                    <X className="w-4 h-4" />
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleSave}
-                                    className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
-                                    disabled={saving}
-                                >
-                                    <Save className="w-4 h-4" />
-                                    {saving ? 'Saving...' : 'Save Changes'}
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                    {error && (
-                        <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
-                            {error}
-                        </div>
-                    )}
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     {/* Left Column - Personal Info */}
                     <div className="lg:col-span-2 space-y-6">
+                        {/* Header */}
+                        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                            <div className="flex justify-between items-center">
+                                <h1 className="text-2xl font-semibold">{`Hey, ${profile.firstName}!`}</h1>
+                                {!editMode ? (
+                                    <Button
+                                        onClick={() => setEditMode(true)}
+                                        size="sm"
+                                        variant="secondary"
+                                        icon={Edit2}
+                                    >
+                                        Edit
+                                    </Button>
+                                ) : (
+                                    <div className="flex gap-2">
+                                        <Button
+                                            onClick={handleCancel}
+                                            size="sm"
+                                            variant="danger"
+                                            icon={X}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            onClick={handleSave}
+                                            size="sm"
+                                            variant="accent"
+                                            icon={Save}
+                                        >
+                                            {saving ? 'Saving...' : 'Save Changes'}
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                            {error && (
+                                <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+                                    {error}
+                                </div>
+                            )}
+                        </div>
                         {/* Basic Info */}
                         <div className="bg-white rounded-lg shadow-sm p-6">
                             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -324,8 +326,11 @@ export default function ProfilePage() {
 
                         {/* Demographics */}
                         <div className="bg-white rounded-lg shadow-sm p-6">
-                            <h2 className="text-lg font-semibold mb-4">Demographics</h2>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                                <Globe className="w-5 h-5 text-gray-500" />
+                                Demographics
+                            </h2>
+                            <div className="flex flex-col space-y-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
                                         <Calendar className="w-4 h-4" />
@@ -390,7 +395,7 @@ export default function ProfilePage() {
                                 </div>
                                 <div className="sm:col-span-2">
                                     <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                                        <Globe className="w-4 h-4" />
+                                        <Flag className="w-4 h-4" />
                                         Ethnicity
                                     </label>
                                     {editMode ? (
@@ -451,12 +456,13 @@ export default function ProfilePage() {
                                             Headshots
                                         </h2>
                                         {headshots.length < 3 ? (
-                                            <button
+                                            <Button
+                                                iconOnly={true}
                                                 onClick={() => setShowHeadshotUploadModal(true)}
-                                                className="text-sm px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-1"
-                                            >
-                                                <Upload className="w-4 h-4" />
-                                            </button>
+                                                className="text-sm px-3 py-1.5 text-white rounded-lg flex items-center gap-1"
+                                                variant="secondary"
+                                                icon={Upload}
+                                            />
                                         ) : (
                                             <div className="w-9 h-9 text-green-500 ml-auto">
                                                 <svg className="w-full h-full" fill="currentColor" viewBox="0 0 20 20">
@@ -467,7 +473,7 @@ export default function ProfilePage() {
                                     </div>
                                     {headshots.length > 0 ? (
                                         <div className="space-y-4">
-                                            <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+                                            <div className="relative w-32 h-40 mx-auto rounded-lg overflow-hidden bg-gray-100">
                                                 {headshots[selectedHeadshotIndex]?.thumbnailUrl && (
                                                     <Image
                                                         src={headshots[selectedHeadshotIndex].thumbnailUrl}
@@ -475,10 +481,18 @@ export default function ProfilePage() {
                                                         fill
                                                         priority
                                                         className="object-cover"
-                                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                                                     />
                                                 )}
+
+                                                {/* Overlay Star if this headshot is the current profile picture */}
+                                                {userPhotoURL &&
+                                                    headshots[selectedHeadshotIndex]?.thumbnailUrl === userPhotoURL && (
+                                                        <div className="absolute top-2 right-2 bg-yellow-500 rounded-full p-1 shadow">
+                                                            <Star className="w-4 h-4 text-white" />
+                                                        </div>
+                                                    )}
                                             </div>
+
                                             {headshots.length > 1 && (
                                                 <div className="flex items-center justify-between">
                                                     <button
@@ -500,21 +514,21 @@ export default function ProfilePage() {
                                                     </button>
                                                 </div>
                                             )}
-                                            <div className="flex gap-2">
-                                                <a
-                                                    href={headshots[selectedHeadshotIndex]?.originalUrl}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="block w-full text-center px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-                                                >
-                                                    View Full Size
-                                                </a>
-                                                <button
+                                            <div className="flex justify-around gap-2">
+                                                <Button
+                                                    iconOnly={true}
+                                                    variant="secondary"
+                                                    size="lg"
+                                                    icon={ExternalLink}
+                                                    onClick={() => window.open(headshots[selectedHeadshotIndex]?.originalUrl, "_blank", "noopener,noreferrer")}
+                                                />
+                                                <Button
+                                                    iconOnly={true}
                                                     onClick={() => handleDeleteHeadshot(headshots[selectedHeadshotIndex].id)}
-                                                    className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                >
-                                                    Delete
-                                                </button>
+                                                    size="lg"
+                                                    icon={X}
+                                                    variant="danger"
+                                                />
                                                 {headshots[selectedHeadshotIndex]?.thumbnailUrl && (
                                                     <SetProfilePicButton url={headshots[selectedHeadshotIndex].thumbnailUrl} />
                                                 )}
@@ -552,12 +566,13 @@ export default function ProfilePage() {
                                                 </svg>
                                             </div>
                                         ) : (
-                                            <button
+                                            <Button
+                                                iconOnly={true}
                                                 onClick={() => setShowResumeUploadModal(true)}
-                                                className="text-sm px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-1"
-                                            >
-                                                <Upload className="w-4 h-4" />
-                                            </button>
+                                                className="text-sm px-3 py-1.5 text-white rounded-lg flex items-center gap-1"
+                                                variant="secondary"
+                                                icon={Upload}
+                                            />
                                         )}
                                     </div>
                                     {resume ? (

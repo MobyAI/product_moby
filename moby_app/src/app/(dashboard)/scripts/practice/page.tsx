@@ -761,7 +761,7 @@ function RehearsalRoomContent() {
 					{loadStage}
 				</LoadingScreen>
 			) : (
-				<div className="h-full flex relative bg-card-dark mt-2">
+				<div className="h-full flex relative bg-card-dark">
 
 					{/* Left Control Panel - Dark Theme */}
 					<div className="w-[20%] mr-6 text-white flex flex-col">
@@ -992,7 +992,7 @@ function RehearsalRoomContent() {
 
 						{/* Floating Control Panel */}
 						<div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10">
-							<div className="bg-[rgba(44,47,61,0.85)] rounded-full px-7 py-3 flex items-center gap-5 shadow-xl">
+							<div className="bg-[rgba(44,47,61,0.85)] rounded-full px-9 py-3 flex items-center gap-9 shadow-xl">
 
 								{/* Previous Button */}
 								<button
@@ -1008,21 +1008,21 @@ function RehearsalRoomContent() {
 								{isPlaying ? (
 									<button
 										onClick={handlePause}
-										className="p-3 rounded-full bg-white hover:bg-yellow-500 hover:text-white transition-all duration-200 text-black shadow-lg scale-110"
+										className="p-3 rounded-full bg-white hover:bg-white/20 hover:text-white transition-all duration-200 text-black shadow-lg scale-110"
 										aria-label="Pause"
 										title="Pause"
 									>
-										<Pause className="h-7 w-7" />
+										<Pause className="h-6 w-6" />
 									</button>
 								) : (
 									<button
 										onClick={handlePlay}
 										disabled={!isScriptFullyHydrated}
-										className="p-3 rounded-full bg-white hover:bg-green-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-black shadow-lg scale-110"
+										className="p-3 rounded-full bg-white hover:bg-white/20 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-black shadow-lg scale-110"
 										aria-label="Play"
 										title={!isScriptFullyHydrated ? "Preparing..." : "Start Rehearsal"}
 									>
-										<Play className="h-7 w-7 ml-0.5" />
+										<Play className="h-6 w-6" />
 									</button>
 								)}
 

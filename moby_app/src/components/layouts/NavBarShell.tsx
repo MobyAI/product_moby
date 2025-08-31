@@ -101,8 +101,10 @@ export default function NavBarShell({
                 <div className="flex-1 p-4 overflow-hidden">
                     <main
                         className={`
-                            h-full ${shouldDarken ? "bg-card-dark" : "bg-gray-50/75"} rounded-3xl shadow-xl
-                            p-8 overflow-hidden ${contentClassName ?? ""}
+                            h-full rounded-3xl shadow-xl
+                            [scrollbar-width:none] [-ms-overflow-style:none]
+                            ${shouldDarken ? "bg-card-dark" : "bg-gray-50/75"}
+                            p-8 overflow-auto ${contentClassName ?? ""}
                         `}
                     >
                         {children}
