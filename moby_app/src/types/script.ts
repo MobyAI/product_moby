@@ -1,13 +1,14 @@
-import type { Timestamp, FieldValue } from "firebase/firestore";
+import type { Timestamp } from "firebase/firestore";
 
-export type FireDate = Timestamp | FieldValue | null;
+export type FireDate = Timestamp | null;
 
 export type ScriptDoc = {
     name: string;
     script: ScriptElement[];
     ownerUid: string;
-    createdAt: Timestamp | FieldValue | null;
-    updatedAt: Timestamp | FieldValue | null;
+    createdAt: Timestamp | null;
+    updatedAt: Timestamp | null;
+    lastPracticed: Timestamp | null;
 };
 
 export type WithId<T> = T & { id: string };

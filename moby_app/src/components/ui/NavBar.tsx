@@ -106,76 +106,77 @@ export default function NavBar({ width, toggleBtnX }: NavBarProps) {
                             );
                         })}
                     </nav>
-
-                    {/* Logout */}
-                    <button
-                        type="button"
-                        onClick={onLogout}
-                        className={[
-                            "group relative flex items-center gap-3 rounded-xl transition-colors",
-                            "w-full mt-2",
-                            isCollapsed ? "justify-center h-10 w-10 mx-auto" : "px-2 py-2",
-                            "hover:bg-white/10"
-                        ].join(" ")}
-                        title="Log out"
-                        aria-label="Log out"
-                        tabIndex={isCollapsed ? -1 : 0}
-                    >
-                        <LogOut
-                            className={[
-                                "h-6 w-6 flex-shrink-0",
-                                "text-white/80 group-hover:text-white"
-                            ].join(" ")}
-                        />
-                        {!isCollapsed && (
-                            <span
-                                className="font-medium text-md text-white"
-                            >
-                                Logout
-                            </span>
-                        )}
-                    </button>
                 </div>
 
                 {/* Bottom */}
                 <div>
                     {/* Profile */}
-                    <Link
-                        href="/profile"
-                        className="mb-4 flex items-center gap-3 pr-2 w-full"
-                        title="Profile"
-                        aria-label="Profile"
-                        tabIndex={isCollapsed ? -1 : 0}
-                    >
-                        {/* Avatar */}
-                        <div className="h-11 w-11 overflow-hidden rounded-full ring-1 ring-white/20 flex-shrink-0">
-                            {profileSrc ? (
-                                <Image
-                                    src={profileSrc}
-                                    alt="Profile"
-                                    priority
-                                    width={44}
-                                    height={44}
-                                    className="h-full w-full object-cover"
-                                />
-                            ) : (
-                                <UserCircle2 className="h-11 w-11 text-white/70" />
-                            )}
-                        </div>
-
-                        {/* Text info (only if not collapsed) */}
-                        {!isCollapsed && (
-                            <div className="flex flex-col min-w-0"> {/* 👈 min-w-0 lets flex child shrink */}
-                                <span className="font-medium text-white truncate">
-                                    {profileDisplayName}
-                                </span>
-                                <span className="text-sm text-white/70 truncate">
-                                    {profileEmail}
-                                </span>
+                    <div className={`${isCollapsed ? "" : "border-t border-white/40 py-3"}`}>
+                        <Link
+                            href="/profile"
+                            className="my-6 flex items-center gap-3 pr-2 w-full"
+                            title="Profile"
+                            aria-label="Profile"
+                            tabIndex={isCollapsed ? -1 : 0}
+                        >
+                            {/* Avatar */}
+                            <div className="h-11 w-11 overflow-hidden rounded-full ring-1 ring-white/20 flex-shrink-0">
+                                {profileSrc ? (
+                                    <Image
+                                        src={profileSrc}
+                                        alt="Profile"
+                                        priority
+                                        width={44}
+                                        height={44}
+                                        className="h-full w-full object-cover"
+                                    />
+                                ) : (
+                                    <UserCircle2 className="h-11 w-11 text-white/70" />
+                                )}
                             </div>
-                        )}
-                    </Link>
 
+                            {/* Text info (only if not collapsed) */}
+                            {!isCollapsed && (
+                                <div className="flex flex-col min-w-0"> {/* 👈 min-w-0 lets flex child shrink */}
+                                    <span className="font-medium text-white truncate">
+                                        {profileDisplayName}
+                                    </span>
+                                    <span className="text-sm text-white/70 truncate">
+                                        {profileEmail}
+                                    </span>
+                                </div>
+                            )}
+                        </Link>
+
+                        {/* Logout */}
+                        <button
+                            type="button"
+                            onClick={onLogout}
+                            className={[
+                                "group relative flex items-center gap-3 rounded-xl transition-colors",
+                                "w-full",
+                                isCollapsed ? "justify-center h-10 w-10 mx-auto" : "px-2 py-2",
+                                "hover:bg-red-400"
+                            ].join(" ")}
+                            title="Log out"
+                            aria-label="Log out"
+                            tabIndex={isCollapsed ? -1 : 0}
+                        >
+                            <LogOut
+                                className={[
+                                    "h-6 w-6 flex-shrink-0",
+                                    "text-white/80 group-hover:text-white"
+                                ].join(" ")}
+                            />
+                            {!isCollapsed && (
+                                <span
+                                    className="font-medium text-md text-white"
+                                >
+                                    Logout
+                                </span>
+                            )}
+                        </button>
+                    </div>
                 </div>
             </aside>
 

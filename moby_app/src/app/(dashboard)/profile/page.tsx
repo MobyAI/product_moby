@@ -110,7 +110,7 @@ export default function ProfilePage() {
         loadUserData();
     }, [userID]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    async function loadUserData() {
+    async function loadUserData(selectLatestHeadshot = false) {
         try {
             if (!userID) {
                 console.error('No user ID available');
@@ -130,7 +130,13 @@ export default function ProfilePage() {
             // Load headshots
             const headshotsResult = await getHeadshots(userID);
             if (headshotsResult.success) {
-                setHeadshots(headshotsResult.data || []);
+                const newHeadshots = headshotsResult.data || [];
+                setHeadshots(newHeadshots);
+
+                // 👇 Only jump when explicitly requested
+                if (selectLatestHeadshot && newHeadshots.length > 0) {
+                    setSelectedHeadshotIndex(newHeadshots.length - 1);
+                }
             }
 
             // Load resume
@@ -608,7 +614,7 @@ export default function ProfilePage() {
                 onClose={() => setShowHeadshotUploadModal(false)}
                 onSuccess={() => {
                     setShowHeadshotUploadModal(false);
-                    loadUserData();
+                    loadUserData(true);
                 }}
             />
 

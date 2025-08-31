@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useGoogleSTT } from "@/lib/google/speechToText";
 import { useDeepgramSTT } from "@/lib/deepgram/speechToText";
 import type { ScriptElement } from "@/types/script";
+import { setLastPracticed } from "@/lib/firebase/client/scripts";
 import { loadScript, hydrateScript, hydrateLine } from "./loader";
 import { RoleSelector } from "./roleSelector";
 import EditableLine from "./editableLine";
@@ -421,6 +422,13 @@ function RehearsalRoomContent() {
 		}
 
 		setIsPlaying(true);
+
+		// 🔥 Record last practiced
+		if (scriptID) {
+			setLastPracticed(scriptID).catch(err =>
+				console.error("❌ Failed to update lastPracticed:", err)
+			);
+		}
 	};
 
 	const handlePause = () => {

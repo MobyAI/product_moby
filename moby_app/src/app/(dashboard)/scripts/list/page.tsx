@@ -141,14 +141,19 @@ function ScriptsListContent() {
                         {/* Scrollable Scripts List */}
                         <div className="flex-1 overflow-y-auto pr-2">
                             <ul className="space-y-3">
-                                {allScripts.map((s) => (
-                                    <ScriptCard
-                                        key={s.id}
-                                        name={s.name}
-                                        handleDelete={() => handleDeleteClick(s.id)}
-                                        handlePractice={() => router.push(`/scripts/practice?scriptID=${s.id}`)}
-                                    />
-                                ))}
+                                {allScripts.map((s) => {
+                                    console.log('script list item: ', s);
+                                    return (
+                                        <ScriptCard
+                                            key={s.id}
+                                            name={s.name}
+                                            createdAt={s.createdAt}
+                                            lastPracticed={s.lastPracticed}
+                                            handleDelete={() => handleDeleteClick(s.id)}
+                                            handlePractice={() => router.push(`/scripts/practice?scriptID=${s.id}`)}
+                                        />
+                                    )
+                                })}
                             </ul>
                         </div>
                     </div>

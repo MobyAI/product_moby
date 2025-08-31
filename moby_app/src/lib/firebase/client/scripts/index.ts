@@ -1,6 +1,6 @@
-import { db } from '@/lib/firebase/client/config/app';
-import { requireUid } from '@/lib/firebase/client/verify';
-import { toFirestoreScript } from '@/lib/firebase/client/utils/mapper';
+import { db } from "@/lib/firebase/client/config/app";
+import { requireUid } from "@/lib/firebase/client/verify";
+import { toFirestoreScript } from "@/lib/firebase/client/utils/mapper";
 import {
     collection,
     doc,
@@ -14,8 +14,8 @@ import {
     orderBy,
     type CollectionReference,
     type DocumentReference,
-} from 'firebase/firestore';
-import type { ScriptElement, ScriptDoc } from '@/types/script';
+} from "firebase/firestore";
+import type { ScriptElement, ScriptDoc } from "@/types/script";
 
 function userScriptsRefs() {
     const uid = requireUid();
@@ -32,6 +32,7 @@ export async function addScript(name: string, script: ScriptElement[]) {
         ownerUid: uid,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
+        lastPracticed: null,
     });
     return ref.id;
 }
@@ -62,4 +63,11 @@ export async function updateScript(scriptID: string, newScript: ScriptElement[])
 export async function deleteScript(scriptID: string) {
     const { doc } = userScriptsRefs();
     await deleteDoc(doc(scriptID));
+}
+
+export async function setLastPracticed(scriptID: string) {
+    const { doc } = userScriptsRefs();
+    await updateDoc(doc(scriptID), {
+        lastPracticed: serverTimestamp(),
+    });
 }
