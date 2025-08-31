@@ -15,10 +15,10 @@ type Route = { href: string; label: string; icon: IconType };
 
 type NavBarProps = {
     width?: string;
-    remWidth?: number;
+    toggleBtnX?: number;
 };
 
-export default function NavBar({ width, remWidth }: NavBarProps) {
+export default function NavBar({ width, toggleBtnX }: NavBarProps) {
     const router = useRouter();
 
     const routes: Route[] = [
@@ -82,8 +82,8 @@ export default function NavBar({ width, remWidth }: NavBarProps) {
                                     className={[
                                         "group relative flex items-center gap-3 rounded-xl transition-colors",
                                         "w-full",
-                                        isCollapsed ? "justify-center h-10 w-10 mx-auto" : "px-2 py-2",
-                                        (!isCollapsed && active) ? "bg-action-primary" : "hover:bg-white/10"
+                                        isCollapsed ? "justify-center h-10 w-10 mx-auto" : "px-2 py-3",
+                                        (!isCollapsed && active) ? "bg-btn-primary" : "hover:bg-white/10"
                                     ].join(" ")}
                                     tabIndex={isCollapsed ? -1 : 0}
                                 >
@@ -188,14 +188,14 @@ export default function NavBar({ width, remWidth }: NavBarProps) {
                 className={[
                     "fixed top-1/2 -translate-y-1/2 z-50",
                     "h-10 w-10 rounded-full",
-                    "bg-action-primary",
+                    "bg-btn-primary",
                     "border border-white/10 shadow-lg",
                     "flex items-center justify-center",
                     "transition-all duration-300 ease-in-out",
                     "group"
                 ].join(" ")}
                 style={{
-                    left: isCollapsed ? "1rem" : `${remWidth}rem`
+                    left: isCollapsed ? "1rem" : `${toggleBtnX}rem`
                 }}
                 aria-label={isCollapsed ? "Show navigation" : "Hide navigation"}
                 title={isCollapsed ? "Show navigation" : "Hide navigation"}

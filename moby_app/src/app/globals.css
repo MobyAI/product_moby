@@ -4,30 +4,74 @@
   --background: #ffffff;
   --foreground: #171717;
 
-  /* Custom color variables from your theme */
-  --color-primary: #B2B5E0;
-  --color-primary-hover: #C5ADC5;
-  --color-primary-light: #B2B5E0;
-  --color-primary-dark: #C5ADC5;
-  --color-primary-accent: #F2CC8F;
+  /* ===== CORE BRAND COLORS ===== */
 
-  --color-card: #E6E6F0;
-  --color-card-alt: #2B2D42;
-  --color-card-border: rgba(0, 0, 0, 0.05);
+  --color-primary-light: rgba(178, 181, 224, 1);
 
-  --color-action-primary: #4B3F72;
-  --color-action-secondary: #E07A5F;
-  --color-action-danger: #ef4444;
-  --color-action-success: #10b981;
-  --color-action-warning: #f59e0b;
+  --color-primary-dark: rgba(197, 173, 197, 1);
 
-  --color-text-primary: #2E2E2E;
-  --color-text-secondary: #4F4F4F;
-  --color-text-accent: #F2CC8F;
+  /* ===== BUTTON COLORS ===== */
+  --color-btn-primary: rgba(75, 63, 114, 1);
 
-  --color-background-primary: #ffffff;
-  --color-background-secondary: #f9fafb;
-  --color-background-tertiary: #f3f4f6;
+  --color-btn-primary-hover: rgb(40, 33, 63);
+
+  --color-btn-secondary: rgba(45, 100, 130, 1);
+
+  --color-btn-secondary-hover: rgba(35, 80, 110, 1);
+
+  --color-btn-accent: rgba(242, 174, 104, 1);
+
+  --color-btn-accent-hover: rgba(220, 145, 70, 1);
+
+  --color-btn-danger: rgba(239, 68, 68, 1);
+
+  --color-btn-danger-hover: rgba(220, 38, 38, 1);
+
+  --color-btn-success: rgba(34, 197, 94, 1);
+
+  --color-btn-success-hover: rgba(22, 163, 74, 1);
+
+  --color-btn-ghost: rgba(255, 255, 255, 0.1);
+
+  --color-btn-ghost-hover: rgba(255, 255, 255, 0.2);
+
+
+  /* ===== CARDS ===== */
+  --color-card-light: rgba(246, 247, 252, 1);
+
+  --color-card-dark: rgba(44, 47, 61, 1);
+
+  /* ===== MODALS ===== */
+  --color-modal-light: rgba(230, 230, 240, 1);
+
+  --color-modal-dark: rgba(43, 45, 66, 1);
+
+  /* ===== MODAL BACKDROP ===== */
+  --color-modal-backdrop: rgba(0, 0, 0, 0.5);
+
+
+  /* ===== TEXT COLORS ===== */
+  --color-text-primary: rgba(46, 46, 46, 1);
+
+  --color-text-secondary: rgba(115, 115, 115, 1);
+
+  --color-text-muted: rgba(163, 163, 163, 1);
+
+  --color-text-accent: rgba(242, 204, 143, 1);
+
+  --color-text-link: rgba(178, 181, 224, 1);
+
+  --color-text-link-hover: rgba(158, 162, 214, 1);
+
+  --color-text-danger: rgba(239, 68, 68, 1);
+
+  --color-text-success: rgba(34, 197, 94, 1);
+
+  --color-text-warning: rgba(245, 158, 11, 1);
+
+  --color-text-inverse: rgba(255, 255, 255, 1);
+
+  --color-text-on-primary: rgba(255, 255, 255, 1);
 }
 
 @theme inline {
@@ -53,18 +97,81 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Custom utility classes for your theme */
+/* ===== UTILITY CLASSES ===== */
 @layer utilities {
 
-  /* Primary colors */
-  .bg-primary {
-    background-color: var(--color-primary);
+  /* Button Backgrounds */
+  .bg-btn-primary {
+    background-color: var(--color-btn-primary);
   }
 
-  .bg-primary-hover {
-    background-color: var(--color-primary-hover);
+  .bg-btn-primary-hover {
+    background-color: var(--color-btn-primary-hover);
   }
 
+  .bg-btn-secondary {
+    background-color: var(--color-btn-secondary);
+  }
+
+  .bg-btn-secondary-hover {
+    background-color: var(--color-btn-secondary-hover);
+  }
+
+  .bg-btn-accent {
+    background-color: var(--color-btn-accent);
+  }
+
+  .bg-btn-accent-hover {
+    background-color: var(--color-btn-accent-hover);
+  }
+
+  .bg-btn-danger {
+    background-color: var(--color-btn-danger);
+  }
+
+  .bg-btn-danger-hover {
+    background-color: var(--color-btn-danger-hover);
+  }
+
+  .bg-btn-success {
+    background-color: var(--color-btn-success);
+  }
+
+  .bg-btn-success-hover {
+    background-color: var(--color-btn-success-hover);
+  }
+
+  .bg-btn-ghost {
+    background-color: var(--color-btn-ghost);
+  }
+
+  .bg-btn-ghost-hover {
+    background-color: var(--color-btn-ghost-hover);
+  }
+
+  /* Card Backgrounds */
+  .bg-card-light {
+    background-color: var(--color-card-light);
+  }
+
+  .bg-card-dark {
+    background-color: var(--color-card-dark);
+  }
+
+  /* Modal Backgrounds */
+  .bg-modal-light {
+    background-color: var(--color-modal-light);
+  }
+
+  .bg-modal-dark {
+    background-color: var(--color-modal-dark);
+  }
+
+  .bg-modal-backdrop {
+    background-color: var(--color-modal-backdrop);
+  }
+
+  /* Primary Colors */
   .bg-primary-light {
     background-color: var(--color-primary-light);
   }
@@ -73,73 +180,23 @@ body {
     background-color: var(--color-primary-dark);
   }
 
-  .bg-primary-accent {
-    background-color: var(--color-primary-accent);
+  .text-primary-light {
+    color: var(--color-primary-light);
   }
 
-  .text-primary {
-    color: var(--color-primary);
+  .text-primary-dark {
+    color: var(--color-primary-dark);
   }
 
-  .border-primary {
-    border-color: var(--color-primary);
+  .border-primary-light {
+    border-color: var(--color-primary-light);
   }
 
-  /* Card colors */
-  .bg-card {
-    background-color: var(--color-card);
+  .border-primary-dark {
+    border-color: var(--color-primary-dark);
   }
 
-  .bg-card-alt {
-    background-color: var(--color-card-alt);
-  }
-
-  .border-card-border {
-    border-color: var(--color-card-border);
-  }
-
-  /* Action colors */
-  .bg-action-primary {
-    background-color: var(--color-action-primary);
-  }
-
-  .bg-action-secondary {
-    background-color: var(--color-action-secondary);
-  }
-
-  .bg-action-danger {
-    background-color: var(--color-action-danger);
-  }
-
-  .bg-action-success {
-    background-color: var(--color-action-success);
-  }
-
-  .bg-action-warning {
-    background-color: var(--color-action-warning);
-  }
-
-  .text-action-primary {
-    color: var(--color-action-primary);
-  }
-
-  .text-action-secondary {
-    color: var(--color-action-secondary);
-  }
-
-  .text-action-danger {
-    color: var(--color-action-danger);
-  }
-
-  .text-action-success {
-    color: var(--color-action-success);
-  }
-
-  .text-action-warning {
-    color: var(--color-action-warning);
-  }
-
-  /* Text colors */
+  /* Text Colors */
   .text-primary {
     color: var(--color-text-primary);
   }
@@ -148,24 +205,97 @@ body {
     color: var(--color-text-secondary);
   }
 
+  .text-muted {
+    color: var(--color-text-muted);
+  }
+
   .text-accent {
     color: var(--color-text-accent);
   }
 
-  /* Background colors */
-  .bg-background-primary {
-    background-color: var(--color-background-primary);
+  .text-link {
+    color: var(--color-text-link);
   }
 
-  .bg-background-secondary {
-    background-color: var(--color-background-secondary);
+  .text-link-hover {
+    color: var(--color-text-link-hover);
   }
 
-  .bg-background-tertiary {
-    background-color: var(--color-background-tertiary);
+  .text-danger {
+    color: var(--color-text-danger);
   }
 
-  /* Typography */
+  .text-success {
+    color: var(--color-text-success);
+  }
+
+  .text-warning {
+    color: var(--color-text-warning);
+  }
+
+  .text-inverse {
+    color: var(--color-text-inverse);
+  }
+
+  .text-on-primary {
+    color: var(--color-text-on-primary);
+  }
+
+  /* Hover States - using RGBA for easy opacity changes */
+  .hover\:bg-btn-primary:hover {
+    background-color: var(--color-btn-primary-hover);
+  }
+
+  .hover\:bg-btn-secondary:hover {
+    background-color: var(--color-btn-secondary-hover);
+  }
+
+  .hover\:bg-btn-accent:hover {
+    background-color: var(--color-btn-accent-hover);
+  }
+
+  .hover\:bg-btn-danger:hover {
+    background-color: var(--color-btn-danger-hover);
+  }
+
+  .hover\:bg-btn-success:hover {
+    background-color: var(--color-btn-success-hover);
+  }
+
+  .hover\:bg-btn-ghost:hover {
+    background-color: var(--color-btn-ghost-hover);
+  }
+
+  .hover\:text-link:hover {
+    color: var(--color-text-link-hover);
+  }
+
+  /* Opacity Variants */
+  .bg-primary-light\/10 {
+    background-color: rgba(178, 181, 224, 0.1);
+  }
+
+  .bg-primary-light\/20 {
+    background-color: rgba(178, 181, 224, 0.2);
+  }
+
+  .bg-primary-light\/50 {
+    background-color: rgba(178, 181, 224, 0.5);
+  }
+
+  .bg-primary-dark\/10 {
+    background-color: rgba(197, 173, 197, 0.1);
+  }
+
+  .bg-primary-dark\/20 {
+    background-color: rgba(197, 173, 197, 0.2);
+  }
+
+  .bg-primary-dark\/50 {
+    background-color: rgba(197, 173, 197, 0.5);
+  }
+
+  /* Typography - keeping your existing styles */
   .text-header-1 {
     font-size: 2.5rem;
     line-height: 3rem;

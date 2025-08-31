@@ -92,7 +92,7 @@ function ScriptsListContent() {
 
     return (
         <div className="h-full flex items-center justify-center">
-            <div className="w-full max-w-2xl h-full flex flex-col py-8">
+            <div className="w-full h-full flex flex-col py-8">
                 {/* Loading State */}
                 {loading && (
                     <div className="flex-1 flex items-center justify-center">
@@ -124,13 +124,13 @@ function ScriptsListContent() {
 
                 {/* Scripts List */}
                 {!loading && !error && allScripts.length > 0 && (
-                    <div className="h-full flex flex-col">
+                    <div className="h-full flex flex-col w-[75%] mx-auto">
                         {/* Header with Add Button */}
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-2xl text-primary font-semibold">Your Scripts</h2>
                             <Button
                                 onClick={handleFileSelect}
-                                variant="secondary"
+                                variant="accent"
                                 size="md"
                                 icon={Plus}
                             >

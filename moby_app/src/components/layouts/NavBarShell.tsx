@@ -91,18 +91,18 @@ export default function NavBarShell({
                 <aside
                     className={`
                         relative flex-shrink-0 transition-all duration-300 ease-in-out
-                        ${isCollapsed ? 'w-15' : 'w-[12.5rem]'}
+                        ${isCollapsed ? 'w-[3rem]' : 'w-[13rem]'}
                     `}
                 >
-                    <NavBar width="w-[11.25rem]" remWidth={10.5} />
+                    <NavBar width="w-[12rem]" toggleBtnX={11} />
                 </aside>
 
                 {/* Main content area with card-like appearance */}
                 <div className="flex-1 p-4 overflow-hidden">
                     <main
                         className={`
-                            h-full ${shouldDarken ? "bg-[#1c1d1d]" : "bg-gray-50/75"} rounded-3xl shadow-xl
-                            p-8 overflow-auto ${contentClassName ?? ""}
+                            h-full ${shouldDarken ? "bg-card-dark" : "bg-gray-50/75"} rounded-3xl shadow-xl
+                            p-8 overflow-hidden ${contentClassName ?? ""}
                         `}
                     >
                         {children}

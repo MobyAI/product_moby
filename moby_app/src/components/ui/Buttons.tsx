@@ -3,7 +3,7 @@ import { clsx } from "clsx";
 import { LucideIcon } from "lucide-react";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-	variant?: "primary" | "secondary" | "danger" | "ghost";
+	variant?: "primary" | "secondary" | "accent" | "danger" | "ghost";
 	size?: "sm" | "md" | "lg";
 	children?: ReactNode;
 	icon?: LucideIcon;
@@ -27,33 +27,58 @@ export function Button({
 		lg: "h-5 w-5"
 	}[size];
 
+	// Base styles with 3D effect
+	const baseStyles = "font-medium rounded-full transition-all inline-flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden transform hover:scale-105 active:scale-95";
+
+	// 3D shadow styles
+	const shadowStyles = "shadow-lg hover:shadow-xl";
+
 	return (
 		<button
 			className={clsx(
-				"font-medium rounded-3xl transition-colors inline-flex items-center justify-center gap-2 cursor-pointer",
+				baseStyles,
+				shadowStyles,
 				{
-					"bg-action-primary text-white hover:bg-primary-dark": variant === "primary",
-					"bg-primary-accent text-white hover:bg-primary-dark": variant === "secondary",
-					"bg-red-600 text-white hover:bg-red-700": variant === "danger",
-					"bg-transparent hover:bg-red-500/20 text-white/80 hover:text-white": variant === "ghost",
-					"px-4 py-1 text-sm": size === "sm" && !iconOnly,
-					"px-5 py-2": size === "md" && !iconOnly,
-					"px-7 py-3": size === "lg" && !iconOnly,
-					"p-1.5": size === "sm" && iconOnly,
-					"p-2": size === "md" && iconOnly,
-					"p-3": size === "lg" && iconOnly,
+					// Primary with gradient overlay
+					"bg-btn-primary text-white before:absolute before:inset-0 before:bg-gradient-to-t before:from-white/20 before:to-transparent before:pointer-events-none hover:bg-btn-primary-hover": variant === "primary",
+
+					// Secondary with gradient overlay
+					"bg-btn-secondary text-white before:absolute before:inset-0 before:bg-gradient-to-t before:from-white/20 before:to-transparent before:pointer-events-none hover:bg-btn-secondary-hover": variant === "secondary",
+
+					// Accent with gradient overlay
+					"bg-btn-accent text-white before:absolute before:inset-0 before:bg-gradient-to-t before:from-white/20 before:to-transparent before:pointer-events-none hover:bg-btn-accent-hover": variant === "accent",
+
+					// Danger with gradient overlay
+					"bg-red-600 text-white before:absolute before:inset-0 before:bg-gradient-to-t before:from-white/20 before:to-transparent before:pointer-events-none hover:bg-red-700": variant === "danger",
+
+					// Ghost (no 3D effect)
+					"bg-transparent hover:bg-red-500/20 text-white/80 hover:text-white shadow-none": variant === "ghost",
+
+					// Size styles
+					"px-4 py-2 text-sm": size === "sm" && !iconOnly,
+					"px-6 py-3": size === "md" && !iconOnly,
+					"px-8 py-4 text-lg": size === "lg" && !iconOnly,
+					"p-2": size === "sm" && iconOnly,
+					"p-3": size === "md" && iconOnly,
+					"p-4": size === "lg" && iconOnly,
 				},
 				className
 			)}
+			style={{
+				// Additional inline styles for enhanced 3D effect
+				boxShadow: variant !== "ghost" ? "0 4px 14px 0 rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.3)" : undefined,
+			}}
 			{...props}
 		>
-			{Icon && iconPosition === "left" && (
-				<Icon className={iconSize} aria-hidden="true" />
-			)}
-			{!iconOnly && children}
-			{Icon && iconPosition === "right" && !iconOnly && (
-				<Icon className={iconSize} aria-hidden="true" />
-			)}
+			<span className="relative z-10 flex items-center gap-2">
+				{Icon && iconPosition === "left" && (
+					<Icon className={iconSize} aria-hidden="true" />
+				)}
+				{!iconOnly && children}
+				{Icon && iconPosition === "right" && !iconOnly && (
+					<Icon className={iconSize} aria-hidden="true" />
+				)}
+			</span>
 		</button>
 	);
 }

@@ -14,7 +14,7 @@ export function ScriptCard({
     handlePractice
 }: ScriptCardProps) {
     return (
-        <div className="bg-primary rounded-xl p-5 mx-4 shadow-md transition-shadow duration-200">
+        <div className="bg-primary-light rounded-xl p-5 mx-4 shadow-md transition-shadow duration-200">
             <div className="flex items-center justify-between">
                 {/* Script Name */}
                 <h3 className="text-lg font-semibold text-white truncate flex-1 mr-4">
