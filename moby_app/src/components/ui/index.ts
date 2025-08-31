@@ -3,3 +3,4 @@ export * from "./LogoutButton";
 export * from "./Layout";
 export * from "./Input";
 export * from "./ConfirmModal";
+export * from "./ScriptCard";

@@ -55,6 +55,22 @@ export default function Form({
 
     const title = mode === "login" ? "Sign in" : "Create your account";
 
+    if (loading !== null) {
+        return (
+            <>
+                <div className="w-20 h-20 mx-auto mb-4 relative">
+                    <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full"></div>
+                    <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin"></div>
+                    <div
+                        className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin"
+                        style={{ animationDuration: "1.5s", animationDirection: "reverse" }}
+                    />
+                </div>
+                <p className="text-gray-700 text-lg font-medium">Signing you in…</p>
+            </>
+        );
+    }
+
     return (
         <div className="space-y-6">
             <h1 className="text-2xl font-semibold">{title}</h1>

@@ -24,11 +24,13 @@ export const loadScript = async ({
     scriptID,
     setLoadStage,
     setStorageError,
+    setScriptName,
 }: {
     userID: string;
     scriptID: string;
     setLoadStage: (stage: string) => void;
     setStorageError: (val: boolean) => void;
+    setScriptName: (name: string) => void;
 }): Promise<ScriptElement[] | undefined> => {
     if (!userID || !scriptID) return;
 
@@ -36,32 +38,37 @@ export const loadScript = async ({
 
     // IndexedDB key
     const scriptCacheKey = `script-cache:${userID}:${scriptID}`;
+    const scriptNameKey = `script-name:${userID}:${scriptID}`;
 
     // Reset error state
     setStorageError(false);
 
     try {
         setLoadStage('🔍 Checking local cache...');
-        const cached = await get(scriptCacheKey);
+        const cachedScript = await get(scriptCacheKey);
+        const scriptName = await get(scriptNameKey);
 
-        if (cached) {
+        if (cachedScript && scriptName) {
             const end = performance.now();
             console.log(`⏱️ Script loaded from cache in ${(end - start).toFixed(2)} ms`);
 
             setLoadStage('✅ Loaded fully hydrated script from cache');
             console.log('✅ Loaded fully hydrated script from cache');
-
-            return cached;
+            setScriptName(scriptName);
+            
+            return cachedScript;
         } else {
             setLoadStage('🌐 Fetching script from Firestore...');
             const data = await getScript(scriptID);
             const script = data.script;
+            const name = data.name;
 
             // Attempt to cache
             setLoadStage('💾 Caching to IndexedDB...');
             console.log('💾 Caching to IndexedDB...');
             try {
                 await set(scriptCacheKey, script);
+                await set(scriptNameKey, name);
                 console.log('💾 Script cached successfully');
             } catch (err) {
                 console.warn('⚠️ Failed to store script in IndexedDB:', err);
@@ -74,6 +81,7 @@ export const loadScript = async ({
             console.log(`⏱️ Script loaded from cache in ${(end - start).toFixed(2)} ms`);
 
             setLoadStage('📓 Script ready!');
+            setScriptName(name);
 
             return script;
         }

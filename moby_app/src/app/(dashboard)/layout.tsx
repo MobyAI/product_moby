@@ -3,17 +3,18 @@ export const dynamic = "force-dynamic";
 
 import type { ReactNode } from "react";
 import AuthShell from "@/components/layouts/AuthShell";
+import NavBarShell from "@/components/layouts/NavBarShell";
 
-export default function OnboardingLayout({
+export default function DashboardLayout({
     children
 }: {
     children: ReactNode
 }) {
     return (
-        <AuthShell requireProfile={false}>
-            <div className="bg-white min-h-screen min-w-screen p-8">
+        <AuthShell>
+            <NavBarShell>
                 {children}
-            </div>
+            </NavBarShell>
         </AuthShell>
     );
 }

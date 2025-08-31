@@ -15,8 +15,6 @@ import {
     X
 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/lib/firebase/client/config/app";
 import type { AuditionData, ProjectTypeFilter, StatusFilter } from "@/types/audition";
 import AuditionCounts from "./AuditionCounts";
 
@@ -34,7 +32,6 @@ export default function AuditionHistory() {
     const [showTypeFilter, setShowTypeFilter] = useState<boolean>(false);
     const [showStatusFilter, setShowStatusFilter] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(true);
-    const [authReady, setAuthReady] = useState(false);
     const [auditionsData, setAuditionsData] = useState<AuditionData[]>([]);
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [showSearch, setShowSearch] = useState(false);
@@ -62,18 +59,6 @@ export default function AuditionHistory() {
 
     // Fetch auditions data on component mount
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                setAuthReady(true);
-            }
-        });
-
-        return () => unsubscribe();
-    }, []);
-
-    useEffect(() => {
-        if (!authReady) return;
-
         const fetchAuditions = async () => {
             try {
                 setLoading(true);
@@ -425,7 +410,7 @@ export default function AuditionHistory() {
         };
 
         fetchAuditions();
-    }, [authReady]);
+    }, []);
 
     // Project type config
     const projectTypeConfig: Record<AuditionData['projectType'], { label: string; icon: ReactElement }> = {
