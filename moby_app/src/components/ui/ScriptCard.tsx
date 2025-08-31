@@ -47,7 +47,7 @@ export function ScriptCard({
             <div className="flex items-center justify-between">
                 <div>
                     {/* Script Name */}
-                    <h3 className="text-2xl font-semibold text-white truncate flex-1 mr-4">
+                    <h3 className="text-header-3 font-semibold text-white truncate flex-1 mr-4">
                         {name}
                     </h3>
 

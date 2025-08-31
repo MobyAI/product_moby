@@ -78,7 +78,7 @@ function SetProfilePicButton({ url }: { url: string }) {
                 iconOnly={true}
                 onClick={onClick}
                 size="lg"
-                variant="primary"
+                className="bg-yellow-500 text-white before:absolute before:inset-0 before:bg-gradient-to-t before:from-white/20 before:to-transparent before:pointer-events-none hover:bg-btn-primary-hover"
                 icon={Star}
                 disabled={loading}
             />

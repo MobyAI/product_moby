@@ -57,9 +57,9 @@ const Homepage = () => {
             to be your reader
             PLAY
           </h1> */}
-          <h1 className="text-6xl font-[950] mb-[50px] ml-2">
-            <span className="text-white">play</span>
-            <span className="text-accent">r</span>
+          <h1 className="text-7xl mb-[50px] ml-2">
+            <span className="font-poppins font-bold text-white">play</span>
+            <span className="font-poppins font-bold text-accent">r</span>
           </h1>
 
           {/* <p className="text-xl text-gray-600 mb-4 max-w-2xl mx-auto">

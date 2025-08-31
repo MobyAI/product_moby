@@ -127,7 +127,7 @@ function ScriptsListContent() {
                     <div className="h-full flex flex-col w-[75%] mx-auto">
                         {/* Header with Add Button */}
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-2xl text-primary font-semibold">Your Scripts</h2>
+                            <h2 className="text-primary text-header-2">Your Scripts</h2>
                             <Button
                                 onClick={handleFileSelect}
                                 variant="accent"

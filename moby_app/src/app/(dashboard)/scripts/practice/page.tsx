@@ -115,7 +115,6 @@ function RehearsalRoomContent() {
 				setCurrentIndex(restored.index ?? 0);
 			}
 
-			setLoadStage('✅ Ready!');
 			setLoading(false);
 		};
 
@@ -777,7 +776,7 @@ function RehearsalRoomContent() {
 
 							{/* Header */}
 							<div className="mb-8">
-								<h1 className="text-2xl font-bold mb-2">Practice Room</h1>
+								<h1 className="text-header-2 font-bold mb-2">Practice Room</h1>
 								<p className="text-gray-400 text-sm">Follow along and practice your lines</p>
 							</div>
 
@@ -957,7 +956,7 @@ function RehearsalRoomContent() {
 
 							{/* Script Header */}
 							<div className="text-center py-8 px-8 border-b border-gray-200 shrink-0">
-								<h1 className="text-3xl font-bold text-gray-900">
+								<h1 className="text-header-2 font-bold text-gray-900">
 									{scriptName ? scriptName : "Your"}
 								</h1>
 								{/* <p className="text-gray-600">Follow along and practice your lines</p> */}
@@ -1005,6 +1004,7 @@ function RehearsalRoomContent() {
 								{/* Previous Button */}
 								<button
 									onClick={handlePrev}
+									disabled={!isScriptFullyHydrated}
 									className="p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white"
 									aria-label="Previous"
 									title="Previous"
@@ -1016,6 +1016,7 @@ function RehearsalRoomContent() {
 								{isPlaying ? (
 									<button
 										onClick={handlePause}
+										disabled={!isScriptFullyHydrated}
 										className="p-3 rounded-full bg-white hover:bg-white/20 hover:text-white transition-all duration-200 text-black shadow-lg scale-110"
 										aria-label="Pause"
 										title="Pause"
@@ -1037,6 +1038,7 @@ function RehearsalRoomContent() {
 								{/* Next Button */}
 								<button
 									onClick={handleNext}
+									disabled={!isScriptFullyHydrated}
 									className="p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white"
 									aria-label="Next"
 									title="Next"
@@ -1050,6 +1052,7 @@ function RehearsalRoomContent() {
 										<div className="w-px h-8 bg-white/20 mx-1" /> {/* Divider */}
 										<button
 											onClick={handleRestart}
+											disabled={!isScriptFullyHydrated}
 											className="p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white"
 											aria-label="Restart from Beginning"
 											title="Restart from Beginning"
