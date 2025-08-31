@@ -54,14 +54,14 @@ export function ScriptCard({
                     {/* Created Date */}
                     {formatted && (
                         <p className="text-sm text-white mt-1">
-                            Created <span className="font-semibold text-accent">{formatted}</span>
+                            Uploaded: <span className="font-semibold text-accent">{formatted}</span>
                         </p>
                     )}
 
                     {/* Last Practiced */}
                     {formattedLastPracticed && (
                         <p className="text-sm text-white mt-0.5">
-                            Last practiced <span className="font-semibold text-accent">{formattedLastPracticed}</span>
+                            Last practiced: <span className="font-semibold text-accent">{formattedLastPracticed}</span>
                         </p>
                     )}
                 </div>

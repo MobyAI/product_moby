@@ -57,7 +57,7 @@ export default function Form({
 
     if (loading !== null) {
         return (
-            <>
+            <div className="flex flex-col justify-center items-center space-y-4 p-8">
                 <div className="w-20 h-20 mx-auto mb-4 relative">
                     <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full"></div>
                     <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin"></div>
@@ -67,7 +67,7 @@ export default function Form({
                     />
                 </div>
                 <p className="text-gray-700 text-lg font-medium">Signing you in…</p>
-            </>
+            </div>
         );
     }
 
