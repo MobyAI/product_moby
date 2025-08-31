@@ -35,13 +35,11 @@ export const useNavBarContext = () => {
 type NavBarShellProps = {
     children: ReactNode;
     contentClassName?: string;
-    leftPaddingClass?: string;
 };
 
 export default function NavBarShell({
     children,
     contentClassName,
-    leftPaddingClass, // We'll override this based on collapsed state
 }: NavBarShellProps) {
     const pathname = usePathname();
 
@@ -80,9 +78,6 @@ export default function NavBarShell({
         // Mark that user has manually toggled during this session
         sessionStorage.setItem('navbar-manual-toggle-session', 'true');
     };
-
-    // Dynamic padding based on collapsed state
-    // const dynamicLeftPadding = isCollapsed ? "pl-16" : (leftPaddingClass || "pl-24");
 
     return (
         <NavBarContext.Provider value={{ isCollapsed, setIsCollapsed: handleSetCollapsed }}>

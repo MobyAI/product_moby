@@ -15,7 +15,6 @@ import {
     X
 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { auth } from "@/lib/firebase/client/config/app";
 import type { AuditionData, ProjectTypeFilter, StatusFilter } from "@/types/audition";
 import AuditionCounts from "./AuditionCounts";
 

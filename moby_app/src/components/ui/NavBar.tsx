@@ -4,7 +4,13 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, FileText, LogOut, UserCircle2, ChevronRight } from "lucide-react";
+import {
+    // LayoutDashboard,
+    FileText,
+    LogOut,
+    UserCircle2,
+    ChevronRight
+} from "lucide-react";
 import { handleLogout } from "@/lib/api/auth";
 import { auth } from "@/lib/firebase/client/config/app";
 import { useNavBarContext } from "@/components/layouts/NavBarShell";

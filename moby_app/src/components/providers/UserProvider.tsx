@@ -5,7 +5,7 @@ import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase/client/config/app";
 
-interface AuthUser {
+export interface AuthUser {
     uid: string;
     email?: string;
     displayName?: string;

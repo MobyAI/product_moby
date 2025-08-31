@@ -65,8 +65,8 @@ function SetProfilePicButton({ url }: { url: string }) {
         try {
             await setAuthPhotoURL(url);
             router.refresh();
-        } catch (e: any) {
-            setErr(e?.message ?? "Failed to update photo.");
+        } catch {
+            setErr("Failed to update photo.");
         } finally {
             setLoading(false);
         }
@@ -80,7 +80,11 @@ function SetProfilePicButton({ url }: { url: string }) {
                 size="lg"
                 variant="primary"
                 icon={Star}
+                disabled={loading}
             />
+            {err && false && (
+                <div>{err}</div>
+            )}
         </div>
     );
 }
