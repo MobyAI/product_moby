@@ -8,7 +8,7 @@ import {
     // LayoutDashboard,
     FileText,
     LogOut,
-    UserCircle2,
+    User,
     ChevronRight
 } from "lucide-react";
 import { handleLogout } from "@/lib/api/auth";
@@ -137,7 +137,7 @@ export default function NavBar({ width, toggleBtnX }: NavBarProps) {
                                         className="h-full w-full object-cover"
                                     />
                                 ) : (
-                                    <UserCircle2 className="h-11 w-11 text-white/70" />
+                                    <User className="h-11 w-11 text-white/70" />
                                 )}
                             </div>
 

@@ -12,7 +12,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export function Button({
-	variant = "primary",
+	variant,
 	size = "md",
 	className,
 	children,
@@ -35,6 +35,7 @@ export function Button({
 
 	return (
 		<button
+			disabled={props.disabled}
 			className={clsx(
 				baseStyles,
 				shadowStyles,
@@ -61,6 +62,10 @@ export function Button({
 					"p-2": size === "sm" && iconOnly,
 					"p-3": size === "md" && iconOnly,
 					"p-4": size === "lg" && iconOnly,
+
+					// Disabled
+					"opacity-50 cursor-not-allowed hover:scale-100 active:scale-100 hover:shadow-none":
+						props.disabled,
 				},
 				className
 			)}
