@@ -10,7 +10,7 @@ import { toBasicError } from "@/types/error";
 import ScriptUploadModal from "./uploadModal";
 import { ConfirmModal, ScriptCard, Button } from "@/components/ui";
 import UploadForm from "../upload/uploadFile";
-import { Plus } from "lucide-react";
+import { Plus, RotateCcw } from "lucide-react";
 
 function ScriptsListContent() {
     const { uid } = useAuthUser();
@@ -103,14 +103,16 @@ function ScriptsListContent() {
                 {/* Error State */}
                 {!loading && error && (
                     <div className="flex-1 flex items-center justify-center">
-                        <div className="rounded-md border border-red-200 bg-red-50 p-4">
-                            <p className="text-red-700 font-medium">Failed to load scripts</p>
-                            <button
+                        <div className="flex flex-col justify-center items-center space-y-4 rounded-md border border-red-200 bg-red-50 p-8">
+                            <p className="text-lg text-red-700 font-medium">Failed to load scripts</p>
+                            <Button
                                 onClick={loadScripts}
-                                className="mt-3 inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-gray-50"
+                                size="md"
+                                variant="primary"
+                                icon={RotateCcw}
                             >
-                                {"Retry 🔄"}
-                            </button>
+                                Retry
+                            </Button>
                         </div>
                     </div>
                 )}
