@@ -776,7 +776,7 @@ function RehearsalRoomContent() {
 
 							{/* Header */}
 							<div className="mb-8">
-								<h1 className="text-2xl font-bold mb-2">Practice Room</h1>
+								<h1 className="text-header-2 font-bold mb-2">Practice Room</h1>
 								<p className="text-gray-400 text-sm">Follow along and practice your lines</p>
 							</div>
 
@@ -956,7 +956,7 @@ function RehearsalRoomContent() {
 
 							{/* Script Header */}
 							<div className="text-center py-8 px-8 border-b border-gray-200 shrink-0">
-								<h1 className="text-3xl font-bold text-gray-900">
+								<h1 className="text-header-2 font-bold text-gray-900">
 									{scriptName ? scriptName : "Your"}
 								</h1>
 								{/* <p className="text-gray-600">Follow along and practice your lines</p> */}

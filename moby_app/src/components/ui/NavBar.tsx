@@ -69,9 +69,9 @@ export default function NavBar({ width, toggleBtnX }: NavBarProps) {
                 {/* Your existing NavBar content */}
                 {/* Top */}
                 <div>
-                    <h1 className="text-3xl font-[950] mb-[50px] ml-2">
-                        <span className="text-white">play</span>
-                        <span className="text-accent">r</span>
+                    <h1 className="text-4xl mb-[50px] ml-2">
+                        <span className="font-poppins font-bold text-white">play</span>
+                        <span className="font-poppins font-bold text-accent">r</span>
                     </h1>
                     {/* Routes (centered vertically) */}
                     <nav className="flex-1 flex flex-col items-center justify-center gap-2">
