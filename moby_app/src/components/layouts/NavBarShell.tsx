@@ -86,10 +86,10 @@ export default function NavBarShell({
                 <aside
                     className={`
                         relative flex-shrink-0 transition-all duration-300 ease-in-out
-                        ${isCollapsed ? 'w-[3rem]' : 'w-[13rem]'}
+                        ${isCollapsed ? 'w-[5rem]' : 'w-[13rem]'}
                     `}
                 >
-                    <NavBar width="w-[12rem]" toggleBtnX={11} />
+                    <NavBar/>
                 </aside>
 
                 {/* Main content area with card-like appearance */}

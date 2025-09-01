@@ -8,7 +8,7 @@ import type { ScriptDocWithId } from "@/types/script";
 import type { BasicError } from "@/types/error";
 import { toBasicError } from "@/types/error";
 import ScriptUploadModal from "./uploadModal";
-import { ConfirmModal, ScriptCard, Button } from "@/components/ui";
+import { DashboardLayout, ConfirmModal, ScriptCard, Button } from "@/components/ui";
 import UploadForm from "../upload/uploadFile";
 import { Plus, RotateCcw } from "lucide-react";
 
@@ -91,99 +91,97 @@ function ScriptsListContent() {
     }, [userID]);
 
     return (
-        <div className="h-full flex items-center justify-center">
-            <div className="w-full h-full flex flex-col py-8">
-                {/* Loading State */}
-                {loading && (
-                    <div className="flex-1 flex items-center justify-center">
-                        <p className="text-gray-600">Getting your saved scripts for you!</p>
+        <DashboardLayout>
+            {/* Loading State */}
+            {loading && (
+                <div className="flex-1 flex items-center justify-center">
+                    <p className="text-gray-600">Getting your saved scripts for you!</p>
+                </div>
+            )}
+
+            {/* Error State */}
+            {!loading && error && (
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="flex flex-col justify-center items-center space-y-4 rounded-md border border-red-200 bg-red-50 p-8">
+                        <p className="text-lg text-red-700 font-medium">Failed to load scripts</p>
+                        <Button
+                            onClick={loadScripts}
+                            size="md"
+                            variant="primary"
+                            icon={RotateCcw}
+                        >
+                            Retry
+                        </Button>
                     </div>
-                )}
+                </div>
+            )}
 
-                {/* Error State */}
-                {!loading && error && (
-                    <div className="flex-1 flex items-center justify-center">
-                        <div className="flex flex-col justify-center items-center space-y-4 rounded-md border border-red-200 bg-red-50 p-8">
-                            <p className="text-lg text-red-700 font-medium">Failed to load scripts</p>
-                            <Button
-                                onClick={loadScripts}
-                                size="md"
-                                variant="primary"
-                                icon={RotateCcw}
-                            >
-                                Retry
-                            </Button>
-                        </div>
+            {/* Empty State - Upload Form */}
+            {!loading && !error && hasFetched && allScripts.length === 0 && (
+                <div className="flex-1 flex items-center justify-center">
+                    <UploadForm onFileUpload={handleFileSelect} />
+                </div>
+            )}
+
+            {/* Scripts List */}
+            {!loading && !error && allScripts.length > 0 && (
+                <div className="h-full flex flex-col w-[75%] mx-auto">
+                    {/* Header with Add Button */}
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-primary text-header-2">Your Scripts</h2>
+                        <Button
+                            onClick={handleFileSelect}
+                            variant="accent"
+                            size="md"
+                            icon={Plus}
+                        >
+                            Add Script
+                        </Button>
                     </div>
-                )}
 
-                {/* Empty State - Upload Form */}
-                {!loading && !error && hasFetched && allScripts.length === 0 && (
-                    <div className="flex-1 flex items-center justify-center">
-                        <UploadForm onFileUpload={handleFileSelect} />
+                    {/* Scrollable Scripts List */}
+                    <div className="flex-1 overflow-y-auto pr-2">
+                        <ul className="space-y-3">
+                            {allScripts.map((s) => {
+                                console.log('script list item: ', s);
+                                return (
+                                    <ScriptCard
+                                        key={s.id}
+                                        name={s.name}
+                                        createdAt={s.createdAt}
+                                        lastPracticed={s.lastPracticed}
+                                        handleDelete={() => handleDeleteClick(s.id)}
+                                        handlePractice={() => router.push(`/scripts/practice?scriptID=${s.id}`)}
+                                    />
+                                )
+                            })}
+                        </ul>
                     </div>
-                )}
+                </div>
+            )}
 
-                {/* Scripts List */}
-                {!loading && !error && allScripts.length > 0 && (
-                    <div className="h-full flex flex-col w-[75%] mx-auto">
-                        {/* Header with Add Button */}
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-primary text-header-2">Your Scripts</h2>
-                            <Button
-                                onClick={handleFileSelect}
-                                variant="accent"
-                                size="md"
-                                icon={Plus}
-                            >
-                                Add Script
-                            </Button>
-                        </div>
+            {/* Delete Confirmation Modal */}
+            <ConfirmModal
+                isOpen={confirmOpen}
+                title="Delete Script"
+                message="Are you sure you want to delete this script? This action cannot be undone."
+                confirmLabel="Delete"
+                cancelLabel="Cancel"
+                onConfirm={confirmDelete}
+                onCancel={() => {
+                    setConfirmOpen(false);
+                    setScriptToDelete(null);
+                }}
+            />
 
-                        {/* Scrollable Scripts List */}
-                        <div className="flex-1 overflow-y-auto pr-2">
-                            <ul className="space-y-3">
-                                {allScripts.map((s) => {
-                                    console.log('script list item: ', s);
-                                    return (
-                                        <ScriptCard
-                                            key={s.id}
-                                            name={s.name}
-                                            createdAt={s.createdAt}
-                                            lastPracticed={s.lastPracticed}
-                                            handleDelete={() => handleDeleteClick(s.id)}
-                                            handlePractice={() => router.push(`/scripts/practice?scriptID=${s.id}`)}
-                                        />
-                                    )
-                                })}
-                            </ul>
-                        </div>
-                    </div>
-                )}
-
-                {/* Delete Confirmation Modal */}
-                <ConfirmModal
-                    isOpen={confirmOpen}
-                    title="Delete Script"
-                    message="Are you sure you want to delete this script? This action cannot be undone."
-                    confirmLabel="Delete"
-                    cancelLabel="Cancel"
-                    onConfirm={confirmDelete}
-                    onCancel={() => {
-                        setConfirmOpen(false);
-                        setScriptToDelete(null);
-                    }}
-                />
-
-                {/* Upload Modal */}
-                <ScriptUploadModal
-                    isOpen={isModalOpen}
-                    onClose={() => setIsModalOpen(false)}
-                    file={selectedFile}
-                    onComplete={loadScripts}
-                />
-            </div>
-        </div>
+            {/* Upload Modal */}
+            <ScriptUploadModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                file={selectedFile}
+                onComplete={loadScripts}
+            />
+        </DashboardLayout>
     )
 }
 
