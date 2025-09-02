@@ -55,7 +55,7 @@ export const loadScript = async ({
             setLoadStage('✅ Loaded fully hydrated script from cache');
             console.log('✅ Loaded fully hydrated script from cache');
             setScriptName(scriptName);
-            
+
             return cachedScript;
         } else {
             setLoadStage('🌐 Fetching script from Firestore...');
@@ -106,6 +106,7 @@ export const hydrateScript = async ({
     setTTSFailedLines,
     updateTTSHydrationStatus,
     getScriptLine,
+    onProgressUpdate,
 }: {
     script: ScriptElement[];
     userID: string;
@@ -119,6 +120,7 @@ export const hydrateScript = async ({
     setTTSFailedLines: (lines: number[]) => void;
     updateTTSHydrationStatus?: (index: number, status: 'pending' | 'ready' | 'failed') => void;
     getScriptLine: (index: number) => ScriptElement | undefined;
+    onProgressUpdate?: (hydratedCount: number, totalCount: number) => void,
 }) => {
     if (!userID || !scriptID) return;
 
@@ -186,6 +188,9 @@ export const hydrateScript = async ({
         )
         .map((element: ScriptElement) => element.index);
 
+    // Load progress setup
+    const totalOperations = unhydratedEmbeddingLines.length + unhydratedTTSLines.length;
+    let completedOperations = 0;
 
     try {
         // Embed user lines
@@ -203,6 +208,8 @@ export const hydrateScript = async ({
                     ) {
                         try {
                             const updated = await addEmbedding(element, userID, scriptID);
+                            completedOperations++;
+                            onProgressUpdate?.(completedOperations, totalOperations);
                             return updated;
                         } catch (err) {
                             console.warn(`❌ addEmbedding failed for line ${element.index}`, err);
@@ -273,6 +280,8 @@ export const hydrateScript = async ({
 
                             try {
                                 const updated = await addTTS(element, embedded, userID, scriptID, getScriptLine);
+                                completedOperations++;
+                                onProgressUpdate?.(completedOperations, totalOperations);
                                 updateTTSHydrationStatus?.(element.index, 'ready');
                                 return updated;
                             } catch (err) {

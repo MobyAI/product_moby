@@ -143,7 +143,6 @@ function ScriptsListContent() {
                     <div className="flex-1 overflow-y-auto pr-2">
                         <ul className="space-y-3">
                             {allScripts.map((s) => {
-                                console.log('script list item: ', s);
                                 return (
                                     <ScriptCard
                                         key={s.id}
