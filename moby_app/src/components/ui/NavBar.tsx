@@ -85,7 +85,7 @@ export default function NavBar() {
 
     // Calculate toggle button position based on navbar width
     const toggleBtnPosition = isCollapsed
-        ? `calc(1rem + ${COLLAPSED_WIDTH} - ${TOGGLE_BTN_OFFSET}rem)`
+        ? `calc(1rem + ${COLLAPSED_WIDTH} / 2 - 1.25rem)`
         : `calc(1rem + ${EXPANDED_WIDTH} - ${TOGGLE_BTN_OFFSET}rem)`;
 
     return (

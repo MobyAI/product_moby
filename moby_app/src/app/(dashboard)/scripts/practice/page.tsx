@@ -33,14 +33,18 @@ function RehearsalRoomContent() {
 		console.log("no user or script id: ", userID, scriptID);
 	}
 
-	// Page setup
+	// Loading
 	const [loading, setLoading] = useState(false);
 	const [loadStage, setLoadStage] = useState<string | null>(null);
+	const [loadProgress, setLoadProgress] = useState(0);
+	const [ttsHydrationStatus, setTTSHydrationStatus] = useState<Record<number, 'pending' | 'updating' | 'ready' | 'failed'>>({});
+
+	// Page Content
 	const [script, setScript] = useState<ScriptElement[] | null>(null);
 	const [scriptName, setScriptName] = useState<string | null>(null);
 	const scriptRef = useRef<ScriptElement[] | null>(null);
-	const [ttsHydrationStatus, setTTSHydrationStatus] = useState<Record<number, 'pending' | 'updating' | 'ready' | 'failed'>>({});
 	const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
+	const [isUpdatingLine, setIsUpdatingLine] = useState(false);
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const [sttProvider, setSttProvider] = useState<"google" | "deepgram">(
 		"google"
@@ -106,6 +110,9 @@ function RehearsalRoomContent() {
 				setTTSFailedLines,
 				updateTTSHydrationStatus,
 				getScriptLine,
+				onProgressUpdate: (hydrated, total) => {
+					setLoadProgress(total > 0 ? (hydrated / total) * 100 : 0);
+				},
 			});
 
 			// Restore session from indexedDB
@@ -228,6 +235,7 @@ function RehearsalRoomContent() {
 
 	const onUpdateLine = async (updateLine: ScriptElement) => {
 		setEditingLineIndex(null);
+		setIsUpdatingLine(true);
 		setLoadStage('🚰 Rehydrating...');
 
 		if (!script) {
@@ -271,6 +279,7 @@ function RehearsalRoomContent() {
 				});
 
 				setLoadStage('✅ Line successfully updated!');
+				setIsUpdatingLine(false);
 			}
 		} catch (err) {
 			console.error(`❌ Failed to update line ${updateLine.index}:`, err);
@@ -782,8 +791,11 @@ function RehearsalRoomContent() {
 
 							{/* Progress Section */}
 							<div className="mb-8">
-								<div className="text-sm text-gray-400 mb-2">Progress</div>
-								{isScriptFullyHydrated ? (
+								<div className="text-sm text-gray-400 mb-2">
+									{isScriptFullyHydrated ? "Progress" : isUpdatingLine ? "Updating Line" : "Loading Practice Room"}
+								</div>
+
+								{isScriptFullyHydrated && !isUpdatingLine ? (
 									<div className="bg-gray-800 rounded-lg p-4">
 										<div className="text-xl font-bold mb-2">
 											{currentIndex + 1} / {script?.length || 0}
@@ -794,21 +806,71 @@ function RehearsalRoomContent() {
 												style={{
 													width: `${((currentIndex + 1) / (script?.length || 1)) * 100}%`,
 												}}
-											></div>
+											/>
 										</div>
 										<div className="text-xs text-gray-400">
 											{Math.round(((currentIndex + 1) / (script?.length || 1)) * 100)}% complete
 										</div>
 									</div>
+								) : isUpdatingLine ? (
+									<div className="bg-gray-800 rounded-lg p-4">
+										{/* Line Update Loading State */}
+										<div className="flex items-center justify-between mb-3">
+											<div className="text-lg font-bold">
+												{loadStage || 'Updating line...'}
+											</div>
+										</div>
+
+										{/* Progress Bar */}
+										<div className="w-full bg-gray-700 rounded-full h-3 relative overflow-hidden">
+											<div className="bg-gradient-to-r from-blue-600 to-blue-600 h-3 rounded-full absolute inset-0" />
+											<div
+												className="absolute inset-0 opacity-30"
+												style={{
+													backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.5) 10px, rgba(255,255,255,0.5) 20px)',
+													animation: 'slide 1s linear infinite'
+												}}
+											/>
+										</div>
+
+										<div className="text-xs text-gray-400 mt-2">
+											Regenerating audio for the updated line...
+										</div>
+									</div>
 								) : (
 									<div className="bg-gray-800 rounded-lg p-4">
-										<div className="text-lg font-bold mb-2">
-											{loadStage || 'Loading…'}
+										{/* Status Header */}
+										<div className="flex items-center justify-between mb-3">
+											<div className="text-lg font-bold">
+												{loadStage || 'Initializing...'}
+											</div>
 										</div>
-										{/* Add loading progress bar */}
-										<div className="text-xs text-gray-400">
-											{"Hang tight! We're setting up the practice room for you 🙌"}
+
+										{/* Progress Bar */}
+										<div className="space-y-2 mb-3">
+											<div className="flex justify-between text-xs text-gray-400">
+												<span>Preparing resources</span>
+												<span>{Math.round(loadProgress)}%</span>
+											</div>
+											<div className="w-full bg-gray-700 rounded-full h-3 relative overflow-hidden">
+												<div
+													className="bg-gradient-to-r from-blue-600 to-blue-400 h-3 rounded-full transition-all duration-300 ease-out"
+													style={{ width: `${loadProgress}%` }}
+												/>
+												{/* Shimmer effect */}
+												{loading && loadProgress < 100 && (
+													<div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
+												)}
+											</div>
 										</div>
+
+										{/* Ready Indicator */}
+										{loadProgress === 100 && !isScriptFullyHydrated && (
+											<div className="text-xs text-green-400 flex items-center gap-1">
+												<span className="inline-block w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+												Scene ready to rehearse!
+											</div>
+										)}
 									</div>
 								)}
 							</div>
@@ -1005,7 +1067,7 @@ function RehearsalRoomContent() {
 								<button
 									onClick={handlePrev}
 									disabled={!isScriptFullyHydrated}
-									className="p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white"
+									className="p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed"
 									aria-label="Previous"
 									title="Previous"
 								>
@@ -1017,7 +1079,7 @@ function RehearsalRoomContent() {
 									<button
 										onClick={handlePause}
 										disabled={!isScriptFullyHydrated}
-										className="p-3 rounded-full bg-white hover:bg-white/20 hover:text-white transition-all duration-200 text-black shadow-lg scale-110"
+										className="p-3 rounded-full bg-white hover:bg-white/20 hover:text-white transition-all duration-200 text-black shadow-lg scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
 										aria-label="Pause"
 										title="Pause"
 									>
@@ -1039,7 +1101,7 @@ function RehearsalRoomContent() {
 								<button
 									onClick={handleNext}
 									disabled={!isScriptFullyHydrated}
-									className="p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white"
+									className="p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed"
 									aria-label="Next"
 									title="Next"
 								>
@@ -1053,7 +1115,7 @@ function RehearsalRoomContent() {
 										<button
 											onClick={handleRestart}
 											disabled={!isScriptFullyHydrated}
-											className="p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white"
+											className="p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed"
 											aria-label="Restart from Beginning"
 											title="Restart from Beginning"
 										>
