@@ -1,4 +1,4 @@
-import { db } from "@/lib/firebase/client/config/app";
+import { db, storage } from "@/lib/firebase/client/config/app";
 import { requireUid } from "@/lib/firebase/client/verify";
 import { toFirestoreScript } from "@/lib/firebase/client/utils/mapper";
 import {
@@ -15,6 +15,7 @@ import {
     type CollectionReference,
     type DocumentReference,
 } from "firebase/firestore";
+import { ref, listAll, deleteObject } from "firebase/storage";
 import type { ScriptElement, ScriptDoc } from "@/types/script";
 
 function userScriptsRefs() {
@@ -60,9 +61,25 @@ export async function updateScript(scriptID: string, newScript: ScriptElement[])
     });
 }
 
+export async function deleteScriptAssets(scriptID: string) {
+    const { uid } = userScriptsRefs();
+    const folderRef = ref(storage, `users/${uid}/scripts/${scriptID}`);
+
+    async function deleteFolderContents(folder: ReturnType<typeof ref>): Promise<void> {
+        const { items, prefixes } = await listAll(folder);
+        // Delete all files directly in this folder
+        await Promise.all(items.map((item) => deleteObject(item)));
+        // Recursively delete subfolders
+        await Promise.all(prefixes.map((subfolder) => deleteFolderContents(subfolder)));
+    }
+
+    await deleteFolderContents(folderRef);
+}
+
 export async function deleteScript(scriptID: string) {
     const { doc } = userScriptsRefs();
     await deleteDoc(doc(scriptID));
+    await deleteScriptAssets(scriptID);
 }
 
 export async function setLastPracticed(scriptID: string) {

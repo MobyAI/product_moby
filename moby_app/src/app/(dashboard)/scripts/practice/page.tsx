@@ -15,6 +15,7 @@ import { clear } from "idb-keyval";
 import LoadingScreen from "./LoadingScreen";
 import { Button } from "@/components/ui";
 import { useAuthUser } from "@/components/providers/UserProvider";
+import { useToast } from "@/components/providers/ToastProvider";
 import { Play, Pause, SkipBack, SkipForward, RotateCcw } from "lucide-react";
 
 // export default function RehearsalRoomPage() {
@@ -24,6 +25,8 @@ function RehearsalRoomContent() {
 
 	const { uid } = useAuthUser();
 	const userID = uid;
+
+	const { showToast } = useToast();
 
 	const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const currentLineRef = useRef<HTMLDivElement>(null);
@@ -35,6 +38,7 @@ function RehearsalRoomContent() {
 
 	// Loading
 	const [loading, setLoading] = useState(false);
+	const [hydrating, setHydrating] = useState(false);
 	const [loadStage, setLoadStage] = useState<string | null>(null);
 	const [loadProgress, setLoadProgress] = useState(0);
 	const [ttsHydrationStatus, setTTSHydrationStatus] = useState<Record<number, 'pending' | 'updating' | 'ready' | 'failed'>>({});
@@ -79,6 +83,7 @@ function RehearsalRoomContent() {
 
 		const init = async () => {
 			setLoading(true);
+			setHydrating(true);
 
 			const rawScript = await loadScript({
 				userID,
@@ -91,6 +96,7 @@ function RehearsalRoomContent() {
 			if (!rawScript) {
 				// Display error page?
 				setLoading(false);
+				setHydrating(false);
 				return;
 			} else {
 				setScript(rawScript);
@@ -113,6 +119,17 @@ function RehearsalRoomContent() {
 				onProgressUpdate: (hydrated, total) => {
 					setLoadProgress(total > 0 ? (hydrated / total) * 100 : 0);
 				},
+			}).then(wasHydrated => {
+				setHydrating(false);
+				if (wasHydrated) {
+					showToast({
+						header: "Script Ready!",
+						line1: "You can begin rehearsing now.",
+						type: "success",
+					});
+				}
+			}).catch(() => {
+				setHydrating(false);
 			});
 
 			// Restore session from indexedDB
@@ -126,6 +143,7 @@ function RehearsalRoomContent() {
 		};
 
 		init();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [userID, scriptID]);
 
 	// Auto-scroll to current line
@@ -280,6 +298,12 @@ function RehearsalRoomContent() {
 
 				setLoadStage('✅ Line successfully updated!');
 				setIsUpdatingLine(false);
+
+				showToast({
+					header: "Line Updated!",
+					line1: `Line ${updateLine.index} was rehydrated successfully.`,
+					type: "success",
+				});
 			}
 		} catch (err) {
 			console.error(`❌ Failed to update line ${updateLine.index}:`, err);
@@ -1005,6 +1029,8 @@ function RehearsalRoomContent() {
 									onClick={goBackHome}
 									size="sm"
 									variant="primary"
+									className="disabled:opacity-50 disabled:cursor-not-allowed"
+									disabled={hydrating}
 								>
 									Go Back
 								</Button>
