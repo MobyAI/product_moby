@@ -15,6 +15,7 @@ import { clear } from "idb-keyval";
 import LoadingScreen from "./LoadingScreen";
 import { Button } from "@/components/ui";
 import { useAuthUser } from "@/components/providers/UserProvider";
+import { useToast } from "@/components/providers/ToastProvider";
 import { Play, Pause, SkipBack, SkipForward, RotateCcw } from "lucide-react";
 
 // export default function RehearsalRoomPage() {
@@ -24,6 +25,8 @@ function RehearsalRoomContent() {
 
 	const { uid } = useAuthUser();
 	const userID = uid;
+
+	const { showToast } = useToast();
 
 	const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const currentLineRef = useRef<HTMLDivElement>(null);
@@ -280,6 +283,12 @@ function RehearsalRoomContent() {
 
 				setLoadStage('✅ Line successfully updated!');
 				setIsUpdatingLine(false);
+
+				showToast({
+					header: "Line Updated!",
+					line1: `Line ${updateLine.index} was rehydrated successfully.`,
+					type: "success",
+				});
 			}
 		} catch (err) {
 			console.error(`❌ Failed to update line ${updateLine.index}:`, err);

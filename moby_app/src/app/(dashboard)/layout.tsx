@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import type { ReactNode } from "react";
 import AuthShell from "@/components/layouts/AuthShell";
 import NavBarShell from "@/components/layouts/NavBarShell";
+import { ToastProvider } from "@/components/providers/ToastProvider";
 
 export default function DashboardLayout({
     children
@@ -13,7 +14,9 @@ export default function DashboardLayout({
     return (
         <AuthShell>
             <NavBarShell>
-                {children}
+                <ToastProvider>
+                    {children}
+                </ToastProvider>
             </NavBarShell>
         </AuthShell>
     );
