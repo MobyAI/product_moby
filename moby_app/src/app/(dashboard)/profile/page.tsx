@@ -125,6 +125,7 @@ export default function ProfilePage() {
             if (result.success) {
                 setProfile(editedProfile);
                 setEditMode(false);
+                router.refresh();
             } else {
                 setError(result.error || 'Failed to save profile');
             }
@@ -217,7 +218,7 @@ export default function ProfilePage() {
                     </div>
                     {!editMode ? (
                         <Button onClick={() => setEditMode(true)} size="sm" variant="secondary" icon={Edit2}>
-                            Edit Profile
+                            Edit
                         </Button>
                     ) : (
                         <div className="flex gap-2">
