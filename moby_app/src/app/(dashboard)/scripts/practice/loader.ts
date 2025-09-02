@@ -1,9 +1,9 @@
-import { get, set } from 'idb-keyval';
-import type { ScriptElement } from '@/types/script';
-import { addEmbedding } from '@/lib/api/embeddings';
-import { addTTS, addTTSRegenerate } from '@/lib/api/tts';
-import { getScript, updateScript } from '@/lib/firebase/client/scripts';
-import pLimit from 'p-limit';
+import { get, set } from "idb-keyval";
+import type { ScriptElement } from "@/types/script";
+import { addEmbedding } from "@/lib/api/embeddings";
+import { addTTS, addTTSRegenerate } from "@/lib/api/tts";
+import { getScript, updateScript } from "@/lib/firebase/client/scripts";
+import pLimit from "p-limit";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const isQuotaExceeded = (error: any) =>

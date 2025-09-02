@@ -91,7 +91,7 @@ function ScriptsListContent() {
     }, [userID]);
 
     return (
-        <DashboardLayout>
+        <DashboardLayout maxWidth={75}>
             {/* Loading State */}
             {loading && (
                 <div className="flex-1 flex items-center justify-center">
@@ -125,7 +125,7 @@ function ScriptsListContent() {
 
             {/* Scripts List */}
             {!loading && !error && allScripts.length > 0 && (
-                <div className="h-full flex flex-col w-[75%] mx-auto">
+                <div className="h-full flex flex-col">
                     {/* Header with Add Button */}
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-primary text-header-2">Your Scripts</h2>

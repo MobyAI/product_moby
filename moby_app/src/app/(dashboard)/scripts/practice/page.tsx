@@ -126,6 +126,12 @@ function RehearsalRoomContent() {
 			}
 
 			setLoading(false);
+
+			showToast({
+				header: "Script Ready!",
+				line1: "You can begin rehearsing now.",
+				type: "success",
+			});
 		};
 
 		init();

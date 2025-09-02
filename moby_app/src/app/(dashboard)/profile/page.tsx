@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
-    User,
+    // User,
     Calendar,
     Globe,
     Ruler,
@@ -20,6 +20,7 @@ import {
     Star,
     ExternalLink,
     Flag,
+    Trash2,
 } from "lucide-react";
 import { Timestamp, FieldValue } from "firebase/firestore";
 import { auth } from "@/lib/firebase/client/config/app";
@@ -53,42 +54,6 @@ const ethnicityLabels = Object.fromEntries(
     ethnicities.map(eth => [eth.value, eth.label])
 );
 
-function SetProfilePicButton({ url }: { url: string }) {
-    const [loading, setLoading] = useState(false);
-    const [err, setErr] = useState<string | null>(null);
-
-    const router = useRouter();
-
-    const onClick = async () => {
-        setLoading(true);
-        setErr(null);
-        try {
-            await setAuthPhotoURL(url);
-            router.refresh();
-        } catch {
-            setErr("Failed to update photo.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <div className="inline-flex items-center gap-2">
-            <Button
-                iconOnly={true}
-                onClick={onClick}
-                size="lg"
-                className="bg-yellow-500 text-white before:absolute before:inset-0 before:bg-gradient-to-t before:from-white/20 before:to-transparent before:pointer-events-none hover:bg-btn-primary-hover"
-                icon={Star}
-                disabled={loading}
-            />
-            {err && false && (
-                <div>{err}</div>
-            )}
-        </div>
-    );
-}
-
 export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState<'headshot' | 'resume' | null>(null);
@@ -110,7 +75,6 @@ export default function ProfilePage() {
 
     useEffect(() => {
         if (!userID) return;
-
         loadUserData();
     }, [userID]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -122,7 +86,6 @@ export default function ProfilePage() {
                 return;
             }
 
-            // Load user data
             const userResult = await getUser(userID);
             if (userResult.success && userResult.data) {
                 setProfile(userResult.data);
@@ -131,24 +94,19 @@ export default function ProfilePage() {
                 setError(userResult.error || 'Failed to load profile');
             }
 
-            // Load headshots
             const headshotsResult = await getHeadshots(userID);
             if (headshotsResult.success) {
                 const newHeadshots = headshotsResult.data || [];
                 setHeadshots(newHeadshots);
-
-                // 👇 Only jump when explicitly requested
                 if (selectLatestHeadshot && newHeadshots.length > 0) {
                     setSelectedHeadshotIndex(newHeadshots.length - 1);
                 }
             }
 
-            // Load resume
             const resumeResult = await getResume(userID);
             if (resumeResult.success) {
                 setResume(resumeResult.data);
             }
-
         } catch (error) {
             console.error('Error loading user data:', error);
             setError('Failed to load profile data');
@@ -159,7 +117,6 @@ export default function ProfilePage() {
 
     async function handleSave() {
         if (!editedProfile) return;
-
         setSaving(true);
         setError(null);
 
@@ -186,15 +143,12 @@ export default function ProfilePage() {
 
     async function handleDeleteHeadshot(headshotId: string) {
         if (!confirm('Are you sure you want to delete this headshot?')) return;
-
         setDeleting('headshot');
         try {
             await deleteHeadshot(headshotId, auth.currentUser?.uid || '');
-
             if (selectedHeadshotIndex >= headshots.length - 1) {
                 setSelectedHeadshotIndex(Math.max(0, headshots.length - 2));
             }
-
             await loadUserData();
         } catch (error) {
             console.error('Delete headshot error:', error);
@@ -206,7 +160,6 @@ export default function ProfilePage() {
 
     async function handleDeleteResume() {
         if (!confirm('Are you sure you want to delete your resume?')) return;
-
         setDeleting('resume');
         try {
             await deleteResume(resume?.id || '', auth.currentUser?.uid || '');
@@ -216,6 +169,15 @@ export default function ProfilePage() {
             setError('Failed to delete resume');
         } finally {
             setDeleting(null);
+        }
+    }
+
+    async function handleSetProfilePic(url: string) {
+        try {
+            await setAuthPhotoURL(url);
+            router.refresh();
+        } catch {
+            setError("Failed to update profile picture.");
         }
     }
 
@@ -238,68 +200,160 @@ export default function ProfilePage() {
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
                     <p className="text-gray-600 mb-4">No profile found</p>
-                    <Button
-                        onClick={() => router.push('/onboarding')}
-                        size="md"
-                        variant="primary"
-                    />
+                    <Button onClick={() => router.push('/onboarding')} size="md" variant="primary" />
                 </div>
             </div>
         );
     }
 
     return (
-        <DashboardLayout maxWidth={80}>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {/* Left Column - Personal Info */}
-                <div className="lg:col-span-2 space-y-6">
-                    {/* Header */}
-                    <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                        <div className="flex justify-between items-center">
-                            <h1 className="text-2xl font-semibold">{`Hey, ${profile.firstName}!`}</h1>
-                            {!editMode ? (
-                                <Button
-                                    onClick={() => setEditMode(true)}
-                                    size="sm"
-                                    variant="secondary"
-                                    icon={Edit2}
-                                >
-                                    Edit
-                                </Button>
+        <DashboardLayout maxWidth={90}>
+            {/* Header */}
+            <div className="bg-transparent rounded-lg mb-6">
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h1 className="text-header-2">Profile</h1>
+                        <p className="text-xl text-gray-600 mt-1">Hey, {profile.firstName}! 👋</p>
+                    </div>
+                    {!editMode ? (
+                        <Button onClick={() => setEditMode(true)} size="sm" variant="secondary" icon={Edit2}>
+                            Edit Profile
+                        </Button>
+                    ) : (
+                        <div className="flex gap-2">
+                            <Button onClick={handleCancel} size="sm" variant="danger" icon={X}>
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleSave}
+                                size="sm"
+                                className="bg-green-600 text-white hover:bg-green-800 before:content-none shadow-md hover:shadow-lg"
+                                icon={Save}
+                            >
+                                {saving ? 'Saving...' : 'Save Changes'}
+                            </Button>
+                        </div>
+                    )}
+                </div>
+                {error && (
+                    <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+                        {error}
+                    </div>
+                )}
+            </div>
+
+            {/* Main Content - Two Column Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left Column - Profile Picture & Headshots */}
+                <div className="bg-transparent rounded-lg border border-gray-500/50 p-8">
+                    <div className="flex flex-col items-center">
+                        <h2 className="text-lg font-semibold mb-6 text-center">Headshots</h2>
+
+                        {/* Circular Headshot Picture */}
+                        <div className="relative w-80 h-80 rounded-full overflow-hidden bg-gray-100 mb-6">
+                            {headshots.length > 0 && headshots[selectedHeadshotIndex]?.thumbnailUrl ? (
+                                <Image
+                                    src={headshots[selectedHeadshotIndex].thumbnailUrl}
+                                    alt="Profile"
+                                    fill
+                                    priority
+                                    className="object-cover"
+                                />
                             ) : (
-                                <div className="flex gap-2">
-                                    <Button
-                                        onClick={handleCancel}
-                                        size="sm"
-                                        variant="danger"
-                                        icon={X}
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        onClick={handleSave}
-                                        size="sm"
-                                        variant="accent"
-                                        icon={Save}
-                                    >
-                                        {saving ? 'Saving...' : 'Save Changes'}
-                                    </Button>
+                                <div className="w-full h-full flex items-center justify-center">
+                                    <Camera className="w-16 h-16 text-gray-400" />
                                 </div>
                             )}
                         </div>
-                        {error && (
-                            <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
-                                {error}
+
+                        {/* Headshot Navigation */}
+                        {headshots.length > 1 && (
+                            <div className="flex items-center gap-4 mb-4">
+                                <button
+                                    onClick={() => setSelectedHeadshotIndex(prev => Math.max(0, prev - 1))}
+                                    disabled={selectedHeadshotIndex === 0}
+                                    className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <ChevronLeft className="w-5 h-5" />
+                                </button>
+                                <span className="text-sm text-gray-600 min-w-[60px] text-center">
+                                    {selectedHeadshotIndex + 1} of {headshots.length}
+                                </span>
+                                <button
+                                    onClick={() => setSelectedHeadshotIndex(prev => Math.min(headshots.length - 1, prev + 1))}
+                                    disabled={selectedHeadshotIndex === headshots.length - 1}
+                                    className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <ChevronRight className="w-5 h-5" />
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Headshot Actions */}
+                        {headshots.length > 0 ? (
+                            <div className="flex gap-2 mb-4">
+                                <Button
+                                    iconOnly={true}
+                                    variant="secondary"
+                                    size="md"
+                                    icon={ExternalLink}
+                                    onClick={() => window.open(headshots[selectedHeadshotIndex]?.originalUrl, "_blank", "noopener,noreferrer")}
+                                    title="View Full Size"
+                                />
+                                <Button
+                                    iconOnly={true}
+                                    onClick={() => handleSetProfilePic(headshots[selectedHeadshotIndex].thumbnailUrl)}
+                                    size="md"
+                                    className={
+                                        userPhotoURL && headshots[selectedHeadshotIndex]?.thumbnailUrl === userPhotoURL
+                                            ? "bg-yellow-500 text-white hover:bg-yellow-600"
+                                            : "bg-gray-400 text-white hover:bg-gray-500"
+                                    }
+                                    icon={Star}
+                                    title="Set as Profile Picture"
+                                />
+                                <Button
+                                    iconOnly={true}
+                                    onClick={() => handleDeleteHeadshot(headshots[selectedHeadshotIndex].id)}
+                                    size="md"
+                                    icon={Trash2}
+                                    variant="danger"
+                                    title="Delete Headshot"
+                                />
+                            </div>
+                        ) : null}
+
+                        {/* Upload Button */}
+                        {headshots.length < 3 && (
+                            <Button
+                                onClick={() => setShowHeadshotUploadModal(true)}
+                                size="sm"
+                                variant="primary"
+                                icon={Upload}
+                                className="w-full max-w-xs"
+                            >
+                                Upload Headshot
+                            </Button>
+                        )}
+
+                        {headshots.length === 3 && (
+                            <div className="flex items-center gap-2 text-green-600">
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                                <span className="text-sm">Maximum headshots uploaded</span>
                             </div>
                         )}
                     </div>
-                    {/* Basic Info */}
-                    <div className="bg-white rounded-lg shadow-sm p-6">
-                        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                            <User className="w-5 h-5 text-gray-500" />
-                            Basic Information
-                        </h2>
-                        <div className="space-y-4">
+                </div>
+
+                {/* Right Column - User Info & Demographics */}
+                <div className="bg-transparent rounded-lg border border-gray-500/50 p-8">
+                    <h2 className="text-lg font-semibold mb-6">Profile Information</h2>
+
+                    <div className="space-y-6">
+                        {/* Name Section */}
+                        <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     First Name
@@ -312,7 +366,7 @@ export default function ProfilePage() {
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 ) : (
-                                    <p className="text-gray-900">{profile.firstName}</p>
+                                    <p className="text-gray-900 py-2">{profile.firstName}</p>
                                 )}
                             </div>
                             <div>
@@ -327,83 +381,86 @@ export default function ProfilePage() {
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 ) : (
-                                    <p className="text-gray-900">{profile.lastName}</p>
+                                    <p className="text-gray-900 py-2">{profile.lastName}</p>
                                 )}
                             </div>
                         </div>
-                    </div>
 
-                    {/* Demographics */}
-                    <div className="bg-white rounded-lg shadow-sm p-6">
-                        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                            <Globe className="w-5 h-5 text-gray-500" />
-                            Demographics
-                        </h2>
-                        <div className="flex flex-col space-y-6">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                                    <Calendar className="w-4 h-4" />
-                                    Age
-                                </label>
-                                {editMode ? (
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        max="100"
-                                        value={editedProfile?.age || 0}
-                                        onChange={(e) => setEditedProfile(prev => prev ? { ...prev, age: parseInt(e.target.value) } : null)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                ) : (
-                                    <p className="text-gray-900">{profile.age} years old</p>
-                                )}
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                                    <Ruler className="w-4 h-4" />
-                                    Height
-                                </label>
-                                {editMode ? (
-                                    <div className="flex gap-2">
-                                        <div className="flex items-center gap-1">
-                                            <input
-                                                type="number"
-                                                min="4"
-                                                max="7"
-                                                value={Math.floor((editedProfile?.height || 0) / 12)}
-                                                onChange={(e) => {
-                                                    const feet = parseInt(e.target.value) || 0;
-                                                    const currentInches = (editedProfile?.height || 0) % 12;
-                                                    setEditedProfile(prev => prev ? { ...prev, height: feet * 12 + currentInches } : null);
-                                                }}
-                                                className="w-16 px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
-                                            />
-                                            <span className="text-gray-600">ft</span>
+                        <div className="border-t border-gray-500/50 pt-6">
+                            <h3 className="text-md font-medium mb-4 flex items-center gap-2">
+                                <Globe className="w-4 h-4 text-gray-500" />
+                                Demographics
+                            </h3>
+
+                            {/* Age and Height */}
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                                        <Calendar className="w-4 h-4" />
+                                        Age
+                                    </label>
+                                    {editMode ? (
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="100"
+                                            value={editedProfile?.age || 0}
+                                            onChange={(e) => setEditedProfile(prev => prev ? { ...prev, age: parseInt(e.target.value) } : null)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    ) : (
+                                        <p className="text-gray-900 py-2">{profile.age} years old</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                                        <Ruler className="w-4 h-4" />
+                                        Height
+                                    </label>
+                                    {editMode ? (
+                                        <div className="flex gap-2">
+                                            <div className="flex items-center gap-1">
+                                                <input
+                                                    type="number"
+                                                    min="4"
+                                                    max="7"
+                                                    value={Math.floor((editedProfile?.height || 0) / 12)}
+                                                    onChange={(e) => {
+                                                        const feet = parseInt(e.target.value) || 0;
+                                                        const currentInches = (editedProfile?.height || 0) % 12;
+                                                        setEditedProfile(prev => prev ? { ...prev, height: feet * 12 + currentInches } : null);
+                                                    }}
+                                                    className="w-14 px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+                                                />
+                                                <span className="text-gray-600 text-sm">ft</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="11"
+                                                    value={(editedProfile?.height || 0) % 12}
+                                                    onChange={(e) => {
+                                                        const inches = parseInt(e.target.value) || 0;
+                                                        const currentFeet = Math.floor((editedProfile?.height || 0) / 12);
+                                                        setEditedProfile(prev => prev ? { ...prev, height: currentFeet * 12 + inches } : null);
+                                                    }}
+                                                    className="w-14 px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+                                                />
+                                                <span className="text-gray-600 text-sm">in</span>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                max="11"
-                                                value={(editedProfile?.height || 0) % 12}
-                                                onChange={(e) => {
-                                                    const inches = parseInt(e.target.value) || 0;
-                                                    const currentFeet = Math.floor((editedProfile?.height || 0) / 12);
-                                                    setEditedProfile(prev => prev ? { ...prev, height: currentFeet * 12 + inches } : null);
-                                                }}
-                                                className="w-16 px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
-                                            />
-                                            <span className="text-gray-600">in</span>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <p className="text-gray-900">
-                                        {`${Math.floor(profile.height / 12)}'${profile.height % 12}"`}
-                                    </p>
-                                )}
+                                    ) : (
+                                        <p className="text-gray-900 py-2">
+                                            {`${Math.floor(profile.height / 12)}'${profile.height % 12}"`}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
-                            <div className="sm:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+
+                            {/* Ethnicity */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                                     <Flag className="w-4 h-4" />
                                     Ethnicity
                                 </label>
@@ -441,172 +498,63 @@ export default function ProfilePage() {
                                 )}
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                {/* Right Column - Media */}
-                <div className="space-y-6">
-                    {/* Headshots */}
-                    <div className="bg-white rounded-lg shadow-sm p-6">
-                        {deleting === "headshot" ? (
-                            <div className="flex flex-col items-center justify-center py-12">
-                                <div className="w-20 h-20 mx-auto mb-6 relative">
-                                    <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full"></div>
-                                    <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin"></div>
-                                    <div className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin animate-reverse" style={{ animationDuration: '1.5s' }}></div>
-                                </div>
-                                <p className="text-gray-600">Deleting headshot...</p>
-                            </div>
-                        ) : (
-                            <>
-                                <div className="flex justify-between items-center mb-4">
-                                    <h2 className="text-lg font-semibold flex items-center gap-2">
-                                        <Camera className="w-5 h-5 text-gray-500" />
-                                        Headshots
-                                    </h2>
-                                    {headshots.length < 3 ? (
-                                        <Button
-                                            iconOnly={true}
-                                            onClick={() => setShowHeadshotUploadModal(true)}
-                                            className="text-sm px-3 py-1.5 text-white rounded-lg flex items-center gap-1"
-                                            variant="secondary"
-                                            icon={Upload}
-                                        />
-                                    ) : (
-                                        <div className="w-9 h-9 text-green-500 ml-auto">
-                                            <svg className="w-full h-full" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                            </svg>
-                                        </div>
-                                    )}
-                                </div>
-                                {headshots.length > 0 ? (
-                                    <div className="space-y-4">
-                                        <div className="relative w-32 h-40 mx-auto rounded-lg overflow-hidden bg-gray-100">
-                                            {headshots[selectedHeadshotIndex]?.thumbnailUrl && (
-                                                <Image
-                                                    src={headshots[selectedHeadshotIndex].thumbnailUrl}
-                                                    alt="Headshot"
-                                                    fill
-                                                    priority
-                                                    className="object-cover"
-                                                />
-                                            )}
-
-                                            {/* Overlay Star if this headshot is the current profile picture */}
-                                            {userPhotoURL &&
-                                                headshots[selectedHeadshotIndex]?.thumbnailUrl === userPhotoURL && (
-                                                    <div className="absolute top-2 right-2 bg-yellow-500 rounded-full p-1 shadow">
-                                                        <Star className="w-4 h-4 text-white" />
-                                                    </div>
-                                                )}
-                                        </div>
-
-                                        {headshots.length > 1 && (
-                                            <div className="flex items-center justify-between">
-                                                <button
-                                                    onClick={() => setSelectedHeadshotIndex(prev => Math.max(0, prev - 1))}
-                                                    disabled={selectedHeadshotIndex === 0}
-                                                    className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                >
-                                                    <ChevronLeft className="w-5 h-5" />
-                                                </button>
-                                                <span className="text-sm text-gray-600">
-                                                    {selectedHeadshotIndex + 1} of {headshots.length}
-                                                </span>
-                                                <button
-                                                    onClick={() => setSelectedHeadshotIndex(prev => Math.min(headshots.length - 1, prev + 1))}
-                                                    disabled={selectedHeadshotIndex === headshots.length - 1}
-                                                    className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                >
-                                                    <ChevronRight className="w-5 h-5" />
-                                                </button>
-                                            </div>
-                                        )}
-                                        <div className="flex justify-around gap-2">
-                                            <Button
-                                                iconOnly={true}
-                                                variant="secondary"
-                                                size="lg"
-                                                icon={ExternalLink}
-                                                onClick={() => window.open(headshots[selectedHeadshotIndex]?.originalUrl, "_blank", "noopener,noreferrer")}
-                                            />
-                                            <Button
-                                                iconOnly={true}
-                                                onClick={() => handleDeleteHeadshot(headshots[selectedHeadshotIndex].id)}
-                                                size="lg"
-                                                icon={X}
-                                                variant="danger"
-                                            />
-                                            {headshots[selectedHeadshotIndex]?.thumbnailUrl && (
-                                                <SetProfilePicButton url={headshots[selectedHeadshotIndex].thumbnailUrl} />
-                                            )}
-                                        </div>
+                        <div className="border-t border-gray-500/50 pt-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-lg font-semibold flex items-center gap-2">
+                                    <FileText className="w-5 h-5 text-gray-500" />
+                                    Resume
+                                </h2>
+                                {resume && (
+                                    <div className="flex items-center gap-2 text-green-600">
+                                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                        </svg>
+                                        <span className="text-sm">Saved</span>
                                     </div>
-                                ) : (
-                                    <p className="text-gray-500 text-center py-8">No headshot uploaded</p>
                                 )}
-                            </>
-                        )}
-                    </div>
-
-                    {/* Resume */}
-                    <div className="bg-white rounded-lg shadow-sm p-6">
-                        {deleting === "resume" ? (
-                            <div className="flex flex-col items-center justify-center py-12">
-                                <div className="w-20 h-20 mx-auto mb-6 relative">
-                                    <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full"></div>
-                                    <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin"></div>
-                                    <div className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin animate-reverse" style={{ animationDuration: '1.5s' }}></div>
-                                </div>
-                                <p className="text-gray-600">Deleting resume...</p>
                             </div>
-                        ) : (
-                            <>
-                                <div className="flex justify-between items-center mb-4">
-                                    <h2 className="text-lg font-semibold flex items-center gap-2">
-                                        <FileText className="w-5 h-5 text-gray-500" />
-                                        Resume
-                                    </h2>
+
+                            {deleting === "resume" ? (
+                                <div className="flex flex-col items-center justify-center py-8">
+                                    <div className="w-12 h-12 mx-auto mb-4 relative">
+                                        <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                        <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 rounded-full animate-spin"></div>
+                                    </div>
+                                    <p className="text-gray-600">Deleting resume...</p>
+                                </div>
+                            ) : (
+                                <div className="flex flex-wrap gap-3">
                                     {resume ? (
-                                        <div className="w-9 h-9 text-green-500 ml-auto">
-                                            <svg className="w-full h-full" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                            </svg>
-                                        </div>
+                                        <>
+                                            <Button
+                                                onClick={() => window.open(resume.url, "_blank", "noopener,noreferrer")}
+                                                size="sm"
+                                                icon={Download}
+                                                className="bg-blue-500 text-white hover:bg-blue-700 before:content-none shadow-md hover:shadow-lg"
+                                            >
+                                                Download Resume
+                                            </Button>
+                                            <Button
+                                                iconOnly={true}
+                                                onClick={handleDeleteResume}
+                                                size="md"
+                                                variant="danger"
+                                                icon={Trash2}
+                                            />
+                                        </>
                                     ) : (
                                         <Button
-                                            iconOnly={true}
                                             onClick={() => setShowResumeUploadModal(true)}
-                                            className="text-sm px-3 py-1.5 text-white rounded-lg flex items-center gap-1"
-                                            variant="secondary"
+                                            size="sm"
+                                            className="bg-blue-500 text-white hover:bg-blue-700 before:content-none shadow-md hover:shadow-lg"
                                             icon={Upload}
-                                        />
+                                        >
+                                            Upload Resume
+                                        </Button>
                                     )}
                                 </div>
-                                {resume ? (
-                                    <div className="flex gap-2">
-                                        <a
-                                            href={resume.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-                                        >
-                                            <Download className="w-4 h-4" />
-                                            Download
-                                        </a>
-                                        <button
-                                            onClick={handleDeleteResume}
-                                            className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
-                                        >
-                                            Delete
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <p className="text-gray-500 text-center py-8">No resume uploaded</p>
-                                )}
-                            </>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
