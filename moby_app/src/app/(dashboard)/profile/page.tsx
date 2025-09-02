@@ -245,12 +245,12 @@ export default function ProfilePage() {
             {/* Main Content - Two Column Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left Column - Profile Picture & Headshots */}
-                <div className="bg-transparent rounded-lg border border-gray-500/50 p-8">
+                <div className="bg-transparent rounded-2xl border border-gray-500/50 p-8">
                     <div className="flex flex-col items-center">
                         <h2 className="text-lg font-semibold mb-6 text-center">Headshots</h2>
 
                         {/* Circular Headshot Picture */}
-                        <div className="relative w-80 h-80 rounded-full overflow-hidden bg-gray-100 mb-6">
+                        <div className="relative w-80 h-80 rounded-full overflow-hidden bg-gray-100 mb-6 border-15 border-gray-300">
                             {headshots.length > 0 && headshots[selectedHeadshotIndex]?.thumbnailUrl ? (
                                 <Image
                                     src={headshots[selectedHeadshotIndex].thumbnailUrl}
@@ -348,7 +348,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Right Column - User Info & Demographics */}
-                <div className="bg-transparent rounded-lg border border-gray-500/50 p-8">
+                <div className="bg-transparent rounded-2xl border border-gray-500/50 p-8">
                     <h2 className="text-lg font-semibold mb-6">Profile Information</h2>
 
                     <div className="space-y-6">

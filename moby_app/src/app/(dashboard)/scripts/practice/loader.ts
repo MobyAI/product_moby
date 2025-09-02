@@ -80,7 +80,7 @@ export const loadScript = async ({
             const end = performance.now();
             console.log(`⏱️ Script loaded from cache in ${(end - start).toFixed(2)} ms`);
 
-            setLoadStage('📓 Script ready!');
+            setLoadStage('✅ Script ready!');
             setScriptName(name);
 
             return script;
@@ -121,8 +121,8 @@ export const hydrateScript = async ({
     updateTTSHydrationStatus?: (index: number, status: 'pending' | 'ready' | 'failed') => void;
     getScriptLine: (index: number) => ScriptElement | undefined;
     onProgressUpdate?: (hydratedCount: number, totalCount: number) => void,
-}) => {
-    if (!userID || !scriptID) return;
+}): Promise<boolean> => {
+    if (!userID || !scriptID) return false;
 
     const start = performance.now();
 
@@ -187,6 +187,21 @@ export const hydrateScript = async ({
             (!Array.isArray(element.expectedEmbedding) || element.expectedEmbedding.length === 0)
         )
         .map((element: ScriptElement) => element.index);
+
+    // If nothing needs hydration
+    if (unhydratedTTSLines.length === 0 && unhydratedEmbeddingLines.length === 0) {
+        console.log('✅ Script already fully hydrated, skipping hydration');
+
+        // Still update TTS status for UI
+        script.forEach(element => {
+            if (element.type === 'line') {
+                updateTTSHydrationStatus?.(element.index, 'ready');
+            }
+        });
+
+        setLoadStage('✅ Script ready!');
+        return false;
+    }
 
     // Load progress setup
     const totalOperations = unhydratedEmbeddingLines.length + unhydratedTTSLines.length;
@@ -259,7 +274,7 @@ export const hydrateScript = async ({
                 console.error('❌ Retry still failed for some embeddings');
                 setEmbeddingError(true);
                 setEmbeddingFailedLines(retryFailed);
-                return;
+                return false;
             }
         }
 
@@ -334,6 +349,7 @@ export const hydrateScript = async ({
                 console.error('❌ Retry still failed for some TTS lines');
                 setTTSLoadError(true);
                 setTTSFailedLines(retryFailed);
+                return false;
             }
         }
 
@@ -363,10 +379,12 @@ export const hydrateScript = async ({
 
         setLoadStage('✅ Resources loaded!');
         setScript(withTTS);
+        return true;
     } catch (err) {
         // Display load error page
         console.error('❌ Error loading script:', err);
         setLoadStage('❌ Unexpected error loading script');
+        return false;
     }
 };
 

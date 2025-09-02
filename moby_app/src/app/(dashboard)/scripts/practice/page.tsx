@@ -116,6 +116,14 @@ function RehearsalRoomContent() {
 				onProgressUpdate: (hydrated, total) => {
 					setLoadProgress(total > 0 ? (hydrated / total) * 100 : 0);
 				},
+			}).then(wasHydrated => {
+				if (wasHydrated) {
+					showToast({
+						header: "Script Ready!",
+						line1: "You can begin rehearsing now.",
+						type: "success",
+					});
+				}
 			});
 
 			// Restore session from indexedDB
@@ -126,15 +134,10 @@ function RehearsalRoomContent() {
 			}
 
 			setLoading(false);
-
-			showToast({
-				header: "Script Ready!",
-				line1: "You can begin rehearsing now.",
-				type: "success",
-			});
 		};
 
 		init();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [userID, scriptID]);
 
 	// Auto-scroll to current line
