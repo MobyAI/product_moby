@@ -38,6 +38,7 @@ function RehearsalRoomContent() {
 
 	// Loading
 	const [loading, setLoading] = useState(false);
+	const [hydrating, setHydrating] = useState(false);
 	const [loadStage, setLoadStage] = useState<string | null>(null);
 	const [loadProgress, setLoadProgress] = useState(0);
 	const [ttsHydrationStatus, setTTSHydrationStatus] = useState<Record<number, 'pending' | 'updating' | 'ready' | 'failed'>>({});
@@ -82,6 +83,7 @@ function RehearsalRoomContent() {
 
 		const init = async () => {
 			setLoading(true);
+			setHydrating(true);
 
 			const rawScript = await loadScript({
 				userID,
@@ -94,6 +96,7 @@ function RehearsalRoomContent() {
 			if (!rawScript) {
 				// Display error page?
 				setLoading(false);
+				setHydrating(false);
 				return;
 			} else {
 				setScript(rawScript);
@@ -117,6 +120,7 @@ function RehearsalRoomContent() {
 					setLoadProgress(total > 0 ? (hydrated / total) * 100 : 0);
 				},
 			}).then(wasHydrated => {
+				setHydrating(false);
 				if (wasHydrated) {
 					showToast({
 						header: "Script Ready!",
@@ -124,6 +128,8 @@ function RehearsalRoomContent() {
 						type: "success",
 					});
 				}
+			}).catch(() => {
+				setHydrating(false);
 			});
 
 			// Restore session from indexedDB
@@ -1023,6 +1029,8 @@ function RehearsalRoomContent() {
 									onClick={goBackHome}
 									size="sm"
 									variant="primary"
+									className="disabled:opacity-50 disabled:cursor-not-allowed"
+									disabled={hydrating}
 								>
 									Go Back
 								</Button>
