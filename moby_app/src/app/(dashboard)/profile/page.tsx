@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
-    // User,
+    User,
     Calendar,
     Globe,
     Ruler,
@@ -248,7 +248,10 @@ export default function ProfilePage() {
                 {/* Left Column - Profile Picture & Headshots */}
                 <div className="bg-transparent rounded-2xl border border-gray-500/50 p-8">
                     <div className="flex flex-col items-center">
-                        <h2 className="text-lg font-semibold mb-6 text-center">Headshots</h2>
+                        <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                            <Camera className="w-5 h-5 text-gray-500" />
+                            Headshots
+                        </h2>
 
                         {/* Circular Headshot Picture */}
                         <div className="relative w-80 h-80 rounded-full overflow-hidden bg-gray-100 mb-6 border-15 border-gray-300">
@@ -262,7 +265,7 @@ export default function ProfilePage() {
                                 />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center">
-                                    <Camera className="w-16 h-16 text-gray-400" />
+                                    <User className="w-16 h-16 text-gray-400" />
                                 </div>
                             )}
                         </div>
@@ -329,9 +332,8 @@ export default function ProfilePage() {
                             <Button
                                 onClick={() => setShowHeadshotUploadModal(true)}
                                 size="sm"
-                                variant="primary"
+                                className="bg-blue-500 text-white hover:bg-blue-700 before:content-none shadow-md hover:shadow-lg"
                                 icon={Upload}
-                                className="w-full max-w-xs"
                             >
                                 Upload Headshot
                             </Button>
@@ -350,7 +352,10 @@ export default function ProfilePage() {
 
                 {/* Right Column - User Info & Demographics */}
                 <div className="bg-transparent rounded-2xl border border-gray-500/50 p-8">
-                    <h2 className="text-lg font-semibold mb-6">Profile Information</h2>
+                    <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                        <User className="w-5 h-5 text-gray-500" />
+                        Profile Information
+                    </h2>
 
                     <div className="space-y-6">
                         {/* Name Section */}
@@ -388,10 +393,10 @@ export default function ProfilePage() {
                         </div>
 
                         <div className="border-t border-gray-500/50 pt-6">
-                            <h3 className="text-md font-medium mb-4 flex items-center gap-2">
+                            <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
                                 <Globe className="w-4 h-4 text-gray-500" />
                                 Demographics
-                            </h3>
+                            </h2>
 
                             {/* Age and Height */}
                             <div className="grid grid-cols-2 gap-4 mb-4">
