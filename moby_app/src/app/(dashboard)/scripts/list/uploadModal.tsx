@@ -438,43 +438,52 @@ export default function ScriptUploadModal({
 
                                         {/* Confirmation Modal */}
                                         {confirmationModal?.isOpen && (
-                                            <div className="fixed inset-0 z-60 flex items-center justify-center pointer-events-none">
-                                                <div className="relative bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 rounded-lg p-6 max-w-sm mx-4 shadow-2xl pointer-events-auto">
-                                                    <p className="text-white/90 mb-4">
-                                                        Assign <span className="font-medium text-white">{confirmationModal.assignment.voiceName}</span> to <span className="font-medium text-white">{confirmationModal.role}</span>?
-                                                    </p>
-                                                    <p className="text-sm text-yellow-300 mb-6">
-                                                        ⚠️ This selection cannot be changed later.
-                                                    </p>
-                                                    <div className="flex gap-3">
-                                                        <button
-                                                            onClick={() => setConfirmationModal(null)}
-                                                            className="flex-1 px-4 py-2 border border-white/30 text-white rounded-lg hover:bg-white/10 transition"
-                                                        >
-                                                            Cancel
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                // Confirm the assignment
-                                                                setVoiceAssignments(prev => ({
-                                                                    ...prev,
-                                                                    [confirmationModal.role]: confirmationModal.assignment
-                                                                }));
-                                                                setConfirmationModal(null);
+                                            <>
+                                                {/* Backdrop */}
+                                                <div
+                                                    className="fixed inset-0 z-50"
+                                                    onClick={() => setConfirmationModal(null)}
+                                                />
 
-                                                                // Check if this was the last role
-                                                                if (currentIndex + 1 >= extractedRoles.length) {
-                                                                    // Auto-advance after last role
-                                                                    setTimeout(() => moveToNextStage(), 500);
-                                                                }
-                                                            }}
-                                                            className="flex-1 px-4 py-2 bg-white text-blue-900 font-medium rounded-lg hover:bg-white/90 transition"
-                                                        >
-                                                            Confirm
-                                                        </button>
+                                                {/* Modal container */}
+                                                <div className="fixed inset-0 z-60 flex items-center justify-center pointer-events-none">
+                                                    <div className="relative bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 rounded-lg p-6 max-w-sm mx-4 shadow-2xl pointer-events-auto">
+                                                        <p className="text-white/90 mb-4">
+                                                            Assign <span className="font-medium text-white">{confirmationModal.assignment.voiceName}</span> to <span className="font-medium text-white">{confirmationModal.role}</span>?
+                                                        </p>
+                                                        <p className="text-sm text-yellow-300 mb-6">
+                                                            ⚠️ This selection cannot be changed later.
+                                                        </p>
+                                                        <div className="flex gap-3">
+                                                            <button
+                                                                onClick={() => setConfirmationModal(null)}
+                                                                className="flex-1 px-4 py-2 border border-white/30 text-white rounded-lg hover:bg-white/10 transition"
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    // Confirm the assignment
+                                                                    setVoiceAssignments(prev => ({
+                                                                        ...prev,
+                                                                        [confirmationModal.role]: confirmationModal.assignment
+                                                                    }));
+                                                                    setConfirmationModal(null);
+
+                                                                    // Check if this was the last role
+                                                                    if (currentIndex + 1 >= extractedRoles.length) {
+                                                                        // Auto-advance after last role
+                                                                        setTimeout(() => moveToNextStage(), 500);
+                                                                    }
+                                                                }}
+                                                                className="flex-1 px-4 py-2 bg-white text-blue-900 font-medium rounded-lg hover:bg-white/90 transition"
+                                                            >
+                                                                Confirm
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            </>
                                         )}
                                     </InputStage>
                                 );
