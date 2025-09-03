@@ -61,7 +61,7 @@ export const useMicTest = (): UseMicTestReturn => {
                 audioCtxRef.current = new AudioContext({ sampleRate: 44100 });
                 try {
                     await audioCtxRef.current.audioWorklet.addModule('/linearPCMProcessor.js');
-                } catch (err) {
+                } catch {
                     throw new Error('Failed to load audio worklet module. Please ensure linearPCMProcessor.js is available.');
                 }
             }
@@ -75,7 +75,7 @@ export const useMicTest = (): UseMicTestReturn => {
             if (!micStreamRef.current) {
                 try {
                     micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
-                } catch (err) {
+                } catch {
                     throw new Error('Microphone access denied. Please check your browser permissions.');
                 }
             }
@@ -182,6 +182,7 @@ export const useMicTest = (): UseMicTestReturn => {
 
     useEffect(() => {
         return cleanup;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return { startMicTest, stopMicTest, transcript, isListening, cleanup, error };

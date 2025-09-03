@@ -202,27 +202,27 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
 
                                     <div className="space-y-2 text-sm text-gray-700">
                                         <div>
-                                            <p className="font-medium text-gray-900 mb-1">Can't hear the test sound?</p>
+                                            <p className="font-medium text-gray-900 mb-1">{"Can't hear the test sound?"}</p>
                                             <ul className="list-disc list-inside space-y-1 text-xs">
-                                                <li>Check your system volume isn't muted</li>
-                                                <li>Ensure correct speaker is selected</li>
-                                                <li>Try refreshing the page</li>
-                                                <li>Test sound in another browser tab</li>
+                                                <li>{"Check your system volume isn't muted"}</li>
+                                                <li>{"Ensure correct speaker is selected"}</li>
+                                                <li>{"Try refreshing the page"}</li>
+                                                <li>{"Test sound in another browser tab"}</li>
                                             </ul>
                                         </div>
 
                                         <div>
-                                            <p className="font-medium text-gray-900 mb-1">Speaker not listed?</p>
+                                            <p className="font-medium text-gray-900 mb-1">{"Speaker not listed?"}</p>
                                             <ul className="list-disc list-inside space-y-1 text-xs">
-                                                <li>Reconnect your audio device</li>
-                                                <li>Grant browser permission for audio</li>
-                                                <li>Restart your browser</li>
+                                                <li>{"Reconnect your audio device"}</li>
+                                                <li>{"Grant browser permission for audio"}</li>
+                                                <li>{"Restart your browser"}</li>
                                             </ul>
                                         </div>
 
                                         <div className="pt-2 border-t border-gray-200">
                                             <p className="text-xs text-gray-600">
-                                                <strong>Note:</strong> The test sound is a simple tone. If you don't hear it after pressing "Test", check your system audio settings.
+                                                <strong>Note:</strong> {`The test sound is a simple tone. If you don't hear it after pressing "Test", check your system audio settings.`}
                                             </p>
                                         </div>
                                     </div>
@@ -236,28 +236,21 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
 
                                     <div className="space-y-2 text-sm text-gray-700">
                                         <div>
-                                            <p className="font-medium text-gray-900 mb-1">Microphone not working?</p>
+                                            <p className="font-medium text-gray-900 mb-1">{"Microphone not working?"}</p>
                                             <ul className="list-disc list-inside space-y-1 text-xs">
-                                                <li>Allow microphone access when prompted</li>
-                                                <li>Check browser permissions in settings</li>
-                                                <li>Ensure mic isn't muted (check for mute button)</li>
-                                                <li>Close other apps using the microphone</li>
+                                                <li>{"Allow microphone access when prompted"}</li>
+                                                <li>{"Ensure mic isn't muted (check for mute button)"}</li>
+                                                <li>{"Close other apps using the microphone"}</li>
                                             </ul>
                                         </div>
 
                                         <div>
                                             <p className="font-medium text-gray-900 mb-1">Browser Permissions</p>
                                             <div className="space-y-1 text-xs">
-                                                <p><strong>Chrome:</strong> Click lock icon → Site settings → Microphone</p>
-                                                <p><strong>Firefox:</strong> Click lock icon → Connection secure → More info</p>
-                                                <p><strong>Safari:</strong> Safari menu → Settings → Websites → Microphone</p>
+                                                <p><strong>Chrome:</strong>{" Click lock icon → Site settings → Microphone"}</p>
+                                                <p><strong>Firefox:</strong>{" Click lock icon → Connection secure → More info"}</p>
+                                                <p><strong>Safari:</strong>{" Safari menu → Settings → Websites → Microphone"}</p>
                                             </div>
-                                        </div>
-
-                                        <div className="pt-2 border-t border-gray-200">
-                                            <p className="text-xs text-gray-600">
-                                                <strong>Tip:</strong> Speak clearly and at normal volume. Your words should appear within 1-2 seconds.
-                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -280,7 +273,7 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
                         <>
                             <h2 className="text-2xl font-semibold mb-2">First, a quick audio check.</h2>
                             <div className="text-gray-600 mb-6">
-                                Let's test if your speakers are working.{"  "}
+                                {"Let's test if your speakers are working.  "}
                                 <HelpTooltip section="speaker" />
                             </div>
 
@@ -338,9 +331,9 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
                     {/* Step 2: Microphone Test */}
                     {step === 2 && (
                         <>
-                            <h2 className="text-2xl font-semibold mb-2">Next, let's test your mic.</h2>
+                            <h2 className="text-2xl font-semibold mb-2">{"Next, let's test your mic."}</h2>
                             <div className="text-gray-600 mb-6">
-                                Tap "Test Microphone" and say a few words.{"  "}
+                                {`Tap "Test Microphone" and say a few words.  `}
                                 <HelpTooltip section="mic" />
                             </div>
 
@@ -358,7 +351,7 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
 
                             <div className="min-h-[60px] p-4 bg-gray-50 rounded-lg mb-4">
                                 <p className="text-gray-500">
-                                    {transcript || (isListening ? 'Listening...' : 'Your words will appear here ✨')}
+                                    {transcript || (isListening ? 'Listening...' : '✨ Your words will appear here ✨')}
                                 </p>
                             </div>
 
@@ -413,10 +406,10 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
                             <AlertCircle className="w-5 h-5 text-gray-600 mt-0.5" />
                             <div>
                                 <p className="font-medium text-gray-900">
-                                    Can't access microphone
+                                    {"Can't access microphone"}
                                 </p>
                                 <p className="text-sm text-gray-600 mt-1">
-                                    Check your browser settings, and refresh the page. If that doesn't work, try restarting your browser.
+                                    {"Check your browser settings, and refresh the page. If that doesn't work, try restarting your browser."}
                                 </p>
                             </div>
                         </div>
