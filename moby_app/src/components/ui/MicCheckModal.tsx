@@ -41,6 +41,24 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
     const { startMicTest, stopMicTest, transcript, isListening, cleanup, error: micError } = useMicTest();
     const audioRef = useRef<HTMLAudioElementWithSinkId | null>(null);
 
+    // Cleanup on unmount
+    // Not working properly
+    useEffect(() => {
+		const handleUnload = () => {
+			cleanup();
+			console.log("🧹 Mic test STT cleaned up on unload");
+		};
+
+		window.addEventListener("beforeunload", handleUnload);
+
+		return () => {
+			cleanup();
+			window.removeEventListener("beforeunload", handleUnload);
+			console.log("🧹 Mic test STT cleaned up on unmount");
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
     // Check if setup was already completed for this script
     useEffect(() => {
         if (scriptId) {
