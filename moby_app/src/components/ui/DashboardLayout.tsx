@@ -19,7 +19,7 @@ export function DashboardLayout({ children, title, action, maxWidth }: LayoutPro
                 </div>
             )}
             <div
-                className="py-4 mx-auto"
+                className="py-4 mx-auto flex flex-col flex-1 h-full"
                 style={maxWidth ? { maxWidth: `${maxWidth}%` } : undefined}
             >
                 {children}

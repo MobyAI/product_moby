@@ -209,7 +209,7 @@ export const hydrateScript = async ({
 
     try {
         // Embed user lines
-        setLoadStage('📐 Embedding lines...');
+        setLoadStage('✍️ Preparing lines');
         let embedded: ScriptElement[];
         const embeddingFailedIndexes: number[] = [];
         const unhydratedEmbeddings = new Set(unhydratedEmbeddingLines);
@@ -239,7 +239,7 @@ export const hydrateScript = async ({
 
         // Retry
         if (embeddingFailedIndexes.length > 0) {
-            console.log('🔁 Retrying failed embedding lines...');
+            console.log('🔁 Retrying failed lines');
             const retryFailed: number[] = [];
             const retryIndexes = new Set(embeddingFailedIndexes);
 
@@ -279,7 +279,7 @@ export const hydrateScript = async ({
         }
 
         // Add TTS audio
-        setLoadStage('🎤 Generating TTS...');
+        setLoadStage('🎤 Generating audio');
         let withTTS: ScriptElement[] = [];
         const ttsFailedIndexes: number[] = [];
         const unhydratedTTS = new Set(unhydratedTTSLines);
@@ -316,7 +316,7 @@ export const hydrateScript = async ({
 
         // Retry once if any failed
         if (ttsFailedIndexes.length > 0) {
-            console.log('🔁 Retrying failed TTS lines...');
+            console.log('🔁 Retrying failed audio');
             const retryFailed: number[] = [];
             const retryIndexes = new Set(ttsFailedIndexes);
 
@@ -354,7 +354,7 @@ export const hydrateScript = async ({
         }
 
         // Attempt to cache
-        setLoadStage('💾 Caching to IndexedDB...');
+        setLoadStage('💾 Saving');
         try {
             await set(scriptCacheKey, withTTS);
             console.log('💾 Script cached successfully');
@@ -366,7 +366,7 @@ export const hydrateScript = async ({
         }
 
         // Attempt to save update
-        setLoadStage('💾 Updating database...');
+        setLoadStage('💾 Saving');
         const sanitizedScript = stripExpectedEmbeddings(withTTS);
         try {
             await updateScript(scriptID, sanitizedScript);
