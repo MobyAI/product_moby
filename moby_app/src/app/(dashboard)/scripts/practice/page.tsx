@@ -13,10 +13,10 @@ import { OptimizedLineRenderer } from "./lineRenderer";
 import { restoreSession, saveSession } from "./session";
 import { clear } from "idb-keyval";
 import LoadingScreen from "./LoadingScreen";
-import { Button } from "@/components/ui";
+import { Button, MicCheckModal } from "@/components/ui";
 import { useAuthUser } from "@/components/providers/UserProvider";
 import { useToast } from "@/components/providers/ToastProvider";
-import { Play, Pause, SkipBack, SkipForward, RotateCcw } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, RotateCcw, Undo2 } from "lucide-react";
 
 // export default function RehearsalRoomPage() {
 function RehearsalRoomContent() {
@@ -53,6 +53,11 @@ function RehearsalRoomContent() {
 	const [sttProvider, setSttProvider] = useState<"google" | "deepgram">(
 		"google"
 	);
+
+	// Mic Check
+	const [showMicCheck, setShowMicCheck] = useState<boolean>(false);
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	const [micCheckComplete, setMicCheckComplete] = useState<boolean>(false);
 
 	// Rehearsal flow
 	const [currentIndex, setCurrentIndex] = useState(0);
@@ -145,6 +150,30 @@ function RehearsalRoomContent() {
 		init();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [userID, scriptID]);
+
+	// Mic check
+	useEffect(() => {
+		if (!scriptID) return;
+
+		// Check if mic check was already completed for this script
+		try {
+			const completedChecks = localStorage.getItem('audioSetupsCompleted');
+			const completed = completedChecks ? JSON.parse(completedChecks) : {};
+
+			if (!completed[scriptID]) {
+				// Show mic check modal after a brief delay to ensure page is interactive
+				setTimeout(() => {
+					setShowMicCheck(true);
+				}, 100);
+			} else {
+				setMicCheckComplete(true);
+			}
+		} catch (err) {
+			console.error('Error checking mic setup status:', err);
+			// Show modal on error to be safe
+			setShowMicCheck(true);
+		}
+	}, [scriptID]);
 
 	// Auto-scroll to current line
 	useEffect(() => {
@@ -796,6 +825,16 @@ function RehearsalRoomContent() {
 	// Main render
 	return (
 		<>
+			{/* Mic Check Modal */}
+			<MicCheckModal
+				isOpen={showMicCheck}
+				onComplete={() => {
+					setShowMicCheck(false);
+					setMicCheckComplete(true);
+				}}
+				scriptId={scriptID || undefined}
+			/>
+
 			{loading ? (
 				<LoadingScreen loadStage={loading}>
 					{loadStage}
@@ -1023,9 +1062,10 @@ function RehearsalRoomContent() {
 								</div>
 							)}
 
-							{/* Back to Scripts Button */}
-							<div className="mb-8 ml-2">
+							{/* Additional Buttons */}
+							<div className="flex items-center space-x-2 mb-8 ml-2">
 								<Button
+									icon={Undo2}
 									onClick={goBackHome}
 									size="sm"
 									variant="primary"
