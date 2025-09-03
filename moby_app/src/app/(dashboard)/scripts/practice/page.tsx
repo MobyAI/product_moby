@@ -16,7 +16,7 @@ import LoadingScreen from "./LoadingScreen";
 import { Button, MicCheckModal } from "@/components/ui";
 import { useAuthUser } from "@/components/providers/UserProvider";
 import { useToast } from "@/components/providers/ToastProvider";
-import { Play, Pause, SkipBack, SkipForward, RotateCcw } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, RotateCcw, Undo2 } from "lucide-react";
 
 // export default function RehearsalRoomPage() {
 function RehearsalRoomContent() {
@@ -56,6 +56,7 @@ function RehearsalRoomContent() {
 
 	// Mic Check
 	const [showMicCheck, setShowMicCheck] = useState<boolean>(false);
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const [micCheckComplete, setMicCheckComplete] = useState<boolean>(false);
 
 	// Rehearsal flow
@@ -1061,9 +1062,10 @@ function RehearsalRoomContent() {
 								</div>
 							)}
 
-							{/* Back to Scripts Button */}
-							<div className="mb-8 ml-2">
+							{/* Additional Buttons */}
+							<div className="flex items-center space-x-2 mb-8 ml-2">
 								<Button
+									icon={Undo2}
 									onClick={goBackHome}
 									size="sm"
 									variant="primary"

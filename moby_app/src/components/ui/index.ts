@@ -6,3 +6,4 @@ export * from "./Input";
 export * from "./ConfirmModal";
 export * from "./ScriptCard";
 export * from "./MicCheckModal";
+export * from "./CheckMark";
