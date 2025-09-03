@@ -5,3 +5,4 @@ export * from "./DashboardLayout";
 export * from "./Input";
 export * from "./ConfirmModal";
 export * from "./ScriptCard";
+export * from "./MicCheckModal";

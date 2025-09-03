@@ -22,7 +22,7 @@ interface HTMLAudioElementWithSinkId extends HTMLAudioElement {
     setSinkId(sinkId: string): Promise<void>;
 }
 
-const AudioSetupModal: React.FC<AudioSetupModalProps> = ({
+export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
     isOpen,
     onComplete,
     scriptId
@@ -210,8 +210,8 @@ const AudioSetupModal: React.FC<AudioSetupModalProps> = ({
                                 onClick={handleContinue}
                                 disabled={!speakerTestPlayed}
                                 className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${speakerTestPlayed
-                                        ? 'bg-black text-white hover:bg-gray-800'
-                                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                    ? 'bg-black text-white hover:bg-gray-800'
+                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                     }`}
                                 aria-label="Continue to microphone test"
                             >
@@ -237,8 +237,8 @@ const AudioSetupModal: React.FC<AudioSetupModalProps> = ({
                             <button
                                 onClick={handleMicTest}
                                 className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 mb-4 ${isListening
-                                        ? 'bg-red-500 text-white hover:bg-red-600'
-                                        : 'bg-black text-white hover:bg-gray-800'
+                                    ? 'bg-red-500 text-white hover:bg-red-600'
+                                    : 'bg-black text-white hover:bg-gray-800'
                                     }`}
                                 aria-label={isListening ? 'Stop recording' : 'Start microphone test'}
                             >
@@ -276,8 +276,8 @@ const AudioSetupModal: React.FC<AudioSetupModalProps> = ({
                                     onClick={handleContinue}
                                     disabled={!transcript}
                                     className={`flex-1 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${transcript
-                                            ? 'bg-black text-white hover:bg-gray-800'
-                                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                        ? 'bg-black text-white hover:bg-gray-800'
+                                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                         }`}
                                     aria-label="Complete audio setup"
                                 >
@@ -309,5 +309,3 @@ const AudioSetupModal: React.FC<AudioSetupModalProps> = ({
         </div>
     );
 };
-
-export default AudioSetupModal;
