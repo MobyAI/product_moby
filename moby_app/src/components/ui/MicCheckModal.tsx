@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Volume2, Mic, ChevronRight, AlertCircle, X } from "lucide-react";
-import { useMicTest } from "@/lib/google/micTest";
+import { useMicCheck } from "@/lib/google/micCheck";
 import { CheckMark } from "@/components/ui";
 
 interface AudioDevice {
@@ -36,7 +36,7 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
     const [speakerTestPlayed, setSpeakerTestPlayed] = useState<boolean>(false);
     const [micPermissionError, setMicPermissionError] = useState<boolean>(false);
 
-    const { startMicTest, stopMicTest, transcript, isListening, cleanup, error: micError } = useMicTest();
+    const { startMicTest, stopMicTest, transcript, isListening, cleanup, error: micError } = useMicCheck();
     const audioRef = useRef<HTMLAudioElementWithSinkId | null>(null);
 
     // Cleanup on unmount
@@ -57,6 +57,7 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
             window.removeEventListener('popstate', handleNavigation);
             window.removeEventListener('beforeunload', handleNavigation);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Check if setup was already completed for this script
@@ -118,6 +119,7 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
     const playTestSound = async (): Promise<void> => {
         try {
             // Create audio context
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
 
             // Create oscillator and gain node

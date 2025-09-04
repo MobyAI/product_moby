@@ -24,7 +24,7 @@ declare global {
     }
 }
 
-export const useMicTest = (): UseMicTestReturn => {
+export const useMicCheck = (): UseMicTestReturn => {
     const wsRef = useRef<WebSocket | null>(null);
     const micStreamRef = useRef<MediaStream | null>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
@@ -203,7 +203,6 @@ export const useMicTest = (): UseMicTestReturn => {
 
     useEffect(() => {
         return cleanup;
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return { startMicTest, stopMicTest, transcript, isListening, cleanup, error };
