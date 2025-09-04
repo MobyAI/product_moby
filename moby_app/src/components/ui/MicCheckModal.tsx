@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Volume2, Mic, ChevronRight, AlertCircle, X } from "lucide-react";
-import { useMicTest } from "@/lib/google/micTest";
+import { useMicCheck } from "@/lib/google/micCheck";
 import { CheckMark } from "@/components/ui";
 
 interface AudioDevice {
@@ -29,17 +29,36 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
     scriptId
 }) => {
     const [step, setStep] = useState<1 | 2>(1);
-    const [selectedSpeaker, setSelectedSpeaker] = useState<string>('default');
     const [speakers, setSpeakers] = useState<AudioDevice[]>([
         { deviceId: 'default', label: 'Default Speaker' }
     ]);
     const [microphones, setMicrophones] = useState<AudioDevice[]>([]);
-    const [selectedMic, setSelectedMic] = useState<string>('default');
     const [speakerTestPlayed, setSpeakerTestPlayed] = useState<boolean>(false);
     const [micPermissionError, setMicPermissionError] = useState<boolean>(false);
 
-    const { startMicTest, stopMicTest, transcript, isListening, cleanup, error: micError } = useMicTest();
+    const { startMicTest, stopMicTest, transcript, isListening, cleanup, error: micError } = useMicCheck();
     const audioRef = useRef<HTMLAudioElementWithSinkId | null>(null);
+
+    // Cleanup on unmount
+    // Not working properly
+    useEffect(() => {
+        const handleNavigation = () => {
+            console.log("Navigation detected, cleaning up mic...");
+            cleanup();
+        };
+
+        // These handle browser back/forward
+        window.addEventListener('popstate', handleNavigation);
+        // This handles page refresh/close
+        window.addEventListener('beforeunload', handleNavigation);
+
+        return () => {
+            cleanup();
+            window.removeEventListener('popstate', handleNavigation);
+            window.removeEventListener('beforeunload', handleNavigation);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Check if setup was already completed for this script
     useEffect(() => {
@@ -81,12 +100,10 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
 
                 if (audioOutputs.length > 0) {
                     setSpeakers(audioOutputs);
-                    setSelectedSpeaker(audioOutputs[0].deviceId);
                 }
 
                 if (audioInputs.length > 0) {
                     setMicrophones(audioInputs);
-                    setSelectedMic(audioInputs[0].deviceId);
                 }
             } catch (err) {
                 console.error('Error getting devices:', err);
@@ -100,23 +117,43 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
     }, [isOpen]);
 
     const playTestSound = async (): Promise<void> => {
-        if (!audioRef.current) return;
-
         try {
-            // Check if setSinkId is available
-            if ('setSinkId' in audioRef.current && typeof audioRef.current.setSinkId === 'function') {
-                await audioRef.current.setSinkId(selectedSpeaker);
-            }
-            await audioRef.current.play();
+            // Create audio context
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+            // Create oscillator and gain node
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            // Connect nodes
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            // Configure the tone
+            oscillator.frequency.value = 440; // A4 note (440 Hz)
+            oscillator.type = 'sine'; // Smooth sine wave
+
+            // Set volume and fade out
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1.5);
+
+            // Play for 1.5 seconds
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 1.5);
+
             setSpeakerTestPlayed(true);
         } catch (err) {
             console.error('Error playing test sound:', err);
-            // Fallback to default speaker
-            try {
-                await audioRef.current.play();
-                setSpeakerTestPlayed(true);
-            } catch (playErr) {
-                console.error('Error playing audio:', playErr);
+
+            // Fallback to the original audio element if Web Audio API fails
+            if (audioRef.current) {
+                try {
+                    await audioRef.current.play();
+                    setSpeakerTestPlayed(true);
+                } catch (playErr) {
+                    console.error('Error playing fallback audio:', playErr);
+                }
             }
         }
     };
@@ -154,11 +191,6 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
             stopMicTest();
             setStep(1);
         }
-    };
-
-    const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
-        setSelectedSpeaker(e.target.value);
-        setSpeakerTestPlayed(false);
     };
 
     // Help Tooltip Component
@@ -205,7 +237,7 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
                                             <p className="font-medium text-gray-900 mb-1">{"Can't hear the test sound?"}</p>
                                             <ul className="list-disc list-inside space-y-1 text-xs">
                                                 <li>{"Check your system volume isn't muted"}</li>
-                                                <li>{"Ensure correct speaker is selected"}</li>
+                                                <li>{"Check your system's default audio output device"}</li>
                                                 <li>{"Try refreshing the page"}</li>
                                                 <li>{"Test sound in another browser tab"}</li>
                                             </ul>
@@ -277,34 +309,23 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
                                 <HelpTooltip section="speaker" />
                             </div>
 
-                            <div className="flex items-center gap-3 mb-4">
-                                <select
-                                    value={selectedSpeaker}
-                                    onChange={handleSelectChange}
-                                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    aria-label="Select speaker device"
-                                >
-                                    {speakers.map(speaker => (
-                                        <option key={speaker.deviceId} value={speaker.deviceId}>
-                                            {speaker.label}
-                                        </option>
-                                    ))}
-                                </select>
+                            <button
+                                onClick={playTestSound}
+                                className="w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 mb-4 bg-black text-white hover:bg-black/80"
+                                aria-label="Test speaker"
+                            >
+                                <Volume2 className="w-4 h-4" />
+                                Test Speaker
+                            </button>
 
-                                <button
-                                    onClick={playTestSound}
-                                    className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors flex items-center gap-2"
-                                    aria-label="Test speaker"
-                                >
-                                    <Volume2 className="w-4 h-4" />
-                                    Test
-                                </button>
-                            </div>
+                            <p className="text-sm text-gray-600 mb-4">
+                                Testing: <span className="font-[600]">{speakers[0]?.label || 'System Default Speaker'}</span>
+                            </p>
 
                             {speakerTestPlayed && (
                                 <div className="flex items-center gap-2 text-green-600 mb-4">
-                                    <CheckMark className="w-8 h-8" />
-                                    <span className="text-md">Speakers are good to go!</span>
+                                    <CheckMark className="w-6 h-6" />
+                                    <span className="text-sm">Speakers are good to go!</span>
                                 </div>
                             )}
 
@@ -341,7 +362,7 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
                                 onClick={handleMicTest}
                                 className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 mb-4 ${isListening
                                     ? 'bg-red-500 text-white hover:bg-red-600'
-                                    : 'bg-black text-white hover:bg-gray-800'
+                                    : 'bg-black text-white hover:bg-black/80'
                                     }`}
                                 aria-label={isListening ? 'Stop recording' : 'Start microphone test'}
                             >
@@ -362,7 +383,7 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
                             )}
 
                             <p className="text-sm text-gray-600 mb-6">
-                                Using {microphones.find(m => m.deviceId === selectedMic)?.label || 'Default Microphone'}.
+                                Using: <span className="font-[600]">{microphones[0]?.label || 'System Default Microphone'}</span>
                             </p>
 
                             <div className="flex gap-3">

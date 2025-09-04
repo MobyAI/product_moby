@@ -24,7 +24,7 @@ declare global {
     }
 }
 
-export const useMicTest = (): UseMicTestReturn => {
+export const useMicCheck = (): UseMicTestReturn => {
     const wsRef = useRef<WebSocket | null>(null);
     const micStreamRef = useRef<MediaStream | null>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
@@ -167,22 +167,42 @@ export const useMicTest = (): UseMicTestReturn => {
     };
 
     const cleanup = (): void => {
-        stopMicTest();
-
-        if (micStreamRef.current) {
-            micStreamRef.current.getTracks().forEach(track => track.stop());
-            micStreamRef.current = null;
+        try {
+            if (wsRef.current) {
+                wsRef.current.close();
+                wsRef.current = null;
+            }
+    
+            if (micCleanupRef.current) {
+                micCleanupRef.current();
+                micCleanupRef.current = null;
+            }
+    
+            if (micStreamRef.current) {
+                micStreamRef.current.getTracks().forEach(track => {
+                    if (track.readyState === "live") {
+                        track.stop();
+                    }
+                });
+                micStreamRef.current = null;
+            }
+    
+            if (audioCtxRef.current) {
+                audioCtxRef.current.close().catch(err =>
+                    console.warn("Error closing AudioContext:", err)
+                );
+                audioCtxRef.current = null;
+            }
+    
+            isActiveRef.current = false;
+            setIsListening(false);
+        } catch (err) {
+            console.warn("Error during cleanup:", err);
         }
-
-        if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
-            audioCtxRef.current.close().catch(err => console.warn('Error closing AudioContext:', err));
-            audioCtxRef.current = null;
-        }
-    };
+    };    
 
     useEffect(() => {
         return cleanup;
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return { startMicTest, stopMicTest, transcript, isListening, cleanup, error };
