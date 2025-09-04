@@ -29,12 +29,10 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
     scriptId
 }) => {
     const [step, setStep] = useState<1 | 2>(1);
-    const [selectedSpeaker, setSelectedSpeaker] = useState<string>('default');
     const [speakers, setSpeakers] = useState<AudioDevice[]>([
         { deviceId: 'default', label: 'Default Speaker' }
     ]);
     const [microphones, setMicrophones] = useState<AudioDevice[]>([]);
-    const [selectedMic, setSelectedMic] = useState<string>('default');
     const [speakerTestPlayed, setSpeakerTestPlayed] = useState<boolean>(false);
     const [micPermissionError, setMicPermissionError] = useState<boolean>(false);
 
@@ -44,19 +42,21 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
     // Cleanup on unmount
     // Not working properly
     useEffect(() => {
-        const handleUnload = () => {
+        const handleNavigation = () => {
+            console.log("Navigation detected, cleaning up mic...");
             cleanup();
-            console.log("🧹 Mic test STT cleaned up on unload");
         };
 
-        window.addEventListener("beforeunload", handleUnload);
+        // These handle browser back/forward
+        window.addEventListener('popstate', handleNavigation);
+        // This handles page refresh/close
+        window.addEventListener('beforeunload', handleNavigation);
 
         return () => {
             cleanup();
-            window.removeEventListener("beforeunload", handleUnload);
-            console.log("🧹 Mic test STT cleaned up on unmount");
+            window.removeEventListener('popstate', handleNavigation);
+            window.removeEventListener('beforeunload', handleNavigation);
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Check if setup was already completed for this script
@@ -99,12 +99,10 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
 
                 if (audioOutputs.length > 0) {
                     setSpeakers(audioOutputs);
-                    setSelectedSpeaker(audioOutputs[0].deviceId);
                 }
 
                 if (audioInputs.length > 0) {
                     setMicrophones(audioInputs);
-                    setSelectedMic(audioInputs[0].deviceId);
                 }
             } catch (err) {
                 console.error('Error getting devices:', err);
@@ -311,10 +309,7 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
 
                             <button
                                 onClick={playTestSound}
-                                className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 mb-4 ${isListening
-                                    ? 'bg-red-500 text-white hover:bg-red-600'
-                                    : 'bg-black text-white hover:bg-gray-800'
-                                    }`}
+                                className="w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 mb-4 bg-black text-white hover:bg-black/80"
                                 aria-label="Test speaker"
                             >
                                 <Volume2 className="w-4 h-4" />
@@ -322,7 +317,7 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
                             </button>
 
                             <p className="text-sm text-gray-600 mb-4">
-                                Testing: <span className="font-medium">{speakers[0]?.label || 'System Default Speaker'}</span>
+                                Testing: <span className="font-[600]">{speakers[0]?.label || 'System Default Speaker'}</span>
                             </p>
 
                             {speakerTestPlayed && (
@@ -365,7 +360,7 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
                                 onClick={handleMicTest}
                                 className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 mb-4 ${isListening
                                     ? 'bg-red-500 text-white hover:bg-red-600'
-                                    : 'bg-black text-white hover:bg-gray-800'
+                                    : 'bg-black text-white hover:bg-black/80'
                                     }`}
                                 aria-label={isListening ? 'Stop recording' : 'Start microphone test'}
                             >
@@ -386,7 +381,7 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
                             )}
 
                             <p className="text-sm text-gray-600 mb-6">
-                                Using {microphones.find(m => m.deviceId === selectedMic)?.label || 'Default Microphone'}.
+                                Using: <span className="font-[600]">{microphones[0]?.label || 'System Default Microphone'}</span>
                             </p>
 
                             <div className="flex gap-3">
