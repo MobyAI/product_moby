@@ -30,6 +30,17 @@ if (base64Creds) {
 const server = http.createServer();
 const wss = new WebSocket.Server({ server });
 
+// Health check endpoint
+server.on('request', (req, res) => {
+    if (req.url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('OK');
+    } else {
+        res.writeHead(404);
+        res.end();
+    }
+});
+
 wss.on('connection', async (socket) => {
     console.log('🎧 Client connected to STT proxy');
 
@@ -37,11 +48,16 @@ wss.on('connection', async (socket) => {
         .streamingRecognize({
             config: {
                 encoding: 'LINEAR16',
-                sampleRateHertz: 44100,
+                sampleRateHertz: 16000,
                 languageCode: 'en-US',
-                model: 'default',
+                model: 'latest_short',
                 enableWordTimeOffsets: true,
                 enableAutomaticPunctuation: true,
+                enableWordConfidence: true,  // ✅ Added for better cue detection
+
+                // ✅ Optimizations for real-time streaming
+                useEnhanced: true,  // Better accuracy if available
+                profanityFilter: false,  // Reduce processing
             },
             interimResults: true,
         })
@@ -72,6 +88,7 @@ wss.on('connection', async (socket) => {
 });
 
 const PORT = 3000;
+// const PORT = 3001;
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`🖥️ WebSocket server listening on ws://0.0.0.0:${PORT}`);
 });

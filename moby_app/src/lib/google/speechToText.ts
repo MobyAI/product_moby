@@ -348,8 +348,9 @@ export function useGoogleSTT({
 
             // 🎛️ AudioContext
             if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
-                console.log('🎛️ Creating new AudioContext...');
-                audioCtxRef.current = new AudioContext({ sampleRate: 44100 });
+                // audioCtxRef.current = new AudioContext({ sampleRate: 44100 });
+                audioCtxRef.current = new AudioContext();
+                console.log("🎛️ Creating new AudioContext - sampleRate:", audioCtxRef.current.sampleRate);
                 try {
                     await audioCtxRef.current.audioWorklet.addModule('/linearPCMProcessor.js');
                     console.log('✅ AudioWorklet module loaded!');
@@ -386,11 +387,13 @@ export function useGoogleSTT({
                 channelCount: 1,
             });
 
-            workletNode.port.onmessage = (e: MessageEvent<Float32Array>) => {
-                const floatInput = e.data;
-                const buffer = convertFloat32ToInt16(floatInput);
-                if (wsRef.current?.readyState === WebSocket.OPEN) {
-                    wsRef.current.send(buffer);
+            workletNode.port.onmessage = (e: MessageEvent) => {
+                const message = e.data;
+
+                if (message.type === 'audio') {
+                    if (wsRef.current?.readyState === WebSocket.OPEN) {
+                        wsRef.current.send(message.data);
+                    }
                 }
             };
 
@@ -446,6 +449,7 @@ export function useGoogleSTT({
 
         if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
             wsRef.current = new WebSocket('wss://google-stt.fly.dev');
+            // wsRef.current = new WebSocket('ws://localhost:3001');
         } else {
             console.warn('🔁 Reusing existing WebSocket');
         }
@@ -597,12 +601,13 @@ export function useGoogleSTT({
     return { startSTT, pauseSTT, initializeSTT, cleanupSTT, setCurrentLineText };
 }
 
-function convertFloat32ToInt16(float32Array: Float32Array): ArrayBuffer {
-    const len = float32Array.length;
-    const int16Array = new Int16Array(len);
-    for (let i = 0; i < len; i++) {
-        const s = Math.max(-1, Math.min(1, float32Array[i]));
-        int16Array[i] = Math.round(s * 32767);
-    }
-    return int16Array.buffer;
-}
+// Not used anymore - Saving just in case
+// function convertFloat32ToInt16(float32Array: Float32Array): ArrayBuffer {
+//     const len = float32Array.length;
+//     const int16Array = new Int16Array(len);
+//     for (let i = 0; i < len; i++) {
+//         const s = Math.max(-1, Math.min(1, float32Array[i]));
+//         int16Array[i] = Math.round(s * 32767);
+//     }
+//     return int16Array.buffer;
+// }

@@ -34,15 +34,16 @@ export const useMicCheck = (): UseMicTestReturn => {
     const [error, setError] = useState<string | null>(null);
     const micCleanupRef = useRef<(() => void) | null>(null);
 
-    const convertFloat32ToInt16 = (float32Array: Float32Array): ArrayBuffer => {
-        const len = float32Array.length;
-        const int16Array = new Int16Array(len);
-        for (let i = 0; i < len; i++) {
-            const s = Math.max(-1, Math.min(1, float32Array[i]));
-            int16Array[i] = Math.round(s * 32767);
-        }
-        return int16Array.buffer;
-    };
+    // Not used anymore - Saving just in case
+    // const convertFloat32ToInt16 = (float32Array: Float32Array): ArrayBuffer => {
+    //     const len = float32Array.length;
+    //     const int16Array = new Int16Array(len);
+    //     for (let i = 0; i < len; i++) {
+    //         const s = Math.max(-1, Math.min(1, float32Array[i]));
+    //         int16Array[i] = Math.round(s * 32767);
+    //     }
+    //     return int16Array.buffer;
+    // };
 
     const startMicTest = async (): Promise<void> => {
         if (isActiveRef.current) return;
@@ -58,7 +59,9 @@ export const useMicCheck = (): UseMicTestReturn => {
 
             // Initialize AudioContext
             if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
-                audioCtxRef.current = new AudioContext({ sampleRate: 44100 });
+                // audioCtxRef.current = new AudioContext({ sampleRate: 44100 });
+                audioCtxRef.current = new AudioContext();
+                console.log("AudioContext sampleRate:", audioCtxRef.current.sampleRate);
                 try {
                     await audioCtxRef.current.audioWorklet.addModule('/linearPCMProcessor.js');
                 } catch {
@@ -93,17 +96,19 @@ export const useMicCheck = (): UseMicTestReturn => {
 
             // Create WebSocket connection
             wsRef.current = new WebSocket('wss://google-stt.fly.dev');
+            // wsRef.current = new WebSocket('ws://localhost:3001');
 
-            workletNode.port.onmessage = (e: MessageEvent<Float32Array>) => {
-                const floatInput = e.data;
-                const buffer = convertFloat32ToInt16(floatInput);
-                if (wsRef.current?.readyState === WebSocket.OPEN) {
-                    wsRef.current.send(buffer);
+            workletNode.port.onmessage = (e: MessageEvent) => {
+                const message = e.data;
+
+                if (message.type === 'audio') {
+                    if (wsRef.current?.readyState === WebSocket.OPEN) {
+                        wsRef.current.send(message.data);
+                    }
                 }
             };
 
             source.connect(workletNode);
-            workletNode.connect(audioCtx.destination);
 
             micCleanupRef.current = () => {
                 workletNode.port.onmessage = null;
@@ -172,12 +177,12 @@ export const useMicCheck = (): UseMicTestReturn => {
                 wsRef.current.close();
                 wsRef.current = null;
             }
-    
+
             if (micCleanupRef.current) {
                 micCleanupRef.current();
                 micCleanupRef.current = null;
             }
-    
+
             if (micStreamRef.current) {
                 micStreamRef.current.getTracks().forEach(track => {
                     if (track.readyState === "live") {
@@ -186,20 +191,20 @@ export const useMicCheck = (): UseMicTestReturn => {
                 });
                 micStreamRef.current = null;
             }
-    
+
             if (audioCtxRef.current) {
                 audioCtxRef.current.close().catch(err =>
                     console.warn("Error closing AudioContext:", err)
                 );
                 audioCtxRef.current = null;
             }
-    
+
             isActiveRef.current = false;
             setIsListening(false);
         } catch (err) {
             console.warn("Error during cleanup:", err);
         }
-    };    
+    };
 
     useEffect(() => {
         return cleanup;
