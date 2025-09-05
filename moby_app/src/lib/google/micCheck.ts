@@ -34,15 +34,16 @@ export const useMicCheck = (): UseMicTestReturn => {
     const [error, setError] = useState<string | null>(null);
     const micCleanupRef = useRef<(() => void) | null>(null);
 
-    const convertFloat32ToInt16 = (float32Array: Float32Array): ArrayBuffer => {
-        const len = float32Array.length;
-        const int16Array = new Int16Array(len);
-        for (let i = 0; i < len; i++) {
-            const s = Math.max(-1, Math.min(1, float32Array[i]));
-            int16Array[i] = Math.round(s * 32767);
-        }
-        return int16Array.buffer;
-    };
+    // Not used anymore - Saving just in case
+    // const convertFloat32ToInt16 = (float32Array: Float32Array): ArrayBuffer => {
+    //     const len = float32Array.length;
+    //     const int16Array = new Int16Array(len);
+    //     for (let i = 0; i < len; i++) {
+    //         const s = Math.max(-1, Math.min(1, float32Array[i]));
+    //         int16Array[i] = Math.round(s * 32767);
+    //     }
+    //     return int16Array.buffer;
+    // };
 
     const startMicTest = async (): Promise<void> => {
         if (isActiveRef.current) return;
