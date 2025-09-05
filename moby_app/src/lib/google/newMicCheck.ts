@@ -56,100 +56,137 @@ export const useMicCheck = (): UseMicTestReturn => {
                 micCleanupRef.current = null;
             }
 
-            // Initialize AudioContext
-            if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
-                // audioCtxRef.current = new AudioContext({ sampleRate: 44100 });
+            // Initialize AudioContext (let browser pick rate) ✅
+            if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
                 audioCtxRef.current = new AudioContext();
                 console.log("AudioContext sampleRate:", audioCtxRef.current.sampleRate);
                 try {
-                    await audioCtxRef.current.audioWorklet.addModule('/linearPCMProcessor.js');
+                    await audioCtxRef.current.audioWorklet.addModule("/linearPCMProcessor.js");
                 } catch {
-                    throw new Error('Failed to load audio worklet module. Please ensure linearPCMProcessor.js is available.');
+                    throw new Error("Failed to load audio worklet module. Please ensure linearPCMProcessor.js is available.");
                 }
             }
 
             // Resume AudioContext if suspended
-            if (audioCtxRef.current.state === 'suspended') {
+            if (audioCtxRef.current.state === "suspended") {
                 await audioCtxRef.current.resume();
             }
 
-            // Get microphone stream
+            // Get microphone stream (Step 3: optional hints) ✅
             if (!micStreamRef.current) {
                 try {
-                    micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    micStreamRef.current = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            channelCount: 1,
+                            // Hints only; browsers may ignore:
+                            sampleRate: 48000,
+                            echoCancellation: false,
+                            noiseSuppression: false,
+                            autoGainControl: false,
+                        },
+                    });
                 } catch {
-                    throw new Error('Microphone access denied. Please check your browser permissions.');
+                    throw new Error("Microphone access denied. Please check your browser permissions.");
                 }
             }
 
             // Set up audio routing
-            const audioCtx = audioCtxRef.current;
-            const micStream = micStreamRef.current;
+            const audioCtx = audioCtxRef.current!;
+            const micStream = micStreamRef.current!;
             const source = audioCtx.createMediaStreamSource(micStream);
 
-            const workletNode = new AudioWorkletNode(audioCtx, 'linear-pcm-processor', {
+            const workletNode = new AudioWorkletNode(audioCtx, "linear-pcm-processor", {
                 numberOfInputs: 1,
                 numberOfOutputs: 1,
                 channelCount: 1,
             });
 
-            // Create WebSocket connection
-            wsRef.current = new WebSocket('wss://google-stt.fly.dev');
-            // wsRef.current = new WebSocket('ws://localhost:3001');
+            // Step 3 (optional): silent sink to keep the Worklet running without audible output ✅
+            const sink = audioCtx.createGain();
+            sink.gain.value = 0;
 
-            workletNode.port.onmessage = (e: MessageEvent) => {
-                const message = e.data;
+            source.connect(workletNode);
+            workletNode.connect(sink);
+            sink.connect(audioCtx.destination);
 
-                if (message.type === 'audio') {
-                    if (wsRef.current?.readyState === WebSocket.OPEN) {
-                        wsRef.current.send(message.data);
-                    }
+            // --- WebSocket with config handshake (Step 2) ✅ ---
+            wsRef.current = new WebSocket("wss://google-stt.fly.dev");
+
+            // gate sending until config is sent
+            const pendingBuffers: ArrayBuffer[] = [];
+            let configSent = false;
+
+            wsRef.current.onopen = () => {
+                const rate = audioCtx.sampleRate; // e.g., 48000 or 44100
+                const cfg = {
+                    type: "config",
+                    encoding: "LINEAR16",
+                    sampleRateHz: rate,
+                    languageCode: "en-US",
+                    punctuation: true,
+                };
+                wsRef.current!.send(JSON.stringify(cfg));
+                configSent = true;
+
+                // flush any audio we buffered while the socket was opening
+                while (pendingBuffers.length) {
+                    wsRef.current!.send(pendingBuffers.shift()!);
+                }
+
+                isActiveRef.current = true;
+                setIsListening(true);
+            };
+
+            // Convert Float32 to PCM16 and send (buffer until config is sent) ✅
+            workletNode.port.onmessage = (e: MessageEvent<Float32Array>) => {
+                const floatInput = e.data; // at audioCtx.sampleRate
+                const buffer = convertFloat32ToInt16(floatInput);
+                const ws = wsRef.current;
+
+                if (ws && ws.readyState === WebSocket.OPEN && configSent) {
+                    ws.send(buffer);
+                } else if (pendingBuffers.length < 40) {
+                    pendingBuffers.push(buffer); // avoid unbounded growth
                 }
             };
 
-            source.connect(workletNode);
+            // Transcript handling (unchanged)
+            wsRef.current.onmessage = async (event: MessageEvent) => {
+                try {
+                    const text = event.data instanceof Blob ? await event.data.text() : event.data;
+                    const data: WebSocketMessage = JSON.parse(text);
+                    const newTranscript = data.channel?.alternatives?.[0]?.transcript || "";
+                    if (newTranscript) setTranscript(newTranscript);
+                } catch (err) {
+                    console.warn("WebSocket data error:", err);
+                }
+            };
 
+            wsRef.current.onerror = (e: Event) => {
+                console.error("WebSocket error:", e);
+                setError("Connection error. Please try again.");
+                setIsListening(false);
+            };
+
+            wsRef.current.onclose = () => {
+                pendingBuffers.length = 0; // drop anything queued
+                setIsListening(false);
+            };
+
+            // Cleanup
             micCleanupRef.current = () => {
                 workletNode.port.onmessage = null;
                 try {
                     source.disconnect();
                     workletNode.disconnect();
+                    sink.disconnect();
                 } catch (err) {
-                    console.warn('Error disconnecting audio nodes:', err);
+                    console.warn("Error disconnecting audio nodes:", err);
                 }
             };
-
-            wsRef.current.onmessage = async (event: MessageEvent) => {
-                try {
-                    const text = event.data instanceof Blob ? await event.data.text() : event.data;
-                    const data: WebSocketMessage = JSON.parse(text);
-                    const newTranscript = data.channel?.alternatives?.[0]?.transcript || '';
-                    if (newTranscript) {
-                        setTranscript(newTranscript);
-                    }
-                } catch (err) {
-                    console.warn('WebSocket data error:', err);
-                }
-            };
-
-            wsRef.current.onopen = () => {
-                isActiveRef.current = true;
-                setIsListening(true);
-            };
-
-            wsRef.current.onerror = (e: Event) => {
-                console.error('WebSocket error:', e);
-                setError('Connection error. Please try again.');
-                setIsListening(false);
-            };
-
-            wsRef.current.onclose = () => {
-                setIsListening(false);
-            };
-
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to start microphone test';
-            console.error('Failed to start mic test:', err);
+            const errorMessage = err instanceof Error ? err.message : "Failed to start microphone test";
+            console.error("Failed to start mic test:", err);
             setError(errorMessage);
             setIsListening(false);
         }
