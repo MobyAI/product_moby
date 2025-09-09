@@ -242,6 +242,7 @@ export function useGoogleSTT({
         }, 5000);
     };
 
+    // Helper functions
     const matchesEndPhrase = (transcript: string, keywords: string[]) => {
         const normalize = (text: string) =>
             text.toLowerCase().replace(/[\s.,!?'"“”\-]+/g, ' ').trim();
@@ -253,9 +254,23 @@ export function useGoogleSTT({
         );
     };
 
+    function tokens(s: string) {
+        return s.trim().split(/\s+/).filter(Boolean);
+    }
+
+    function tailText(s: string, W: number) {
+        const t = tokens(s);
+        return t.slice(-W).join(" ");
+    }
+
+    const TAIL_WINDOWS = [6, 10, 14];
+    const LOCAL_SIM_THRESHOLD = 0.7;
+    const API_SIM_THRESHOLD = 0.8;
+
     const handleFinalization = async (spokenLine: string) => {
         const start = performance.now();
 
+        // 1) Exact keyword
         if (matchesEndPhrase(spokenLine, lineEndKeywords)) {
             const end = performance.now();
             console.log(`⚡ Keyword match passed in: ${(end - start).toFixed(2)}ms`);
@@ -263,6 +278,7 @@ export function useGoogleSTT({
             return;
         }
 
+        // 2) Fuzzy keyword match
         if (fuzzyMatchEndKeywords(spokenLine, lineEndKeywords)) {
             const end = performance.now();
             console.log(`🤏 Fuzzy match passed in ${(end - start).toFixed(2)}ms`);
@@ -270,48 +286,52 @@ export function useGoogleSTT({
             return;
         }
 
-        // Semantic similarity check
-        if (currentLineTextRef.current) {
-            try {
-                // Try local model first
-                if (embeddingModel.isReady()) {
-                    const similarity = await embeddingModel.getSimilarity(
-                        spokenLine,
-                        currentLineTextRef.current
-                    );
+        // 3) Semantic (sliding tail windows with multi-window max)
+        const expectedLine = currentLineTextRef.current;
+        if (!expectedLine) return;
 
-                    console.log('Similarity (local model):', similarity);
+        try {
+            if (embeddingModel.isReady()) {
+                // Local model path — compute similarity for each W, take the max
+                const sims = await Promise.all(
+                    TAIL_WINDOWS.map(async (W) => {
+                        const sTail = tailText(spokenLine, W);
+                        const eTail = tailText(expectedLine, W);
+                        const sim = await embeddingModel.getSimilarity(sTail, eTail);
+                        return { W, sim };
+                    })
+                );
 
-                    if (similarity > 0.75) {
-                        console.log("✅ Semantic similarity passed!");
+                const best = sims.reduce((a, b) => (b.sim > a.sim ? b : a));
+                console.log("🧩 Tail sims (local):", sims, "best:", best);
+
+                if (best.sim >= LOCAL_SIM_THRESHOLD) {
+                    console.log("✅ Semantic similarity (local) passed!");
+                    triggerNextLine(spokenLine);
+                    return;
+                }
+            } else {
+                // Fallback to api call if model isn't ready
+                console.log("Using fallback for similarity...");
+
+                const [spokenEmbedding, expectedEmbedding] = await Promise.all([
+                    fetchEmbedding(spokenLine),
+                    fetchEmbedding(expectedLine),
+                ]);
+
+                if (spokenEmbedding && expectedEmbedding) {
+                    const similarity = cosineSimilarity(spokenEmbedding, expectedEmbedding);
+                    console.log("Similarity (API):", similarity);
+
+                    if (similarity > API_SIM_THRESHOLD) {
+                        console.log("✅ Similarity passed (API)!");
                         triggerNextLine(spokenLine);
                         return;
                     }
-                } else {
-                    // Model not ready, use API fallback with parallel calls
-                    console.log('Using fallback for similarity...');
-
-                    // Run both embedding API calls in parallel
-                    const [spokenEmbedding, expectedEmbedding] = await Promise.all([
-                        fetchEmbedding(spokenLine),      // Your API call for spoken text
-                        fetchEmbedding(currentLineTextRef.current)  // Your API call for expected text
-                    ]);
-
-                    if (spokenEmbedding && expectedEmbedding) {
-                        // Calculate cosine similarity
-                        const similarity = cosineSimilarity(spokenEmbedding, expectedEmbedding);
-                        console.log('Similarity (API):', similarity);
-
-                        if (similarity > 0.9) {
-                            console.log("✅ Similarity passed (API)!");
-                            triggerNextLine(spokenLine);
-                            return;
-                        }
-                    }
                 }
-            } catch (error) {
-                console.error('Similarity check failed:', error);
             }
+        } catch (error) {
+            console.error("Similarity check failed:", error);
         }
     };
 
