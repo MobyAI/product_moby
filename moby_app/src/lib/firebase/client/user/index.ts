@@ -5,16 +5,10 @@ import {
     getDoc,
     Timestamp,
     FieldValue,
-} from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase/client/config/app';
-
-export type UserProfile = {
-    firstName: string;
-    lastName: string;
-    age: number;
-    ethnicity: string;
-    height: number; // in cm
-};
+} from "firebase/firestore";
+import { updateProfile } from "firebase/auth";
+import { auth, db } from "@/lib/firebase/client/config/app";
+import { UserProfile } from "@/types/profile";
 
 export type CountingStats = {
     auditions: number;
@@ -48,6 +42,10 @@ export async function addUser(profile: UserProfile) {
                 error: 'No authenticated user found. Please sign in first.'
             };
         }
+
+        // Update Firebase Auth user profile
+        const displayName = `${profile.firstName} ${profile.lastName}`.trim();
+        await updateProfile(user, { displayName });
 
         // Prepare the user data
         const userData: UserData = {
@@ -160,6 +158,23 @@ export async function updateUserProfile(updates: Partial<UserProfile>) {
                 success: false,
                 error: 'No authenticated user found'
             };
+        }
+
+        // Fetch existing user profile from Firestore
+        const userDocRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userDocRef);
+        const existingData: Partial<UserProfile> = userSnap.exists()
+            ? (userSnap.data() as UserProfile)
+            : {};
+
+        // Merge: new values take precedence, fallback to existing ones
+        const firstName = updates.firstName ?? existingData.firstName ?? "";
+        const lastName = updates.lastName ?? existingData.lastName ?? "";
+
+        // If we have at least one name, update displayName
+        const newDisplayName = `${firstName} ${lastName}`.trim();
+        if (newDisplayName.length > 0) {
+            await updateProfile(user, { displayName: newDisplayName });
         }
 
         // Update only the specified fields plus updatedAt timestamp

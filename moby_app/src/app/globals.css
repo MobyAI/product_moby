@@ -1,8 +1,133 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Poppins";
+  src: url("/fonts/Poppins-ExtraLight.ttf") format("truetype");
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("/fonts/Poppins-Light.ttf") format("truetype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("/fonts/Poppins-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("/fonts/Poppins-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("/fonts/Poppins-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("/fonts/Poppins-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("/fonts/Poppins-ExtraBold.ttf") format("truetype");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* ===== CORE BRAND COLORS ===== */
+
+  --color-primary-light: rgba(178, 181, 224, 1);
+
+  --color-primary-dark: rgba(197, 173, 197, 1);
+
+  /* ===== BUTTON COLORS ===== */
+  --color-btn-primary: rgba(75, 63, 114, 1);
+
+  --color-btn-primary-hover: rgb(40, 33, 63);
+
+  --color-btn-secondary: rgba(45, 100, 130, 1);
+
+  --color-btn-secondary-hover: rgba(35, 80, 110, 1);
+
+  --color-btn-accent: rgba(242, 174, 104, 1);
+
+  --color-btn-accent-hover: rgba(220, 145, 70, 1);
+
+  --color-btn-danger: rgba(239, 68, 68, 1);
+
+  --color-btn-danger-hover: rgba(220, 38, 38, 1);
+
+  --color-btn-success: rgba(34, 197, 94, 1);
+
+  --color-btn-success-hover: rgba(22, 163, 74, 1);
+
+  --color-btn-ghost: rgba(255, 255, 255, 0.1);
+
+  --color-btn-ghost-hover: rgba(255, 255, 255, 0.2);
+
+
+  /* ===== CARDS ===== */
+  --color-card-light: rgba(246, 247, 252, 1);
+
+  --color-card-dark: rgba(44, 47, 61, 1);
+
+  /* ===== MODALS ===== */
+  --color-modal-light: rgba(230, 230, 240, 1);
+
+  --color-modal-dark: rgba(43, 45, 66, 1);
+
+  /* ===== MODAL BACKDROP ===== */
+  --color-modal-backdrop: rgba(0, 0, 0, 0.5);
+
+
+  /* ===== TEXT COLORS ===== */
+  --color-text-primary: rgba(46, 46, 46, 1);
+
+  --color-text-secondary: rgba(115, 115, 115, 1);
+
+  --color-text-muted: rgba(163, 163, 163, 1);
+
+  --color-text-accent: rgba(242, 204, 143, 1);
+
+  --color-text-link: rgba(178, 181, 224, 1);
+
+  --color-text-link-hover: rgba(158, 162, 214, 1);
+
+  --color-text-danger: rgba(239, 68, 68, 1);
+
+  --color-text-success: rgba(34, 197, 94, 1);
+
+  --color-text-warning: rgba(245, 158, 11, 1);
+
+  --color-text-inverse: rgba(255, 255, 255, 1);
+
+  --color-text-on-primary: rgba(255, 255, 255, 1);
 }
 
 @theme inline {
@@ -10,6 +135,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-poppins: "Poppins", sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -20,9 +146,358 @@
 }
 
 body {
-  background: var(--background);
+  background: linear-gradient(to top right, #B2B5E0, #C5ADC5);
+  background-attachment: fixed;
+  height: 100vh;
+  overflow: hidden;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ===== UTILITY CLASSES ===== */
+@layer utilities {
+
+  /* Button Backgrounds */
+  .bg-btn-primary {
+    background-color: var(--color-btn-primary);
+  }
+
+  .bg-btn-primary-hover {
+    background-color: var(--color-btn-primary-hover);
+  }
+
+  .bg-btn-secondary {
+    background-color: var(--color-btn-secondary);
+  }
+
+  .bg-btn-secondary-hover {
+    background-color: var(--color-btn-secondary-hover);
+  }
+
+  .bg-btn-accent {
+    background-color: var(--color-btn-accent);
+  }
+
+  .bg-btn-accent-hover {
+    background-color: var(--color-btn-accent-hover);
+  }
+
+  .bg-btn-danger {
+    background-color: var(--color-btn-danger);
+  }
+
+  .bg-btn-danger-hover {
+    background-color: var(--color-btn-danger-hover);
+  }
+
+  .bg-btn-success {
+    background-color: var(--color-btn-success);
+  }
+
+  .bg-btn-success-hover {
+    background-color: var(--color-btn-success-hover);
+  }
+
+  .bg-btn-ghost {
+    background-color: var(--color-btn-ghost);
+  }
+
+  .bg-btn-ghost-hover {
+    background-color: var(--color-btn-ghost-hover);
+  }
+
+  /* Card Backgrounds */
+  .bg-card-light {
+    background-color: var(--color-card-light);
+  }
+
+  .bg-card-dark {
+    background-color: var(--color-card-dark);
+  }
+
+  /* Modal Backgrounds */
+  .bg-modal-light {
+    background-color: var(--color-modal-light);
+  }
+
+  .bg-modal-dark {
+    background-color: var(--color-modal-dark);
+  }
+
+  .bg-modal-backdrop {
+    background-color: var(--color-modal-backdrop);
+  }
+
+  /* Primary Colors */
+  .bg-primary-light {
+    background-color: var(--color-primary-light);
+  }
+
+  .bg-primary-dark {
+    background-color: var(--color-primary-dark);
+  }
+
+  .text-primary-light {
+    color: var(--color-primary-light);
+  }
+
+  .text-primary-dark {
+    color: var(--color-primary-dark);
+  }
+
+  .border-primary-light {
+    border-color: var(--color-primary-light);
+  }
+
+  .border-primary-dark {
+    border-color: var(--color-primary-dark);
+  }
+
+  /* Text Colors */
+  .text-primary {
+    color: var(--color-text-primary);
+  }
+
+  .text-secondary {
+    color: var(--color-text-secondary);
+  }
+
+  .text-muted {
+    color: var(--color-text-muted);
+  }
+
+  .text-accent {
+    color: var(--color-text-accent);
+  }
+
+  .text-link {
+    color: var(--color-text-link);
+  }
+
+  .text-link-hover {
+    color: var(--color-text-link-hover);
+  }
+
+  .text-danger {
+    color: var(--color-text-danger);
+  }
+
+  .text-success {
+    color: var(--color-text-success);
+  }
+
+  .text-warning {
+    color: var(--color-text-warning);
+  }
+
+  .text-inverse {
+    color: var(--color-text-inverse);
+  }
+
+  .text-on-primary {
+    color: var(--color-text-on-primary);
+  }
+
+  /* Hover States - using RGBA for easy opacity changes */
+  .hover\:bg-btn-primary:hover {
+    background-color: var(--color-btn-primary-hover);
+  }
+
+  .hover\:bg-btn-secondary:hover {
+    background-color: var(--color-btn-secondary-hover);
+  }
+
+  .hover\:bg-btn-accent:hover {
+    background-color: var(--color-btn-accent-hover);
+  }
+
+  .hover\:bg-btn-danger:hover {
+    background-color: var(--color-btn-danger-hover);
+  }
+
+  .hover\:bg-btn-success:hover {
+    background-color: var(--color-btn-success-hover);
+  }
+
+  .hover\:bg-btn-ghost:hover {
+    background-color: var(--color-btn-ghost-hover);
+  }
+
+  .hover\:text-link:hover {
+    color: var(--color-text-link-hover);
+  }
+
+  /* Opacity Variants */
+  .bg-primary-light\/10 {
+    background-color: rgba(178, 181, 224, 0.1);
+  }
+
+  .bg-primary-light\/20 {
+    background-color: rgba(178, 181, 224, 0.2);
+  }
+
+  .bg-primary-light\/50 {
+    background-color: rgba(178, 181, 224, 0.5);
+  }
+
+  .bg-primary-dark\/10 {
+    background-color: rgba(197, 173, 197, 0.1);
+  }
+
+  .bg-primary-dark\/20 {
+    background-color: rgba(197, 173, 197, 0.2);
+  }
+
+  .bg-primary-dark\/50 {
+    background-color: rgba(197, 173, 197, 0.5);
+  }
+
+  /* Typography - keeping your existing styles */
+  .text-header-1 {
+    font-size: 2.5rem;
+    line-height: 3rem;
+    font-weight: 700;
+  }
+
+  .text-header-2 {
+    font-size: 2rem;
+    line-height: 2.5rem;
+    font-weight: 600;
+  }
+
+  .text-header-3 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 600;
+  }
+
+  .text-header-4 {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 500;
+  }
+
+  /* Header Font */
+  .text-header-1,
+  .text-header-2,
+  .text-header-3,
+  .text-header-4 {
+    font-family: var(--font-poppins);
+  }
+
+  .text-body-large {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+
+  .text-body {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+
+  .text-body-small {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  .text-caption {
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+}
+
+@layer components {
+
+  /* Button styles */
+  .btn {
+    @apply inline-flex items-center justify-center font-medium transition-all duration-200 rounded-lg px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    background-color: var(--color-action-primary);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    opacity: 0.9;
+  }
+
+  .btn-secondary {
+    background-color: var(--color-action-secondary);
+    color: white;
+  }
+
+  .btn-secondary:hover {
+    opacity: 0.9;
+  }
+
+  .btn-danger {
+    background-color: #fee2e2;
+    color: var(--color-action-danger);
+  }
+
+  .btn-danger:hover {
+    background-color: #fecaca;
+  }
+
+  .btn-success {
+    background-color: #dcfce7;
+    color: var(--color-action-success);
+  }
+
+  .btn-success:hover {
+    background-color: #bbf7d0;
+  }
+
+  .btn-ghost {
+    background-color: transparent;
+    color: var(--color-text-primary);
+  }
+
+  .btn-ghost:hover {
+    background-color: var(--color-background-tertiary);
+  }
+
+  /* Card styles */
+  .card {
+    background-color: var(--color-card);
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+    border: 1px solid var(--color-card-border);
+  }
+
+  .card-alt {
+    background-color: var(--color-card-alt);
+    color: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+    border: 1px solid var(--color-card-border);
+  }
+
+  /* Badge styles */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-primary {
+    background-color: var(--color-primary-light);
+    color: var(--color-action-primary);
+  }
+
+  .badge-success {
+    background-color: #dcfce7;
+    color: var(--color-action-success);
+  }
+
+  .badge-warning {
+    background-color: #fed7aa;
+    color: var(--color-action-warning);
+  }
+
+  .badge-danger {
+    background-color: #fee2e2;
+    color: var(--color-action-danger);
+  }
 }
 
 .hide-scrollbar {
@@ -151,4 +626,38 @@ body {
 .gsi-material-button:not(:disabled):hover .gsi-material-button-state {
   background-color: #303030;
   opacity: 8%;
+}
+
+/* Loading progress bar animation */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes slide {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(28px); }
 }

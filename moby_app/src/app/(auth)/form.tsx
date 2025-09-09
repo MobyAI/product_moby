@@ -34,12 +34,8 @@ export default function Form({
         try {
             setLoading("email");
             await onEmailPassword(email, pw);
-        } catch (err: unknown) {
-            if (err instanceof Error) {
-                setError(err.message);
-            } else {
-                setError("Sign in failed.");
-            }
+        } catch {
+            setError("Sign in failed. Please check your email/password and try again.");
         } finally {
             setLoading(null);
         }
@@ -50,18 +46,30 @@ export default function Form({
         try {
             setLoading("google");
             await onGoogle();
-        } catch (err: unknown) {
-            if (err instanceof Error) {
-                setError(err.message);
-            } else {
-                setError("Google sign in failed.");
-            }
+        } catch {
+            setError("Google sign in failed.");
         } finally {
             setLoading(null);
         }
     }
 
     const title = mode === "login" ? "Sign in" : "Create your account";
+
+    if (loading !== null) {
+        return (
+            <div className="flex flex-col justify-center items-center space-y-4 p-8">
+                <div className="w-20 h-20 mx-auto mb-4 relative">
+                    <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full"></div>
+                    <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin"></div>
+                    <div
+                        className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin"
+                        style={{ animationDuration: "1.5s", animationDirection: "reverse" }}
+                    />
+                </div>
+                <p className="text-gray-700 text-lg font-medium">Signing you in…</p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">

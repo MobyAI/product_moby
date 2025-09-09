@@ -8,7 +8,8 @@ import { verifySession } from "@/lib/firebase/admin/auth/verifySession";
 
 export default async function AuthLayout({ children }: { children: ReactNode }) {
     const user = await verifySession();
-    if (user) redirect("/home");
+    // if (user) redirect("/home");
+    if (user) redirect("/scripts/list");
 
     return (
         <div className="min-h-screen grid place-items-center p-6">

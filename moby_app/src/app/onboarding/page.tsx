@@ -6,34 +6,15 @@ import { ChevronLeft, ChevronRight, Check, User, Ruler, Calendar, Globe, Camera,
 import { uploadHeadshot, uploadResume } from "@/lib/firebase/client/media";
 import { addUser } from "@/lib/firebase/client/user";
 import { auth } from "@/lib/firebase/client/config/app";
-
-type UserProfile = {
-    firstName: string;
-    lastName: string;
-    age: number;
-    ethnicity: string;
-    height: number; // in cm
-};
+import { UserProfile, ethnicities } from "@/types/profile";
 
 type LoadingState = "idle" | "headshot" | "resume" | "profile";
-
-const ethnicities = [
-    { value: "asian", label: "Asian", emoji: "🌐" },
-    { value: "black", label: "Black/African", emoji: "🌐" },
-    { value: "hispanic", label: "Hispanic/Latino", emoji: "🌐" },
-    { value: "middle-eastern", label: "Middle Eastern", emoji: "🌐" },
-    { value: "native", label: "Native/Indigenous", emoji: "🌐" },
-    { value: "pacific", label: "Pacific Islander", emoji: "🌐" },
-    { value: "white", label: "White/Caucasian", emoji: "🌐" },
-    { value: "mixed", label: "Mixed/Multiple", emoji: "🌐" },
-    { value: "other", label: "Other", emoji: "✨" },
-    { value: "prefer-not", label: "Prefer not to say", emoji: "🤐" },
-];
 
 function OnboardingContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const finalDestination = searchParams.get("next") || "/home";
+    // const finalDestination = searchParams.get("next") || "/home";
+    const finalDestination = searchParams.get("next") || "/scripts/list";
     const totalSteps = 6;
 
     const [step, setStep] = useState(1);
@@ -41,12 +22,13 @@ function OnboardingContent() {
         firstName: "",
         lastName: "",
         age: 25,
-        ethnicity: "",
-        height: 170,
+        ethnicity: [],
+        height: 66,
     });
     const [loading, setLoading] = useState<LoadingState>("idle");
     const [error, setError] = useState<string | null>(null);
-    const [heightUnit, setHeightUnit] = useState<"cm" | "ft">("ft");
+    const [isDraggingHeadshot, setIsDraggingHeadshot] = useState(false);
+    const [isDraggingResume, setIsDraggingResume] = useState(false);
 
     async function handleProfileSubmit() {
         if (!profile.firstName || !profile.lastName) {
@@ -73,16 +55,8 @@ function OnboardingContent() {
         }
     }
 
-    const convertHeight = (cm: number, toUnit: "cm" | "ft"): string => {
-        if (toUnit === "cm") return `${cm} cm`;
-        const totalInches = cm / 2.54;
-        const feet = Math.floor(totalInches / 12);
-        const inches = Math.round(totalInches % 12);
-        return `${feet}'${inches}"`;
-    };
-
     return (
-        <div className="min-h-screen grid place-items-center p-6">
+        <div className="h-screen overflow-y-auto overscroll-contain no-scrollbar grid place-items-center p-6">
             <div className="w-full max-w-md">
                 <div className="space-y-6">
                     {/* Header Message */}
@@ -207,20 +181,27 @@ function OnboardingContent() {
                                     <Globe className="w-8 h-8 text-orange-600" />
                                 </div>
                                 <h2 className="text-2xl font-semibold">Your background</h2>
-                                <p className="text-gray-500">Select the option that best describes you</p>
+                                <p className="text-gray-500">Select all that apply</p>
                             </div>
                             <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
                                 {ethnicities.map((eth) => (
                                     <button
                                         key={eth.value}
-                                        onClick={() => setProfile({ ...profile, ethnicity: eth.value })}
-                                        className={`p-4 rounded-xl border-2 transition-all ${profile.ethnicity === eth.value
+                                        onClick={() => {
+                                            setProfile(prev => ({
+                                                ...prev,
+                                                ethnicity: prev.ethnicity.includes(eth.value)
+                                                    ? prev.ethnicity.filter(e => e !== eth.value)
+                                                    : [...prev.ethnicity, eth.value]
+                                            }));
+                                        }}
+                                        className={`p-4 rounded-xl border-2 transition-all ${profile.ethnicity.includes(eth.value)
                                             ? "border-purple-500 bg-purple-50 shadow-md"
                                             : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                                             }`}
                                     >
                                         <div className="text-2xl mb-2">{eth.emoji}</div>
-                                        <div className={`text-sm font-medium ${profile.ethnicity === eth.value ? "text-purple-700" : "text-gray-700"
+                                        <div className={`text-sm font-medium ${profile.ethnicity.includes(eth.value) ? "text-purple-700" : "text-gray-700"
                                             }`}>
                                             {eth.label}
                                         </div>
@@ -236,8 +217,8 @@ function OnboardingContent() {
                                     Back
                                 </button>
                                 <button
-                                    onClick={() => profile.ethnicity && setStep(4)}
-                                    disabled={!profile.ethnicity}
+                                    onClick={() => profile.ethnicity.length > 0 && setStep(4)}
+                                    disabled={profile.ethnicity.length === 0}
                                     className="flex-1 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all"
                                 >
                                     Continue
@@ -258,45 +239,25 @@ function OnboardingContent() {
                                 <p className="text-gray-500">Slide to set your height</p>
                             </div>
                             <div className="space-y-4">
-                                <div className="flex justify-center gap-2">
-                                    <button
-                                        onClick={() => setHeightUnit("cm")}
-                                        className={`px-4 py-2 rounded-lg font-medium transition-all ${heightUnit === "cm"
-                                            ? "bg-purple-500 text-white"
-                                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                                            }`}
-                                    >
-                                        cm
-                                    </button>
-                                    <button
-                                        onClick={() => setHeightUnit("ft")}
-                                        className={`px-4 py-2 rounded-lg font-medium transition-all ${heightUnit === "ft"
-                                            ? "bg-purple-500 text-white"
-                                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                                            }`}
-                                    >
-                                        inches
-                                    </button>
-                                </div>
                                 <div className="text-center">
                                     <div className="text-5xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-                                        {convertHeight(profile.height, heightUnit)}
+                                        {`${Math.floor(profile.height / 12)}'${profile.height % 12}"`}
                                     </div>
                                 </div>
                                 <input
                                     type="range"
-                                    min="120"
-                                    max="220"
+                                    min="36"  // inches
+                                    max="96"  // inches
                                     value={profile.height}
                                     onChange={(e) => setProfile({ ...profile, height: parseInt(e.target.value) })}
                                     className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                                     style={{
-                                        background: `linear-gradient(to right, rgb(59, 130, 246) 0%, rgb(147, 51, 234) ${((profile.height - 120) / 100) * 100}%, rgb(229, 231, 235) ${((profile.height - 120) / 100) * 100}%, rgb(229, 231, 235) 100%)`
+                                        background: `linear-gradient(to right, rgb(59, 130, 246) 0%, rgb(147, 51, 234) ${((profile.height - 36) / 60) * 100}%, rgb(229, 231, 235) ${((profile.height - 36) / 60) * 100}%, rgb(229, 231, 235) 100%)`
                                     }}
                                 />
                                 <div className="flex justify-between text-sm text-gray-500">
-                                    <span>{heightUnit === "cm" ? "120 cm" : "3'11\""}</span>
-                                    <span>{heightUnit === "cm" ? "220 cm" : "7'3\""}</span>
+                                    <span>{`3'0"`}</span>
+                                    <span>{`8'0"`}</span>
                                 </div>
                             </div>
                             {error && <p className="text-sm text-red-600 text-center">{error}</p>}
@@ -342,11 +303,47 @@ function OnboardingContent() {
                                         <p className="text-gray-600">Processing your headshot...</p>
                                     </div>
                                 ) : (
-                                    <label className="block">
-                                        <div className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                                            <Upload className="w-10 h-10 mb-3 text-gray-400" />
+                                    <label
+                                        className="block"
+                                        onDragOver={(e) => {
+                                            e.preventDefault();
+                                            setIsDraggingHeadshot(true);
+                                        }}
+                                        onDragLeave={(e) => {
+                                            e.preventDefault();
+                                            setIsDraggingHeadshot(false);
+                                        }}
+                                        onDrop={async (e) => {
+                                            e.preventDefault();
+                                            setIsDraggingHeadshot(false);
+
+                                            const file = e.dataTransfer.files?.[0];
+                                            if (file && file.type.startsWith('image/')) {
+                                                setLoading("headshot");
+                                                setError(null);
+                                                try {
+                                                    const result = await uploadHeadshot(file, auth.currentUser?.uid || '');
+                                                    if (!result.success) {
+                                                        setError(result.error || 'Upload failed');
+                                                    }
+                                                    setStep(6);
+                                                } catch {
+                                                    setError('Failed to upload headshot');
+                                                } finally {
+                                                    setLoading("idle");
+                                                }
+                                            } else {
+                                                setError('Please upload an image file');
+                                            }
+                                        }}
+                                    >
+                                        <div className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer transition-all ${isDraggingHeadshot
+                                            ? 'border-purple-500 bg-purple-50'
+                                            : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                                            }`}>
+                                            <Upload className={`w-10 h-10 mb-3 ${isDraggingHeadshot ? 'text-purple-500' : 'text-gray-400'}`} />
                                             <p className="mb-2 text-sm text-gray-500">
-                                                <span className="font-semibold">Click to upload</span>
+                                                <span className="font-semibold">Click to upload or drag and drop</span>
                                             </p>
                                             <p className="text-xs text-gray-500">PNG, JPG up to 15MB</p>
                                         </div>
@@ -431,11 +428,48 @@ function OnboardingContent() {
                                         <p className="text-gray-600">Saving your profile...</p>
                                     </div>
                                 ) : (
-                                    <label className="block">
-                                        <div className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                                            <Upload className="w-10 h-10 mb-3 text-gray-400" />
+                                    <label
+                                        className="block"
+                                        onDragOver={(e) => {
+                                            e.preventDefault();
+                                            setIsDraggingResume(true);
+                                        }}
+                                        onDragLeave={(e) => {
+                                            e.preventDefault();
+                                            setIsDraggingResume(false);
+                                        }}
+                                        onDrop={async (e) => {
+                                            e.preventDefault();
+                                            setIsDraggingResume(false);
+
+                                            const file = e.dataTransfer.files?.[0];
+                                            if (file && (file.type === 'application/pdf' ||
+                                                file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')) {
+                                                setLoading("resume");
+                                                setError(null);
+                                                try {
+                                                    const result = await uploadResume(file, auth.currentUser?.uid || '');
+                                                    if (!result.success) {
+                                                        setError('Upload failed');
+                                                    }
+                                                    handleProfileSubmit();
+                                                } catch {
+                                                    setError('Failed to upload resume');
+                                                } finally {
+                                                    setLoading("idle");
+                                                }
+                                            } else {
+                                                setError('Please upload a PDF or DOCX file');
+                                            }
+                                        }}
+                                    >
+                                        <div className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer transition-all ${isDraggingResume
+                                            ? 'border-emerald-500 bg-emerald-50'
+                                            : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                                            }`}>
+                                            <Upload className={`w-10 h-10 mb-3 ${isDraggingResume ? 'text-emerald-500' : 'text-gray-400'}`} />
                                             <p className="mb-2 text-sm text-gray-500">
-                                                <span className="font-semibold">Click to upload</span>
+                                                <span className="font-semibold">Click to upload or drag and drop</span>
                                             </p>
                                             <p className="text-xs text-gray-500">PDF or DOCX up to 25MB</p>
                                         </div>
@@ -525,7 +559,7 @@ function OnboardingContent() {
                     `}</style>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
 

@@ -10,7 +10,8 @@ import {
 export default function SignupPage() {
     const search = useSearchParams();
     const router = useRouter();
-    const next = search.get("next") || "/home";
+    // const next = search.get("next") || "home";
+    const next = search.get("next") || "/scripts/list";
     const onboardingUrl = `/onboarding?next=${encodeURIComponent(next)}`;
 
     return (
@@ -21,7 +22,9 @@ export default function SignupPage() {
                 if (res.success) {
                     router.replace(onboardingUrl);
                 } else {
-                    alert(res.error);
+                    if (res.error?.includes('popup-closed-by-user')) {
+                        return;
+                    }
                     throw new Error(res.error || "Failed to save profile");
                 }
             }}
@@ -30,7 +33,6 @@ export default function SignupPage() {
                 if (res.success) {
                     router.replace(onboardingUrl);
                 } else {
-                    alert(res.error);
                     throw new Error(res.error);
                 }
             }}

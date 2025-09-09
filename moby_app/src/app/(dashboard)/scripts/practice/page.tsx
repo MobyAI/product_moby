@@ -5,17 +5,18 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useGoogleSTT } from "@/lib/google/speechToText";
 import { useDeepgramSTT } from "@/lib/deepgram/speechToText";
 import type { ScriptElement } from "@/types/script";
-import { loadScript, hydrateScript, hydrateLine } from './loader';
-import { RoleSelector } from './roleSelector';
-import EditableLine from './editableLine';
-import { OptimizedLineRenderer } from './lineRenderer';
+import { setLastPracticed } from "@/lib/firebase/client/scripts";
+import { loadScript, hydrateScript, hydrateLine } from "./loader";
+import { RoleSelector } from "./roleSelector";
+import EditableLine from "./editableLine";
+import { OptimizedLineRenderer } from "./lineRenderer";
 import { restoreSession, saveSession } from "./session";
 import { clear } from "idb-keyval";
 import LoadingScreen from "./LoadingScreen";
-import { Button, LogoutButton } from "@/components/ui";
-import { useAuthUser } from '@/components/providers/UserProvider';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client/config/app';
+import { Button, MicCheckModal } from "@/components/ui";
+import { useAuthUser } from "@/components/providers/UserProvider";
+import { useToast } from "@/components/providers/ToastProvider";
+import { Play, Pause, SkipBack, SkipForward, RotateCcw, Undo2 } from "lucide-react";
 
 // export default function RehearsalRoomPage() {
 function RehearsalRoomContent() {
@@ -25,6 +26,8 @@ function RehearsalRoomContent() {
 	const { uid } = useAuthUser();
 	const userID = uid;
 
+	const { showToast } = useToast();
+
 	const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const currentLineRef = useRef<HTMLDivElement>(null);
 	const router = useRouter();
@@ -33,18 +36,28 @@ function RehearsalRoomContent() {
 		console.log("no user or script id: ", userID, scriptID);
 	}
 
-	// Page setup
-	const [authReady, setAuthReady] = useState(false);
+	// Loading
 	const [loading, setLoading] = useState(false);
+	const [hydrating, setHydrating] = useState(false);
 	const [loadStage, setLoadStage] = useState<string | null>(null);
-	const [script, setScript] = useState<ScriptElement[] | null>(null);
-	const scriptRef = useRef<ScriptElement[] | null>(null);
+	const [loadProgress, setLoadProgress] = useState(0);
 	const [ttsHydrationStatus, setTTSHydrationStatus] = useState<Record<number, 'pending' | 'updating' | 'ready' | 'failed'>>({});
+
+	// Page Content
+	const [script, setScript] = useState<ScriptElement[] | null>(null);
+	const [scriptName, setScriptName] = useState<string | null>(null);
+	const scriptRef = useRef<ScriptElement[] | null>(null);
 	const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
+	const [isUpdatingLine, setIsUpdatingLine] = useState(false);
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const [sttProvider, setSttProvider] = useState<"google" | "deepgram">(
 		"google"
 	);
+
+	// Mic Check
+	const [showMicCheck, setShowMicCheck] = useState<boolean>(false);
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	const [micCheckComplete, setMicCheckComplete] = useState<boolean>(false);
 
 	// Rehearsal flow
 	const [currentIndex, setCurrentIndex] = useState(0);
@@ -71,31 +84,24 @@ function RehearsalRoomContent() {
 
 	// Load script and restore session
 	useEffect(() => {
-		const unsubscribe = onAuthStateChanged(auth, (user) => {
-			if (user) {
-				setAuthReady(true);
-			}
-		});
-
-		return () => unsubscribe();
-	}, []);
-
-	useEffect(() => {
-		if (!userID || !scriptID || !authReady) return;
+		if (!userID || !scriptID) return;
 
 		const init = async () => {
 			setLoading(true);
+			setHydrating(true);
 
 			const rawScript = await loadScript({
 				userID,
 				scriptID,
 				setLoadStage,
 				setStorageError,
+				setScriptName,
 			});
 
 			if (!rawScript) {
 				// Display error page?
 				setLoading(false);
+				setHydrating(false);
 				return;
 			} else {
 				setScript(rawScript);
@@ -115,6 +121,20 @@ function RehearsalRoomContent() {
 				setTTSFailedLines,
 				updateTTSHydrationStatus,
 				getScriptLine,
+				onProgressUpdate: (hydrated, total) => {
+					setLoadProgress(total > 0 ? (hydrated / total) * 100 : 0);
+				},
+			}).then(wasHydrated => {
+				setHydrating(false);
+				if (wasHydrated) {
+					showToast({
+						header: "Script Ready!",
+						line1: "You can begin rehearsing now.",
+						type: "success",
+					});
+				}
+			}).catch(() => {
+				setHydrating(false);
 			});
 
 			// Restore session from indexedDB
@@ -124,12 +144,36 @@ function RehearsalRoomContent() {
 				setCurrentIndex(restored.index ?? 0);
 			}
 
-			setLoadStage('✅ Ready!');
 			setLoading(false);
 		};
 
 		init();
-	}, [userID, scriptID, authReady]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [userID, scriptID]);
+
+	// Mic check
+	useEffect(() => {
+		if (!scriptID) return;
+
+		// Check if mic check was already completed for this script
+		try {
+			const completedChecks = localStorage.getItem('audioSetupsCompleted');
+			const completed = completedChecks ? JSON.parse(completedChecks) : {};
+
+			if (!completed[scriptID]) {
+				// Show mic check modal after a brief delay to ensure page is interactive
+				setTimeout(() => {
+					setShowMicCheck(true);
+				}, 100);
+			} else {
+				setMicCheckComplete(true);
+			}
+		} catch (err) {
+			console.error('Error checking mic setup status:', err);
+			// Show modal on error to be safe
+			setShowMicCheck(true);
+		}
+	}, [scriptID]);
 
 	// Auto-scroll to current line
 	useEffect(() => {
@@ -238,6 +282,7 @@ function RehearsalRoomContent() {
 
 	const onUpdateLine = async (updateLine: ScriptElement) => {
 		setEditingLineIndex(null);
+		setIsUpdatingLine(true);
 		setLoadStage('🚰 Rehydrating...');
 
 		if (!script) {
@@ -281,6 +326,13 @@ function RehearsalRoomContent() {
 				});
 
 				setLoadStage('✅ Line successfully updated!');
+				setIsUpdatingLine(false);
+
+				showToast({
+					header: "Line Updated!",
+					line1: `Line ${updateLine.index} was rehydrated successfully.`,
+					type: "success",
+				});
 			}
 		} catch (err) {
 			console.error(`❌ Failed to update line ${updateLine.index}:`, err);
@@ -431,6 +483,13 @@ function RehearsalRoomContent() {
 		}
 
 		setIsPlaying(true);
+
+		// 🔥 Record last practiced
+		if (scriptID) {
+			setLastPracticed(scriptID).catch(err =>
+				console.error("❌ Failed to update lastPracticed:", err)
+			);
+		}
 	};
 
 	const handlePause = () => {
@@ -766,36 +825,40 @@ function RehearsalRoomContent() {
 	// Main render
 	return (
 		<>
+			{/* Mic Check Modal */}
+			<MicCheckModal
+				isOpen={showMicCheck}
+				onComplete={() => {
+					setShowMicCheck(false);
+					setMicCheckComplete(true);
+				}}
+				scriptId={scriptID || undefined}
+			/>
+
 			{loading ? (
 				<LoadingScreen loadStage={loading}>
 					{loadStage}
 				</LoadingScreen>
 			) : (
-				<div className="min-h-screen flex relative" style={{ backgroundColor: '#1c1d1d' }}>
-					{/* Back to Scripts Button - Top Right Corner */}
-					<div className="absolute top-4 right-4 z-10">
-						{/* <Button
-							onClick={goBackHome}
-							className="px-6 py-2 bg-blue hover:bg-gray-100 text-gray-800 rounded-lg shadow-sm transition-all duration-200 font-medium"
-						>
-							Upload a new script
-						</Button> */}
-						<LogoutButton />
-					</div>
+				<div className="h-full flex relative bg-card-dark">
 
 					{/* Left Control Panel - Dark Theme */}
-					<div className="w-80 h-screen text-white shadow-xl flex flex-col" style={{ backgroundColor: '#1c1d1d' }}>
-						<div className="p-6 pb-30 flex-1 overflow-y-auto hide-scrollbar">
+					<div className="w-[20%] mr-6 text-white flex flex-col">
+						<div className="flex-1 overflow-y-auto hide-scrollbar">
+
 							{/* Header */}
 							<div className="mb-8">
-								<h1 className="text-2xl font-bold mb-2">Rehearsal</h1>
-								<p className="text-gray-400 text-sm">Practice your lines</p>
+								<h1 className="text-header-2 font-bold mb-2">Practice Room</h1>
+								<p className="text-gray-400 text-sm">Follow along and practice your lines</p>
 							</div>
 
 							{/* Progress Section */}
 							<div className="mb-8">
-								<div className="text-sm text-gray-400 mb-2">Progress</div>
-								{isScriptFullyHydrated ? (
+								<div className="text-sm text-gray-400 mb-2">
+									{isScriptFullyHydrated ? "Progress" : isUpdatingLine ? "Updating Line" : "Loading Practice Room"}
+								</div>
+
+								{isScriptFullyHydrated && !isUpdatingLine ? (
 									<div className="bg-gray-800 rounded-lg p-4">
 										<div className="text-xl font-bold mb-2">
 											{currentIndex + 1} / {script?.length || 0}
@@ -806,21 +869,71 @@ function RehearsalRoomContent() {
 												style={{
 													width: `${((currentIndex + 1) / (script?.length || 1)) * 100}%`,
 												}}
-											></div>
+											/>
 										</div>
 										<div className="text-xs text-gray-400">
 											{Math.round(((currentIndex + 1) / (script?.length || 1)) * 100)}% complete
 										</div>
 									</div>
+								) : isUpdatingLine ? (
+									<div className="bg-gray-800 rounded-lg p-4">
+										{/* Line Update Loading State */}
+										<div className="flex items-center justify-between mb-3">
+											<div className="text-lg font-bold">
+												{loadStage || 'Updating line...'}
+											</div>
+										</div>
+
+										{/* Progress Bar */}
+										<div className="w-full bg-gray-700 rounded-full h-3 relative overflow-hidden">
+											<div className="bg-gradient-to-r from-blue-600 to-blue-600 h-3 rounded-full absolute inset-0" />
+											<div
+												className="absolute inset-0 opacity-30"
+												style={{
+													backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.5) 10px, rgba(255,255,255,0.5) 20px)',
+													animation: 'slide 1s linear infinite'
+												}}
+											/>
+										</div>
+
+										<div className="text-xs text-gray-400 mt-2">
+											Regenerating audio for the updated line...
+										</div>
+									</div>
 								) : (
 									<div className="bg-gray-800 rounded-lg p-4">
-										<div className="text-lg font-bold mb-2">
-											{loadStage || 'Loading…'}
+										{/* Status Header */}
+										<div className="flex items-center justify-between mb-3">
+											<div className="text-lg font-bold">
+												{loadStage || 'Initializing...'}
+											</div>
 										</div>
-										{/* Add loading progress bar */}
-										<div className="text-xs text-gray-400">
-											{"Hang tight! We're setting up the practice room for you 🙌"}
+
+										{/* Progress Bar */}
+										<div className="space-y-2 mb-3">
+											<div className="flex justify-between text-xs text-gray-400">
+												<span>Preparing resources</span>
+												<span>{Math.round(loadProgress)}%</span>
+											</div>
+											<div className="w-full bg-gray-700 rounded-full h-3 relative overflow-hidden">
+												<div
+													className="bg-gradient-to-r from-blue-600 to-blue-400 h-3 rounded-full transition-all duration-300 ease-out"
+													style={{ width: `${loadProgress}%` }}
+												/>
+												{/* Shimmer effect */}
+												{loading && loadProgress < 100 && (
+													<div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
+												)}
+											</div>
 										</div>
+
+										{/* Ready Indicator */}
+										{loadProgress === 100 && !isScriptFullyHydrated && (
+											<div className="text-xs text-green-400 flex items-center gap-1">
+												<span className="inline-block w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+												Scene ready to rehearse!
+											</div>
+										)}
 									</div>
 								)}
 							</div>
@@ -858,7 +971,7 @@ function RehearsalRoomContent() {
 							)}
 
 							{/* Control Buttons */}
-							<div className="space-y-3 mb-8">
+							{/* <div className="space-y-3 mb-8">
 								<button
 									onClick={handlePlay}
 									disabled={isPlaying || !isScriptFullyHydrated}
@@ -899,7 +1012,7 @@ function RehearsalRoomContent() {
 										🔄 Restart from Beginning
 									</button>
 								)}
-							</div>
+							</div> */}
 
 							{/* Select New Roles */}
 							{script &&
@@ -949,28 +1062,32 @@ function RehearsalRoomContent() {
 								</div>
 							)}
 
-							{/* Back to Scripts Button - Top Right Corner */}
-							<div className="absolute bottom-20 left-4 z-10">
+							{/* Additional Buttons */}
+							<div className="flex items-center space-x-2 mb-8 ml-2">
 								<Button
+									icon={Undo2}
 									onClick={goBackHome}
-									className="px-6 py-2 bg-green-600 hover:bg-green-800 text-gray-800 rounded-lg shadow-md shadow-black hover:shadow-lg hover:shadow-black transition-all duration-200 font-medium"
+									size="sm"
+									variant="primary"
+									className="disabled:opacity-50 disabled:cursor-not-allowed"
+									disabled={hydrating}
 								>
-									Go back home
+									Go Back
 								</Button>
 							</div>
 						</div>
 					</div>
 
 					{/* Right Content Area - Light Theme */}
-					<div
-						className="flex-1 bg-white h-screen overflow-hidden my-16"
-						style={{ borderRadius: 25, height: 'calc(100vh - 130px)', marginRight: 16 }}
-					>
+					<div className="relative flex-1 bg-card-light flex flex-col overflow-hidden rounded-[25px] mr-4">
 						<div className="max-w-4xl mx-auto h-full flex flex-col">
+
 							{/* Script Header */}
 							<div className="text-center py-8 px-8 border-b border-gray-200 shrink-0">
-								<h1 className="text-3xl font-bold text-gray-900 mb-2">Script Rehearsal</h1>
-								<p className="text-gray-600">Follow along and practice your lines</p>
+								<h1 className="text-header-2 font-bold text-gray-900">
+									{scriptName ? scriptName : "Your"}
+								</h1>
+								{/* <p className="text-gray-600">Follow along and practice your lines</p> */}
 							</div>
 
 							{/* Scrollable Script Content */}
@@ -1004,6 +1121,73 @@ function RehearsalRoomContent() {
 											🔄 Practice Again
 										</button>
 									</div>
+								)}
+							</div>
+						</div>
+
+						{/* Floating Control Panel */}
+						<div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10">
+							<div className="bg-[rgba(44,47,61,0.85)] rounded-full px-9 py-3 flex items-center gap-9 shadow-xl">
+
+								{/* Previous Button */}
+								<button
+									onClick={handlePrev}
+									disabled={!isScriptFullyHydrated}
+									className="p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+									aria-label="Previous"
+									title="Previous"
+								>
+									<SkipBack className="h-6 w-6" />
+								</button>
+
+								{/* Play/Pause Button */}
+								{isPlaying ? (
+									<button
+										onClick={handlePause}
+										disabled={!isScriptFullyHydrated}
+										className="p-3 rounded-full bg-white hover:bg-white/20 hover:text-white transition-all duration-200 text-black shadow-lg scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+										aria-label="Pause"
+										title="Pause"
+									>
+										<Pause className="h-6 w-6" />
+									</button>
+								) : (
+									<button
+										onClick={handlePlay}
+										disabled={!isScriptFullyHydrated}
+										className="p-3 rounded-full bg-white hover:bg-white/20 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-black shadow-lg scale-110"
+										aria-label="Play"
+										title={!isScriptFullyHydrated ? "Preparing..." : "Start Rehearsal"}
+									>
+										<Play className="h-6 w-6" />
+									</button>
+								)}
+
+								{/* Next Button */}
+								<button
+									onClick={handleNext}
+									disabled={!isScriptFullyHydrated}
+									className="p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+									aria-label="Next"
+									title="Next"
+								>
+									<SkipForward className="h-6 w-6" />
+								</button>
+
+								{/* Restart Button (only show if not at beginning) */}
+								{currentIndex !== 0 && (
+									<>
+										<div className="w-px h-8 bg-white/20 mx-1" /> {/* Divider */}
+										<button
+											onClick={handleRestart}
+											disabled={!isScriptFullyHydrated}
+											className="p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+											aria-label="Restart from Beginning"
+											title="Restart from Beginning"
+										>
+											<RotateCcw className="h-6 w-6" />
+										</button>
+									</>
 								)}
 							</div>
 						</div>

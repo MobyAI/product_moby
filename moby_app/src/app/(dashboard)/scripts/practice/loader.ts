@@ -1,9 +1,9 @@
-import { get, set } from 'idb-keyval';
-import type { ScriptElement } from '@/types/script';
-import { addEmbedding } from '@/lib/api/embeddings';
-import { addTTS, addTTSRegenerate } from '@/lib/api/tts';
-import { getScript, updateScript } from '@/lib/firebase/client/scripts';
-import pLimit from 'p-limit';
+import { get, set } from "idb-keyval";
+import type { ScriptElement } from "@/types/script";
+import { addEmbedding } from "@/lib/api/embeddings";
+import { addTTS, addTTSRegenerate } from "@/lib/api/tts";
+import { getScript, updateScript } from "@/lib/firebase/client/scripts";
+import pLimit from "p-limit";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const isQuotaExceeded = (error: any) =>
@@ -24,11 +24,13 @@ export const loadScript = async ({
     scriptID,
     setLoadStage,
     setStorageError,
+    setScriptName,
 }: {
     userID: string;
     scriptID: string;
     setLoadStage: (stage: string) => void;
     setStorageError: (val: boolean) => void;
+    setScriptName: (name: string) => void;
 }): Promise<ScriptElement[] | undefined> => {
     if (!userID || !scriptID) return;
 
@@ -36,32 +38,37 @@ export const loadScript = async ({
 
     // IndexedDB key
     const scriptCacheKey = `script-cache:${userID}:${scriptID}`;
+    const scriptNameKey = `script-name:${userID}:${scriptID}`;
 
     // Reset error state
     setStorageError(false);
 
     try {
         setLoadStage('🔍 Checking local cache...');
-        const cached = await get(scriptCacheKey);
+        const cachedScript = await get(scriptCacheKey);
+        const scriptName = await get(scriptNameKey);
 
-        if (cached) {
+        if (cachedScript && scriptName) {
             const end = performance.now();
             console.log(`⏱️ Script loaded from cache in ${(end - start).toFixed(2)} ms`);
 
             setLoadStage('✅ Loaded fully hydrated script from cache');
             console.log('✅ Loaded fully hydrated script from cache');
+            setScriptName(scriptName);
 
-            return cached;
+            return cachedScript;
         } else {
             setLoadStage('🌐 Fetching script from Firestore...');
             const data = await getScript(scriptID);
             const script = data.script;
+            const name = data.name;
 
             // Attempt to cache
             setLoadStage('💾 Caching to IndexedDB...');
             console.log('💾 Caching to IndexedDB...');
             try {
                 await set(scriptCacheKey, script);
+                await set(scriptNameKey, name);
                 console.log('💾 Script cached successfully');
             } catch (err) {
                 console.warn('⚠️ Failed to store script in IndexedDB:', err);
@@ -73,7 +80,8 @@ export const loadScript = async ({
             const end = performance.now();
             console.log(`⏱️ Script loaded from cache in ${(end - start).toFixed(2)} ms`);
 
-            setLoadStage('📓 Script ready!');
+            setLoadStage('✅ Script ready!');
+            setScriptName(name);
 
             return script;
         }
@@ -98,6 +106,7 @@ export const hydrateScript = async ({
     setTTSFailedLines,
     updateTTSHydrationStatus,
     getScriptLine,
+    onProgressUpdate,
 }: {
     script: ScriptElement[];
     userID: string;
@@ -111,8 +120,9 @@ export const hydrateScript = async ({
     setTTSFailedLines: (lines: number[]) => void;
     updateTTSHydrationStatus?: (index: number, status: 'pending' | 'ready' | 'failed') => void;
     getScriptLine: (index: number) => ScriptElement | undefined;
-}) => {
-    if (!userID || !scriptID) return;
+    onProgressUpdate?: (hydratedCount: number, totalCount: number) => void,
+}): Promise<boolean> => {
+    if (!userID || !scriptID) return false;
 
     const start = performance.now();
 
@@ -178,10 +188,28 @@ export const hydrateScript = async ({
         )
         .map((element: ScriptElement) => element.index);
 
+    // If nothing needs hydration
+    if (unhydratedTTSLines.length === 0 && unhydratedEmbeddingLines.length === 0) {
+        console.log('✅ Script already fully hydrated, skipping hydration');
+
+        // Still update TTS status for UI
+        script.forEach(element => {
+            if (element.type === 'line') {
+                updateTTSHydrationStatus?.(element.index, 'ready');
+            }
+        });
+
+        setLoadStage('✅ Script ready!');
+        return false;
+    }
+
+    // Load progress setup
+    const totalOperations = unhydratedEmbeddingLines.length + unhydratedTTSLines.length;
+    let completedOperations = 0;
 
     try {
         // Embed user lines
-        setLoadStage('📐 Embedding lines...');
+        setLoadStage('✍️ Preparing lines');
         let embedded: ScriptElement[];
         const embeddingFailedIndexes: number[] = [];
         const unhydratedEmbeddings = new Set(unhydratedEmbeddingLines);
@@ -195,6 +223,8 @@ export const hydrateScript = async ({
                     ) {
                         try {
                             const updated = await addEmbedding(element, userID, scriptID);
+                            completedOperations++;
+                            onProgressUpdate?.(completedOperations, totalOperations);
                             return updated;
                         } catch (err) {
                             console.warn(`❌ addEmbedding failed for line ${element.index}`, err);
@@ -209,7 +239,7 @@ export const hydrateScript = async ({
 
         // Retry
         if (embeddingFailedIndexes.length > 0) {
-            console.log('🔁 Retrying failed embedding lines...');
+            console.log('🔁 Retrying failed lines');
             const retryFailed: number[] = [];
             const retryIndexes = new Set(embeddingFailedIndexes);
 
@@ -244,12 +274,12 @@ export const hydrateScript = async ({
                 console.error('❌ Retry still failed for some embeddings');
                 setEmbeddingError(true);
                 setEmbeddingFailedLines(retryFailed);
-                return;
+                return false;
             }
         }
 
         // Add TTS audio
-        setLoadStage('🎤 Generating TTS...');
+        setLoadStage('🎤 Generating audio');
         let withTTS: ScriptElement[] = [];
         const ttsFailedIndexes: number[] = [];
         const unhydratedTTS = new Set(unhydratedTTSLines);
@@ -265,6 +295,8 @@ export const hydrateScript = async ({
 
                             try {
                                 const updated = await addTTS(element, embedded, userID, scriptID, getScriptLine);
+                                completedOperations++;
+                                onProgressUpdate?.(completedOperations, totalOperations);
                                 updateTTSHydrationStatus?.(element.index, 'ready');
                                 return updated;
                             } catch (err) {
@@ -284,7 +316,7 @@ export const hydrateScript = async ({
 
         // Retry once if any failed
         if (ttsFailedIndexes.length > 0) {
-            console.log('🔁 Retrying failed TTS lines...');
+            console.log('🔁 Retrying failed audio');
             const retryFailed: number[] = [];
             const retryIndexes = new Set(ttsFailedIndexes);
 
@@ -317,11 +349,12 @@ export const hydrateScript = async ({
                 console.error('❌ Retry still failed for some TTS lines');
                 setTTSLoadError(true);
                 setTTSFailedLines(retryFailed);
+                return false;
             }
         }
 
         // Attempt to cache
-        setLoadStage('💾 Caching to IndexedDB...');
+        setLoadStage('💾 Saving');
         try {
             await set(scriptCacheKey, withTTS);
             console.log('💾 Script cached successfully');
@@ -333,7 +366,7 @@ export const hydrateScript = async ({
         }
 
         // Attempt to save update
-        setLoadStage('💾 Updating database...');
+        setLoadStage('💾 Saving');
         const sanitizedScript = stripExpectedEmbeddings(withTTS);
         try {
             await updateScript(scriptID, sanitizedScript);
@@ -346,10 +379,12 @@ export const hydrateScript = async ({
 
         setLoadStage('✅ Resources loaded!');
         setScript(withTTS);
+        return true;
     } catch (err) {
         // Display load error page
         console.error('❌ Error loading script:', err);
         setLoadStage('❌ Unexpected error loading script');
+        return false;
     }
 };
 

@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { getCountingStats } from "@/lib/firebase/client/user";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/lib/firebase/client/config/app";
 import type { StatusFilter } from '@/types/audition';
 
 type CountingStats = {
@@ -55,21 +53,8 @@ export default function AuditionCounts({ setFilterStatus }: AuditionCountsProps)
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [authReady, setAuthReady] = useState(false);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                setAuthReady(true);
-            }
-        });
-
-        return () => unsubscribe();
-    }, []);
-
-    useEffect(() => {
-        if (!authReady) return;
-
         async function fetchStats() {
             try {
                 setLoading(true);
@@ -88,7 +73,7 @@ export default function AuditionCounts({ setFilterStatus }: AuditionCountsProps)
         }
 
         fetchStats();
-    }, [authReady]);
+    }, []);
 
     if (loading) {
         return (

@@ -11,7 +11,8 @@ import { checkUserProfileExists } from "@/lib/firebase/client/user";
 export default function LoginPage() {
     const search = useSearchParams();
     const router = useRouter();
-    const next = search.get("next") || "/home";
+    // const next = search.get("next") || "home";
+    const next = search.get("next") || "/scripts/list";
 
     async function handleSuccessfulLogin() {
         // Check if user has completed profile
@@ -32,7 +33,10 @@ export default function LoginPage() {
                 if (res.success) {
                     await handleSuccessfulLogin();
                 } else {
-                    alert(res.error);
+                    if (res.error?.includes('popup-closed-by-user')) {
+                        return;
+                    }
+                    throw new Error("Google sign-in failed.");
                 }
             }}
             onEmailPassword={async (email, password) => {
@@ -40,7 +44,7 @@ export default function LoginPage() {
                 if (res.success) {
                     await handleSuccessfulLogin();
                 } else {
-                    alert(res.error);
+                    throw new Error("Email/password sign-in failed.");
                 }
             }}
             switchHref={`/signup?next=${encodeURIComponent(next)}`}
