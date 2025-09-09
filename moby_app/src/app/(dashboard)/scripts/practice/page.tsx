@@ -6,7 +6,7 @@ import { useGoogleSTT } from "@/lib/google/speechToText";
 import { useDeepgramSTT } from "@/lib/deepgram/speechToText";
 import type { ScriptElement } from "@/types/script";
 import { setLastPracticed } from "@/lib/firebase/client/scripts";
-import { loadScript, hydrateScript, hydrateLine } from "./loader";
+import { loadScript, hydrateScript, hydrateLine, initializeEmbeddingModel } from "./loader";
 import { RoleSelector } from "./roleSelector";
 import EditableLine from "./editableLine";
 import { OptimizedLineRenderer } from "./lineRenderer";
@@ -136,6 +136,14 @@ function RehearsalRoomContent() {
 			}).catch(() => {
 				setHydrating(false);
 			});
+
+			initializeEmbeddingModel({
+                // Could use separate progress tracking if desired
+                // onProgressUpdate: setModelProgress
+            }).catch(() => {
+                console.warn('Model initialization failed, using fallback');
+                return false;
+            })
 
 			// Restore session from indexedDB
 			const restored = await restoreSession(scriptID);

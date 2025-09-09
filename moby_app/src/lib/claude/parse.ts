@@ -10,15 +10,7 @@ export async function parseWithClaude(scriptText: string) {
 Parse the script into JSON. Each object must include:
 - "type": "scene", "line", or "direction"
 - "index": original order in script
-- For "line": include "character", "gender", inferred "tone", "lineEndKeywords", and "actingInstructions"
-
-Guidelines for "lineEndKeywords":
-- Contain 2 reliable, high-signal words from the final sentence of the line; If not possible, just 1 is okay.
-- These words do not need to be the last 2 words in the sentence.
-- Choose words that reflect the meaning or emotional intent of the final thought.
-- Pick words that are unlikely to be skipped or altered, even if the actor paraphrases.
-- Avoid names, rare words, or anything that speech-to-text systems often mishear.
-- Do not choose words that also occur earlier in the line! Must be unique.
+- For "line": include "character", "gender", inferred "tone", and "actingInstructions"
 
 Guidelines for "actingInstructions" (Must be ≤100 characters):
 - Focus on the context of the moment and who the character is speaking to and why.
@@ -48,7 +40,7 @@ Your JSON must be parsable by JavaScript’s JSON.parse(). To ensure this:
 Example format:
 [
     { "index": 0, "type": "scene", "text": "INT. KITCHEN – DAY" },
-    { "index": 1, "type": "line", "character": "JANE", "gender": "female", "text": "What are you doing here?", "tone": "suspicious", "lineEndKeywords": "doing", "here", "actingInstructions": "Suspicious and guarded, confronting someone unexpectedly." },
+    { "index": 1, "type": "line", "character": "JANE", "gender": "female", "text": "What are you doing here?", "tone": "suspicious", "actingInstructions": "Suspicious and guarded, confronting someone unexpectedly." },
     { "index": 2, "type": "direction", "text": "He steps back cautiously." }
 ]
 

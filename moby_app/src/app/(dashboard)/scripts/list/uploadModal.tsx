@@ -57,6 +57,61 @@ interface EditableLineProps {
     onClose: () => void;
 }
 
+// Helper functions
+function isLine(el: any): el is { type: 'line'; text: string; lineEndKeywords?: string[]; character?: string } {
+    return el && el.type === 'line' && typeof el.text === 'string';
+}
+
+const COMMON_WORDS = new Set([
+    'the', 'a', 'an', 'to', 'and', 'but', 'or', 'for', 'at', 'by', 'in', 'on', 'of', 'then', 'so'
+]);
+
+function extractLineEndKeywords(text: string): string[] {
+    const words = text
+        .toLowerCase()
+        .replace(/[^a-z0-9\s']/gi, '')
+        .split(/\s+/)
+        .filter(Boolean);
+
+    // Filter out common words and duplicates
+    const meaningful = words
+        .filter((word, index) => {
+            return (
+                !COMMON_WORDS.has(word) &&
+                words.lastIndexOf(word) === index
+            );
+        });
+
+    const selected = meaningful.slice(-2);
+
+    if (selected.length === 2) return selected;
+
+    if (selected.length === 1) {
+        const keyword = selected[0];
+
+        // Find index of that keyword in original `words` array
+        const idx = words.lastIndexOf(keyword);
+
+        let neighbor = '';
+
+        // Prefer word before
+        if (idx > 0) {
+            neighbor = words[idx - 1];
+        } else {
+            neighbor = words[idx + 1];
+        }
+
+        // Only return the keyword and neighbor if neighbor exists
+        return neighbor ? [neighbor, keyword] : [keyword];
+    }
+
+    if (selected.length === 0 && words.length > 0) {
+        return words.slice(-2);
+    }
+
+    return [];
+}
+
 export default function ScriptUploadModal({
     isOpen,
     onClose,
@@ -210,9 +265,38 @@ export default function ScriptUploadModal({
         }, 300);
     };
 
-    // Auto advance from stage 5 to 6 when script is parsed
+    // Auto advance from stage 5 to 6 when script is parsed and processed
     useEffect(() => {
         if (currentStage === 5 && parsedScript) {
+
+            // Add line end keywords
+            const needsKws = parsedScript.some(
+                (it) => it?.type === 'line'
+                    && (!Array.isArray((it as any).lineEndKeywords) || (it as any).lineEndKeywords.length === 0)
+            );
+
+            if (needsKws) {
+                let changed = false;
+                const withKeywords = parsedScript.map((item) => {
+                    if (!(item && item.type === 'line' && typeof item.text === 'string')) return item;
+                    const needs = !Array.isArray(item.lineEndKeywords) || item.lineEndKeywords.length === 0;
+                    if (!needs) return item;
+                    const kws = extractLineEndKeywords(item.text);
+                    if (kws.length > 0) { changed = true; return { ...item, lineEndKeywords: kws }; }
+                    return item;
+                });
+
+                if (changed) {
+                    setParsedScript(withKeywords);
+                    return;
+                }
+            }
+
+            // Check that all kws have been added
+            const allLinesHaveKeywords = parsedScript
+                .filter(isLine)
+                .every((l) => Array.isArray(l.lineEndKeywords) && l.lineEndKeywords.length > 0);
+
             // Extract unique characters from parsed script
             const scriptCharacters = new Set<string>();
             parsedScript.forEach(item => {
@@ -235,12 +319,12 @@ export default function ScriptUploadModal({
             setMissingCharacters(missing);
 
             // Auto-advance if no missing characters
-            if (missing.length === 0) {
+            if (missing.length === 0 && allLinesHaveKeywords) {
                 const timer = setTimeout(() => moveToNextStage(), 1500);
                 return () => clearTimeout(timer);
             }
         }
-    }, [currentStage, parsedScript, voiceAssignments]);
+    }, [currentStage, parsedScript, setParsedScript, voiceAssignments]);
 
     // Check if can proceed to completion
     const canComplete = () => {
@@ -971,55 +1055,55 @@ const ScriptRenderer = ({
         }
     };
 
-    const COMMON_WORDS = new Set([
-        'the', 'a', 'an', 'to', 'and', 'but', 'or', 'for', 'at', 'by', 'in', 'on', 'of', 'then', 'so'
-    ]);
+    // const COMMON_WORDS = new Set([
+    //     'the', 'a', 'an', 'to', 'and', 'but', 'or', 'for', 'at', 'by', 'in', 'on', 'of', 'then', 'so'
+    // ]);
 
-    function extractLineEndKeywords(text: string): string[] {
-        const words = text
-            .toLowerCase()
-            .replace(/[^a-z0-9\s']/gi, '')
-            .split(/\s+/)
-            .filter(Boolean);
+    // function extractLineEndKeywords(text: string): string[] {
+    //     const words = text
+    //         .toLowerCase()
+    //         .replace(/[^a-z0-9\s']/gi, '')
+    //         .split(/\s+/)
+    //         .filter(Boolean);
 
-        // Filter out common words and duplicates
-        const meaningful = words
-            .filter((word, index) => {
-                return (
-                    !COMMON_WORDS.has(word) &&
-                    words.lastIndexOf(word) === index
-                );
-            });
+    //     // Filter out common words and duplicates
+    //     const meaningful = words
+    //         .filter((word, index) => {
+    //             return (
+    //                 !COMMON_WORDS.has(word) &&
+    //                 words.lastIndexOf(word) === index
+    //             );
+    //         });
 
-        const selected = meaningful.slice(-2);
+    //     const selected = meaningful.slice(-2);
 
-        if (selected.length === 2) return selected;
+    //     if (selected.length === 2) return selected;
 
-        if (selected.length === 1) {
-            const keyword = selected[0];
+    //     if (selected.length === 1) {
+    //         const keyword = selected[0];
 
-            // Find index of that keyword in original `words` array
-            const idx = words.lastIndexOf(keyword);
+    //         // Find index of that keyword in original `words` array
+    //         const idx = words.lastIndexOf(keyword);
 
-            let neighbor = '';
+    //         let neighbor = '';
 
-            // Prefer word before
-            if (idx > 0) {
-                neighbor = words[idx - 1];
-            } else {
-                neighbor = words[idx + 1];
-            }
+    //         // Prefer word before
+    //         if (idx > 0) {
+    //             neighbor = words[idx - 1];
+    //         } else {
+    //             neighbor = words[idx + 1];
+    //         }
 
-            // Only return the keyword and neighbor if neighbor exists
-            return neighbor ? [neighbor, keyword] : [keyword];
-        }
+    //         // Only return the keyword and neighbor if neighbor exists
+    //         return neighbor ? [neighbor, keyword] : [keyword];
+    //     }
 
-        if (selected.length === 0 && words.length > 0) {
-            return words.slice(-2);
-        }
+    //     if (selected.length === 0 && words.length > 0) {
+    //         return words.slice(-2);
+    //     }
 
-        return [];
-    }
+    //     return [];
+    // }
 
     const handleUpdate = (index: number, updatedItem: ScriptElement) => {
         // Add lineEndKeywords if it's a line element

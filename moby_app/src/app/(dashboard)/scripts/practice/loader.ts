@@ -3,6 +3,7 @@ import type { ScriptElement } from "@/types/script";
 import { addEmbedding } from "@/lib/api/embeddings";
 import { addTTS, addTTSRegenerate } from "@/lib/api/tts";
 import { getScript, updateScript } from "@/lib/firebase/client/scripts";
+import { embeddingModel } from "@/lib/embeddings/modelManager";
 import pLimit from "p-limit";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -449,5 +450,43 @@ export const hydrateLine = async ({
         console.error(`❌ hydrateLineWithTTS failed for line ${line.index}`, err);
         updateTTSHydrationStatus?.(line.index, 'failed');
         return line;
+    }
+};
+
+export const initializeEmbeddingModel = async ({
+    setLoadStage,
+    onProgressUpdate,
+}: {
+    setLoadStage?: (stage: string) => void;
+    onProgressUpdate?: (progress: number) => void;
+}): Promise<boolean> => {
+    try {
+        // Subscribe to model state changes
+        const unsubscribe = embeddingModel.onStateChange((state) => {
+            if (state.status === 'downloading' && setLoadStage) {
+                setLoadStage(`🤖 Downloading AI model (${state.progress}%)...`);
+            }
+            if (onProgressUpdate && state.status === 'downloading') {
+                onProgressUpdate(state.progress);
+            }
+        });
+
+        // Initialize the model
+        await embeddingModel.initialize();
+
+        // Clean up subscription
+        unsubscribe();
+
+        if (setLoadStage) {
+            setLoadStage('✅ AI model ready');
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Failed to initialize embedding model:', error);
+        if (setLoadStage) {
+            setLoadStage('⚠️ AI model unavailable (using fallback)');
+        }
+        return false;
     }
 };

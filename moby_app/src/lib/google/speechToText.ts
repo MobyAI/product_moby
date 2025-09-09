@@ -1,6 +1,7 @@
-import { useRef, useEffect, useCallback } from 'react';
-import { fetchSimilarity } from '@/lib/api/embeddings';
-import * as fuzz from 'fuzzball';
+import { useRef, useEffect, useCallback } from "react";
+import { fetchEmbedding, cosineSimilarity } from "@/lib/api/embeddings";
+import { embeddingModel } from "@/lib/embeddings/modelManager";
+import * as fuzz from "fuzzball";
 
 //
 // IMPORTANT: For openAI embedding: choose server near openAI's server for lower latency
@@ -226,7 +227,7 @@ export function useGoogleSTT({
     const resetSilenceTimeout = () => {
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
         silenceTimeoutRef.current = setTimeout(() => {
-            console.log('🛑 Silence timeout — stopping Google STT to save usage.');
+            console.log('🛑 Silence timeout. Pausing audio stream.');
             pauseSTT();
             onSilenceTimeout?.();
         }, 10000);
@@ -236,9 +237,9 @@ export function useGoogleSTT({
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
         silenceTimerRef.current = setTimeout(() => {
             if (hasTriggeredRef.current) return;
-            console.log('⏳ Silence timer triggered. Running finalization...');
-            handleFinalization(spokenLine);
-        }, 1000);
+            console.log('⏳ Silence timer triggered. Skipping to next line.');
+            triggerNextLine(spokenLine);
+        }, 5000);
     };
 
     const matchesEndPhrase = (transcript: string, keywords: string[]) => {
@@ -269,14 +270,47 @@ export function useGoogleSTT({
             return;
         }
 
-        if (expectedEmbedding?.length) {
-            const similarity = await fetchSimilarity(spokenLine, expectedEmbedding);
-            console.log('Similarity: ', similarity);
-            if (similarity && similarity > 0.9) {
-                console.log("✅ Similarity passed (Google)!");
-                triggerNextLine(spokenLine);
-            } else {
-                console.log("🔁 Similarity too low.");
+        // Semantic similarity check
+        if (currentLineTextRef.current) {
+            try {
+                // Try local model first
+                if (embeddingModel.isReady()) {
+                    const similarity = await embeddingModel.getSimilarity(
+                        spokenLine,
+                        currentLineTextRef.current
+                    );
+
+                    console.log('Similarity (local model):', similarity);
+
+                    if (similarity > 0.75) {
+                        console.log("✅ Semantic similarity passed!");
+                        triggerNextLine(spokenLine);
+                        return;
+                    }
+                } else {
+                    // Model not ready, use API fallback with parallel calls
+                    console.log('Using fallback for similarity...');
+
+                    // Run both embedding API calls in parallel
+                    const [spokenEmbedding, expectedEmbedding] = await Promise.all([
+                        fetchEmbedding(spokenLine),      // Your API call for spoken text
+                        fetchEmbedding(currentLineTextRef.current)  // Your API call for expected text
+                    ]);
+
+                    if (spokenEmbedding && expectedEmbedding) {
+                        // Calculate cosine similarity
+                        const similarity = cosineSimilarity(spokenEmbedding, expectedEmbedding);
+                        console.log('Similarity (API):', similarity);
+
+                        if (similarity > 0.9) {
+                            console.log("✅ Similarity passed (API)!");
+                            triggerNextLine(spokenLine);
+                            return;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Similarity check failed:', error);
             }
         }
     };
@@ -522,6 +556,9 @@ export function useGoogleSTT({
                 }
 
                 const isLongEnough = expectedWords && spokenWords.length >= Math.floor(expectedWords.length * 0.8);
+                const lengthRatio = expectedWords && spokenWords.length / expectedWords.length;
+                // const isLongEnough = expectedWords && spokenWords.length >= expectedWords.length;
+                console.log('Long enough?', lengthRatio);
 
                 if (isLongEnough) {
                     console.log(`🟡 Google Final transcript accepted @ ${performance.now().toFixed(2)}ms! Handling finalization...`);
