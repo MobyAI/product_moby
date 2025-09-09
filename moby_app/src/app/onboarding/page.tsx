@@ -56,7 +56,7 @@ function OnboardingContent() {
     }
 
     return (
-        <div className="min-h-screen grid place-items-center p-6">
+        <div className="h-screen overflow-y-auto overscroll-contain no-scrollbar grid place-items-center p-6">
             <div className="w-full max-w-md">
                 <div className="space-y-6">
                     {/* Header Message */}
