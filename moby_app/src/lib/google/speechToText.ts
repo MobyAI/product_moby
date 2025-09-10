@@ -203,12 +203,19 @@ export function useGoogleSTT({
 
     const setCurrentLineText = useCallback((text: string) => {
         currentLineTextRef.current = text;
+
+        // If matcher doesn't exist yet, create it
+        if (!matcherRef.current && onProgressUpdate) {
+            console.log('[Matcher] Creating matcher on-demand');
+            matcherRef.current = new OptimizedSTTMatcher(onProgressUpdate);
+        }
+
         if (matcherRef.current) {
             matcherRef.current.setCurrentLineText(text);
         } else {
             console.warn('[Matcher] matcherRef.current is NULL!');
         }
-    }, []);
+    }, [onProgressUpdate]);
 
     // STT helpers
     const triggerNextLine = (transcript: string) => {
@@ -342,14 +349,16 @@ export function useGoogleSTT({
             const end = performance.now();
             console.log(`⚡ Keyword match passed in: ${(end - start).toFixed(2)}ms`);
             triggerNextLine(spokenLine);
+        } else {
+            console.log('Keyword match failed.');
         }
 
-        if (fuzzyMatchEndKeywords(spokenLine, lineEndKeywords)) {
-            const end = performance.now();
-            console.log(`🤏 Fuzzy match passed in ${(end - start).toFixed(2)}ms`);
-            triggerNextLine(spokenLine);
-            return;
-        }
+        // if (fuzzyMatchEndKeywords(spokenLine, lineEndKeywords)) {
+        //     const end = performance.now();
+        //     console.log(`🤏 Fuzzy match passed in ${(end - start).toFixed(2)}ms`);
+        //     triggerNextLine(spokenLine);
+        //     return;
+        // }
     };
 
     const normalize = (text: string) =>
@@ -483,6 +492,7 @@ export function useGoogleSTT({
 
     const startSTT = async () => {
         if (isActiveRef.current) return;
+
         isActiveRef.current = true;
         hasTriggeredRef.current = false;
         fullTranscript.current = [];
@@ -553,7 +563,7 @@ export function useGoogleSTT({
                 const repeatDuration = now - (repeatStartTimeRef.current ?? now);
 
                 if (repeatCountRef.current >= 2 && repeatDuration >= 400) {
-                    console.log('🟡 Stable interim — forcing early match');
+                    console.log('🟡 Stable transcript detected — forcing early match');
                     await handleKeywordMatch(transcript);
                     repeatCountRef.current = 0;
                     repeatStartTimeRef.current = null;
