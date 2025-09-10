@@ -237,8 +237,8 @@ export function useGoogleSTT({
         silenceTimerRef.current = setTimeout(() => {
             if (hasTriggeredRef.current) return;
             console.log('⏳ Silence timer triggered. Running finalization...');
-            handleFinalization(spokenLine);
-        }, 1000);
+            triggerNextLine(spokenLine);
+        }, 5000);
     };
 
     const matchesEndPhrase = (transcript: string, keywords: string[]) => {
@@ -290,12 +290,12 @@ export function useGoogleSTT({
             triggerNextLine(spokenLine);
         }
 
-        if (fuzzyMatchEndKeywords(spokenLine, lineEndKeywords)) {
-            const end = performance.now();
-            console.log(`🤏 Fuzzy match passed in ${(end - start).toFixed(2)}ms`);
-            triggerNextLine(spokenLine);
-            return;
-        }
+        // if (fuzzyMatchEndKeywords(spokenLine, lineEndKeywords)) {
+        //     const end = performance.now();
+        //     console.log(`🤏 Fuzzy match passed in ${(end - start).toFixed(2)}ms`);
+        //     triggerNextLine(spokenLine);
+        //     return;
+        // }
     };
 
     const normalize = (text: string) =>
