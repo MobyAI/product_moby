@@ -13,6 +13,12 @@ interface UseGoogleSTTProps {
     onSilenceTimeout?: () => void;
     expectedEmbedding: number[];
     onProgressUpdate?: (matchedCount: number) => void;
+    silenceTimers?: {
+        /** When user is silent during their turn, auto-skip to next line */
+        skipToNextMs?: number;
+        /** When there is general inactivity, pause/cleanup the stream */
+        inactivityPauseMs?: number;
+    };
 }
 
 interface OptimizedMatchingState {
@@ -169,6 +175,7 @@ export function useGoogleSTT({
     onSilenceTimeout,
     expectedEmbedding,
     onProgressUpdate,
+    silenceTimers,
 }: UseGoogleSTTProps) {
     // STT setup
     const wsRef = useRef<WebSocket | null>(null);
@@ -178,6 +185,11 @@ export function useGoogleSTT({
     const silenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const micCleanupRef = useRef<(() => void) | null>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
+    const DEFAULT_TIMERS = useRef({ skipToNextMs: 4000, inactivityPauseMs: 15000 });
+    const timersRef = useRef({
+        ...DEFAULT_TIMERS.current,
+        ...(silenceTimers ?? {}),
+    });
 
     // Cue detection
     const fullTranscript = useRef<string[]>([]);
@@ -231,13 +243,20 @@ export function useGoogleSTT({
         return true;
     };
 
+    useEffect(() => {
+        timersRef.current = {
+            ...DEFAULT_TIMERS.current,
+            ...(silenceTimers ?? {}),
+        };
+    }, [silenceTimers]);
+
     const resetSilenceTimeout = () => {
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
         silenceTimeoutRef.current = setTimeout(() => {
             console.log('🛑 Silence timeout. Pausing audio stream.');
             pauseSTT();
             onSilenceTimeout?.();
-        }, 10000);
+        }, timersRef.current.inactivityPauseMs);
     };
 
     const resetSilenceTimer = (spokenLine: string) => {
@@ -246,7 +265,7 @@ export function useGoogleSTT({
             if (hasTriggeredRef.current) return;
             console.log('⏳ Silence timer triggered. Skipping to next line.');
             triggerNextLine(spokenLine);
-        }, 5000);
+        }, timersRef.current.skipToNextMs);
     };
 
     // Helper functions
@@ -270,8 +289,8 @@ export function useGoogleSTT({
         return t.slice(-W).join(" ");
     }
 
-    const TAIL_WINDOWS = [6, 10, 14];
-    const LOCAL_SIM_THRESHOLD = 0.7;
+    const TAIL_WINDOWS = [6, 10, 15];
+    const LOCAL_SIM_THRESHOLD = 0.8;
     const API_SIM_THRESHOLD = 0.8;
 
     const handleFinalization = async (spokenLine: string) => {
@@ -313,7 +332,9 @@ export function useGoogleSTT({
                 console.log("🧩 Tail sims (local):", sims, "best:", best);
 
                 if (best.sim >= LOCAL_SIM_THRESHOLD) {
-                    console.log("✅ Semantic similarity (local) passed!");
+                    const end = performance.now();
+                    console.log(`✅ Semantic similarity (local) passed in ${(end - start).toFixed(2)}ms`);
+
                     triggerNextLine(spokenLine);
                     return;
                 }
@@ -373,13 +394,8 @@ export function useGoogleSTT({
     const fuzzyMatchEndKeywords = (
         transcript: string,
         keywords: string[],
-        threshold = 70
+        threshold = 80
     ): boolean => {
-        // const lastSentence = normalize(extractLastSentence(transcript));
-        // const words = lastSentence.split(/\s+/);
-
-        // console.log('fuzzy match last sentence: ', lastSentence);
-
         const normTranscript = normalize(transcript);
         const words = normTranscript.split(/\s+/);
 
@@ -512,8 +528,8 @@ export function useGoogleSTT({
         }
 
         if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
-            wsRef.current = new WebSocket('wss://google-stt.fly.dev');
-            // wsRef.current = new WebSocket('ws://localhost:3001');
+            // wsRef.current = new WebSocket('wss://google-stt.fly.dev');
+            wsRef.current = new WebSocket('ws://localhost:3001');
         } else {
             console.warn('🔁 Reusing existing WebSocket');
         }
@@ -585,7 +601,7 @@ export function useGoogleSTT({
                     return;
                 }
 
-                const isLongEnough = expectedWords && spokenWords.length >= Math.floor(expectedWords.length * 0.8);
+                const isLongEnough = expectedWords && spokenWords.length >= Math.floor(expectedWords.length * 0.75);
                 const lengthRatio = expectedWords && spokenWords.length / expectedWords.length;
                 // const isLongEnough = expectedWords && spokenWords.length >= expectedWords.length;
                 console.log('Long enough?', lengthRatio);

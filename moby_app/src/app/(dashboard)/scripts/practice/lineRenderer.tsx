@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useLayoutEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import type { ScriptElement } from "@/types/script";
 
 interface OptimizedLineRendererProps {
@@ -7,6 +7,7 @@ interface OptimizedLineRendererProps {
     isWaitingForUser: boolean;
     spanRefMap: Map<number, HTMLSpanElement[]>;
     matchedCount: number;
+    isCompleted: boolean;
 }
 
 const BASE = "word text-gray-700 transition-all duration-100";
@@ -18,16 +19,13 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
     isCurrent,
     isWaitingForUser,
     spanRefMap,
-    matchedCount
+    matchedCount,
+    isCompleted
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const prevCountRef = useRef<number>(0);
-    const scheduledRef = useRef<number | null>(null);
-    const pendingCountRef = useRef<number>(matchedCount);
+    const words = React.useMemo(() => element.text.split(/\s+/), [element.text]);
 
-    const words = useMemo(() => element.text.split(/\s+/), [element.text]);
-
-    // 1) Collect spans once per current line + initialize base class once
+    // Collect spans when becoming current
     useEffect(() => {
         if (!isCurrent || !containerRef.current) return;
 
@@ -36,69 +34,40 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
         ) as HTMLSpanElement[];
 
         spanRefMap.set(element.index, spans);
+    }, [isCurrent, element.index, spanRefMap]);
 
-        prevCountRef.current = 0;
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isCurrent, element.index]);
-
-    useEffect(() => {
-        const el = containerRef.current;
-        if (!el) return;
-        el.classList.toggle(WAITING, isWaitingForUser && isCurrent);
-    }, [isWaitingForUser, isCurrent]);
-
-    useLayoutEffect(() => {
-        pendingCountRef.current = matchedCount;
-
-        if (scheduledRef.current != null) return;
-
-        scheduledRef.current = requestAnimationFrame(() => {
-            scheduledRef.current = null;
-
-            const spans = spanRefMap.get(element.index);
-            if (!spans || spans.length === 0) return;
-
-            const prev = prevCountRef.current;
-            const next = Math.max(0, Math.min(pendingCountRef.current, spans.length));
-            if (next === prev) return;
-
-            if (next > prev) {
-                for (let i = prev; i < next; i++) spans[i].classList.add(MATCHED);
-            } else {
-                for (let i = next; i < prev; i++) spans[i].classList.remove(MATCHED);
-            }
-
-            prevCountRef.current = next;
-        });
-
-        return () => {
-            if (scheduledRef.current != null) {
-                cancelAnimationFrame(scheduledRef.current);
-                scheduledRef.current = null;
-            }
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [matchedCount, element.index]);
-
-
+    // Non-user lines
     if (element.role !== "user") {
         return (
             <div className="pl-4 border-l-3 border-gray-300">
-                <p className="text-base leading-relaxed text-gray-700">
+                <p className="text-base leading-relaxed text-gray-700 px-[2px] py-[5px]">
                     {element.text}
                 </p>
             </div>
         );
     }
 
+    // User lines with word spans
+    const containerClasses = `pl-4 border-l-3 border-gray-300 ${isWaitingForUser && isCurrent ? WAITING : ''
+        }`;
+
     return (
-        <div className="pl-4 border-l-3 border-gray-300" ref={containerRef}>
+        <div className={containerClasses} ref={containerRef}>
             <div className="text-base leading-relaxed">
-                {words.map((word, i) => (
-                    <span key={i} data-word-index={i} className={BASE}>
-                        {word + ' '}
-                    </span>
-                ))}
+                {words.map((word, i) => {
+                    const isMatched = isCompleted || (isCurrent && i < matchedCount) || (!isCurrent && i < matchedCount);
+                    const spanClasses = `${BASE} ${isMatched ? MATCHED : ''}`;
+
+                    return (
+                        <span
+                            key={i}
+                            data-word-index={i}
+                            className={spanClasses}
+                        >
+                            {word + ' '}
+                        </span>
+                    );
+                })}
             </div>
         </div>
     );

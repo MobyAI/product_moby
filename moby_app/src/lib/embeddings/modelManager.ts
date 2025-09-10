@@ -9,12 +9,12 @@ export interface EmbeddingModelState {
     status: 'idle' | 'downloading' | 'initializing' | 'ready' | 'error';
     progress: number;
     error?: string;
-    model?: FeatureExtractionPipeline;  // Correct type
+    model?: FeatureExtractionPipeline;
 }
 
 class EmbeddingModelManager {
     private static instance: EmbeddingModelManager | null = null;
-    private model: FeatureExtractionPipeline | null = null;  // Correct type
+    private model: FeatureExtractionPipeline | null = null;
     private initializationPromise: Promise<void> | null = null;
     private state: EmbeddingModelState = {
         status: 'idle',
@@ -63,7 +63,7 @@ class EmbeddingModelManager {
             this.updateState({ status: 'downloading', progress: 0 });
 
             // Check if model is already in browser cache
-            const modelId = 'Xenova/all-MiniLM-L6-v2';
+            const modelId = 'Xenova/bge-small-en-v1.5';
 
             // This will use cached files if available
             this.model = await pipeline(

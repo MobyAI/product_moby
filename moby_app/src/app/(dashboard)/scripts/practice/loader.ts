@@ -464,7 +464,7 @@ export const initializeEmbeddingModel = async ({
         // Subscribe to model state changes
         const unsubscribe = embeddingModel.onStateChange((state) => {
             if (state.status === 'downloading' && setLoadStage) {
-                setLoadStage(`🤖 Downloading AI model (${state.progress}%)...`);
+                setLoadStage(`🤖 Setting up for rehearsal (${state.progress}%)...`);
             }
             if (onProgressUpdate && state.status === 'downloading') {
                 onProgressUpdate(state.progress);
@@ -476,10 +476,6 @@ export const initializeEmbeddingModel = async ({
 
         // Clean up subscription
         unsubscribe();
-
-        if (setLoadStage) {
-            setLoadStage('✅ AI model ready');
-        }
 
         return true;
     } catch (error) {
