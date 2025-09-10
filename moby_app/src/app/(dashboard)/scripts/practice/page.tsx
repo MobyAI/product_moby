@@ -408,7 +408,7 @@ function RehearsalRoomContent() {
 		});
 
 		audio.onended = () => {
-			autoAdvance(250);
+			autoAdvance(0); // Changed to 0 for immediate advance
 		};
 
 		return () => {
