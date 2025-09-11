@@ -50,7 +50,7 @@ wss.on('connection', async (socket) => {
                 encoding: 'LINEAR16',
                 sampleRateHertz: 16000,
                 languageCode: 'en-US',
-                model: 'latest_short',
+                model: 'latest_long',
                 enableWordTimeOffsets: true,
                 enableAutomaticPunctuation: true,
                 enableWordConfidence: true,  // ✅ Added for better cue detection
@@ -58,8 +58,10 @@ wss.on('connection', async (socket) => {
                 // ✅ Optimizations for real-time streaming
                 useEnhanced: true,  // Better accuracy if available
                 profanityFilter: false,  // Reduce processing
+                singleUtterance: false,
             },
             interimResults: true,
+            singleUtterance: false,
         })
         .on('data', (data) => {
             const alt = data.results[0]?.alternatives?.[0];

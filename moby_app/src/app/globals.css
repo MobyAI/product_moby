@@ -520,11 +520,21 @@ body {
   /* Tailwind font-medium */
 }
 
+.word {
+  display: inline-block;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
 .word.matched {
   color: rgb(17 24 39);
-  /* Tailwind gray-900 */
-  font-weight: 700;
-  /* Tailwind font-bold */
+  background-color: rgb(254, 245, 179);
+  border-radius: 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: background-color 0.2s ease;
 }
 
 /* Google sign in button */
@@ -644,7 +654,9 @@ body {
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
 
@@ -658,6 +670,11 @@ body {
 }
 
 @keyframes slide {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(28px); }
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(28px);
+  }
 }

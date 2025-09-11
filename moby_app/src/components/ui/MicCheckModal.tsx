@@ -33,6 +33,7 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
         { deviceId: 'default', label: 'Default Speaker' }
     ]);
     const [microphones, setMicrophones] = useState<AudioDevice[]>([]);
+    const [micProcessing, setMicProcessing] = useState(false);
     const [speakerTestPlayed, setSpeakerTestPlayed] = useState<boolean>(false);
     const [micPermissionError, setMicPermissionError] = useState<boolean>(false);
 
@@ -158,11 +159,17 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
         }
     };
 
-    const handleMicTest = (): void => {
-        if (isListening) {
-            stopMicTest();
-        } else {
-            startMicTest();
+    const handleMicTest = async (): Promise<void> => {
+        setMicProcessing(true);
+
+        try {
+            if (isListening) {
+                await stopMicTest();
+            } else {
+                await startMicTest();
+            }
+        } finally {
+            setMicProcessing(false);
         }
     };
 
@@ -360,6 +367,7 @@ export const MicCheckModal: React.FC<AudioSetupModalProps> = ({
 
                             <button
                                 onClick={handleMicTest}
+                                disabled={micProcessing}
                                 className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 mb-4 ${isListening
                                     ? 'bg-red-500 text-white hover:bg-red-600'
                                     : 'bg-black text-white hover:bg-black/80'

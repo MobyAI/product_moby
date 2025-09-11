@@ -1,6 +1,7 @@
-import { useRef, useEffect, useCallback } from 'react';
-import { fetchSimilarity } from '@/lib/api/embeddings';
-import * as fuzz from 'fuzzball';
+import { useRef, useEffect, useCallback } from "react";
+import { fetchEmbedding, cosineSimilarity } from "@/lib/api/embeddings";
+import { embeddingModel } from "@/lib/embeddings/modelManager";
+import * as fuzz from "fuzzball";
 
 //
 // IMPORTANT: For openAI embedding: choose server near openAI's server for lower latency
@@ -10,8 +11,14 @@ interface UseGoogleSTTProps {
     lineEndKeywords: string[];
     onCueDetected: (transcript: string) => void;
     onSilenceTimeout?: () => void;
-    expectedEmbedding: number[];
+    expectedEmbedding?: number[];
     onProgressUpdate?: (matchedCount: number) => void;
+    silenceTimers?: {
+        /** When user is silent during their turn, auto-skip to next line */
+        skipToNextMs?: number;
+        /** When there is general inactivity, pause/cleanup the stream */
+        inactivityPauseMs?: number;
+    };
 }
 
 interface OptimizedMatchingState {
@@ -166,8 +173,9 @@ export function useGoogleSTT({
     lineEndKeywords,
     onCueDetected,
     onSilenceTimeout,
-    expectedEmbedding,
+    // expectedEmbedding,
     onProgressUpdate,
+    silenceTimers,
 }: UseGoogleSTTProps) {
     // STT setup
     const wsRef = useRef<WebSocket | null>(null);
@@ -177,6 +185,11 @@ export function useGoogleSTT({
     const silenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const micCleanupRef = useRef<(() => void) | null>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
+    const DEFAULT_TIMERS = useRef({ skipToNextMs: 4000, inactivityPauseMs: 15000 });
+    const timersRef = useRef({
+        ...DEFAULT_TIMERS.current,
+        ...(silenceTimers ?? {}),
+    });
 
     // Cue detection
     const fullTranscript = useRef<string[]>([]);
@@ -202,12 +215,19 @@ export function useGoogleSTT({
 
     const setCurrentLineText = useCallback((text: string) => {
         currentLineTextRef.current = text;
+
+        // If matcher doesn't exist yet, create it
+        if (!matcherRef.current && onProgressUpdate) {
+            console.log('[Matcher] Creating matcher on-demand');
+            matcherRef.current = new OptimizedSTTMatcher(onProgressUpdate);
+        }
+
         if (matcherRef.current) {
             matcherRef.current.setCurrentLineText(text);
         } else {
             console.warn('[Matcher] matcherRef.current is NULL!');
         }
-    }, []);
+    }, [onProgressUpdate]);
 
     // STT helpers
     const triggerNextLine = (transcript: string) => {
@@ -223,24 +243,32 @@ export function useGoogleSTT({
         return true;
     };
 
+    useEffect(() => {
+        timersRef.current = {
+            ...DEFAULT_TIMERS.current,
+            ...(silenceTimers ?? {}),
+        };
+    }, [silenceTimers]);
+
     const resetSilenceTimeout = () => {
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
         silenceTimeoutRef.current = setTimeout(() => {
-            console.log('🛑 Silence timeout — stopping Google STT to save usage.');
+            console.log('🛑 Silence timeout. Pausing audio stream.');
             pauseSTT();
             onSilenceTimeout?.();
-        }, 10000);
+        }, timersRef.current.inactivityPauseMs);
     };
 
     const resetSilenceTimer = (spokenLine: string) => {
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
         silenceTimerRef.current = setTimeout(() => {
             if (hasTriggeredRef.current) return;
-            console.log('⏳ Silence timer triggered. Running finalization...');
+            console.log('⏳ Silence timer triggered. Skipping to next line.');
             triggerNextLine(spokenLine);
-        }, 5000);
+        }, timersRef.current.skipToNextMs);
     };
 
+    // Helper functions
     const matchesEndPhrase = (transcript: string, keywords: string[]) => {
         const normalize = (text: string) =>
             text.toLowerCase().replace(/[\s.,!?'"“”\-]+/g, ' ').trim();
@@ -252,9 +280,23 @@ export function useGoogleSTT({
         );
     };
 
+    function tokens(s: string) {
+        return s.trim().split(/\s+/).filter(Boolean);
+    }
+
+    function tailText(s: string, W: number) {
+        const t = tokens(s);
+        return t.slice(-W).join(" ");
+    }
+
+    const TAIL_WINDOWS = [6, 10, 15];
+    const LOCAL_SIM_THRESHOLD = 0.8;
+    const API_SIM_THRESHOLD = 0.8;
+
     const handleFinalization = async (spokenLine: string) => {
         const start = performance.now();
 
+        // 1) Exact keyword
         if (matchesEndPhrase(spokenLine, lineEndKeywords)) {
             const end = performance.now();
             console.log(`⚡ Keyword match passed in: ${(end - start).toFixed(2)}ms`);
@@ -262,6 +304,7 @@ export function useGoogleSTT({
             return;
         }
 
+        // 2) Fuzzy keyword match
         if (fuzzyMatchEndKeywords(spokenLine, lineEndKeywords)) {
             const end = performance.now();
             console.log(`🤏 Fuzzy match passed in ${(end - start).toFixed(2)}ms`);
@@ -269,15 +312,54 @@ export function useGoogleSTT({
             return;
         }
 
-        if (expectedEmbedding?.length) {
-            const similarity = await fetchSimilarity(spokenLine, expectedEmbedding);
-            console.log('Similarity: ', similarity);
-            if (similarity && similarity > 0.9) {
-                console.log("✅ Similarity passed (Google)!");
-                triggerNextLine(spokenLine);
+        // 3) Semantic (sliding tail windows with multi-window max)
+        const expectedLine = currentLineTextRef.current;
+        if (!expectedLine) return;
+
+        try {
+            if (embeddingModel.isReady()) {
+                // Local model path — compute similarity for each W, take the max
+                const sims = await Promise.all(
+                    TAIL_WINDOWS.map(async (W) => {
+                        const sTail = tailText(spokenLine, W);
+                        const eTail = tailText(expectedLine, W);
+                        const sim = await embeddingModel.getSimilarity(sTail, eTail);
+                        return { W, sim };
+                    })
+                );
+
+                const best = sims.reduce((a, b) => (b.sim > a.sim ? b : a));
+                console.log("🧩 Tail sims (local):", sims, "best:", best);
+
+                if (best.sim >= LOCAL_SIM_THRESHOLD) {
+                    const end = performance.now();
+                    console.log(`✅ Semantic similarity (local) passed in ${(end - start).toFixed(2)}ms`);
+
+                    triggerNextLine(spokenLine);
+                    return;
+                }
             } else {
-                console.log("🔁 Similarity too low.");
+                // Fallback to api call if model isn't ready
+                console.log("Using fallback for similarity...");
+
+                const [spokenEmbedding, expectedEmbedding] = await Promise.all([
+                    fetchEmbedding(spokenLine),
+                    fetchEmbedding(expectedLine),
+                ]);
+
+                if (spokenEmbedding && expectedEmbedding) {
+                    const similarity = cosineSimilarity(spokenEmbedding, expectedEmbedding);
+                    console.log("Similarity (API):", similarity);
+
+                    if (similarity > API_SIM_THRESHOLD) {
+                        console.log("✅ Similarity passed (API)!");
+                        triggerNextLine(spokenLine);
+                        return;
+                    }
+                }
             }
+        } catch (error) {
+            console.error("Similarity check failed:", error);
         }
     };
 
@@ -288,6 +370,8 @@ export function useGoogleSTT({
             const end = performance.now();
             console.log(`⚡ Keyword match passed in: ${(end - start).toFixed(2)}ms`);
             triggerNextLine(spokenLine);
+        } else {
+            console.log('Keyword match failed.');
         }
 
         // if (fuzzyMatchEndKeywords(spokenLine, lineEndKeywords)) {
@@ -310,13 +394,8 @@ export function useGoogleSTT({
     const fuzzyMatchEndKeywords = (
         transcript: string,
         keywords: string[],
-        threshold = 70
+        threshold = 80
     ): boolean => {
-        // const lastSentence = normalize(extractLastSentence(transcript));
-        // const words = lastSentence.split(/\s+/);
-
-        // console.log('fuzzy match last sentence: ', lastSentence);
-
         const normTranscript = normalize(transcript);
         const words = normTranscript.split(/\s+/);
 
@@ -429,6 +508,7 @@ export function useGoogleSTT({
 
     const startSTT = async () => {
         if (isActiveRef.current) return;
+
         isActiveRef.current = true;
         hasTriggeredRef.current = false;
         fullTranscript.current = [];
@@ -499,7 +579,7 @@ export function useGoogleSTT({
                 const repeatDuration = now - (repeatStartTimeRef.current ?? now);
 
                 if (repeatCountRef.current >= 2 && repeatDuration >= 400) {
-                    console.log('🟡 Stable interim — forcing early match');
+                    console.log('🟡 Stable transcript detected — forcing early match');
                     await handleKeywordMatch(transcript);
                     repeatCountRef.current = 0;
                     repeatStartTimeRef.current = null;
@@ -521,7 +601,10 @@ export function useGoogleSTT({
                     return;
                 }
 
-                const isLongEnough = expectedWords && spokenWords.length >= Math.floor(expectedWords.length * 0.8);
+                const isLongEnough = expectedWords && spokenWords.length >= Math.floor(expectedWords.length * 0.75);
+                const lengthRatio = expectedWords && spokenWords.length / expectedWords.length;
+                // const isLongEnough = expectedWords && spokenWords.length >= expectedWords.length;
+                console.log('Long enough?', lengthRatio);
 
                 if (isLongEnough) {
                     console.log(`🟡 Google Final transcript accepted @ ${performance.now().toFixed(2)}ms! Handling finalization...`);
