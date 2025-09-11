@@ -23,6 +23,7 @@
     "firebase": "^11.10.0",
     "firebase-admin": "^13.4.0",
     "fuzzball": "^2.2.2",
+    "howler": "^2.2.4",
     "hume": "^0.12.1",
     "idb-keyval": "^6.2.2",
     "lucide-react": "^0.541.0",
@@ -39,6 +40,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/howler": "^2.2.12",
     "@types/node": "^20",
     "@types/pdf-parse": "^1.1.5",
     "@types/react": "^19",

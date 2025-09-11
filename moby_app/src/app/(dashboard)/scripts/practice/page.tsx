@@ -6,6 +6,7 @@ import { useGoogleSTT } from "@/lib/google/speechToText";
 import { useDeepgramSTT } from "@/lib/deepgram/speechToText";
 import type { ScriptElement } from "@/types/script";
 import { setLastPracticed } from "@/lib/firebase/client/scripts";
+import { AudioPlayerWithFallbacks } from "@/lib/audioplayer/withFallbacks";
 import { loadScript, hydrateScript, hydrateLine, initializeEmbeddingModel } from "./loader";
 import { RoleSelector } from "./roleSelector";
 import EditableLine from "./editableLine";
@@ -87,6 +88,8 @@ function RehearsalRoomContent() {
 	// Load script and restore session
 	useEffect(() => {
 		if (!userID || !scriptID) return;
+
+		console.log("🔥 useEffect triggered", { userID, scriptID });
 
 		(async () => {
 			setLoading(true);
@@ -363,17 +366,18 @@ function RehearsalRoomContent() {
 	// Handle script flow
 	const current = script?.find((el) => el.index === currentIndex) ?? null;
 
-	const isScriptFullyHydrated = useMemo(() => {
-		return script?.every((el) => {
-			if (el.type !== 'line') return true;
+	// May not be needed anymore
+	// const isScriptFullyHydrated = useMemo(() => {
+	// 	return script?.every((el) => {
+	// 		if (el.type !== 'line') return true;
 
-			const hydratedEmbedding = Array.isArray(el.expectedEmbedding) && el.expectedEmbedding.length > 0;
-			const hydratedTTS = typeof el.ttsUrl === 'string' && el.ttsUrl.length > 0;
-			const ttsReady = (ttsHydrationStatus[el.index] ?? 'pending') === 'ready';
+	// 		const hydratedEmbedding = Array.isArray(el.expectedEmbedding) && el.expectedEmbedding.length > 0;
+	// 		const hydratedTTS = typeof el.ttsUrl === 'string' && el.ttsUrl.length > 0;
+	// 		const ttsReady = (ttsHydrationStatus[el.index] ?? 'pending') === 'ready';
 
-			return hydratedEmbedding && hydratedTTS && ttsReady;
-		}) ?? false;
-	}, [script, ttsHydrationStatus]);
+	// 		return hydratedEmbedding && hydratedTTS && ttsReady;
+	// 	}) ?? false;
+	// }, [script, ttsHydrationStatus]);
 
 	const prepareUserLine = (line: ScriptElement | undefined | null) => {
 		if (
@@ -389,6 +393,7 @@ function RehearsalRoomContent() {
 		return scriptRef.current?.find((el) => el.index === index);
 	};
 
+	// Scene + direction
 	useEffect(() => {
 		if (!current || !isPlaying || isWaitingForUser) return;
 
@@ -409,6 +414,67 @@ function RehearsalRoomContent() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [current, currentIndex, isPlaying, isWaitingForUser]);
 
+	// Initialize player
+	const audioPlayerRef = useRef<AudioPlayerWithFallbacks | null>(null);
+	if (!audioPlayerRef.current) {
+		audioPlayerRef.current = new AudioPlayerWithFallbacks();
+	}
+
+	// Callback to update script state when URL is refreshed
+	const handleUrlRefreshed = useCallback((lineIndex: number, newUrl: string) => {
+		console.log(`Updating state with fresh URL for line ${lineIndex}`);
+
+		setScript(prevScript => {
+			if (!prevScript) return prevScript;
+
+			return prevScript.map(el =>
+				el.index === lineIndex
+					? { ...el, ttsUrl: newUrl }
+					: el
+			);
+		});
+	}, []);
+
+	// Preload upcoming lines
+	useEffect(() => {
+		const preloadUpcomingAudio = async () => {
+			const player = audioPlayerRef.current;
+			if (!player || !script || !scriptID) return;
+
+			// Get next 3-5 lines
+			const upcomingLines = script
+				.slice(currentIndex, currentIndex + 5)
+				.filter(el =>
+					el.type === 'line' &&
+					el.ttsUrl
+				)
+				.map(el => ({
+					url: el.ttsUrl!,
+					storagePath: `users/${userID}/scripts/${scriptID}/tts-audio/${el.index}.mp3`,
+					lineIndex: el.index
+				}));
+
+			if (upcomingLines.length > 0) {
+				console.log(`Preloading ${upcomingLines.length} upcoming audio files...`);
+				const results = await player.preload(upcomingLines, {
+					scriptId: scriptID,
+					userId: userID,
+					onUrlRefreshed: handleUrlRefreshed
+				});
+
+				// Check for failures
+				results.forEach((success, lineId) => {
+					if (!success) {
+						console.warn(`Failed to preload line ${lineId}`);
+					}
+				});
+			}
+		};
+
+		preloadUpcomingAudio();
+	}, [currentIndex, script, scriptID, userID, handleUrlRefreshed]);
+
+	// Scene partner line playback
 	useEffect(() => {
 		if (
 			!current ||
@@ -416,28 +482,37 @@ function RehearsalRoomContent() {
 			isWaitingForUser ||
 			current.type !== "line" ||
 			current.role !== "scene-partner" ||
-			!current.ttsUrl
+			!current.ttsUrl ||
+			!scriptID
 		) {
 			return;
 		}
-		const audio = new Audio(current.ttsUrl);
+
 		console.log(`[SCENE PARTNER LINE]`, current.text);
 
-		audio.play().catch((err) => {
-			console.warn("⚠️ Failed to play TTS audio", err);
-			autoAdvance(1000);
-		});
+		const player = audioPlayerRef.current;
+		const storagePath = `users/${userID}/scripts/${scriptID}/tts-audio/${current.index}.mp3`;
 
-		audio.onended = () => {
-			autoAdvance(0); // Changed to 0 for immediate advance
-		};
+		player?.play(current.ttsUrl, {
+			storagePath,
+			lineIndex: current.index,
+			scriptId: scriptID,
+			userId: userID,
+			onUrlRefreshed: (newUrl) => handleUrlRefreshed(current.index, newUrl)
+		})
+			.then(() => {
+				console.log('✅ Audio playback completed');
+				autoAdvance(0);
+			})
+			.catch((err) => {
+				console.warn("⚠️ All audio playback strategies failed", err);
+				autoAdvance(1000);
+			});
 
 		return () => {
-			audio.pause();
-			audio.src = "";
+			player?.stop();
 		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [current, isPlaying, isWaitingForUser]);
+	}, [current, isPlaying, isWaitingForUser, scriptID, userID, handleUrlRefreshed]);
 
 	useEffect(() => {
 		if (
