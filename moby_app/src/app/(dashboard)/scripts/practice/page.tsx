@@ -5,14 +5,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useGoogleSTT } from "@/lib/google/speechToText";
 import { useDeepgramSTT } from "@/lib/deepgram/speechToText";
 import type { ScriptElement } from "@/types/script";
-import { setLastPracticed } from "@/lib/firebase/client/scripts";
+import { updateScript, setLastPracticed } from "@/lib/firebase/client/scripts";
 import { AudioPlayerWithFallbacks } from "@/lib/audioplayer/withFallbacks";
 import { loadScript, hydrateScript, hydrateLine, initializeEmbeddingModel } from "./loader";
 import { RoleSelector } from "./roleSelector";
 import EditableLine from "./editableLine";
 import { OptimizedLineRenderer } from "./lineRenderer";
 import { restoreSession, saveSession } from "./session";
-import { clear } from "idb-keyval";
+import { clear, set } from "idb-keyval";
 import LoadingScreen from "./LoadingScreen";
 import { Button, MicCheckModal } from "@/components/ui";
 import { useAuthUser } from "@/components/providers/UserProvider";
@@ -324,7 +324,7 @@ function RehearsalRoomContent() {
 	const onUpdateLine = async (updateLine: ScriptElement) => {
 		setEditingLineIndex(null);
 		setIsUpdatingLine(true);
-		setLoadStage('🚰 Rehydrating...');
+		setLoadStage('♻️ Regenerating...');
 
 		if (!script) {
 			console.warn('❌ Tried to update line before script was loaded.');
@@ -355,16 +355,34 @@ function RehearsalRoomContent() {
 					setStorageError,
 				});
 
-				setScript((prev) => {
-					const next = prev?.map((el) =>
-						el.index === result.index
-							? { ...el, ...result, text: updateLine.text }
-							: el
-					) ?? [];
+				// Create the final updated script with hydration results
+				const finalUpdatedScript = updatedScript.map((el) =>
+					el.index === result.index
+						? { ...el, ...result, text: updateLine.text }
+						: el
+				);
 
-					scriptRef.current = next;
-					return next;
-				});
+				// Update local state
+				setScript(finalUpdatedScript);
+				scriptRef.current = finalUpdatedScript;
+
+				// Update Firestore
+				try {
+					await updateScript(scriptID, finalUpdatedScript);
+					console.log(`✅ Updated Firestore with updated line ${updateLine.index}`);
+				} catch {
+					console.error('❌ Failed to update Firestore');
+				}
+
+				// Update IndexedDB cache
+				const cacheKey = `script-cache:${userID}:${scriptID}`;
+				try {
+					await set(cacheKey, finalUpdatedScript);
+					console.log(`💾 Script cached successfully in IndexedDB for line ${updateLine.index}`);
+				} catch (cacheError) {
+					console.warn('⚠️ Failed to update IndexedDB cache:', cacheError);
+					// Don't throw - Firestore update succeeded, so the critical save is done
+				}
 
 				setLoadStage('✅ Line successfully updated!');
 				setIsUpdatingLine(false);
@@ -418,7 +436,7 @@ function RehearsalRoomContent() {
 			case "scene":
 			case "direction":
 				console.log(`[${current.type.toUpperCase()}]`, current.text);
-				autoAdvance(0); // Changed from 2000 to 0 for immediate skip
+				autoAdvance(1000); // Changed from 2000 to 1000 for faster skip
 				break;
 
 			case "line":
