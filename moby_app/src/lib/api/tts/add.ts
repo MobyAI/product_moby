@@ -15,8 +15,6 @@ export async function addTTS(
 ): Promise<ScriptElement> {
     if (element.type !== 'line') return element;
 
-    console.log(`➡️ addTTS called for line ${element.index}`);
-
     // Check for updated line
     const latestLine = getScriptLine(element.index);
 
@@ -28,10 +26,10 @@ export async function addTTS(
 
     const defaultVoiceId =
         element.gender === 'male'
-            ? '3XOBzXhnDY98yeWQ3GdM' // Brayden
+            ? '1SM7GgM6IMuvQlz2BwM3' // Ethan
             : element.gender === 'female'
-                ? 'OYTbf65OHHFELVut7v2H' // Hope
-                : 'OYTbf65OHHFELVut7v2H';
+                ? 'kdmDKE6EkgrWrrykO9Qt' // Alexandra
+                : 'kdmDKE6EkgrWrrykO9Qt';
 
     try {
         let url: string | undefined;
@@ -60,8 +58,7 @@ export async function addTTS(
 
         const blob = await fetchElevenTTS({
             text: element.text,
-            // voiceId: element.voiceId ?? defaultVoiceId,
-            voiceId: defaultVoiceId,
+            voiceId: element.voiceId ?? defaultVoiceId,
             voiceSettings: {
                 stability: 0.5,
                 similarityBoost: 0.75,
@@ -102,10 +99,10 @@ export async function addTTSRegenerate(
 
     const defaultVoiceId =
         element.gender === 'male'
-            ? '3XOBzXhnDY98yeWQ3GdM' // Brayden
+            ? '1SM7GgM6IMuvQlz2BwM3' // Ethan
             : element.gender === 'female'
-                ? 'OYTbf65OHHFELVut7v2H' // Hope
-                : 'OYTbf65OHHFELVut7v2H';
+                ? 'kdmDKE6EkgrWrrykO9Qt' // Alexandra
+                : 'kdmDKE6EkgrWrrykO9Qt';
 
     try {
         // const sanitizeForTTS = (text: string): string => {
@@ -121,8 +118,7 @@ export async function addTTSRegenerate(
 
         const blob = await fetchElevenTTS({
             text: element.text,
-            // voiceId: element.voiceId ?? defaultVoiceId,
-            voiceId: defaultVoiceId,
+            voiceId: element.voiceId ?? defaultVoiceId,
             voiceSettings: {
                 stability: 0.5,
                 similarityBoost: 0.75,
