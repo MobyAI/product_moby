@@ -11,7 +11,7 @@ interface UseGoogleSTTProps {
     lineEndKeywords: string[];
     onCueDetected: (transcript: string) => void;
     onSilenceTimeout?: () => void;
-    expectedEmbedding: number[];
+    expectedEmbedding?: number[];
     onProgressUpdate?: (matchedCount: number) => void;
     silenceTimers?: {
         /** When user is silent during their turn, auto-skip to next line */
@@ -173,7 +173,7 @@ export function useGoogleSTT({
     lineEndKeywords,
     onCueDetected,
     onSilenceTimeout,
-    expectedEmbedding,
+    // expectedEmbedding,
     onProgressUpdate,
     silenceTimers,
 }: UseGoogleSTTProps) {
@@ -528,8 +528,8 @@ export function useGoogleSTT({
         }
 
         if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
-            // wsRef.current = new WebSocket('wss://google-stt.fly.dev');
-            wsRef.current = new WebSocket('ws://localhost:3001');
+            wsRef.current = new WebSocket('wss://google-stt.fly.dev');
+            // wsRef.current = new WebSocket('ws://localhost:3001');
         } else {
             console.warn('🔁 Reusing existing WebSocket');
         }

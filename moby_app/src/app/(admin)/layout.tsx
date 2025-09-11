@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import AuthShell from "@/components/layouts/AuthShell";
 import AdminAuthShell from "@/components/layouts/AdminAuthShell";
 

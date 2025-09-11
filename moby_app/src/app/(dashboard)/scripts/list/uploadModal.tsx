@@ -71,6 +71,7 @@ interface ProcessingErrorProps {
 }
 
 // Helper functions
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isLine(el: any): el is { type: 'line'; text: string; lineEndKeywords?: string[]; character?: string } {
     return el && el.type === 'line' && typeof el.text === 'string';
 }
@@ -396,6 +397,7 @@ export default function ScriptUploadModal({
             // Add line end keywords
             const needsKws = parsedScript.some(
                 (it) => it?.type === 'line'
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     && (!Array.isArray((it as any).lineEndKeywords) || (it as any).lineEndKeywords.length === 0)
             );
 

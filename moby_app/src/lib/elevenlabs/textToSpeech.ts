@@ -33,6 +33,7 @@ export async function fetchTTSBlob(options: TTSOptions): Promise<Blob> {
     } = options;
 
     // Build the request parameters
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const requestParams: any = {
         text,
         model_id: modelId,

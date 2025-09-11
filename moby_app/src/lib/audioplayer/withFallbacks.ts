@@ -1,6 +1,6 @@
 import { Howl } from 'howler';
 import { ref, getDownloadURL } from 'firebase/storage';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { storage, db } from '@/lib/firebase/client/config/app';
 import { updateScript } from '@/lib/firebase/client/scripts';
 import { set } from 'idb-keyval';
@@ -110,6 +110,7 @@ export class AudioPlayerWithFallbacks {
             }
 
             const scriptData = scriptDoc.data();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const updatedScript = scriptData.script.map((element: any) => {
                 if (element.index === lineIndex) {
                     return {
@@ -174,6 +175,7 @@ export class AudioPlayerWithFallbacks {
                     results.set(key, true);
                     console.log(`✅ Preloaded: ${item.lineIndex}`);
 
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } catch (error: any) {
                     console.warn(`Failed to preload ${item.lineIndex}:`, error);
 
@@ -240,6 +242,7 @@ export class AudioPlayerWithFallbacks {
         });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private isNetworkError(error: any): boolean {
         const errorStr = error?.message || error?.toString() || '';
         return errorStr.includes('403') ||
@@ -267,7 +270,7 @@ export class AudioPlayerWithFallbacks {
                 console.log('Using preloaded audio');
                 await this.playPreloadedHowl(preloaded.howl);
                 return;
-            } catch (error) {
+            } catch {
                 console.warn('Preloaded audio failed, trying fresh strategies');
                 this.preloadCache.delete(cacheKey);
             }
@@ -309,6 +312,7 @@ export class AudioPlayerWithFallbacks {
                     }
 
                     return; // Success!
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } catch (error: any) {
                     console.warn(`❌ ${strategy.name} failed:`, error);
 
@@ -414,6 +418,7 @@ export class AudioPlayerWithFallbacks {
     }
 
     private async playWithWebAudio(url: string): Promise<void> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
 
         try {

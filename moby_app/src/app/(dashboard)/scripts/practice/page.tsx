@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo, useCallback, Suspense } from "react";
+import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGoogleSTT } from "@/lib/google/speechToText";
 import { useDeepgramSTT } from "@/lib/deepgram/speechToText";
@@ -192,6 +192,7 @@ function RehearsalRoomContent() {
 			setDownloading(false);
 			setLoading(false);
 		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [userID, scriptID]);
 
 	// Mic check
@@ -436,7 +437,7 @@ function RehearsalRoomContent() {
 			case "scene":
 			case "direction":
 				console.log(`[${current.type.toUpperCase()}]`, current.text);
-				autoAdvance(1000); // Changed from 2000 to 1000 for faster skip
+				autoAdvance(750); // Changed from 2000 to 750 for faster skip
 				break;
 
 			case "line":
@@ -547,6 +548,7 @@ function RehearsalRoomContent() {
 		return () => {
 			player?.stop();
 		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [current, isPlaying, isWaitingForUser, scriptID, userID, handleUrlRefreshed]);
 
 	useEffect(() => {

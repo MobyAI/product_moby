@@ -72,6 +72,7 @@ class EmbeddingModelManager {
                 {
                     quantized: true,
                     // Add cache check
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     progress_callback: (progress: any) => {
                         // If files are cached, this will be very fast
                         if (progress.status === 'ready') {
