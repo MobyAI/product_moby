@@ -120,6 +120,7 @@ export default function ScriptUploadModal({
     const [currentStage, setCurrentStage] = useState(0);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [extractedText, setExtractedText] = useState<ExtractedTextResult | null>(null);
+    const [extractionError, setExtractionError] = useState(false);
     const [extractedRoles, setExtractedRoles] = useState<string[] | null>([]);
     const [parsedScript, setParsedScript] = useState<ScriptElement[] | null>(null);
     const [showCloseConfirm, setShowCloseConfirm] = useState(false);
@@ -228,10 +229,38 @@ export default function ScriptUploadModal({
             // Stage 1: Extract Text
             setProcessingStage({ message: 'Extracting text from document...', isComplete: false });
             setCurrentStage(1);
+            let textResult;
 
-            // TODO: Replace with actual API call
-            const textResult = await extractScriptText(file);
-            setExtractedText(textResult);
+            try {
+                textResult = await extractScriptText(file);
+
+                if (!textResult || !textResult.text || textResult.text.trim().length === 0) {
+                    // Set error state for empty text
+                    setExtractionError(true);
+                    setProcessingStage({
+                        message: 'Failed to extract text from document',
+                        isComplete: false,
+                    });
+                    // Stop processing here
+                    return;
+                }
+
+                setExtractionError(false);
+                setExtractedText(textResult);
+
+            } catch (error) {
+                console.error('Text extraction failed:', error);
+
+                // Set error state for API failure
+                setExtractionError(true);
+                setProcessingStage({
+                    message: 'Failed to extract text from document',
+                    isComplete: false,
+                });
+
+                // Stop processing here
+                return;
+            }
 
             // Stage 2: Extract Roles (automatic)
             setProcessingStage({ message: 'Identifying characters...', isComplete: false });
@@ -433,20 +462,70 @@ export default function ScriptUploadModal({
 
                         {/* Stage 1: Loading */}
                         {currentStage === 1 && (
-                            <div className="text-center py-12">
-                                {/* Animated Logo/Icon */}
-                                <div className="w-24 h-24 mx-auto mb-6 relative">
-                                    <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full"></div>
-                                    <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin"></div>
-                                    <div className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin animate-reverse" style={{ animationDuration: '1.5s' }}></div>
-                                </div>
-                                <p className="text-gray-600">Processing your script...</p>
+                            <>
+                                {!extractionError ? (
+                                    // Normal loading state
+                                    <div className="text-center py-12">
+                                        {/* Animated Logo/Icon */}
+                                        <div className="w-24 h-24 mx-auto mb-6 relative">
+                                            <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full"></div>
+                                            <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin"></div>
+                                            <div className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin animate-reverse" style={{ animationDuration: '1.5s' }}></div>
+                                        </div>
+                                        <p className="text-gray-600">Processing your script...</p>
 
-                                {/* Fun Loading Messages */}
-                                <div className="mt-8 text-white/60 text-sm">
-                                    <RotatingTips tipSet="processing" />
-                                </div>
-                            </div>
+                                        {/* Fun Loading Messages */}
+                                        <div className="mt-8 text-white/60 text-sm">
+                                            <RotatingTips tipSet="processing" />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // Error state
+                                    <div className="text-center">
+                                        {/* Error Icon */}
+                                        <div className="w-24 h-24 mx-auto mb-6 relative">
+                                            <div className="absolute inset-0 bg-red-100 rounded-full flex items-center justify-center">
+                                                <svg className="w-12 h-12 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                            </div>
+                                        </div>
+
+                                        <h3 className="text-xl font-semibold text-gray-900 mb-8">
+                                            Unable to Extract Text
+                                        </h3>
+
+                                        <p className="text-left max-w-md mx-auto mb-2 space-y-2 text-gray-600">
+                                            This might happen if:
+                                        </p>
+
+                                        <ul className="text-left max-w-md mx-auto mb-8 space-y-2 text-gray-600">
+                                            <li className="flex items-start">
+                                                <span className="text-red-500 mr-2">•</span>
+                                                The file is an image without selectable text (try using OCR software first)
+                                            </li>
+                                            <li className="flex items-start">
+                                                <span className="text-red-500 mr-2">•</span>
+                                                The PDF is scanned without text recognition
+                                            </li>
+                                            <li className="flex items-start">
+                                                <span className="text-red-500 mr-2">•</span>
+                                                The file might be corrupted or empty
+                                            </li>
+                                        </ul>
+
+                                        <div className="flex gap-4 justify-center">
+                                            <button
+                                                onClick={confirmClose}
+                                                className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                                            >
+                                                Try Another File
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
 
                         {/* Stage 2: Name Script */}

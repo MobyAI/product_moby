@@ -44,6 +44,7 @@ function RehearsalRoomContent() {
 	const [loadStage, setLoadStage] = useState<string | null>(null);
 	const [loadProgress, setLoadProgress] = useState(0);
 	const [ttsHydrationStatus, setTTSHydrationStatus] = useState<Record<number, 'pending' | 'updating' | 'ready' | 'failed'>>({});
+	const hydrationInProgress = useRef(false);
 
 	// Disable script rehearsal until finished
 	const isBusy = hydrating || downloading;
@@ -88,6 +89,13 @@ function RehearsalRoomContent() {
 	// Load script and restore session
 	useEffect(() => {
 		if (!userID || !scriptID) return;
+
+		// Check if hydration is already running
+		if (hydrationInProgress.current) {
+			console.log("⏭️ Hydration already in progress, skipping...");
+			return;
+		}
+		hydrationInProgress.current = true;
 
 		console.log("🔥 useEffect triggered", { userID, scriptID });
 
@@ -170,11 +178,20 @@ function RehearsalRoomContent() {
 					setCurrentIndex(restored.index ?? 0);
 				}
 			} finally {
+				hydrationInProgress.current = false;
 				setHydrating(false);
 				setDownloading(false);
 				setLoading(false);
 			}
 		})();
+
+		// Optional: Reset on cleanup in case component unmounts
+		return () => {
+			hydrationInProgress.current = false;
+			setHydrating(false);
+			setDownloading(false);
+			setLoading(false);
+		};
 	}, [userID, scriptID]);
 
 	// Mic check
