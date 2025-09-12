@@ -1,17 +1,18 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo, useCallback, Suspense } from "react";
+import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGoogleSTT } from "@/lib/google/speechToText";
 import { useDeepgramSTT } from "@/lib/deepgram/speechToText";
 import type { ScriptElement } from "@/types/script";
-import { setLastPracticed } from "@/lib/firebase/client/scripts";
-import { loadScript, hydrateScript, hydrateLine } from "./loader";
+import { updateScript, setLastPracticed } from "@/lib/firebase/client/scripts";
+import { AudioPlayerWithFallbacks } from "@/lib/audioplayer/withFallbacks";
+import { loadScript, hydrateScript, hydrateLine, initializeEmbeddingModel } from "./loader";
 import { RoleSelector } from "./roleSelector";
 import EditableLine from "./editableLine";
 import { OptimizedLineRenderer } from "./lineRenderer";
 import { restoreSession, saveSession } from "./session";
-import { clear } from "idb-keyval";
+import { clear, set } from "idb-keyval";
 import LoadingScreen from "./LoadingScreen";
 import { Button, MicCheckModal } from "@/components/ui";
 import { useAuthUser } from "@/components/providers/UserProvider";
@@ -39,9 +40,14 @@ function RehearsalRoomContent() {
 	// Loading
 	const [loading, setLoading] = useState(false);
 	const [hydrating, setHydrating] = useState(false);
+	const [downloading, setDownloading] = useState(false);
 	const [loadStage, setLoadStage] = useState<string | null>(null);
 	const [loadProgress, setLoadProgress] = useState(0);
 	const [ttsHydrationStatus, setTTSHydrationStatus] = useState<Record<number, 'pending' | 'updating' | 'ready' | 'failed'>>({});
+	const hydrationInProgress = useRef(false);
+
+	// Disable script rehearsal until finished
+	const isBusy = hydrating || downloading;
 
 	// Page Content
 	const [script, setScript] = useState<ScriptElement[] | null>(null);
@@ -63,11 +69,9 @@ function RehearsalRoomContent() {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [isWaitingForUser, setIsWaitingForUser] = useState(false);
-	// const [spokenWordMap, setSpokenWordMap] = useState<Record<number, number>>(
-	// 	{}
-	// );
 	const wordRefs = useRef<Map<number, HTMLSpanElement[]>>(new Map());
-	const matchedCountsRef = useRef<Map<number, number>>(new Map());
+	const [lineStates, setLineStates] = useState<Map<number, { matched: number; completed: boolean }>>(new Map());
+	const [skipMs, setSkipMs] = useState(4000);
 
 	// Error handling
 	const [storageError, setStorageError] = useState(false);
@@ -86,68 +90,108 @@ function RehearsalRoomContent() {
 	useEffect(() => {
 		if (!userID || !scriptID) return;
 
-		const init = async () => {
+		// Check if hydration is already running
+		if (hydrationInProgress.current) {
+			console.log("⏭️ Hydration already in progress, skipping...");
+			return;
+		}
+		hydrationInProgress.current = true;
+
+		console.log("🔥 useEffect triggered", { userID, scriptID });
+
+		(async () => {
 			setLoading(true);
 			setHydrating(true);
+			setDownloading(true);
+			setLoadProgress(0);
 
-			const rawScript = await loadScript({
-				userID,
-				scriptID,
-				setLoadStage,
-				setStorageError,
-				setScriptName,
-			});
+			try {
+				// 1) Load script first
+				const rawScript = await loadScript({
+					userID,
+					scriptID,
+					setLoadStage,
+					setStorageError,
+					setScriptName,
+				});
 
-			if (!rawScript) {
-				// Display error page?
-				setLoading(false);
-				setHydrating(false);
-				return;
-			} else {
+				if (!rawScript) {
+					return;
+				}
+
 				setScript(rawScript);
 				scriptRef.current = rawScript;
-			}
+				setLoading(false);
 
-			hydrateScript({
-				script: rawScript,
-				userID,
-				scriptID,
-				setLoadStage,
-				setScript,
-				setStorageError,
-				setEmbeddingError,
-				setEmbeddingFailedLines,
-				setTTSLoadError,
-				setTTSFailedLines,
-				updateTTSHydrationStatus,
-				getScriptLine,
-				onProgressUpdate: (hydrated, total) => {
-					setLoadProgress(total > 0 ? (hydrated / total) * 100 : 0);
-				},
-			}).then(wasHydrated => {
-				setHydrating(false);
-				if (wasHydrated) {
-					showToast({
-						header: "Script Ready!",
-						line1: "You can begin rehearsing now.",
-						type: "success",
+				// 2) Initialize embeddings
+				setLoadProgress(0);
+				try {
+					await initializeEmbeddingModel({
+						setLoadStage,
+						onProgressUpdate: (a: number, b?: number) => {
+							const pct = b && b > 0 ? Math.round((a / b) * 100) : Math.round(a);
+							setLoadProgress(Math.max(0, Math.min(100, pct)));
+						},
 					});
+				} catch (e) {
+					console.warn("Model initialization failed, using fallback", e);
+				} finally {
+					setDownloading(false);
 				}
-			}).catch(() => {
+
+				// 3) Hydrate script
+				setLoadProgress(0);
+				try {
+					const wasHydrated = await hydrateScript({
+						script: rawScript,
+						userID,
+						scriptID,
+						setLoadStage,
+						setScript,
+						setStorageError,
+						setEmbeddingError,
+						setEmbeddingFailedLines,
+						setTTSLoadError,
+						setTTSFailedLines,
+						updateTTSHydrationStatus,
+						getScriptLine,
+						onProgressUpdate: (hydrated, total) => {
+							const pct = total > 0 ? Math.round((hydrated / total) * 100) : 0;
+							setLoadProgress(pct);
+						},
+					});
+
+					if (wasHydrated) {
+						showToast({
+							header: "Script Ready!",
+							line1: "You can begin rehearsing now.",
+							type: "success",
+						});
+					}
+				} catch (e) {
+					console.error("Hydration failed", e);
+				}
+
+				// 4) Restore session
+				const restored = await restoreSession(scriptID);
+				if (restored) {
+					setCurrentIndex(restored.index ?? 0);
+				}
+			} finally {
+				hydrationInProgress.current = false;
 				setHydrating(false);
-			});
-
-			// Restore session from indexedDB
-			const restored = await restoreSession(scriptID);
-
-			if (restored) {
-				setCurrentIndex(restored.index ?? 0);
+				setDownloading(false);
+				setLoading(false);
 			}
+		})();
 
+		// Optional: Reset on cleanup in case component unmounts
+		return () => {
+			hydrationInProgress.current = false;
+			setHydrating(false);
+			setDownloading(false);
 			setLoading(false);
 		};
-
-		init();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [userID, scriptID]);
 
@@ -241,14 +285,16 @@ function RehearsalRoomContent() {
 			.split(/\s+/)
 			.filter(Boolean);
 
-		// Filter out common words and duplicates
-		const meaningful = words
-			.filter((word, index) => {
-				return (
-					!COMMON_WORDS.has(word) &&
-					words.lastIndexOf(word) === index
-				);
-			});
+		// Count occurrences of each word
+		const counts = words.reduce<Record<string, number>>((acc, w) => {
+			acc[w] = (acc[w] || 0) + 1;
+			return acc;
+		}, {});
+
+		// Filter out common words and any word that occurs more than once
+		const meaningful = words.filter((word) => {
+			return !COMMON_WORDS.has(word) && counts[word] === 1;
+		});
 
 		const selected = meaningful.slice(-2);
 
@@ -256,10 +302,7 @@ function RehearsalRoomContent() {
 
 		if (selected.length === 1) {
 			const keyword = selected[0];
-
-			// Find index of that keyword in original `words` array
 			const idx = words.lastIndexOf(keyword);
-
 			let neighbor = '';
 
 			// Prefer word before
@@ -269,7 +312,6 @@ function RehearsalRoomContent() {
 				neighbor = words[idx + 1];
 			}
 
-			// Only return the keyword and neighbor if neighbor exists
 			return neighbor ? [neighbor, keyword] : [keyword];
 		}
 
@@ -283,7 +325,7 @@ function RehearsalRoomContent() {
 	const onUpdateLine = async (updateLine: ScriptElement) => {
 		setEditingLineIndex(null);
 		setIsUpdatingLine(true);
-		setLoadStage('🚰 Rehydrating...');
+		setLoadStage('♻️ Regenerating...');
 
 		if (!script) {
 			console.warn('❌ Tried to update line before script was loaded.');
@@ -314,16 +356,34 @@ function RehearsalRoomContent() {
 					setStorageError,
 				});
 
-				setScript((prev) => {
-					const next = prev?.map((el) =>
-						el.index === result.index
-							? { ...el, ...result, text: updateLine.text }
-							: el
-					) ?? [];
+				// Create the final updated script with hydration results
+				const finalUpdatedScript = updatedScript.map((el) =>
+					el.index === result.index
+						? { ...el, ...result, text: updateLine.text }
+						: el
+				);
 
-					scriptRef.current = next;
-					return next;
-				});
+				// Update local state
+				setScript(finalUpdatedScript);
+				scriptRef.current = finalUpdatedScript;
+
+				// Update Firestore
+				try {
+					await updateScript(scriptID, finalUpdatedScript);
+					console.log(`✅ Updated Firestore with updated line ${updateLine.index}`);
+				} catch {
+					console.error('❌ Failed to update Firestore');
+				}
+
+				// Update IndexedDB cache
+				const cacheKey = `script-cache:${userID}:${scriptID}`;
+				try {
+					await set(cacheKey, finalUpdatedScript);
+					console.log(`💾 Script cached successfully in IndexedDB for line ${updateLine.index}`);
+				} catch (cacheError) {
+					console.warn('⚠️ Failed to update IndexedDB cache:', cacheError);
+					// Don't throw - Firestore update succeeded, so the critical save is done
+				}
 
 				setLoadStage('✅ Line successfully updated!');
 				setIsUpdatingLine(false);
@@ -342,17 +402,18 @@ function RehearsalRoomContent() {
 	// Handle script flow
 	const current = script?.find((el) => el.index === currentIndex) ?? null;
 
-	const isScriptFullyHydrated = useMemo(() => {
-		return script?.every((el) => {
-			if (el.type !== 'line') return true;
+	// May not be needed anymore
+	// const isScriptFullyHydrated = useMemo(() => {
+	// 	return script?.every((el) => {
+	// 		if (el.type !== 'line') return true;
 
-			const hydratedEmbedding = Array.isArray(el.expectedEmbedding) && el.expectedEmbedding.length > 0;
-			const hydratedTTS = typeof el.ttsUrl === 'string' && el.ttsUrl.length > 0;
-			const ttsReady = (ttsHydrationStatus[el.index] ?? 'pending') === 'ready';
+	// 		const hydratedEmbedding = Array.isArray(el.expectedEmbedding) && el.expectedEmbedding.length > 0;
+	// 		const hydratedTTS = typeof el.ttsUrl === 'string' && el.ttsUrl.length > 0;
+	// 		const ttsReady = (ttsHydrationStatus[el.index] ?? 'pending') === 'ready';
 
-			return hydratedEmbedding && hydratedTTS && ttsReady;
-		}) ?? false;
-	}, [script, ttsHydrationStatus]);
+	// 		return hydratedEmbedding && hydratedTTS && ttsReady;
+	// 	}) ?? false;
+	// }, [script, ttsHydrationStatus]);
 
 	const prepareUserLine = (line: ScriptElement | undefined | null) => {
 		if (
@@ -368,6 +429,7 @@ function RehearsalRoomContent() {
 		return scriptRef.current?.find((el) => el.index === index);
 	};
 
+	// Scene + direction
 	useEffect(() => {
 		if (!current || !isPlaying || isWaitingForUser) return;
 
@@ -375,7 +437,7 @@ function RehearsalRoomContent() {
 			case "scene":
 			case "direction":
 				console.log(`[${current.type.toUpperCase()}]`, current.text);
-				autoAdvance(0); // Changed from 2000 to 0 for immediate skip
+				autoAdvance(750); // Changed from 2000 to 750 for faster skip
 				break;
 
 			case "line":
@@ -388,6 +450,67 @@ function RehearsalRoomContent() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [current, currentIndex, isPlaying, isWaitingForUser]);
 
+	// Initialize player
+	const audioPlayerRef = useRef<AudioPlayerWithFallbacks | null>(null);
+	if (!audioPlayerRef.current) {
+		audioPlayerRef.current = new AudioPlayerWithFallbacks();
+	}
+
+	// Callback to update script state when URL is refreshed
+	const handleUrlRefreshed = useCallback((lineIndex: number, newUrl: string) => {
+		console.log(`Updating state with fresh URL for line ${lineIndex}`);
+
+		setScript(prevScript => {
+			if (!prevScript) return prevScript;
+
+			return prevScript.map(el =>
+				el.index === lineIndex
+					? { ...el, ttsUrl: newUrl }
+					: el
+			);
+		});
+	}, []);
+
+	// Preload upcoming lines
+	useEffect(() => {
+		const preloadUpcomingAudio = async () => {
+			const player = audioPlayerRef.current;
+			if (!player || !script || !scriptID) return;
+
+			// Get next 3-5 lines
+			const upcomingLines = script
+				.slice(currentIndex, currentIndex + 5)
+				.filter(el =>
+					el.type === 'line' &&
+					el.ttsUrl
+				)
+				.map(el => ({
+					url: el.ttsUrl!,
+					storagePath: `users/${userID}/scripts/${scriptID}/tts-audio/${el.index}.mp3`,
+					lineIndex: el.index
+				}));
+
+			if (upcomingLines.length > 0) {
+				console.log(`Preloading ${upcomingLines.length} upcoming audio files...`);
+				const results = await player.preload(upcomingLines, {
+					scriptId: scriptID,
+					userId: userID,
+					onUrlRefreshed: handleUrlRefreshed
+				});
+
+				// Check for failures
+				results.forEach((success, lineId) => {
+					if (!success) {
+						console.warn(`Failed to preload line ${lineId}`);
+					}
+				});
+			}
+		};
+
+		preloadUpcomingAudio();
+	}, [currentIndex, script, scriptID, userID, handleUrlRefreshed]);
+
+	// Scene partner line playback
 	useEffect(() => {
 		if (
 			!current ||
@@ -395,28 +518,38 @@ function RehearsalRoomContent() {
 			isWaitingForUser ||
 			current.type !== "line" ||
 			current.role !== "scene-partner" ||
-			!current.ttsUrl
+			!current.ttsUrl ||
+			!scriptID
 		) {
 			return;
 		}
-		const audio = new Audio(current.ttsUrl);
+
 		console.log(`[SCENE PARTNER LINE]`, current.text);
 
-		audio.play().catch((err) => {
-			console.warn("⚠️ Failed to play TTS audio", err);
-			autoAdvance(1000);
-		});
+		const player = audioPlayerRef.current;
+		const storagePath = `users/${userID}/scripts/${scriptID}/tts-audio/${current.index}.mp3`;
 
-		audio.onended = () => {
-			autoAdvance(250);
-		};
+		player?.play(current.ttsUrl, {
+			storagePath,
+			lineIndex: current.index,
+			scriptId: scriptID,
+			userId: userID,
+			onUrlRefreshed: (newUrl) => handleUrlRefreshed(current.index, newUrl)
+		})
+			.then(() => {
+				console.log('✅ Audio playback completed');
+				autoAdvance(0);
+			})
+			.catch((err) => {
+				console.warn("⚠️ All audio playback strategies failed", err);
+				autoAdvance(1000);
+			});
 
 		return () => {
-			audio.pause();
-			audio.src = "";
+			player?.stop();
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [current, isPlaying, isWaitingForUser]);
+	}, [current, isPlaying, isWaitingForUser, scriptID, userID, handleUrlRefreshed]);
 
 	useEffect(() => {
 		if (
@@ -429,20 +562,6 @@ function RehearsalRoomContent() {
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [current, isPlaying, isWaitingForUser]);
-
-	const refreshHighlightForLine = (index: number) => {
-		const spans = wordRefs.current.get(index);
-		const count = matchedCountsRef.current.get(index) ?? 0;
-
-		if (!spans) return;
-
-		spans.forEach((span, i) => {
-			span.className =
-				i < count
-					? "font-bold text-gray-900 transition-all duration-100"
-					: "text-gray-700 transition-all duration-100";
-		});
-	};
 
 	const autoAdvance = (delay = 1000) => {
 		if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
@@ -467,7 +586,7 @@ function RehearsalRoomContent() {
 	};
 
 	const handlePlay = async () => {
-		if (!isScriptFullyHydrated) {
+		if (isBusy) {
 			console.warn('⏳ Script is still being prepared with resources...');
 			return;
 		}
@@ -476,15 +595,18 @@ function RehearsalRoomContent() {
 		const currentLine = script?.find((el) => el.index === currentIndex);
 		prepareUserLine(currentLine);
 
-		matchedCountsRef.current.set(currentIndex, 0);
-		const spans = wordRefs.current.get(currentIndex);
-		if (spans && spans.length) {
-			refreshHighlightForLine(currentIndex);
-		}
+		// Reset matched count for current line only if not completed
+		setLineStates(prev => {
+			const newMap = new Map(prev);
+			const currentState = newMap.get(currentIndex);
+			if (!currentState?.completed) {
+				newMap.set(currentIndex, { matched: 0, completed: false });
+			}
+			return newMap;
+		});
 
 		setIsPlaying(true);
 
-		// 🔥 Record last practiced
 		if (scriptID) {
 			setLastPracticed(scriptID).catch(err =>
 				console.error("❌ Failed to update lastPracticed:", err)
@@ -521,10 +643,14 @@ function RehearsalRoomContent() {
 			const prevIndex = Math.max(i - 1, 0);
 			const prevLine = script?.find((el) => el.index === prevIndex);
 
-			refreshHighlightForLine(prevIndex);
-			matchedCountsRef.current.delete(prevIndex);
-			wordRefs.current.delete(prevIndex);
+			// Clear state for the previous line
+			setLineStates(prev => {
+				const newMap = new Map(prev);
+				newMap.delete(prevIndex);
+				return newMap;
+			});
 
+			wordRefs.current.delete(prevIndex);
 			prepareUserLine(prevLine);
 			return prevIndex;
 		});
@@ -536,47 +662,42 @@ function RehearsalRoomContent() {
 		cleanupSTT();
 		setCurrentIndex(0);
 
-		for (const index of matchedCountsRef.current.keys()) {
-			matchedCountsRef.current.set(index, 0);
-			refreshHighlightForLine(index);
-		}
-		matchedCountsRef.current.clear();
+		// Clear all line states
+		setLineStates(new Map());
 		wordRefs.current.clear();
 
 		const firstLine = script?.find((el) => el.index === 0);
 		prepareUserLine(firstLine);
 	};
 
-	// NEW: Handle line click to jump to specific line
+	// Handle line click to jump to specific line
 	const handleLineClick = (lineIndex: number) => {
-		// Pause current playback
 		setIsPlaying(false);
 		setIsWaitingForUser(false);
 		pauseSTT();
 
-		// Clear any pending timeouts
 		if (advanceTimeoutRef.current) {
 			clearTimeout(advanceTimeoutRef.current);
 			advanceTimeoutRef.current = null;
 		}
 
-		// Remove match counts and span refs for lines after the jump
+		// Remove states for the clicked line AND all lines after it
 		if (scriptRef.current) {
-			for (let i = lineIndex; i < scriptRef.current.length; i++) {
-				matchedCountsRef.current.delete(i);
-
-				const spans = wordRefs.current.get(i);
-				if (spans) {
-					for (const span of spans) {
-						span.className = "text-gray-700 transition-all duration-100";
-					}
+			setLineStates(prev => {
+				const newMap = new Map(prev);
+				// Start at lineIndex to include the clicked line itself
+				for (let i = lineIndex; i < scriptRef.current!.length; i++) {
+					newMap.delete(i);
 				}
+				return newMap;
+			});
 
+			// Also clear wordRefs for the same range
+			for (let i = lineIndex; i < scriptRef.current.length; i++) {
 				wordRefs.current.delete(i);
 			}
 		}
 
-		// Jump to the clicked line
 		setCurrentIndex(lineIndex);
 		const targetLine = script?.find((el) => el.index === lineIndex);
 		prepareUserLine(targetLine);
@@ -610,6 +731,7 @@ function RehearsalRoomContent() {
 		onCueDetected,
 		onSilenceTimeout,
 		onProgressUpdate,
+		silenceTimers,
 	}: {
 		provider: "google" | "deepgram";
 		lineEndKeywords: string[];
@@ -617,6 +739,10 @@ function RehearsalRoomContent() {
 		onCueDetected: () => void;
 		onSilenceTimeout: () => void;
 		onProgressUpdate?: (matchedCount: number) => void;
+		silenceTimers?: {
+			skipToNextMs?: number;
+			inactivityPauseMs?: number;
+		};
 	}) {
 		const google = useGoogleSTT({
 			lineEndKeywords,
@@ -624,6 +750,7 @@ function RehearsalRoomContent() {
 			onCueDetected,
 			onSilenceTimeout,
 			onProgressUpdate,
+			silenceTimers,
 		});
 
 		const deepgram = useDeepgramSTT({
@@ -632,6 +759,7 @@ function RehearsalRoomContent() {
 			onCueDetected,
 			onSilenceTimeout,
 			onProgressUpdate,
+			// silenceTimers not configured yet
 		});
 
 		return provider === "google" ? google : deepgram;
@@ -639,19 +767,20 @@ function RehearsalRoomContent() {
 
 	const onProgressUpdate = useCallback((count: number) => {
 		if (current?.type === "line" && current.role === "user") {
-			matchedCountsRef.current.set(current.index, count);
+			setLineStates(prev => {
+				const newMap = new Map(prev);
 
-			const spans = wordRefs.current.get(current.index);
-			if (!spans) return;
+				// Get the word count for this line
+				const wordCount = current.text.split(/\s+/).length;
 
-			for (let i = 0; i < spans.length; i++) {
-				spans[i].className =
-					i < count
-						? "font-bold text-gray-900 transition-all duration-100"
-						: "text-blue-900 font-medium transition-all duration-100";
-			}
+				newMap.set(current.index, {
+					matched: count,
+					completed: count >= wordCount
+				});
+				return newMap;
+			});
 		}
-	}, [current?.index, current?.role, current?.type]);
+	}, [current?.index, current?.role, current?.type, current?.text]);
 
 	const { initializeSTT, startSTT, pauseSTT, cleanupSTT, setCurrentLineText } =
 		useSTT({
@@ -664,6 +793,10 @@ function RehearsalRoomContent() {
 				setIsWaitingForUser(false);
 			},
 			onProgressUpdate,
+			silenceTimers: {
+				skipToNextMs: skipMs,
+				inactivityPauseMs: 15000,
+			},
 		});
 
 	// Clean up STT
@@ -784,7 +917,8 @@ function RehearsalRoomContent() {
 							isCurrent={isCurrent}
 							isWaitingForUser={isWaitingForUser}
 							spanRefMap={wordRefs.current}
-							matchedCount={matchedCountsRef.current.get(element.index) ?? 0}
+							matchedCount={lineStates.get(element.index)?.matched ?? 0}
+							isCompleted={lineStates.get(element.index)?.completed ?? false}
 						/>
 					)}
 
@@ -853,12 +987,12 @@ function RehearsalRoomContent() {
 							</div>
 
 							{/* Progress Section */}
-							<div className="mb-8">
+							<div className="mb-6">
 								<div className="text-sm text-gray-400 mb-2">
-									{isScriptFullyHydrated ? "Progress" : isUpdatingLine ? "Updating Line" : "Loading Practice Room"}
+									{!isBusy ? "Progress" : isUpdatingLine ? "Updating Line" : "Loading Practice Room"}
 								</div>
 
-								{isScriptFullyHydrated && !isUpdatingLine ? (
+								{!isBusy && !isUpdatingLine ? (
 									<div className="bg-gray-800 rounded-lg p-4">
 										<div className="text-xl font-bold mb-2">
 											{currentIndex + 1} / {script?.length || 0}
@@ -885,15 +1019,8 @@ function RehearsalRoomContent() {
 										</div>
 
 										{/* Progress Bar */}
-										<div className="w-full bg-gray-700 rounded-full h-3 relative overflow-hidden">
-											<div className="bg-gradient-to-r from-blue-600 to-blue-600 h-3 rounded-full absolute inset-0" />
-											<div
-												className="absolute inset-0 opacity-30"
-												style={{
-													backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.5) 10px, rgba(255,255,255,0.5) 20px)',
-													animation: 'slide 1s linear infinite'
-												}}
-											/>
+										<div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+											<div className="w-full h-3 bg-blue-600 rounded-full animate-pulse" />
 										</div>
 
 										<div className="text-xs text-gray-400 mt-2">
@@ -928,7 +1055,7 @@ function RehearsalRoomContent() {
 										</div>
 
 										{/* Ready Indicator */}
-										{loadProgress === 100 && !isScriptFullyHydrated && (
+										{loadProgress === 100 && !isBusy && (
 											<div className="text-xs text-green-400 flex items-center gap-1">
 												<span className="inline-block w-2 h-2 bg-green-400 rounded-full animate-pulse" />
 												Scene ready to rehearse!
@@ -940,7 +1067,7 @@ function RehearsalRoomContent() {
 
 							{/* Current Status */}
 							{current && (
-								<div className="mb-8">
+								<div className="mb-6">
 									<div className="text-sm text-gray-400 mb-2">Current Line</div>
 									<div className="bg-gray-800 rounded-lg p-4">
 										<div className="flex items-center gap-2 mb-2">
@@ -970,53 +1097,9 @@ function RehearsalRoomContent() {
 								</div>
 							)}
 
-							{/* Control Buttons */}
-							{/* <div className="space-y-3 mb-8">
-								<button
-									onClick={handlePlay}
-									disabled={isPlaying || !isScriptFullyHydrated}
-									className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 font-medium"
-								>
-									▶️ {!isScriptFullyHydrated
-										? "Preparing..."
-										: isPlaying
-											? "Playing..."
-											: "Start Rehearsal"}
-								</button>
-								<button
-									onClick={handlePause}
-									disabled={!isPlaying}
-									className="w-full px-4 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 font-medium"
-								>
-									⏸️ Pause
-								</button>
-								<div className="flex gap-3">
-									<button
-										onClick={handlePrev}
-										className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
-									>
-										⏮️ Previous
-									</button>
-									<button
-										onClick={handleNext}
-										className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
-									>
-										⏭️ Next
-									</button>
-								</div>
-								{currentIndex !== 0 && (
-									<button
-										onClick={handleRestart}
-										className="w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
-									>
-										🔄 Restart from Beginning
-									</button>
-								)}
-							</div> */}
-
 							{/* Select New Roles */}
 							{script &&
-								<div className="mb-8">
+								<div className="mb-6">
 									<div className="text-sm text-gray-400 mb-2">Role Selector</div>
 									<div className="bg-gray-800 rounded-lg p-4">
 										<div className="flex items-center gap-2 mb-2">
@@ -1043,6 +1126,31 @@ function RehearsalRoomContent() {
 								</div>
 							}
 
+							{/* Silence Skip Selector */}
+							<div className="mb-6">
+								<div className="text-sm text-gray-400 mb-2">Silence Detector</div>
+								<div className="bg-gray-800 rounded-lg p-4">
+									<label htmlFor="skipMs" className="sr-only">Skip to next line delay</label>
+									<div className="text-sm text-gray-200 flex items-center flex-wrap gap-2">
+										<span>Auto advance to next line after</span>
+										<select
+											id="skipMs"
+											value={skipMs}
+											onChange={(e) => setSkipMs(Number(e.target.value))}
+											className="appearance-none bg-gray-900 border border-gray-700 rounded-md px-2 py-1 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+											title="Silence before auto-advancing"
+										>
+											<option value={2000}>2s</option>
+											<option value={4000}>4s</option>
+											<option value={6000}>6s</option>
+											<option value={8000}>8s</option>
+											<option value={10000}>10s</option>
+										</select>
+										<span>of silence.</span>
+									</div>
+								</div>
+							</div>
+
 							{/* Error Handling */}
 							{storageError && (
 								<div className="mb-6 p-4 bg-red-900 border border-red-700 rounded-lg">
@@ -1063,7 +1171,7 @@ function RehearsalRoomContent() {
 							)}
 
 							{/* Additional Buttons */}
-							<div className="flex items-center space-x-2 mb-8 ml-2">
+							<div className="flex items-center space-x-2 ml-2">
 								<Button
 									icon={Undo2}
 									onClick={goBackHome}
@@ -1132,7 +1240,7 @@ function RehearsalRoomContent() {
 								{/* Previous Button */}
 								<button
 									onClick={handlePrev}
-									disabled={!isScriptFullyHydrated}
+									disabled={isBusy}
 									className="p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed"
 									aria-label="Previous"
 									title="Previous"
@@ -1144,7 +1252,7 @@ function RehearsalRoomContent() {
 								{isPlaying ? (
 									<button
 										onClick={handlePause}
-										disabled={!isScriptFullyHydrated}
+										disabled={isBusy}
 										className="p-3 rounded-full bg-white hover:bg-white/20 hover:text-white transition-all duration-200 text-black shadow-lg scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
 										aria-label="Pause"
 										title="Pause"
@@ -1154,10 +1262,10 @@ function RehearsalRoomContent() {
 								) : (
 									<button
 										onClick={handlePlay}
-										disabled={!isScriptFullyHydrated}
+										disabled={isBusy}
 										className="p-3 rounded-full bg-white hover:bg-white/20 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-black shadow-lg scale-110"
 										aria-label="Play"
-										title={!isScriptFullyHydrated ? "Preparing..." : "Start Rehearsal"}
+										title={isBusy ? "Preparing..." : "Start Rehearsal"}
 									>
 										<Play className="h-6 w-6" />
 									</button>
@@ -1166,7 +1274,7 @@ function RehearsalRoomContent() {
 								{/* Next Button */}
 								<button
 									onClick={handleNext}
-									disabled={!isScriptFullyHydrated}
+									disabled={isBusy}
 									className="p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed"
 									aria-label="Next"
 									title="Next"
@@ -1180,7 +1288,7 @@ function RehearsalRoomContent() {
 										<div className="w-px h-8 bg-white/20 mx-1" /> {/* Divider */}
 										<button
 											onClick={handleRestart}
-											disabled={!isScriptFullyHydrated}
+											disabled={isBusy}
 											className="p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed"
 											aria-label="Restart from Beginning"
 											title="Restart from Beginning"

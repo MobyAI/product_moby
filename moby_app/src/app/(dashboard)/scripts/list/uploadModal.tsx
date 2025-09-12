@@ -57,6 +57,73 @@ interface EditableLineProps {
     onClose: () => void;
 }
 
+type ProcessingErrorStage = 'text' | 'character' | 'parse' | 'general' | null;
+
+interface ProcessingError {
+    hasError: boolean;
+    stage: ProcessingErrorStage;
+    message: string;
+}
+
+interface ProcessingErrorProps {
+    error: ProcessingError;
+    onClose: () => void;
+}
+
+// Helper functions
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isLine(el: any): el is { type: 'line'; text: string; lineEndKeywords?: string[]; character?: string } {
+    return el && el.type === 'line' && typeof el.text === 'string';
+}
+
+const COMMON_WORDS = new Set([
+    'the', 'a', 'an', 'to', 'and', 'but', 'or', 'for', 'at', 'by', 'in', 'on', 'of', 'then', 'so'
+]);
+
+function extractLineEndKeywords(text: string): string[] {
+    const words = text
+        .toLowerCase()
+        .replace(/[^a-z0-9\s']/gi, '')
+        .split(/\s+/)
+        .filter(Boolean);
+
+    // Count occurrences of each word
+    const counts = words.reduce<Record<string, number>>((acc, w) => {
+        acc[w] = (acc[w] || 0) + 1;
+        return acc;
+    }, {});
+
+    // Filter out common words and any word that occurs more than once
+    const meaningful = words.filter((word) => {
+        return !COMMON_WORDS.has(word) && counts[word] === 1;
+    });
+
+    const selected = meaningful.slice(-2);
+
+    if (selected.length === 2) return selected;
+
+    if (selected.length === 1) {
+        const keyword = selected[0];
+        const idx = words.lastIndexOf(keyword);
+        let neighbor = '';
+
+        // Prefer word before
+        if (idx > 0) {
+            neighbor = words[idx - 1];
+        } else {
+            neighbor = words[idx + 1];
+        }
+
+        return neighbor ? [neighbor, keyword] : [keyword];
+    }
+
+    if (selected.length === 0 && words.length > 0) {
+        return words.slice(-2);
+    }
+
+    return [];
+}
+
 export default function ScriptUploadModal({
     isOpen,
     onClose,
@@ -67,6 +134,11 @@ export default function ScriptUploadModal({
     const [currentStage, setCurrentStage] = useState(0);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [extractedText, setExtractedText] = useState<ExtractedTextResult | null>(null);
+    const [processingError, setProcessingError] = useState<ProcessingError>({
+        hasError: false,
+        stage: null,
+        message: '',
+    });
     const [extractedRoles, setExtractedRoles] = useState<string[] | null>([]);
     const [parsedScript, setParsedScript] = useState<ScriptElement[] | null>(null);
     const [showCloseConfirm, setShowCloseConfirm] = useState(false);
@@ -114,6 +186,11 @@ export default function ScriptUploadModal({
         setProcessingStage({ message: '', isComplete: false });
         setIsParsingInBackground(false);
         setIsTransitioning(false);
+        setProcessingError({
+            hasError: false,
+            stage: null,
+            message: '',
+        });
     };
 
     // Update handleClose to show confirmation
@@ -175,28 +252,131 @@ export default function ScriptUploadModal({
             // Stage 1: Extract Text
             setProcessingStage({ message: 'Extracting text from document...', isComplete: false });
             setCurrentStage(1);
+            let textResult;
 
-            // TODO: Replace with actual API call
-            const textResult = await extractScriptText(file);
-            setExtractedText(textResult);
+            try {
+                textResult = await extractScriptText(file);
+
+                if (!textResult || !textResult.text || textResult.text.trim().length === 0) {
+                    // Set error state for empty text
+                    setProcessingError({
+                        hasError: true,
+                        stage: 'text',
+                        message: 'Failed to extract text'
+                    });
+                    setProcessingStage({
+                        message: 'Failed to extract text from document',
+                        isComplete: false,
+                    });
+                    // Stop processing here
+                    return;
+                }
+
+                setExtractedText(textResult);
+            } catch (error) {
+                console.error('Text extraction failed:', error);
+
+                // Set error state for API failure
+                setProcessingError({
+                    hasError: true,
+                    stage: 'text',
+                    message: 'Failed to extract text'
+                });
+                setProcessingStage({
+                    message: 'Failed to extract text from document',
+                    isComplete: false,
+                });
+
+                // Stop processing here
+                return;
+            }
 
             // Stage 2: Extract Roles (automatic)
             setProcessingStage({ message: 'Identifying characters...', isComplete: false });
-            const rolesResult = await extractRolesFromText(textResult.text);
-            setExtractedRoles(rolesResult);
-            setCurrentStage(2); // Move to name input
+            let rolesResult;
+
+            try {
+                rolesResult = await extractRolesFromText(textResult.text);
+
+                if (!rolesResult || rolesResult.length === 0) {
+                    setProcessingError({
+                        hasError: true,
+                        stage: 'character',
+                        message: 'Failed to identify characters'
+                    });
+                    setProcessingStage({
+                        message: 'Failed to identify characters',
+                        isComplete: false,
+                    });
+                    return;
+                }
+
+                setExtractedRoles(rolesResult);
+                setCurrentStage(2); // Move to name input
+
+            } catch (error) {
+                console.error('Character extraction failed:', error);
+
+                setProcessingError({
+                    hasError: true,
+                    stage: 'character',
+                    message: 'Failed to identify characters'
+                });
+                setProcessingStage({
+                    message: 'Failed to identify characters',
+                    isComplete: false,
+                });
+                return;
+            }
 
             // Stage 3: Start parsing in background
             setIsParsingInBackground(true);
             setProcessingStage({ message: 'Parsing script structure...', isComplete: false });
-            parseScriptFromText(textResult.text).then(result => {
-                setParsedScript(result);
+
+            try {
+                const parsedResult = await parseScriptFromText(textResult.text);
+
+                if (!parsedResult || parsedResult.length === 0) {
+                    setProcessingError({
+                        hasError: true,
+                        stage: 'parse',
+                        message: 'Unable to parse script structure'
+                    });
+                    setProcessingStage({
+                        message: 'Failed to parse script',
+                        isComplete: false,
+                    });
+                    setIsParsingInBackground(false);
+                    return;
+                }
+
+                setParsedScript(parsedResult);
                 setIsParsingInBackground(false);
                 setProcessingStage({ message: 'Script parsing complete', isComplete: true });
-            });
+            } catch (error) {
+                console.error('Script parsing failed:', error);
+
+                setProcessingError({
+                    hasError: true,
+                    stage: 'parse',
+                    message: 'Failed to parse script structure'
+                });
+                setProcessingStage({
+                    message: 'Failed to parse script',
+                    isComplete: false,
+                });
+                setIsParsingInBackground(false);
+                return;
+            }
 
         } catch (error) {
             console.error('Processing error:', error);
+
+            setProcessingError({
+                hasError: true,
+                stage: 'general',
+                message: 'An unexpected error occurred'
+            });
             setProcessingStage({ message: 'Error occurred', isComplete: false });
         }
     };
@@ -210,9 +390,39 @@ export default function ScriptUploadModal({
         }, 300);
     };
 
-    // Auto advance from stage 5 to 6 when script is parsed
+    // Auto advance from stage 5 to 6 when script is parsed and processed
     useEffect(() => {
         if (currentStage === 5 && parsedScript) {
+
+            // Add line end keywords
+            const needsKws = parsedScript.some(
+                (it) => it?.type === 'line'
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    && (!Array.isArray((it as any).lineEndKeywords) || (it as any).lineEndKeywords.length === 0)
+            );
+
+            if (needsKws) {
+                let changed = false;
+                const withKeywords = parsedScript.map((item) => {
+                    if (!(item && item.type === 'line' && typeof item.text === 'string')) return item;
+                    const needs = !Array.isArray(item.lineEndKeywords) || item.lineEndKeywords.length === 0;
+                    if (!needs) return item;
+                    const kws = extractLineEndKeywords(item.text);
+                    if (kws.length > 0) { changed = true; return { ...item, lineEndKeywords: kws }; }
+                    return item;
+                });
+
+                if (changed) {
+                    setParsedScript(withKeywords);
+                    return;
+                }
+            }
+
+            // Check that all kws have been added
+            const allLinesHaveKeywords = parsedScript
+                .filter(isLine)
+                .every((l) => Array.isArray(l.lineEndKeywords) && l.lineEndKeywords.length > 0);
+
             // Extract unique characters from parsed script
             const scriptCharacters = new Set<string>();
             parsedScript.forEach(item => {
@@ -235,12 +445,12 @@ export default function ScriptUploadModal({
             setMissingCharacters(missing);
 
             // Auto-advance if no missing characters
-            if (missing.length === 0) {
+            if (missing.length === 0 && allLinesHaveKeywords) {
                 const timer = setTimeout(() => moveToNextStage(), 1500);
                 return () => clearTimeout(timer);
             }
         }
-    }, [currentStage, parsedScript, voiceAssignments]);
+    }, [currentStage, parsedScript, setParsedScript, voiceAssignments]);
 
     // Check if can proceed to completion
     const canComplete = () => {
@@ -351,143 +561,173 @@ export default function ScriptUploadModal({
 
                         {/* Stage 1: Loading */}
                         {currentStage === 1 && (
-                            <div className="text-center py-12">
-                                {/* Animated Logo/Icon */}
-                                <div className="w-24 h-24 mx-auto mb-6 relative">
-                                    <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full"></div>
-                                    <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin"></div>
-                                    <div className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin animate-reverse" style={{ animationDuration: '1.5s' }}></div>
-                                </div>
-                                <p className="text-gray-600">Processing your script...</p>
+                            <>
+                                {!(processingError.hasError && processingError.stage === 'text') ? (
+                                    <div className="text-center py-12">
+                                        {/* Animated Logo/Icon */}
+                                        <div className="w-24 h-24 mx-auto mb-6 relative">
+                                            <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full"></div>
+                                            <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin"></div>
+                                            <div className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin animate-reverse" style={{ animationDuration: '1.5s' }}></div>
+                                        </div>
+                                        <p className="text-gray-600">Processing your script...</p>
 
-                                {/* Fun Loading Messages */}
-                                <div className="mt-8 text-white/60 text-sm">
-                                    <RotatingTips tipSet="processing" />
-                                </div>
-                            </div>
+                                        {/* Fun Loading Messages */}
+                                        <div className="mt-8 text-white/60 text-sm">
+                                            <RotatingTips tipSet="processing" />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // Error state
+                                    <ProcessingError
+                                        onClose={confirmClose}
+                                        error={processingError}
+                                    />
+                                )}
+                            </>
                         )}
 
                         {/* Stage 2: Name Script */}
                         {currentStage === 2 && (
-                            <InputStage
-                                title="Name Your Script"
-                                description="Give your script a memorable name"
-                            >
-                                <input
-                                    type="text"
-                                    value={scriptName}
-                                    onChange={(e) => setScriptName(e.target.value)}
-                                    onKeyUp={(e) => {
-                                        if (e.key === 'Enter' && scriptName) {
-                                            moveToNextStage();
-                                        }
-                                    }}
-                                    placeholder="Enter script name..."
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    autoFocus
-                                />
-                                {scriptName && (
-                                    <button
-                                        onClick={moveToNextStage}
-                                        className="mt-4 w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition"
+                            <>
+                                {!(processingError.hasError && processingError.stage === 'character') ? (
+                                    <InputStage
+                                        title="Name Your Script"
+                                        description="Give your script a memorable name"
                                     >
-                                        Continue
-                                    </button>
+                                        <input
+                                            type="text"
+                                            value={scriptName}
+                                            onChange={(e) => setScriptName(e.target.value)}
+                                            onKeyUp={(e) => {
+                                                if (e.key === 'Enter' && scriptName) {
+                                                    moveToNextStage();
+                                                }
+                                            }}
+                                            placeholder="Enter script name..."
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            autoFocus
+                                        />
+                                        {scriptName && (
+                                            <button
+                                                onClick={moveToNextStage}
+                                                className="mt-4 w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition"
+                                            >
+                                                Continue
+                                            </button>
+                                        )}
+                                    </InputStage>
+                                ) : (
+                                    // Error state
+                                    <ProcessingError
+                                        onClose={confirmClose}
+                                        error={processingError}
+                                    />
                                 )}
-                            </InputStage>
+                            </>
                         )}
 
                         {/* Stage 3: Assign Voices */}
                         {currentStage === 3 && extractedRoles && extractedRoles.length > 0 && (
-                            (() => {
-                                // Get the current index based on how many voices have been assigned
-                                const currentIndex = Object.keys(voiceAssignments).length;
+                            <>
+                                {!(processingError.hasError && processingError.stage === 'parse') ? (
+                                    (() => {
+                                        // Get the current index based on how many voices have been assigned
+                                        const currentIndex = Object.keys(voiceAssignments).length;
 
-                                // Check if we've assigned all roles
-                                if (currentIndex >= extractedRoles.length) return (
-                                    <div className="text-center">
-                                        <div className="w-16 h-16 mx-auto mb-4 text-green-500">
-                                            <svg className="w-full h-full" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                            </svg>
-                                        </div>
-                                        <p className="text-gray-600">Voices assigned to all roles!</p>
-                                    </div>
-                                );
+                                        // Check if we've assigned all roles
+                                        if (currentIndex >= extractedRoles.length) return (
+                                            <div className="text-center">
+                                                <div className="w-16 h-16 mx-auto mb-4 text-green-500">
+                                                    <svg className="w-full h-full" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                                <p className="text-gray-600">Voices assigned to all roles!</p>
+                                            </div>
+                                        );
 
-                                const currentRole = extractedRoles[currentIndex];
+                                        const currentRole = extractedRoles[currentIndex];
 
-                                return (
-                                    <InputStage
-                                        title="Assign Voices"
-                                        description={`Character ${currentIndex + 1} of ${extractedRoles.length}`}
-                                    >
-                                        <RoleVoiceAssignment
-                                            key={currentRole}
-                                            role={currentRole}
-                                            voiceSamples={voiceSamples}
-                                            isLoading={voicesLoading}
-                                            onAssign={(assignment) => {
-                                                setConfirmationModal({
-                                                    isOpen: true,
-                                                    role: currentRole,
-                                                    assignment
-                                                });
-                                            }}
-                                        />
-
-                                        {/* Confirmation Modal */}
-                                        {confirmationModal?.isOpen && (
-                                            <>
-                                                {/* Backdrop */}
-                                                <div
-                                                    className="fixed inset-0 z-50"
-                                                    onClick={() => setConfirmationModal(null)}
+                                        return (
+                                            <InputStage
+                                                title="Assign Voices"
+                                                description={`Character ${currentIndex + 1} of ${extractedRoles.length}`}
+                                            >
+                                                <RoleVoiceAssignment
+                                                    key={currentRole}
+                                                    role={currentRole}
+                                                    voiceSamples={voiceSamples}
+                                                    isLoading={voicesLoading}
+                                                    onAssign={(assignment) => {
+                                                        setConfirmationModal({
+                                                            isOpen: true,
+                                                            role: currentRole,
+                                                            assignment
+                                                        });
+                                                    }}
                                                 />
 
-                                                {/* Modal container */}
-                                                <div className="fixed inset-0 z-60 flex items-center justify-center pointer-events-none">
-                                                    <div className="relative bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 rounded-lg p-6 max-w-sm mx-4 shadow-2xl pointer-events-auto">
-                                                        <p className="text-white/90 mb-4">
-                                                            Assign <span className="font-medium text-white">{confirmationModal.assignment.voiceName}</span> to <span className="font-medium text-white">{confirmationModal.role}</span>?
-                                                        </p>
-                                                        <p className="text-sm text-yellow-300 mb-6">
-                                                            ⚠️ This selection cannot be changed later.
-                                                        </p>
-                                                        <div className="flex gap-3">
-                                                            <button
-                                                                onClick={() => setConfirmationModal(null)}
-                                                                className="flex-1 px-4 py-2 border border-white/30 text-white rounded-lg hover:bg-white/10 transition"
-                                                            >
-                                                                Cancel
-                                                            </button>
-                                                            <button
-                                                                onClick={() => {
-                                                                    // Confirm the assignment
-                                                                    setVoiceAssignments(prev => ({
-                                                                        ...prev,
-                                                                        [confirmationModal.role]: confirmationModal.assignment
-                                                                    }));
-                                                                    setConfirmationModal(null);
+                                                {/* Confirmation Modal */}
+                                                {confirmationModal?.isOpen && (
+                                                    <>
+                                                        {/* Backdrop */}
+                                                        <div
+                                                            className="fixed inset-0 z-50"
+                                                            onClick={() => setConfirmationModal(null)}
+                                                        />
 
-                                                                    // Check if this was the last role
-                                                                    if (currentIndex + 1 >= extractedRoles.length) {
-                                                                        // Auto-advance after last role
-                                                                        setTimeout(() => moveToNextStage(), 500);
-                                                                    }
-                                                                }}
-                                                                className="flex-1 px-4 py-2 bg-white text-blue-900 font-medium rounded-lg hover:bg-white/90 transition"
-                                                            >
-                                                                Confirm
-                                                            </button>
+                                                        {/* Modal container */}
+                                                        <div className="fixed inset-0 z-60 flex items-center justify-center pointer-events-none">
+                                                            <div className="relative bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 rounded-lg p-6 max-w-sm mx-4 shadow-2xl pointer-events-auto">
+                                                                <p className="text-white/90 mb-4">
+                                                                    Assign <span className="font-medium text-white">{confirmationModal.assignment.voiceName}</span> to <span className="font-medium text-white">{confirmationModal.role}</span>?
+                                                                </p>
+                                                                <p className="text-sm text-yellow-300 mb-6">
+                                                                    ⚠️ This selection cannot be changed later.
+                                                                </p>
+                                                                <div className="flex gap-3">
+                                                                    <button
+                                                                        onClick={() => setConfirmationModal(null)}
+                                                                        className="flex-1 px-4 py-2 border border-white/30 text-white rounded-lg hover:bg-white/10 transition"
+                                                                    >
+                                                                        Cancel
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            // Confirm the assignment
+                                                                            setVoiceAssignments(prev => ({
+                                                                                ...prev,
+                                                                                [confirmationModal.role]: confirmationModal.assignment
+                                                                            }));
+                                                                            setConfirmationModal(null);
+
+                                                                            // Check if this was the last role
+                                                                            if (currentIndex + 1 >= extractedRoles.length) {
+                                                                                // Auto-advance after last role
+                                                                                setTimeout(() => moveToNextStage(), 500);
+                                                                            }
+                                                                        }}
+                                                                        className="flex-1 px-4 py-2 bg-white text-blue-900 font-medium rounded-lg hover:bg-white/90 transition"
+                                                                    >
+                                                                        Confirm
+                                                                    </button>
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </div>
-                                            </>
-                                        )}
-                                    </InputStage>
-                                );
-                            })()
+                                                    </>
+                                                )}
+                                            </InputStage>
+                                        );
+                                    })()
+                                ) : (
+                                    // Error state
+                                    <ProcessingError
+                                        onClose={confirmClose}
+                                        error={processingError}
+                                    />
+                                )}
+                            </>
                         )}
 
                         {/* Stage 4: Select User Role */}
@@ -971,56 +1211,6 @@ const ScriptRenderer = ({
         }
     };
 
-    const COMMON_WORDS = new Set([
-        'the', 'a', 'an', 'to', 'and', 'but', 'or', 'for', 'at', 'by', 'in', 'on', 'of', 'then', 'so'
-    ]);
-
-    function extractLineEndKeywords(text: string): string[] {
-        const words = text
-            .toLowerCase()
-            .replace(/[^a-z0-9\s']/gi, '')
-            .split(/\s+/)
-            .filter(Boolean);
-
-        // Filter out common words and duplicates
-        const meaningful = words
-            .filter((word, index) => {
-                return (
-                    !COMMON_WORDS.has(word) &&
-                    words.lastIndexOf(word) === index
-                );
-            });
-
-        const selected = meaningful.slice(-2);
-
-        if (selected.length === 2) return selected;
-
-        if (selected.length === 1) {
-            const keyword = selected[0];
-
-            // Find index of that keyword in original `words` array
-            const idx = words.lastIndexOf(keyword);
-
-            let neighbor = '';
-
-            // Prefer word before
-            if (idx > 0) {
-                neighbor = words[idx - 1];
-            } else {
-                neighbor = words[idx + 1];
-            }
-
-            // Only return the keyword and neighbor if neighbor exists
-            return neighbor ? [neighbor, keyword] : [keyword];
-        }
-
-        if (selected.length === 0 && words.length > 0) {
-            return words.slice(-2);
-        }
-
-        return [];
-    }
-
     const handleUpdate = (index: number, updatedItem: ScriptElement) => {
         // Add lineEndKeywords if it's a line element
         if (updatedItem.type === 'line' && typeof updatedItem.text === 'string') {
@@ -1103,6 +1293,95 @@ const ScriptRenderer = ({
     return (
         <div className="space-y-3">
             {script.map((item, index) => renderScriptElement(item, index))}
+        </div>
+    );
+};
+
+const ProcessingError: React.FC<ProcessingErrorProps> = ({ error, onClose }) => {
+    const getErrorDetails = () => {
+        switch (error.stage) {
+            case 'text':
+                return {
+                    title: 'Text Extraction Failed',
+                    tips: [
+                        'The file might be an image without selectable text',
+                        'The PDF might be scanned without text recognition',
+                        'The file could be corrupted or empty'
+                    ],
+                };
+            case 'character':
+                return {
+                    title: 'Character Identification Failed',
+                    tips: [
+                        'The script format might not be recognized',
+                        'Character names might not be properly formatted',
+                        'The document might not be a screenplay format'
+                    ],
+                };
+            case 'parse':
+                return {
+                    title: 'Script Parsing Failed',
+                    tips: [
+                        'The script structure might be too complex',
+                        'There might be formatting inconsistencies',
+                        'Special characters might be causing issues'
+                    ],
+                };
+            case 'general':
+            default:
+                return {
+                    title: 'Processing Error',
+                    tips: [
+                        'There was an unexpected error',
+                        'The file might be too large',
+                        'Network connection might be unstable'
+                    ],
+                };
+        }
+    };
+
+    const details = getErrorDetails();
+
+    return (
+        <div className="text-center">
+            {/* Error Icon */}
+            <div className="w-24 h-24 mx-auto mb-6 relative">
+                <div className="absolute inset-0 bg-red-100 rounded-full flex items-center justify-center">
+                    <svg className="w-12 h-12 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+            </div>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                {details.title}
+            </h3>
+
+            <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                {error.message}
+            </p>
+
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-w-md mx-auto mb-6">
+                <p className="text-sm text-red-800 font-medium mb-2">Possible causes:</p>
+                <ul className="text-left text-sm text-red-700 space-y-1">
+                    {details.tips.map((tip, index) => (
+                        <li key={index} className="flex items-start">
+                            <span className="mr-2">•</span>
+                            <span>{tip}</span>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+
+            <div className="flex gap-4 justify-center">
+                <button
+                    onClick={onClose}
+                    className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                >
+                    Try Another File
+                </button>
+            </div>
         </div>
     );
 };
