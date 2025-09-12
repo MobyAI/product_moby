@@ -14,6 +14,7 @@ interface DelaySelectorProps {
     updateScript: (scriptId: string, updatedScript: ScriptElement[]) => Promise<void>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const DELAY_OPTIONS: ReadonlyArray<{ value: number; label: string }> = [
     { value: 0, label: 'No delay' },
     { value: 1000, label: '1s delay' },

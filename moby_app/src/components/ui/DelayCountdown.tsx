@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Hourglass } from "lucide-react";
 
 interface CountdownTimerProps {
     duration: number; // in milliseconds
