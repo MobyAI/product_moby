@@ -14,10 +14,10 @@ import { OptimizedLineRenderer } from "./lineRenderer";
 import { restoreSession, saveSession } from "./session";
 import { clear, set } from "idb-keyval";
 import LoadingScreen from "./LoadingScreen";
-import { Button, MicCheckModal } from "@/components/ui";
+import { Button, MicCheckModal, DelaySelector, CountdownTimer } from "@/components/ui";
 import { useAuthUser } from "@/components/providers/UserProvider";
 import { useToast } from "@/components/providers/ToastProvider";
-import { Play, Pause, SkipBack, SkipForward, RotateCcw, Undo2 } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, RotateCcw, Undo2, Pencil } from "lucide-react";
 
 // export default function RehearsalRoomPage() {
 function RehearsalRoomContent() {
@@ -72,6 +72,8 @@ function RehearsalRoomContent() {
 	const wordRefs = useRef<Map<number, HTMLSpanElement[]>>(new Map());
 	const [lineStates, setLineStates] = useState<Map<number, { matched: number; completed: boolean }>>(new Map());
 	const [skipMs, setSkipMs] = useState(4000);
+	const [showCountdown, setShowCountdown] = useState(false);
+	const [countdownDuration, setCountdownDuration] = useState(0);
 
 	// Error handling
 	const [storageError, setStorageError] = useState(false);
@@ -537,8 +539,15 @@ function RehearsalRoomContent() {
 			onUrlRefreshed: (newUrl) => handleUrlRefreshed(current.index, newUrl)
 		})
 			.then(() => {
-				console.log('✅ Audio playback completed');
-				autoAdvance(0);
+				const delay = current.customDelay || 0;
+				console.log('✅ Audio playback completed, delay before next line:', delay);
+
+				if (delay > 0) {
+					setShowCountdown(true);
+					setCountdownDuration(delay);
+				}
+
+				autoAdvance(delay);
 			})
 			.catch((err) => {
 				console.warn("⚠️ All audio playback strategies failed", err);
@@ -567,6 +576,9 @@ function RehearsalRoomContent() {
 		if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
 
 		advanceTimeoutRef.current = setTimeout(() => {
+			setShowCountdown(false);
+			setCountdownDuration(0);
+
 			const nextIndex = currentIndex + 1;
 			const endOfScript = nextIndex >= (script?.length ?? 0);
 
@@ -704,23 +716,43 @@ function RehearsalRoomContent() {
 	};
 
 	const onUserLineMatched = () => {
-		setIsWaitingForUser(false);
-		setCurrentIndex((i) => {
-			const nextIndex = i + 1;
-			const endOfScript = nextIndex >= (script?.length ?? 0);
+		if (!current) return;
 
-			if (endOfScript) {
-				console.log("🎬 User finished final line — cleaning up STT");
-				cleanupSTT();
-				setIsPlaying(false);
-				return i;
-			}
+		const delay = current.customDelay || 0;
+		console.log('✅ User line matched, delay before next line:', delay);
 
-			const nextLine = script?.find((el) => el.index === nextIndex);
-			prepareUserLine(nextLine);
+		if (delay > 0) {
+			setShowCountdown(true);
+			setCountdownDuration(delay);
+		}
 
-			return nextIndex;
-		});
+		setTimeout(() => {
+			setIsWaitingForUser(false);
+			setShowCountdown(false);
+			setCountdownDuration(0);
+
+			setCurrentIndex((i) => {
+				const nextIndex = i + 1;
+				const endOfScript = nextIndex >= (script?.length ?? 0);
+
+				if (endOfScript) {
+					console.log("🎬 User finished final line — cleaning up STT");
+					cleanupSTT();
+					setIsPlaying(false);
+					return i;
+				}
+
+				const nextLine = script?.find((el) => el.index === nextIndex);
+				prepareUserLine(nextLine);
+
+				return nextIndex;
+			});
+		}, delay);
+	};
+
+	// Delay change update
+	const handleDelayChange = (index: number, delay: number): void => {
+		console.log(`Delay changed for line ${index}: ${delay}ms`);
 	};
 
 	// STT functions import
@@ -928,15 +960,43 @@ function RehearsalRoomContent() {
 						!editingLineIndex &&
 						ttsHydrationStatus[element.index] === 'ready' &&
 						(
-							<button
-								onClick={() => setEditingLineIndex(element.index)}
-								className="absolute top-4 right-4 text-xs text-black bg-gray-50 px-3 py-1 rounded shadow-sm hover:shadow-lg"
-								title="Edit Line"
-							>
-								✏️
-							</button>
+							<div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[999]">
+								<button
+									onClick={(e) => {
+										e.stopPropagation();
+										setEditingLineIndex(element.index);
+									}}
+									className="cursor-pointer text-sm text-white bg-gray-900 px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all"
+									title="Edit Line"
+								>
+									<Pencil
+										className="w-4 h-4"
+										strokeWidth={2}
+									/>
+								</button>
+								<DelaySelector
+									lineIndex={element.index}
+									currentDelay={element.customDelay || 0}
+									onDelayChange={handleDelayChange}
+									scriptId={scriptID}
+									userId={userID}
+									script={script}
+									setScript={setScript}
+									updateScript={updateScript}
+								/>
+							</div>
 						)
 					}
+
+					{/* Edit button */}
+					{showCountdown && countdownDuration > 0 && isCurrent && (
+						<div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[999]">
+							<CountdownTimer
+								duration={countdownDuration}
+								onComplete={() => setShowCountdown(false)}
+							/>
+						</div>
+					)}
 
 					{/* Loading indicator */}
 					{['pending', 'updating'].includes(ttsHydrationStatus[element.index]) && (
