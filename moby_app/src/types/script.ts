@@ -29,4 +29,5 @@ export type ScriptElement = {
     ttsUrl?: string;
     voiceId?: string;
     voiceName?: string;
+    customDelay?: number;
 };
