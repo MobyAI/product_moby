@@ -1,11 +1,11 @@
 "use client";
-import { useState, useRef } from 'react';
+import { useState } from 'react';
+import { Film, Megaphone, Plus, Tv, User, Video, SaveIcon } from "lucide-react";
+import { addAudition } from '@/lib/firebase/client/auditions';
 
-export default function AddAuditionButton() {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default function AddAuditionButton( triggerRefresh: any ) {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedFiles, setSelectedFiles] = useState([]);
-    const [dragOver, setDragOver] = useState(false);
-    const fileInputRef = useRef(null);
 
     const [formData, setFormData] = useState({
         date: '',
@@ -13,22 +13,19 @@ export default function AddAuditionButton() {
         castingDirector: '',
         auditionType: '',
         auditionRole: '',
-        auditionRoleLevel: '',
+        billing: '',
         source: '',
-        currentStatus: '',
-        files: '',
-        location: '',
-        description: ''
+        status: '',
     });
 
-    const auditionTypes = [
-        { value: 'film', label: 'Film', icon: '🎬' },
-        { value: 'tv', label: 'Television', icon: '📺' },
-        { value: 'theater', label: 'Theater', icon: '🎭' },
-        { value: 'commercial', label: 'Commercial', icon: '📹' },
-        { value: 'voiceover', label: 'Voice Over', icon: '🎙️' },
-        { value: 'modeling', label: 'Modeling', icon: '📸' }
-    ];
+    const auditionTypes = {
+        tv: { label: 'TV', icon: <Tv className="w-4 h-4" /> },
+        film: { label: 'Film', icon: <Film className="w-4 h-4" /> },
+        commercial: { label: 'Commercial', icon: <Megaphone className="w-4 h-4" /> },
+        theater: { label: 'Theater', icon: <User className="w-4 h-4" /> },
+        voiceover: { label: 'Voiceover', icon: <Video className="w-4 h-4" /> },
+        other: { label: 'Other', icon: <Video className="w-4 h-4" /> }
+    };
 
     const openModal = () => {
         setIsModalOpen(true);
@@ -48,17 +45,14 @@ export default function AddAuditionButton() {
             castingDirector: '',
             auditionType: '',
             auditionRole: '',
-            auditionRoleLevel: '',
+            billing: '',
             source: '',
-            currentStatus: '',
-            files: '',
-            location: '',
-            description: ''
+            status: '',
         });
-        setSelectedFiles([]);
     };
 
-    const handleInputChange = (e) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleInputChange = (e: any) => {
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
@@ -66,82 +60,70 @@ export default function AddAuditionButton() {
         }));
     };
 
-    const handleFileSelect = (e) => {
-        const files = Array.from(e.target.files);
-        setSelectedFiles(prev => [...prev, ...files]);
-    };
+    const handleSubmit = async () => {
+        // // Validate required fields
+        // if (!formData.projectTitle || !formData.auditionRole || !formData.auditionType || !formData.date) {
+        //     alert('Please fill in all required fields.');
+        //     return;
+        // }
 
-    const handleDrop = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setDragOver(false);
+        // // Create FormData object
+        // const submitData = new FormData();
 
-        const files = Array.from(e.dataTransfer.files);
-        setSelectedFiles(prev => [...prev, ...files]);
-    };
+        // // Add form fields
+        // Object.keys(formData).forEach(key => {
+        //     submitData.append(key, formData[key]);
+        // });
 
-    const handleDragOver = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setDragOver(true);
-    };
+        // // // Add files
+        // // selectedFiles.forEach((file, index) => {
+        // //     submitData.append(`files[${index}]`, file);
+        // // });
 
-    const handleDragLeave = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setDragOver(false);
-    };
+        // // Here you would typically send to your API
+        // console.log('Form Data:', formData);
+        // console.log('Selected Files:', selectedFiles);
+        // console.log('FormData for API:', submitData);
 
-    const removeFile = (index) => {
-        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
-    };
-
-    const handleSubmit = () => {
-        // Validate required fields
+        // // Simulate success
+        // alert('Audition saved successfully!');
+        // closeModal();
         if (!formData.projectTitle || !formData.auditionRole || !formData.auditionType || !formData.date) {
             alert('Please fill in all required fields.');
             return;
         }
 
-        // Create FormData object
-        const submitData = new FormData();
-
-        // Add form fields
-        Object.keys(formData).forEach(key => {
-            submitData.append(key, formData[key]);
-        });
-
-        // Add files
-        selectedFiles.forEach((file, index) => {
-            submitData.append(`files[${index}]`, file);
-        });
-
-        // Here you would typically send to your API
-        console.log('Form Data:', formData);
-        console.log('Selected Files:', selectedFiles);
-        console.log('FormData for API:', submitData);
-
-        // Simulate success
-        alert('Audition saved successfully!');
-        closeModal();
+        try {
+            const auditionId = await addAudition(formData);
+            console.log('Audition saved with ID:', auditionId);
+            // alert('Audition saved successfully!');
+            closeModal();
+        } catch (error) {
+            console.error('Error saving audition:', error);
+            // alert('Error saving audition. Please try again.');
+        } finally {
+            triggerRefresh();
+        }
     };
 
     return (
         <>
-            {/* Floating Add Button */}
+            {/* Regular Button - No longer floating */}
             <button
                 onClick={openModal}
-                className="fixed top-4 right-4 bg-gradient-to-r from-red-500 to-orange-500 text-white p-3 rounded-full font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 flex items-center gap-2 z-40"
+                className="text-white px-4 py-2 rounded-full font-semibold shadow-lg hover:shadow-xl hover:scale-105 transform transition-all duration-300 flex items-center gap-2"
+                style={{ backgroundColor: '#4B3F72' }}
                 title="Add New Audition"
             >
-                <span className="text-xl">➕</span>
-                <span className="hidden sm:inline">Add Audition</span>
+                {/* <span className="text-xl" style={{ color: '#fff' }}>➕</span> */}
+                <Plus className="w-5 h-5 text-white" />
+                <span>Add Audition</span>
             </button>
 
             {/* Modal Overlay */}
             {isModalOpen && (
                 <div
-                    className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50 p-5"
+                    className="fixed inset-0 bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50 p-5"
                     onClick={(e) => e.target === e.currentTarget && closeModal()}
                 >
                     {/* Modal */}
@@ -191,6 +173,28 @@ export default function AddAuditionButton() {
                                 />
                             </div>
 
+                            {/* Audition Type */}
+                            <div>
+                                <label htmlFor="auditionType" className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Audition Type *
+                                </label>
+                                <select
+                                    id="auditionType"
+                                    name="auditionType"
+                                    value={formData.auditionType}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-gray-50 focus:bg-white"
+                                >
+                                    <option value="">Select audition type</option>
+                                    {Object.entries(auditionTypes).map(([key, type]) => (
+                                        <option key={key} value={key}>
+                                            {type.icon} {type.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
                             {/* Casting Director */}
                             <div>
                                 <label htmlFor="castingDirector" className="block text-sm font-semibold text-gray-700 mb-2">
@@ -207,28 +211,7 @@ export default function AddAuditionButton() {
                                 />
                             </div>
 
-                            {/* Audition Type */}
-                            <div>
-                                <label htmlFor="auditionType" className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Audition Type *
-                                </label>
-                                <select
-                                    id="auditionType"
-                                    name="auditionType"
-                                    value={formData.auditionType}
-                                    onChange={handleInputChange}
-                                    required
-                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-gray-50 focus:bg-white"
-                                >
-                                    <option value="">Select audition type</option>
-                                    {auditionTypes.map(type => (
-                                        <option key={type.value} value={type.value}>
-                                            {type.icon} {type.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
+                            
                             {/* Audition Role */}
                             <div>
                                 <label htmlFor="auditionRole" className="block text-sm font-semibold text-gray-700 mb-2">
@@ -242,22 +225,6 @@ export default function AddAuditionButton() {
                                     onChange={handleInputChange}
                                     required
                                     placeholder="What is your role in this audition?"
-                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-gray-50 focus:bg-white"
-                                />
-                            </div>
-
-                            {/* Role Level */}
-                            <div>
-                                <label htmlFor="auditionRoleLevel" className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Audition Role Level
-                                </label>
-                                <input
-                                    type="text"
-                                    id="auditionRoleLevel"
-                                    name="auditionRoleLevel"
-                                    value={formData.auditionRoleLevel}
-                                    onChange={handleInputChange}
-                                    placeholder="What is the level of your role (e.g. Main, supporting, etc)?"
                                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-gray-50 focus:bg-white"
                                 />
                             </div>
@@ -278,113 +245,42 @@ export default function AddAuditionButton() {
                                 />
                             </div>
 
+                            {/* Role Level */}
+                            <div>
+                                <label htmlFor="billing" className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Billing
+                                </label>
+                                <input
+                                    type="text"
+                                    id="billing"
+                                    name="billing"
+                                    value={formData.billing}
+                                    onChange={handleInputChange}
+                                    placeholder="What is the level of your role (e.g. Main, supporting, etc)?"
+                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-gray-50 focus:bg-white"
+                                />
+                            </div>
+
                             {/* Current Status */}
                             <div>
-                                <label htmlFor="currentStatus" className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Current Status
+                                <label htmlFor="status" className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Status
                                 </label>
                                 <select
-                                    id="currentStatus"
-                                    name="currentStatus"
-                                    value={formData.currentStatus}
+                                    id="status"
+                                    name="status"
+                                    value={formData.status}
                                     onChange={handleInputChange}
                                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-gray-50 focus:bg-white"
                                 >
                                     <option value="">Select status</option>
-                                    <option value="applied">Applied</option>
-                                    <option value="auditioned">Auditioned</option>
+                                    <option value="applied">Booked</option>
+                                    <option value="auditioned">Declined</option>
                                     <option value="callback">Callback</option>
-                                    <option value="booked">Booked</option>
-                                    <option value="rejected">Rejected</option>
-                                    <option value="pending">Pending</option>
+                                    <option value="booked">Hold</option>
+                                    <option value="rejected">Completed</option>
                                 </select>
                             </div>
-
-                            {/* Location */}
-                            <div>
-                                <label htmlFor="location" className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Location
-                                </label>
-                                <input
-                                    type="text"
-                                    id="location"
-                                    name="location"
-                                    value={formData.location}
-                                    onChange={handleInputChange}
-                                    placeholder="Audition location"
-                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-gray-50 focus:bg-white"
-                                />
-                            </div>
-
-                            {/* Description */}
-                            <div>
-                                <label htmlFor="description" className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Description
-                                </label>
-                                <textarea
-                                    id="description"
-                                    name="description"
-                                    value={formData.description}
-                                    onChange={handleInputChange}
-                                    placeholder="Additional notes about the audition"
-                                    rows={3}
-                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-gray-50 focus:bg-white resize-vertical"
-                                />
-                            </div>
-
-                            {/* File Upload */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Upload Files
-                                </label>
-                                <div
-                                    onClick={() => fileInputRef.current?.click()}
-                                    onDrop={handleDrop}
-                                    onDragOver={handleDragOver}
-                                    onDragLeave={handleDragLeave}
-                                    className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200 ${dragOver
-                                            ? 'border-indigo-500 bg-indigo-50'
-                                            : 'border-gray-300 bg-gray-50 hover:border-indigo-500 hover:bg-indigo-50'
-                                        }`}
-                                >
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        multiple
-                                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.mp4,.mov,.wav,.mp3"
-                                        onChange={handleFileSelect}
-                                        className="hidden"
-                                    />
-                                    <div className="flex flex-col items-center gap-3">
-                                        <div className={`text-4xl ${dragOver ? 'text-indigo-500' : 'text-gray-400'}`}>☁️⬆️</div>
-                                        <div className="text-gray-600">
-                                            <span className="font-semibold text-indigo-600">Click to upload</span> or drag and drop<br />
-                                            <span className="text-sm">Scripts, photos, videos, or audio files</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Selected Files */}
-                                {selectedFiles.length > 0 && (
-                                    <div className="mt-4 space-y-2">
-                                        {selectedFiles.map((file, index) => (
-                                            <div key={index} className="bg-white p-3 rounded-lg shadow-sm border flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-lg">📄</span>
-                                                    <span className="text-sm font-medium text-gray-700">{file.name}</span>
-                                                    <span className="text-xs text-gray-500">({Math.round(file.size / 1024)}KB)</span>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeFile(index)}
-                                                    className="p-1 rounded hover:bg-red-50 hover:text-red-500 transition-colors duration-200 text-sm"
-                                                >
-                                                    ✕
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
                             </div>
 
                             {/* Form Actions */}
@@ -399,15 +295,16 @@ export default function AddAuditionButton() {
                                 <button
                                     type="button"
                                     onClick={handleSubmit}
-                                    className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2"
+                                    className="flex-1 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2"
+                                    style={{ backgroundColor: "#4B3F72" }}
                                 >
-                                    <span className="text-lg">💾</span>
+                                    <SaveIcon className="w-5 h-5" />
                                     Save Audition
                                 </button>
                             </div>
                         </div>
                     </div>
-                </div>
+                // </div>
             )}
         </>
     );

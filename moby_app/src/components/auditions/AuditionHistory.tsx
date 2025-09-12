@@ -15,12 +15,15 @@ import {
     X
 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import type { AuditionData, ProjectTypeFilter, StatusFilter } from "@/types/audition";
+import type { AuditionData, ProjectTypeFilter, StatusFilter, AuditionsData } from "@/types/audition";
 import AuditionCounts from "./AuditionCounts";
+import AddAuditionButton from "@/app/auditions/add/page";
+import { getAllAuditions } from "@/lib/firebase/client/auditions";
+import { toBasicError } from "@/types/error";
 
 // Sort configuration type
 interface SortConfig {
-    key: keyof AuditionData;
+    key: keyof AuditionsData;
     direction: 'asc' | 'desc';
 }
 
@@ -32,7 +35,7 @@ export default function AuditionHistory() {
     const [showTypeFilter, setShowTypeFilter] = useState<boolean>(false);
     const [showStatusFilter, setShowStatusFilter] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(true);
-    const [auditionsData, setAuditionsData] = useState<AuditionData[]>([]);
+    const [auditionsData, setAuditionsData] = useState<AuditionsData[]>([]);
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [showSearch, setShowSearch] = useState(false);
 
@@ -57,352 +60,28 @@ export default function AuditionHistory() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    const loadAuditions = async () => {
+        setLoading(true);
+
+        try {
+            const auditions = await getAllAuditions();
+            setAuditionsData(auditions);
+        } catch (e: unknown) {
+            const err = toBasicError(e);
+            console.error("User auditions fetch failed:", err);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
     // Fetch auditions data on component mount
     useEffect(() => {
         const fetchAuditions = async () => {
             try {
                 setLoading(true);
-                // TODO: Replace with actual API call
-                // const response = await fetch('/api/auditions');
-                // const data = await response.json();
-                // setAuditionsData(data);
-
-                // For now, using dummy data
-                setTimeout(() => {
-                    setAuditionsData([
-                        {
-                            id: 1,
-                            date: '2024-03-15',
-                            projectName: 'The Morning Show',
-                            projectType: 'tv',
-                            castingDirector: 'Sarah Johnson',
-                            role: 'Reporter',
-                            source: 'Agent Submission',
-                            billing: 'co-star',
-                            status: 'callback'
-                        },
-                        {
-                            id: 2,
-                            date: '2024-03-12',
-                            projectName: 'Nike Summer Campaign',
-                            projectType: 'commercial',
-                            castingDirector: 'Mike Chen',
-                            role: 'Lead Runner',
-                            source: 'Direct Booking',
-                            billing: 'star',
-                            status: 'booked'
-                        },
-                        {
-                            id: 3,
-                            date: '2024-03-08',
-                            projectName: 'Midnight Dreams',
-                            projectType: 'film',
-                            castingDirector: 'Emily Rodriguez',
-                            role: 'Detective Harris',
-                            source: 'Self Submission',
-                            billing: 'star',
-                            status: 'declined'
-                        },
-                        {
-                            id: 4,
-                            date: '2024-03-05',
-                            projectName: 'Law & Order: SVU',
-                            projectType: 'tv',
-                            castingDirector: 'David Park',
-                            role: 'Witness',
-                            source: 'Agent Submission',
-                            billing: 'co-star',
-                            status: 'completed'
-                        },
-                        {
-                            id: 5,
-                            date: '2024-02-28',
-                            projectName: 'Apple Tech Launch',
-                            projectType: 'commercial',
-                            castingDirector: 'Lisa Wang',
-                            role: 'Tech Professional',
-                            source: 'Casting Network',
-                            billing: 'extra',
-                            status: 'hold'
-                        },
-                        {
-                            id: 6,
-                            date: '2024-02-25',
-                            projectName: 'The Inheritance',
-                            projectType: 'film',
-                            castingDirector: 'Robert Taylor',
-                            role: 'Son',
-                            source: 'Agent Submission',
-                            billing: 'star',
-                            status: 'callback'
-                        },
-                        {
-                            id: 7,
-                            date: '2024-02-20',
-                            projectName: 'Broadway Rising',
-                            projectType: 'theater',
-                            castingDirector: 'Helen Brooks',
-                            role: 'Ensemble',
-                            source: 'Theater Casting Call',
-                            billing: 'supporting',
-                            status: 'completed'
-                        },
-                        {
-                            id: 8,
-                            date: '2024-02-18',
-                            projectName: 'Coca-Cola Refresh',
-                            projectType: 'commercial',
-                            castingDirector: 'James White',
-                            role: 'Cafe Customer',
-                            source: 'Casting Network',
-                            billing: 'extra',
-                            status: 'declined'
-                        },
-                        {
-                            id: 9,
-                            date: '2024-02-14',
-                            projectName: 'City Lights',
-                            projectType: 'film',
-                            castingDirector: 'Martha Green',
-                            role: 'Best Friend',
-                            source: 'Agent Submission',
-                            billing: 'supporting',
-                            status: 'booked'
-                        },
-                        {
-                            id: 10,
-                            date: '2024-02-10',
-                            projectName: 'Saturday Night Drama',
-                            projectType: 'tv',
-                            castingDirector: 'Victor Brown',
-                            role: 'Neighbor',
-                            source: 'Self Submission',
-                            billing: 'guest-star',
-                            status: 'callback'
-                        },
-                        {
-                            id: 11,
-                            date: '2024-02-08',
-                            projectName: 'Spotify Voice Spot',
-                            projectType: 'voiceover',
-                            castingDirector: 'Angela Martin',
-                            role: 'Narrator',
-                            source: 'Online Submission',
-                            billing: 'lead',
-                            status: 'completed'
-                        },
-                        {
-                            id: 12,
-                            date: '2024-02-05',
-                            projectName: 'The Great Escape',
-                            projectType: 'film',
-                            castingDirector: 'Brian Kelly',
-                            role: 'Soldier',
-                            source: 'Agent Submission',
-                            billing: 'supporting',
-                            status: 'hold'
-                        },
-                        {
-                            id: 13,
-                            date: '2024-02-02',
-                            projectName: 'Amazon Holiday Ad',
-                            projectType: 'commercial',
-                            castingDirector: 'Sophia Lee',
-                            role: 'Parent',
-                            source: 'Direct Booking',
-                            billing: 'featured',
-                            status: 'booked'
-                        },
-                        {
-                            id: 14,
-                            date: '2024-01-30',
-                            projectName: 'Comedy Hour',
-                            projectType: 'tv',
-                            castingDirector: 'George Mason',
-                            role: 'Barista',
-                            source: 'Agent Submission',
-                            billing: 'co-star',
-                            status: 'completed'
-                        },
-                        {
-                            id: 15,
-                            date: '2024-01-25',
-                            projectName: 'Dream Big',
-                            projectType: 'film',
-                            castingDirector: 'Karen Lopez',
-                            role: 'Coach',
-                            source: 'Self Submission',
-                            billing: 'supporting',
-                            status: 'declined'
-                        },
-                        {
-                            id: 16,
-                            date: '2024-01-20',
-                            projectName: 'Toyota Road Trip',
-                            projectType: 'commercial',
-                            castingDirector: 'Rick Adams',
-                            role: 'Traveler',
-                            source: 'Agent Submission',
-                            billing: 'lead',
-                            status: 'booked'
-                        },
-                        {
-                            id: 17,
-                            date: '2024-01-18',
-                            projectName: 'Voices of History',
-                            projectType: 'voiceover',
-                            castingDirector: 'Patricia King',
-                            role: 'Narrator',
-                            source: 'Online Submission',
-                            billing: 'lead',
-                            status: 'completed'
-                        },
-                        {
-                            id: 18,
-                            date: '2024-01-15',
-                            projectName: 'Hospital Days',
-                            projectType: 'tv',
-                            castingDirector: 'Samuel Harris',
-                            role: 'Doctor',
-                            source: 'Agent Submission',
-                            billing: 'recurring',
-                            status: 'callback'
-                        },
-                        {
-                            id: 19,
-                            date: '2024-01-12',
-                            projectName: 'Pepsi Winter Ad',
-                            projectType: 'commercial',
-                            castingDirector: 'Julia Clark',
-                            role: 'Skier',
-                            source: 'Casting Network',
-                            billing: 'featured',
-                            status: 'declined'
-                        },
-                        {
-                            id: 20,
-                            date: '2024-01-10',
-                            projectName: 'Mystery House',
-                            projectType: 'film',
-                            castingDirector: 'Daniel Evans',
-                            role: 'Caretaker',
-                            source: 'Agent Submission',
-                            billing: 'supporting',
-                            status: 'hold'
-                        },
-                        {
-                            id: 21,
-                            date: '2024-01-05',
-                            projectName: 'Broadway Nights',
-                            projectType: 'theater',
-                            castingDirector: 'Linda Perez',
-                            role: 'Dancer',
-                            source: 'Theater Casting Call',
-                            billing: 'extra',
-                            status: 'completed'
-                        },
-                        {
-                            id: 22,
-                            date: '2024-01-03',
-                            projectName: 'Google Workspace Spot',
-                            projectType: 'commercial',
-                            castingDirector: 'Chris O\'Neil',
-                            role: 'Office Worker',
-                            source: 'Direct Booking',
-                            billing: 'featured',
-                            status: 'booked'
-                        },
-                        {
-                            id: 23,
-                            date: '2023-12-28',
-                            projectName: 'The Silent Forest',
-                            projectType: 'film',
-                            castingDirector: 'Ellen Rivera',
-                            role: 'Explorer',
-                            source: 'Agent Submission',
-                            billing: 'lead',
-                            status: 'declined'
-                        },
-                        {
-                            id: 24,
-                            date: '2023-12-22',
-                            projectName: 'Voice of the Future',
-                            projectType: 'voiceover',
-                            castingDirector: 'Henry Morgan',
-                            role: 'Narrator',
-                            source: 'Online Submission',
-                            billing: 'lead',
-                            status: 'completed'
-                        },
-                        {
-                            id: 25,
-                            date: '2023-12-20',
-                            projectName: 'Car Insurance Ad',
-                            projectType: 'commercial',
-                            castingDirector: 'Rebecca Young',
-                            role: 'Driver',
-                            source: 'Casting Network',
-                            billing: 'star',
-                            status: 'hold'
-                        },
-                        {
-                            id: 26,
-                            date: '2023-12-18',
-                            projectName: 'Late Night Mystery',
-                            projectType: 'tv',
-                            castingDirector: 'Frank Turner',
-                            role: 'Detective',
-                            source: 'Agent Submission',
-                            billing: 'recurring',
-                            status: 'callback'
-                        },
-                        {
-                            id: 27,
-                            date: '2023-12-15',
-                            projectName: 'Samsung Galaxy Promo',
-                            projectType: 'commercial',
-                            castingDirector: 'Natalie Brooks',
-                            role: 'Photographer',
-                            source: 'Direct Booking',
-                            billing: 'featured',
-                            status: 'booked'
-                        },
-                        {
-                            id: 28,
-                            date: '2023-12-12',
-                            projectName: 'Fallen Stars',
-                            projectType: 'film',
-                            castingDirector: 'Oscar Mitchell',
-                            role: 'Mentor',
-                            source: 'Self Submission',
-                            billing: 'supporting',
-                            status: 'completed'
-                        },
-                        {
-                            id: 29,
-                            date: '2023-12-08',
-                            projectName: 'Christmas Carol',
-                            projectType: 'theater',
-                            castingDirector: 'Mary Simmons',
-                            role: 'Scrooge',
-                            source: 'Theater Casting Call',
-                            billing: 'lead',
-                            status: 'booked'
-                        },
-                        {
-                            id: 30,
-                            date: '2023-12-05',
-                            projectName: 'Podcast Intro Voice',
-                            projectType: 'voiceover',
-                            castingDirector: 'Oliver Wright',
-                            role: 'Host Voice',
-                            source: 'Online Submission',
-                            billing: 'lead',
-                            status: 'completed'
-                        }
-                    ]);
-                    setLoading(false);
-                }, 500); // Simulate loading time
+                await loadAuditions();
             } catch (error) {
                 console.error('Error fetching auditions:', error);
                 setLoading(false);
@@ -410,10 +89,52 @@ export default function AuditionHistory() {
         };
 
         fetchAuditions();
-    }, []);
+    }, [refreshTrigger]);
+
+    const triggerRefresh = () => {
+        setRefreshTrigger(prev => prev + 1);
+    }
 
     // Project type config
-    const projectTypeConfig: Record<AuditionData['projectType'], { label: string; icon: ReactElement }> = {
+    // const projectTypeConfig: Record<AuditionData['projectType'], { label: string; icon: ReactElement }> = {
+    //     tv: { label: 'TV', icon: <Tv className="w-4 h-4" /> },
+    //     film: { label: 'Film', icon: <Film className="w-4 h-4" /> },
+    //     commercial: { label: 'Commercial', icon: <Megaphone className="w-4 h-4" /> },
+    //     theater: { label: 'Theater', icon: <User className="w-4 h-4" /> },
+    //     voiceover: { label: 'Voiceover', icon: <Video className="w-4 h-4" /> },
+    //     other: { label: 'Other', icon: <Video className="w-4 h-4" /> }
+    // };
+
+    // const getProjectIcon = (type: AuditionData['projectType'] | string) => {
+    //     return projectTypeConfig[type]?.icon || <Video className="w-4 h-4" />;
+    // };
+
+    // // Status type config
+    // const statusConfig: Record<AuditionData['status'], { label: string; bgColor: string; textColor: string }> = {
+    //     completed: { label: 'Completed', bgColor: 'bg-purple-100', textColor: 'text-purple-800' },
+    //     declined: { label: 'Declined', bgColor: 'bg-red-100', textColor: 'text-red-800' },
+    //     callback: { label: 'Callback', bgColor: 'bg-blue-100', textColor: 'text-blue-800' },
+    //     hold: { label: 'Hold', bgColor: 'bg-pink-100', textColor: 'text-pink-800' },
+    //     booked: { label: 'Booked', bgColor: 'bg-green-100', textColor: 'text-green-800' }
+    // };
+
+    // const getStatusStyle = (status: AuditionData['status'] | string) => {
+    //     if (typeof status === "string") return 'bg-gray-100 text-gray-800';
+    //     const config = statusConfig[status];
+    //     return `${config.bgColor} ${config.textColor}`;
+    // };
+
+    // // Billing badge style
+    // const getBillingStyle = (billing: AuditionData['billing'] | string): string => {
+    //     switch (billing) {
+    //         case 'star': return 'bg-purple-100 text-purple-800';
+    //         case 'co-star': return 'bg-indigo-100 text-indigo-800';
+    //         case 'extra': return 'bg-gray-100 text-gray-600';
+    //         default: return 'bg-gray-100 text-gray-800';
+    //     }
+    // };
+    // Project type config
+    const projectTypeConfig: Record<string, { label: string; icon: ReactElement }> = {
         tv: { label: 'TV', icon: <Tv className="w-4 h-4" /> },
         film: { label: 'Film', icon: <Film className="w-4 h-4" /> },
         commercial: { label: 'Commercial', icon: <Megaphone className="w-4 h-4" /> },
@@ -422,12 +143,12 @@ export default function AuditionHistory() {
         other: { label: 'Other', icon: <Video className="w-4 h-4" /> }
     };
 
-    const getProjectIcon = (type: AuditionData['projectType']) => {
+    const getProjectIcon = (type: string) => {
         return projectTypeConfig[type]?.icon || <Video className="w-4 h-4" />;
     };
 
     // Status type config
-    const statusConfig: Record<AuditionData['status'], { label: string; bgColor: string; textColor: string }> = {
+    const statusConfig: Record<string, { label: string; bgColor: string; textColor: string }> = {
         completed: { label: 'Completed', bgColor: 'bg-purple-100', textColor: 'text-purple-800' },
         declined: { label: 'Declined', bgColor: 'bg-red-100', textColor: 'text-red-800' },
         callback: { label: 'Callback', bgColor: 'bg-blue-100', textColor: 'text-blue-800' },
@@ -435,13 +156,13 @@ export default function AuditionHistory() {
         booked: { label: 'Booked', bgColor: 'bg-green-100', textColor: 'text-green-800' }
     };
 
-    const getStatusStyle = (status: AuditionData['status']) => {
+    const getStatusStyle = (status: string) => {
         const config = statusConfig[status];
-        return `${config.bgColor} ${config.textColor}`;
+        return config ? `${config.bgColor} ${config.textColor}` : 'bg-gray-100 text-gray-800';
     };
 
     // Billing badge style
-    const getBillingStyle = (billing: AuditionData['billing']): string => {
+    const getBillingStyle = (billing: string): string => {
         switch (billing) {
             case 'star': return 'bg-purple-100 text-purple-800';
             case 'co-star': return 'bg-indigo-100 text-indigo-800';
@@ -451,7 +172,7 @@ export default function AuditionHistory() {
     };
 
     // Sorting function
-    const handleSort = (key: keyof AuditionData): void => {
+    const handleSort = (key: keyof AuditionsData): void => {
         let direction: 'asc' | 'desc' = 'asc';
         if (sortConfig.key === key && sortConfig.direction === 'asc') {
             direction = 'desc';
@@ -463,16 +184,16 @@ export default function AuditionHistory() {
     const filteredAndSortedAuditions = useMemo(() => {
         return auditionsData
             .filter(audition => {
-                const typeMatch = filterType === 'all' || audition.projectType === filterType;
+                const typeMatch = filterType === 'all' || audition.auditionType === filterType;
                 const statusMatch = filterStatus === 'all' || audition.status === filterStatus;
 
                 // Search filter
                 const searchMatch = searchTerm === '' ||
-                    audition.projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    audition.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    audition.projectTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    audition.auditionRole.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     audition.castingDirector.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     audition.source.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    audition.projectType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    audition.auditionType.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     audition.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     audition.billing.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -510,6 +231,9 @@ export default function AuditionHistory() {
 
     return (
         <>
+            <div className="flex justify-end">
+                <AddAuditionButton triggerRefresh={triggerRefresh} />
+            </div>
             <div className="flex justify-center m-2">
                 <AuditionCounts setFilterStatus={setFilterStatus} />
             </div>
@@ -627,11 +351,11 @@ export default function AuditionHistory() {
                                     )}
                                 </div>
                                 <div
-                                    onClick={() => handleSort('projectName')}
+                                    onClick={() => handleSort('projectTitle')}
                                     className="flex-1 min-w-[200px] flex items-center gap-1 cursor-pointer hover:text-gray-700"
                                 >
                                     Project
-                                    {sortConfig.key === 'projectName' && (
+                                    {sortConfig.key === 'projectTitle' && (
                                         sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
                                     )}
                                 </div>
@@ -772,18 +496,18 @@ export default function AuditionHistory() {
                                                         })}
                                                     </div>
                                                     <div className="flex-1 min-w-[200px] font-medium text-gray-900">
-                                                        {audition.projectName}
+                                                        {audition.projectTitle}
                                                     </div>
                                                     <div className="flex-none w-32 flex items-center gap-2 text-gray-600 capitalize">
-                                                        {getProjectIcon(audition.projectType)}
-                                                        <span>{audition.projectType}</span>
+                                                        {getProjectIcon(audition.auditionType)}
+                                                        <span>{audition.auditionType}</span>
                                                     </div>
                                                     <div className="flex-1 min-w-[150px] flex items-center gap-2 text-gray-600">
                                                         <User className="w-4 h-4 text-gray-400" />
                                                         {audition.castingDirector}
                                                     </div>
                                                     <div className="flex-1 min-w-[120px] text-gray-900">
-                                                        {audition.role}
+                                                        {audition.auditionRole}
                                                     </div>
                                                     <div className="flex-1 min-w-[150px] text-gray-600">
                                                         {audition.source}
