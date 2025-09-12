@@ -89,7 +89,8 @@ wss.on('connection', async (socket) => {
     });
 });
 
-const PORT = 3000;
+// const PORT = 3000;
+const PORT = 3001;
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`🖥️ WebSocket server listening on ws://0.0.0.0:${PORT}`);
 });

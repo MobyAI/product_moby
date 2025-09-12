@@ -528,8 +528,8 @@ export function useGoogleSTT({
         }
 
         if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
-            wsRef.current = new WebSocket('wss://google-stt.fly.dev');
-            // wsRef.current = new WebSocket('ws://localhost:3001');
+            // wsRef.current = new WebSocket('wss://google-stt.fly.dev');
+            wsRef.current = new WebSocket('ws://localhost:3001');
         } else {
             console.warn('🔁 Reusing existing WebSocket');
         }

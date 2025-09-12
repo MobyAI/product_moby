@@ -26,41 +26,26 @@ export async function fetchTTSBlob(options: TTSOptions): Promise<Blob> {
         voiceId,
         modelId = 'eleven_v3', // Default to v3
         voiceSettings,
-        languageCode,
-        seed,
+        // languageCode,
+        // seed,
         applyTextNormalization = 'auto',
-        outputFormat = 'mp3_44100_128',
     } = options;
 
-    // Build the request parameters
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const requestParams: any = {
-        text,
-        model_id: modelId,
-        output_format: outputFormat,
-    };
-
-    // Add voice settings if provided
-    if (voiceSettings) {
-        requestParams.voice_settings = {
-            stability: voiceSettings.stability ?? 0.5,
-            similarity_boost: voiceSettings.similarityBoost ?? 0.75, // Changed from 0.8
-            style: voiceSettings.style ?? 0.5,
-            use_speaker_boost: voiceSettings.useSpeakerBoost ?? false,
-        };
-    }
-
-    // Add v3 specific parameters
-    if (languageCode) {
-        requestParams.language_code = languageCode;
-    }
-    if (seed !== undefined) {
-        requestParams.seed = seed;
-    }
-    requestParams.apply_text_normalization = applyTextNormalization;
-
     // Generate the audio stream
-    const stream = await elevenlabs.textToSpeech.convert(voiceId, requestParams);
+    const stream = await elevenlabs.textToSpeech.convert(voiceId, {
+        text: text,
+        modelId: modelId,
+        voiceSettings: voiceSettings ? {
+            stability: voiceSettings.stability ?? 0.5,
+            similarityBoost: voiceSettings.similarityBoost ?? 0.75,
+            style: voiceSettings.style ?? 0.5,
+            useSpeakerBoost: voiceSettings.useSpeakerBoost ?? false,
+        } : undefined,
+        outputFormat: 'mp3_44100_128',
+        // languageCode: languageCode,
+        // seed: seed,
+        applyTextNormalization: applyTextNormalization,
+    });
 
     return await streamToBlob(stream);
 }
