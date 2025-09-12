@@ -26,26 +26,20 @@ if (base64Creds) {
     console.warn("⚠️ Using default Google credential loading — may fail on Fly");
 }
 
+// Create HTTP server
 const server = http.createServer();
 
-// Configure WebSocket server with optimizations
-const wss = new WebSocket.Server({
-    server,
-    perMessageDeflate: false, // Disable compression for lower latency
-    clientTracking: true,      // Enable built-in client tracking
-});
-
-// Health check endpoint - IMPORTANT for Fly.io
+// Handle regular HTTP requests
 server.on('request', (req, res) => {
-    // Add CORS headers if needed
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
+    // Skip WebSocket upgrade requests
+    if (req.headers.upgrade === 'websocket') {
+        return;
+    }
 
     if (req.url === '/health') {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
         res.end('OK');
     } else if (req.url === '/') {
-        // Root endpoint for basic connectivity check
         res.writeHead(200, { 'Content-Type': 'text/plain' });
         res.end('Google STT WebSocket Server');
     } else {
@@ -53,6 +47,9 @@ server.on('request', (req, res) => {
         res.end();
     }
 });
+
+// Configure WebSocket server with optimizations
+const wss = new WebSocket.Server({ server });
 
 // WebSocket connection handler
 wss.on('connection', async (socket, req) => {
