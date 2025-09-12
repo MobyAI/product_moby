@@ -95,8 +95,8 @@ export const useMicCheck = (): UseMicTestReturn => {
             });
 
             // Create WebSocket connection
-            // wsRef.current = new WebSocket('wss://google-stt.fly.dev');
-            wsRef.current = new WebSocket('ws://localhost:3001');
+            wsRef.current = new WebSocket('wss://google-stt.fly.dev');
+            // wsRef.current = new WebSocket('ws://localhost:3001');
 
             workletNode.port.onmessage = (e: MessageEvent) => {
                 const message = e.data;

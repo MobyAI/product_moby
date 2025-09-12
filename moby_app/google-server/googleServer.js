@@ -5,6 +5,7 @@ require('dotenv').config();
 
 let speechClient;
 
+// Initialize Google Speech client
 const base64Creds = process.env.GOOGLE_CREDENTIALS_BASE64;
 
 if (base64Creds) {
@@ -21,76 +22,186 @@ if (base64Creds) {
 
     console.log("✅ Google credentials loaded from base64 secret");
 } else {
-    // This will fall back to GOOGLE_APPLICATION_CREDENTIALS env var if set,
-    // or throw if no credentials found
     speechClient = new SpeechClient();
     console.warn("⚠️ Using default Google credential loading — may fail on Fly");
 }
 
 const server = http.createServer();
-const wss = new WebSocket.Server({ server });
 
-// Health check endpoint
+// Configure WebSocket server with optimizations
+const wss = new WebSocket.Server({
+    server,
+    perMessageDeflate: false, // Disable compression for lower latency
+    clientTracking: true,      // Enable built-in client tracking
+});
+
+// Health check endpoint - IMPORTANT for Fly.io
 server.on('request', (req, res) => {
+    // Add CORS headers if needed
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
+
     if (req.url === '/health') {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
         res.end('OK');
+    } else if (req.url === '/') {
+        // Root endpoint for basic connectivity check
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('Google STT WebSocket Server');
     } else {
         res.writeHead(404);
         res.end();
     }
 });
 
-wss.on('connection', async (socket) => {
-    console.log('🎧 Client connected to STT proxy');
+// WebSocket connection handler
+wss.on('connection', async (socket, req) => {
+    const clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    console.log(`🎧 Client connected from ${clientIp}`);
 
-    const recognizeStream = speechClient
-        .streamingRecognize({
-            config: {
-                encoding: 'LINEAR16',
-                sampleRateHertz: 16000,
-                languageCode: 'en-US',
-                model: 'latest_long',
-                enableWordTimeOffsets: true,
-                enableAutomaticPunctuation: true,
-                enableWordConfidence: true,  // ✅ Added for better cue detection
+    let recognizeStream = null;
 
-                // ✅ Optimizations for real-time streaming
-                useEnhanced: true,  // Better accuracy if available
-                profanityFilter: false,  // Reduce processing
+    try {
+        recognizeStream = speechClient
+            .streamingRecognize({
+                config: {
+                    encoding: 'LINEAR16',
+                    sampleRateHertz: 16000,
+                    languageCode: 'en-US',
+
+                    // Optimized settings for real-time transcription
+                    model: 'latest_long',
+                    enableWordTimeOffsets: true,
+                    enableAutomaticPunctuation: true,
+                    enableWordConfidence: true,
+
+                    // Performance optimizations
+                    useEnhanced: true,
+                    profanityFilter: false,
+                    singleUtterance: false,
+
+                    // Additional optimizations for streaming
+                    maxAlternatives: 1,  // Reduce processing overhead
+                },
+                interimResults: true,
                 singleUtterance: false,
-            },
-            interimResults: true,
-            singleUtterance: false,
-        })
-        .on('data', (data) => {
-            const alt = data.results[0]?.alternatives?.[0];
-            const isFinal = data.results[0]?.isFinal;
+            })
+            .on('data', (data) => {
+                const alt = data.results[0]?.alternatives?.[0];
+                const isFinal = data.results[0]?.isFinal;
 
-            if (alt) {
-                socket.send(JSON.stringify({
-                    channel: { alternatives: [alt] },
-                    is_final: isFinal,
-                }));
-            }
-        })
-        .on('error', (err) => {
-            console.error('❌ Google STT error:', err);
-            socket.send(JSON.stringify({ error: err.message }));
-        });
+                if (alt && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        channel: { alternatives: [alt] },
+                        is_final: isFinal
+                    }));
+                }
+            })
+            .on('error', (err) => {
+                console.error('❌ Google STT error:', err.message);
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        error: err.message,
+                        code: err.code || 'UNKNOWN_ERROR'
+                    }));
+                }
 
+                // Clean up on error
+                if (recognizeStream) {
+                    recognizeStream.destroy();
+                    recognizeStream = null;
+                }
+            })
+            .on('end', () => {
+                console.log('🔚 Stream ended normally');
+            });
+    } catch (err) {
+        console.error('❌ Failed to create recognize stream:', err);
+        socket.send(JSON.stringify({
+            error: 'Failed to initialize speech recognition',
+            details: err.message
+        }));
+        socket.close();
+        return;
+    }
+
+    // Handle incoming audio chunks
     socket.on('message', (audioChunk) => {
-        recognizeStream.write(audioChunk);
+        if (recognizeStream && !recognizeStream.destroyed) {
+            try {
+                recognizeStream.write(audioChunk);
+            } catch (err) {
+                console.error('❌ Error writing to stream:', err);
+            }
+        }
     });
 
-    socket.on('close', () => {
-        console.log('❎ Client disconnected');
-        recognizeStream.destroy();
+    // Handle client disconnect
+    socket.on('close', (code, reason) => {
+        console.log(`❎ Client disconnected: ${code} - ${reason}`);
+        if (recognizeStream && !recognizeStream.destroyed) {
+            recognizeStream.destroy();
+        }
+    });
+
+    // Handle socket errors
+    socket.on('error', (err) => {
+        console.error('❌ WebSocket error:', err);
+        if (recognizeStream && !recognizeStream.destroyed) {
+            recognizeStream.destroy();
+        }
+    });
+
+    // Implement ping/pong for connection health
+    socket.isAlive = true;
+    socket.on('pong', () => {
+        socket.isAlive = true;
     });
 });
 
-// const PORT = 3000;
-const PORT = 3001;
-server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🖥️ WebSocket server listening on ws://0.0.0.0:${PORT}`);
+// Periodic ping to keep connections alive and detect dead connections
+const pingInterval = setInterval(() => {
+    wss.clients.forEach((ws) => {
+        if (ws.isAlive === false) {
+            console.log('⚠️ Terminating dead connection');
+            return ws.terminate();
+        }
+        ws.isAlive = false;
+        ws.ping();
+    });
+}, 30000); // Ping every 30 seconds
+
+// Cleanup on server close
+wss.on('close', () => {
+    clearInterval(pingInterval);
+});
+
+// Start server
+const PORT = 3000;
+const HOST = '0.0.0.0'; // Important for Fly.io
+
+server.listen(PORT, HOST, () => {
+    console.log(`🚀 WebSocket server listening on ws://${HOST}:${PORT}`);
+    console.log(`📊 Active connections: ${wss.clients.size}`);
+    console.log(`🌍 Region: ${process.env.FLY_REGION || 'local'}`);
+});
+
+// Graceful shutdown handling
+process.on('SIGTERM', () => {
+    console.log('📴 SIGTERM received, closing gracefully...');
+
+    wss.clients.forEach((client) => {
+        client.close(1000, 'Server shutting down');
+    });
+
+    server.close(() => {
+        console.log('✅ Server closed');
+        process.exit(0);
+    });
+
+    // Force close after 5 seconds
+    setTimeout(() => {
+        console.error('❌ Forced shutdown');
+        process.exit(1);
+    }, 5000);
 });

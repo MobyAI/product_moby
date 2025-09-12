@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "dev:full": "concurrently \"npm run dev\" \"node google-server/googleServer.js\" \"node deepgram-server/deepgramServer.js\"",
-    "dev:google": "concurrently \"npm run dev\" \"node google-server/googleServer.js\"",
+    "dev:google": "concurrently \"npm run dev\" \"node google-server/oldGoogleServer.js\"",
     "dev:deepgram": "concurrently \"npm run dev\" \"node deepgram-server/deepgramServer.js\""
   },
   "dependencies": {
