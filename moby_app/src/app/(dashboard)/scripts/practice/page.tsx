@@ -628,6 +628,8 @@ function RehearsalRoomContent() {
 
 	const handlePause = () => {
 		setIsPlaying(false);
+		setShowCountdown(false);
+		setCountdownDuration(0);
 		setIsWaitingForUser(false);
 		pauseSTT();
 
@@ -639,6 +641,8 @@ function RehearsalRoomContent() {
 
 	const handleNext = () => {
 		setIsPlaying(false);
+		setShowCountdown(false);
+		setCountdownDuration(0);
 		setIsWaitingForUser(false);
 		setCurrentIndex((i) => {
 			const nextIndex = Math.min(i + 1, (script?.length ?? 1) - 1);
@@ -650,6 +654,8 @@ function RehearsalRoomContent() {
 
 	const handlePrev = () => {
 		setIsPlaying(false);
+		setShowCountdown(false);
+		setCountdownDuration(0);
 		setIsWaitingForUser(false);
 		setCurrentIndex((i) => {
 			const prevIndex = Math.max(i - 1, 0);
@@ -670,6 +676,8 @@ function RehearsalRoomContent() {
 
 	const handleRestart = () => {
 		setIsPlaying(false);
+		setShowCountdown(false);
+		setCountdownDuration(0);
 		setIsWaitingForUser(false);
 		cleanupSTT();
 		setCurrentIndex(0);
@@ -685,6 +693,8 @@ function RehearsalRoomContent() {
 	// Handle line click to jump to specific line
 	const handleLineClick = (lineIndex: number) => {
 		setIsPlaying(false);
+		setShowCountdown(false);
+		setCountdownDuration(0);
 		setIsWaitingForUser(false);
 		pauseSTT();
 
@@ -750,7 +760,7 @@ function RehearsalRoomContent() {
 		}, delay);
 	};
 
-	// Delay change update
+	// Delay change update (optional)
 	const handleDelayChange = (index: number, delay: number): void => {
 		console.log(`Delay changed for line ${index}: ${delay}ms`);
 	};
