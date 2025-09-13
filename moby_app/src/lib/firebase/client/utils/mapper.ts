@@ -14,6 +14,7 @@ export type FirestoreScriptElement = {
     ttsUrl?: string | null;
     voiceId?: string | null;
     voiceName?: string | null;
+    customDelay?: number | null;
 };
 
 const toFirestoreEl = (el: ScriptElement): FirestoreScriptElement => ({
@@ -30,6 +31,7 @@ const toFirestoreEl = (el: ScriptElement): FirestoreScriptElement => ({
     ttsUrl: el.ttsUrl ?? null,
     voiceId: el.voiceId ?? null,
     voiceName: el.voiceName ?? null,
+    customDelay: el.customDelay ?? null,
 });
 
 export const toFirestoreScript = (arr: ScriptElement[]): FirestoreScriptElement[] =>

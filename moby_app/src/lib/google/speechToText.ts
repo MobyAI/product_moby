@@ -214,7 +214,13 @@ export function useGoogleSTT({
     }, [onProgressUpdate]);
 
     const setCurrentLineText = useCallback((text: string) => {
-        currentLineTextRef.current = text;
+        // Remove all content within brackets including the brackets
+        const sanitized = text.replace(/\[.*?\]/g, '').trim();
+
+        // Clean up any double spaces that might result from removal
+        const cleaned = sanitized.replace(/\s+/g, ' ');
+
+        currentLineTextRef.current = cleaned;
 
         // If matcher doesn't exist yet, create it
         if (!matcherRef.current && onProgressUpdate) {
@@ -427,7 +433,6 @@ export function useGoogleSTT({
 
             // 🎛️ AudioContext
             if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
-                // audioCtxRef.current = new AudioContext({ sampleRate: 44100 });
                 audioCtxRef.current = new AudioContext();
                 console.log("🎛️ Creating new AudioContext - sampleRate:", audioCtxRef.current.sampleRate);
                 try {
@@ -506,35 +511,174 @@ export function useGoogleSTT({
         }
     };
 
+    // Original version (may be broken)
+    // const startSTT = async () => {
+    //     if (isActiveRef.current) return;
+
+    //     isActiveRef.current = true;
+    //     hasTriggeredRef.current = false;
+    //     fullTranscript.current = [];
+
+    //     await resumeAudioContext();
+
+    //     if (!audioCtxRef.current || !micStreamRef.current) {
+    //         console.warn('⚠️ STT not initialized — call initializeSTT() first');
+    //         return;
+    //     }
+
+    //     if (wsRef.current) {
+    //         wsRef.current.onmessage = null;
+    //         wsRef.current.onopen = null;
+    //         wsRef.current.onerror = null;
+    //         wsRef.current.onclose = null;
+    //     }
+
+    //     // Clean up old WebSocket
+    //     if (wsRef.current) {
+    //         console.log('Cleaning old WebSocket');
+    //         wsRef.current.close();
+    //     }
+
+    //     try {
+    //         wsRef.current = new WebSocket('wss://google-stt.fly.dev');
+    //         console.log('New WebSocket created successfully');
+    //     } catch (err) {
+    //         console.error('ERROR creating WebSocket:', err);
+    //         return;
+    //     }
+
+    //     wsRef.current.onmessage = async (event: MessageEvent) => {
+    //         if (hasTriggeredRef.current) return;
+
+    //         const raw = event.data;
+    //         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    //         let data: any;
+
+    //         try {
+    //             const text = raw instanceof Blob ? await raw.text() : raw;
+    //             data = JSON.parse(text);
+    //         } catch (err) {
+    //             console.warn('❌ WebSocket data error:', err);
+    //             return;
+    //         }
+
+    //         const transcript: string = data.channel?.alternatives?.[0]?.transcript || '';
+    //         const isFinal = data.is_final;
+
+    //         if (transcript) {
+    //             console.log(`[🎙️] Transcript chunk at ${performance.now().toFixed(2)}ms:`, transcript);
+    //             resetSilenceTimeout();
+    //             resetSilenceTimer(transcript);
+
+    //             if (transcript === lastTranscriptRef.current) {
+    //                 repeatCountRef.current += 1;
+    //                 if (!repeatStartTimeRef.current) {
+    //                     repeatStartTimeRef.current = performance.now();
+    //                 }
+    //             } else {
+    //                 repeatCountRef.current = 1;
+    //                 repeatStartTimeRef.current = performance.now();
+
+    //                 if (matcherRef.current && !hasTriggeredRef.current) {
+    //                     matcherRef.current.processTranscript(transcript, !isFinal);
+    //                 }
+    //             }
+
+    //             lastTranscriptRef.current = transcript;
+
+    //             const now = performance.now();
+    //             const repeatDuration = now - (repeatStartTimeRef.current ?? now);
+
+    //             if (repeatCountRef.current >= 2 && repeatDuration >= 400) {
+    //                 console.log('🟡 Stable transcript detected — forcing early match');
+    //                 await handleKeywordMatch(transcript);
+    //                 repeatCountRef.current = 0;
+    //                 repeatStartTimeRef.current = null;
+    //             }
+    //         }
+
+    //         if (isFinal && transcript) {
+    //             console.log(`🟡 Google is_final detected @ ${performance.now().toFixed(2)}ms: ${transcript}`);
+
+    //             fullTranscript.current.push(transcript);
+
+    //             const fullSpokenLine = fullTranscript.current.join(' ');
+    //             const expectedWords = matcherRef.current?.getNormalizedScript();
+    //             const spokenWords = fullSpokenLine.trim().split(/\s+/);
+
+    //             if (expectedWords && spokenWords.length >= expectedWords.length) {
+    //                 console.log("✅ Full line spoken — triggering next line automatically.");
+    //                 triggerNextLine(fullSpokenLine);
+    //                 return;
+    //             }
+
+    //             const isLongEnough = expectedWords && spokenWords.length >= Math.floor(expectedWords.length * 0.75);
+    //             const lengthRatio = expectedWords && spokenWords.length / expectedWords.length;
+    //             // const isLongEnough = expectedWords && spokenWords.length >= expectedWords.length;
+    //             console.log('Long enough?', lengthRatio);
+
+    //             if (isLongEnough) {
+    //                 console.log(`🟡 Google Final transcript accepted @ ${performance.now().toFixed(2)}ms! Handling finalization...`);
+    //                 await handleFinalization(fullSpokenLine);
+    //             } else {
+    //                 console.log(`⏹️ Google Final transcript too short — skipping!`);
+    //             }
+    //         }
+    //     };
+
+    //     wsRef.current.onopen = async () => {
+    //         if (!isActiveRef.current) return;
+
+    //         // micCleanupRef.current = await streamMic(wsRef);
+
+    //         resetSilenceTimeout();
+    //     };
+
+    //     wsRef.current.onerror = (e) => {
+    //         console.warn('❌ WebSocket error:', e);
+    //     };
+
+    //     wsRef.current.onclose = (e) => {
+    //         console.log('🔌 WebSocket closed:', e.code, e.reason);
+    //     };
+    // };
+
+    // New version (attempted fix)
     const startSTT = async () => {
+        console.log('1. startSTT called');
+
         if (isActiveRef.current) return;
+        console.log('2. Not active, proceeding');
 
         isActiveRef.current = true;
         hasTriggeredRef.current = false;
         fullTranscript.current = [];
+        console.log('3. Refs set to true');
 
         await resumeAudioContext();
+        console.log('4. Audio context resumed');
 
         if (!audioCtxRef.current || !micStreamRef.current) {
             console.warn('⚠️ STT not initialized — call initializeSTT() first');
             return;
         }
+        console.log('5. Audio initialized OK');
 
+        // Clean up old WebSocket
         if (wsRef.current) {
-            wsRef.current.onmessage = null;
-            wsRef.current.onopen = null;
-            wsRef.current.onerror = null;
-            wsRef.current.onclose = null;
+            console.log('6. Cleaning old WebSocket');
+            wsRef.current.close();
         }
 
-        if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
-            wsRef.current = new WebSocket('wss://google-stt.fly.dev');
-            // wsRef.current = new WebSocket('ws://localhost:3001');
-        } else {
-            console.warn('🔁 Reusing existing WebSocket');
-        }
+        console.log('7. Creating new WebSocket...');
+        wsRef.current = new WebSocket('wss://google-stt.fly.dev');
 
-        console.log('startSTT triggered');
+        wsRef.current.onopen = async () => {
+            if (!isActiveRef.current) return;
+            // micCleanupRef.current = await streamMic(wsRef);
+            console.log('8. WebSocket opened!');
+            resetSilenceTimeout();
+        };
 
         wsRef.current.onmessage = async (event: MessageEvent) => {
             if (hasTriggeredRef.current) return;
@@ -615,14 +759,6 @@ export function useGoogleSTT({
             }
         };
 
-        wsRef.current.onopen = async () => {
-            if (!isActiveRef.current) return;
-
-            // micCleanupRef.current = await streamMic(wsRef);
-
-            resetSilenceTimeout();
-        };
-
         wsRef.current.onerror = (e) => {
             console.warn('❌ WebSocket error:', e);
         };
@@ -638,7 +774,7 @@ export function useGoogleSTT({
 
         // 🧹 Stop WebSocket
         if (wsRef.current) {
-            wsRef.current.close();
+            wsRef.current.close(1000, 'Pausing STT');
             wsRef.current = null;
         }
 
