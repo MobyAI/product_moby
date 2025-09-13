@@ -214,7 +214,15 @@ export function useGoogleSTT({
     }, [onProgressUpdate]);
 
     const setCurrentLineText = useCallback((text: string) => {
-        currentLineTextRef.current = text;
+        // Remove all content within brackets including the brackets
+        const sanitized = text.replace(/\[.*?\]/g, '').trim();
+
+        // Clean up any double spaces that might result from removal
+        const cleaned = sanitized.replace(/\s+/g, ' ');
+
+        currentLineTextRef.current = cleaned;
+        console.log('original text:', text);
+        console.log('sanitized text:', cleaned);
 
         // If matcher doesn't exist yet, create it
         if (!matcherRef.current && onProgressUpdate) {
