@@ -221,8 +221,6 @@ export function useGoogleSTT({
         const cleaned = sanitized.replace(/\s+/g, ' ');
 
         currentLineTextRef.current = cleaned;
-        console.log('original text:', text);
-        console.log('sanitized text:', cleaned);
 
         // If matcher doesn't exist yet, create it
         if (!matcherRef.current && onProgressUpdate) {
@@ -435,7 +433,6 @@ export function useGoogleSTT({
 
             // 🎛️ AudioContext
             if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
-                // audioCtxRef.current = new AudioContext({ sampleRate: 44100 });
                 audioCtxRef.current = new AudioContext();
                 console.log("🎛️ Creating new AudioContext - sampleRate:", audioCtxRef.current.sampleRate);
                 try {
@@ -676,18 +673,10 @@ export function useGoogleSTT({
         console.log('7. Creating new WebSocket...');
         wsRef.current = new WebSocket('wss://google-stt.fly.dev');
 
-        // try {
-        //     wsRef.current = new WebSocket('wss://google-stt.fly.dev');
-        //     console.log('8. WebSocket created successfully');
-        // } catch (err) {
-        //     console.error('8. ERROR creating WebSocket:', err);
-        //     return;
-        // }
-
         wsRef.current.onopen = async () => {
             if (!isActiveRef.current) return;
             // micCleanupRef.current = await streamMic(wsRef);
-            console.log('10. WebSocket opened!');
+            console.log('8. WebSocket opened!');
             resetSilenceTimeout();
         };
 
@@ -785,7 +774,7 @@ export function useGoogleSTT({
 
         // 🧹 Stop WebSocket
         if (wsRef.current) {
-            wsRef.current.close();
+            wsRef.current.close(1000, 'Pausing STT');
             wsRef.current = null;
         }
 
