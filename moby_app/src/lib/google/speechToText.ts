@@ -527,15 +527,19 @@ export function useGoogleSTT({
             wsRef.current.onclose = null;
         }
 
+        // Clean up old WebSocket
         if (wsRef.current) {
-            console.log('6. Cleaning old WebSocket');
+            console.log('Cleaning old WebSocket');
             wsRef.current.close();
         }
 
-        wsRef.current = new WebSocket('wss://google-stt.fly.dev');
-        // wsRef.current = new WebSocket('ws://localhost:3001');
-
-        console.log('startSTT triggered');
+        try {
+            wsRef.current = new WebSocket('wss://google-stt.fly.dev');
+            console.log('New WebSocket created successfully');
+        } catch (err) {
+            console.error('ERROR creating WebSocket:', err);
+            return;
+        }
 
         wsRef.current.onmessage = async (event: MessageEvent) => {
             if (hasTriggeredRef.current) return;
