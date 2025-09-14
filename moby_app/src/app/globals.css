@@ -678,3 +678,12 @@ body {
     transform: translateX(28px);
   }
 }
+
+/* Advanced settings collapsible display */
+.chevron {
+  transition: transform 0.3s ease;
+}
+
+.chevron.rotated {
+  transform: rotate(180deg);
+}

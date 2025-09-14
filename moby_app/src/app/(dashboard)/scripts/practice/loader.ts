@@ -144,42 +144,10 @@ export const hydrateScript = async ({
     const unhydratedTTSLines = script
         .filter((element: ScriptElement) =>
             element.type === 'line' &&
+            element.role === 'scene-partner' &&
             (typeof element.ttsUrl !== 'string' || element.ttsUrl.length === 0)
         )
         .map((element: ScriptElement) => element.index);
-
-    // Attempting to check if url is valid
-    // const unhydratedTTSLines: number[] = [];
-    // async function validateAudioUrl(url: string, index: number): Promise<boolean> {
-    //     return new Promise((resolve) => {
-    //         const audio = new Audio();
-
-    //         audio.onloadstart = () => {
-    //             console.log('audio check passed!', index);
-    //             resolve(true);
-    //         };  // Started loading = URL valid
-
-    //         audio.onerror = () => {
-    //             console.log('audio check failed...', index);
-    //             resolve(false);
-    //         };     // Failed = URL invalid
-
-    //         audio.src = url;
-    //     });
-    // }
-    // for (const element of script) {
-    //     if (element.type !== 'line') continue;
-
-    //     if (!element.ttsUrl || element.ttsUrl.length === 0) {
-    //         unhydratedTTSLines.push(element.index);
-    //         continue;
-    //     }
-
-    //     const isValid = await validateAudioUrl(element.ttsUrl, element.index);
-    //     if (!isValid) {
-    //         unhydratedTTSLines.push(element.index);
-    //     }
-    // }
 
     // If nothing needs hydration
     if (unhydratedTTSLines.length === 0) {
@@ -187,7 +155,7 @@ export const hydrateScript = async ({
 
         // Still update TTS status for UI
         script.forEach(element => {
-            if (element.type === 'line') {
+            if (element.type === 'line' && element.role === 'scene-partner') {
                 updateTTSHydrationStatus?.(element.index, 'ready');
             }
         });
@@ -210,7 +178,7 @@ export const hydrateScript = async ({
         withTTS = await Promise.all(
             script.map((element: ScriptElement) =>
                 limit(async () => {
-                    if (element.type === 'line') {
+                    if (element.type === 'line' && element.role === 'scene-partner') {
                         const needsHydration = unhydratedTTS.has(element.index);
 
                         if (needsHydration) {
@@ -248,6 +216,7 @@ export const hydrateScript = async ({
                     limit(async () => {
                         if (
                             element.type === 'line' &&
+                            element.role === 'scene-partner' &&
                             retryIndexes.has(element.index)
                         ) {
                             try {
@@ -329,6 +298,7 @@ export const hydrateLine = async ({
 
     if (
         line.type !== 'line' ||
+        line.role !== 'scene-partner' ||
         typeof line.text !== 'string' ||
         line.text.trim().length === 0
     ) {
