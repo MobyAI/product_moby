@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCountingStats } from "@/lib/firebase/client/user";
+// import { getCountingStats } from "@/lib/firebase/client/user";
+import { getCountingStatsWithFilters } from "@/lib/firebase/client/user";
 import type { StatusFilter } from '@/types/audition';
 
 type CountingStats = {
@@ -58,7 +59,8 @@ export default function AuditionCounts({ setFilterStatus }: AuditionCountsProps)
         async function fetchStats() {
             try {
                 setLoading(true);
-                const result = await getCountingStats();
+                // const result = await getCountingStats();
+                const result = await getCountingStatsWithFilters();
                 if (result.success && result.data) {
                     setStats(result.data);
                 } else {

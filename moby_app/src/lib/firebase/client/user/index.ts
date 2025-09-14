@@ -5,6 +5,9 @@ import {
     getDoc,
     Timestamp,
     FieldValue,
+    query, 
+    collection,
+    getDocs
 } from "firebase/firestore";
 import { updateProfile } from "firebase/auth";
 import { auth, db } from "@/lib/firebase/client/config/app";
@@ -381,7 +384,68 @@ export async function updateMultipleCountingStats(
 /**
  * Get all counting stats for the current user
  */
-export async function getCountingStats(): Promise<{
+// export async function getCountingStats(): Promise<{
+//     success: boolean;
+//     data?: CountingStats;
+//     error?: string;
+// }> {
+//     try {
+//         const user = auth.currentUser;
+
+//         if (!user) {
+//             return {
+//                 success: false,
+//                 error: 'No authenticated user found'
+//             };
+//         }
+
+//         const userDoc = await getDoc(doc(db, 'users', user.uid));
+
+//         if (!userDoc.exists()) {
+//             return {
+//                 success: false,
+//                 error: 'User profile not found'
+//             };
+//         }
+
+//         const userData = userDoc.data() as UserData;
+
+//         return {
+//             success: true,
+//             data: userData.countingStats || {
+//                 auditions: 0,
+//                 completed: 0,
+//                 declined: 0,
+//                 callbacks: 0,
+//                 holds: 0,
+//                 bookings: 0,
+//             }
+//         };
+
+//     } catch (error) {
+//         console.error('Error fetching counting stats:', error);
+
+//         if (error instanceof Error) {
+//             return {
+//                 success: false,
+//                 error: error.message
+//             };
+//         }
+
+//         return {
+//             success: false,
+//             error: 'Failed to fetch counting stats'
+//         };
+//     }
+// }
+
+export async function getCountingStatsWithFilters(options?: {
+    dateRange?: {
+        start: Date;
+        end: Date;
+    };
+    auditionType?: string;
+}): Promise<{
     success: boolean;
     data?: CountingStats;
     error?: string;
@@ -396,31 +460,85 @@ export async function getCountingStats(): Promise<{
             };
         }
 
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        // Build query with filters from user's auditions subcollection
+        const baseCollection = collection(db, 'users', user.uid, 'auditions');
+        
+        let auditionsQuery;
 
-        if (!userDoc.exists()) {
-            return {
-                success: false,
-                error: 'User profile not found'
-            };
+        // Note: Firestore subcollections don't support complex filtering like date ranges
+        // If you need date filtering, you'll need to fetch all and filter in memory
+        if (options?.dateRange || options?.auditionType) {
+            // For filtered queries, we need to fetch all documents and filter in memory
+            // because subcollections have limited query capabilities
+            auditionsQuery = query(baseCollection);
+        } else {
+            auditionsQuery = query(baseCollection);
         }
 
-        const userData = userDoc.data() as UserData;
+        const auditionsSnapshot = await getDocs(auditionsQuery);
+
+        // Initialize counters
+        const stats: CountingStats = {
+            auditions: 0,
+            completed: 0,
+            declined: 0,
+            callbacks: 0,
+            holds: 0,
+            bookings: 0,
+        };
+
+        // Filter and count
+        auditionsSnapshot.forEach((doc) => {
+            const auditionData = doc.data();
+            
+            // Apply filters if specified
+            let includeInCount = true;
+            
+            if (options?.dateRange) {
+                const auditionDate = auditionData.date?.toDate ? auditionData.date.toDate() : new Date(auditionData.date);
+                if (auditionDate < options.dateRange.start || auditionDate > options.dateRange.end) {
+                    includeInCount = false;
+                }
+            }
+            
+            if (options?.auditionType && auditionData.auditionType !== options.auditionType) {
+                includeInCount = false;
+            }
+            
+            if (!includeInCount) return;
+            
+            // Count this audition
+            stats.auditions++;
+            
+            const status = auditionData.status?.toLowerCase();
+            switch (status) {
+                case 'completed':
+                    stats.completed++;
+                    break;
+                case 'declined':
+                    stats.declined++;
+                    break;
+                case 'callback':
+                    stats.callbacks++;
+                    break;
+                case 'hold':
+                    stats.holds++;
+                    break;
+                case 'booked':
+                    stats.bookings++;
+                    break;
+                default:
+                    break;
+            }
+        });
 
         return {
             success: true,
-            data: userData.countingStats || {
-                auditions: 0,
-                completed: 0,
-                declined: 0,
-                callbacks: 0,
-                holds: 0,
-                bookings: 0,
-            }
+            data: stats
         };
 
     } catch (error) {
-        console.error('Error fetching counting stats:', error);
+        console.error('Error fetching filtered counting stats:', error);
 
         if (error instanceof Error) {
             return {
@@ -431,7 +549,7 @@ export async function getCountingStats(): Promise<{
 
         return {
             success: false,
-            error: 'Failed to fetch counting stats'
+            error: 'Failed to fetch filtered counting stats'
         };
     }
 }

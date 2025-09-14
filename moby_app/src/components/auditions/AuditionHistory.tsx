@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo, ReactElement } from "react";
+import React, { useState, useEffect, useRef, useMemo, ReactElement, useCallback } from "react";
 import {
     ChevronDown,
     ChevronUp,
@@ -18,8 +18,10 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import type { AuditionData, ProjectTypeFilter, StatusFilter, AuditionsData } from "@/types/audition";
 import AuditionCounts from "./AuditionCounts";
 import AddAuditionButton from "@/app/auditions/add/page";
-import { getAllAuditions } from "@/lib/firebase/client/auditions";
+import { addAudition, getAllAuditions, updateAudition } from "@/lib/firebase/client/auditions";
 import { toBasicError } from "@/types/error";
+import AuditionModal from "./AuditionModal";
+import { flushSync } from "react-dom";
 
 // Sort configuration type
 interface SortConfig {
@@ -38,6 +40,23 @@ export default function AuditionHistory() {
     const [auditionsData, setAuditionsData] = useState<AuditionsData[]>([]);
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [showSearch, setShowSearch] = useState(false);
+
+     const [formData, setFormData] = useState({
+        date: '',
+        projectTitle: '',
+        castingDirector: '',
+        auditionType: '',
+        auditionRole: '',
+        billing: '',
+        source: '',
+        status: '',
+    });
+
+    const [isEditing, setIsEditing] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Refs
     const typeFilterRef = useRef<HTMLDivElement>(null);
@@ -62,7 +81,6 @@ export default function AuditionHistory() {
 
     const loadAuditions = async () => {
         setLoading(true);
-
         try {
             const auditions = await getAllAuditions();
             setAuditionsData(auditions);
@@ -74,65 +92,21 @@ export default function AuditionHistory() {
         }
     }
 
-    const [refreshTrigger, setRefreshTrigger] = useState(0);
-
     // Fetch auditions data on component mount
     useEffect(() => {
-        const fetchAuditions = async () => {
-            try {
-                setLoading(true);
-                await loadAuditions();
-            } catch (error) {
-                console.error('Error fetching auditions:', error);
-                setLoading(false);
-            }
-        };
+        loadAuditions();
+    }, []);
 
-        fetchAuditions();
-    }, [refreshTrigger]);
-
-    const triggerRefresh = () => {
-        setRefreshTrigger(prev => prev + 1);
-    }
-
-    // Project type config
-    // const projectTypeConfig: Record<AuditionData['projectType'], { label: string; icon: ReactElement }> = {
-    //     tv: { label: 'TV', icon: <Tv className="w-4 h-4" /> },
-    //     film: { label: 'Film', icon: <Film className="w-4 h-4" /> },
-    //     commercial: { label: 'Commercial', icon: <Megaphone className="w-4 h-4" /> },
-    //     theater: { label: 'Theater', icon: <User className="w-4 h-4" /> },
-    //     voiceover: { label: 'Voiceover', icon: <Video className="w-4 h-4" /> },
-    //     other: { label: 'Other', icon: <Video className="w-4 h-4" /> }
+    // Refresh function to be passed to AddAuditionButton
+    // const handleRefresh = async () => {
+    //     console.log("Refreshing auditions data...");
+    //     await loadAuditions();
     // };
+    const handleRefresh = useCallback(async () => {
+        console.log("Refreshing auditions data...");
+        await loadAuditions();
+    }, []);
 
-    // const getProjectIcon = (type: AuditionData['projectType'] | string) => {
-    //     return projectTypeConfig[type]?.icon || <Video className="w-4 h-4" />;
-    // };
-
-    // // Status type config
-    // const statusConfig: Record<AuditionData['status'], { label: string; bgColor: string; textColor: string }> = {
-    //     completed: { label: 'Completed', bgColor: 'bg-purple-100', textColor: 'text-purple-800' },
-    //     declined: { label: 'Declined', bgColor: 'bg-red-100', textColor: 'text-red-800' },
-    //     callback: { label: 'Callback', bgColor: 'bg-blue-100', textColor: 'text-blue-800' },
-    //     hold: { label: 'Hold', bgColor: 'bg-pink-100', textColor: 'text-pink-800' },
-    //     booked: { label: 'Booked', bgColor: 'bg-green-100', textColor: 'text-green-800' }
-    // };
-
-    // const getStatusStyle = (status: AuditionData['status'] | string) => {
-    //     if (typeof status === "string") return 'bg-gray-100 text-gray-800';
-    //     const config = statusConfig[status];
-    //     return `${config.bgColor} ${config.textColor}`;
-    // };
-
-    // // Billing badge style
-    // const getBillingStyle = (billing: AuditionData['billing'] | string): string => {
-    //     switch (billing) {
-    //         case 'star': return 'bg-purple-100 text-purple-800';
-    //         case 'co-star': return 'bg-indigo-100 text-indigo-800';
-    //         case 'extra': return 'bg-gray-100 text-gray-600';
-    //         default: return 'bg-gray-100 text-gray-800';
-    //     }
-    // };
     // Project type config
     const projectTypeConfig: Record<string, { label: string; icon: ReactElement }> = {
         tv: { label: 'TV', icon: <Tv className="w-4 h-4" /> },
@@ -229,10 +203,127 @@ export default function AuditionHistory() {
         );
     }
 
+    // // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // const openModalWithData = (auditionData: any) => {
+    //     // Pre-populate form data with the audition data
+    //     setFormData({
+    //         date: auditionData.date,
+    //         projectTitle: auditionData.projectTitle || '',
+    //         auditionType: auditionData.auditionType || '',
+    //         castingDirector: auditionData.castingDirector || '',
+    //         auditionRole: auditionData.auditionRole || '',
+    //         source: auditionData.source || '',
+    //         billing: auditionData.billing || '',
+    //         status: auditionData.status || ''
+    //     });
+        
+    //     // Set editing mode and store the ID for updates
+    //     setIsEditing(true);
+    //     setEditingId(auditionData.id); // Assuming each audition has a unique ID
+        
+    //     // Open the modal
+    //     setIsModalOpen(true);
+    // };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const openModalWithData = (auditionData: any) => {
+    flushSync(() => {
+        setFormData({
+            date: auditionData.date,
+            projectTitle: auditionData.projectTitle || '',
+            auditionType: auditionData.auditionType || '',
+            castingDirector: auditionData.castingDirector || '',
+            auditionRole: auditionData.auditionRole || '',
+            source: auditionData.source || '',
+            billing: auditionData.billing || '',
+            status: auditionData.status || ''
+        });
+        setIsEditing(true);
+        setEditingId(auditionData.id);
+        setIsModalOpen(true);
+    });
+};
+
+
+    const resetForm = () => {
+        setFormData({
+            date: '',
+            projectTitle: '',
+            castingDirector: '',
+            auditionType: '',
+            auditionRole: '',
+            billing: '',
+            source: '',
+            status: '',
+        });
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        document.body.style.overflow = 'auto';
+        resetForm();
+    };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleSubmit = async () => {
+        if (isEditing) {
+            await updateAudition(editingId as string, formData);
+        } else {
+            if (!formData.projectTitle || !formData.auditionRole || !formData.auditionType || !formData.date) {
+                console.log('is it coming from here')
+                console.log('what is formData', formData)
+                alert('Please fill in all required fields.');
+                return;
+            }
+
+            setIsSubmitting(true);
+                console.log('FORMDATA', formData)
+
+            try {
+                // Add the audition to the database
+                console.log('FORMDATA', formData)
+                await addAudition(formData);
+
+                // If status is set and matches our mapping, increment that specific stat
+                // if (formData.status && statusToStatsMapping[formData.status]) {
+                //     const statKey = statusToStatsMapping[formData.status];
+                //     await updateCountingStat(statKey, 1);
+                //     console.log(`Incremented ${statKey} stat for status: ${formData.status}`);
+                // }
+
+                // Trigger refresh of the audition list
+                handleRefresh();
+                closeModal();
+
+            } catch (error) {
+                console.error('Error saving audition:', error);
+                alert('Error saving audition. Please try again.');
+            } finally {
+                setIsSubmitting(false);
+            }
+        }
+    };
+
+    const auditionTypes = {
+        tv: { label: 'TV', icon: <Tv className="w-4 h-4" /> },
+        film: { label: 'Film', icon: <Film className="w-4 h-4" /> },
+        commercial: { label: 'Commercial', icon: <Megaphone className="w-4 h-4" /> },
+        theater: { label: 'Theater', icon: <User className="w-4 h-4" /> },
+        voiceover: { label: 'Voiceover', icon: <Video className="w-4 h-4" /> },
+        other: { label: 'Other', icon: <Video className="w-4 h-4" /> }
+    };
+
     return (
         <>
             <div className="flex justify-end">
-                <AddAuditionButton triggerRefresh={triggerRefresh} />
+                <AddAuditionButton />
             </div>
             <div className="flex justify-center m-2">
                 <AuditionCounts setFilterStatus={setFilterStatus} />
@@ -486,7 +577,10 @@ export default function AuditionHistory() {
                                                     transform: `translateY(${virtualRow.start}px)`,
                                                 }}
                                             >
-                                                <div className="flex px-6 py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors text-sm">
+                                                <div 
+                                                    className="flex px-6 py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors text-sm"
+                                                    onClick={() => openModalWithData(audition)}
+                                                >
                                                     <div className="flex-none w-32 flex items-center gap-2">
                                                         <Calendar className="w-4 h-4 text-gray-400" />
                                                         {new Date(audition.date).toLocaleDateString('en-US', {
@@ -531,6 +625,21 @@ export default function AuditionHistory() {
                         </div>
                     </div>
                 </div>
+
+                {isModalOpen && (
+                    <AuditionModal 
+                        isOpen={isModalOpen}
+                        onClose={closeModal}
+                        onSubmit={handleSubmit}
+                        auditionTypes={auditionTypes}
+                        initialData={formData}
+                        isEditing={isEditing}
+                        isSubmitting={isSubmitting}
+                        updateFormData={setFormData}
+                        formData={formData}
+                        handleInputChange={handleInputChange}
+                    />
+                )}
 
                 {/* Footer with count */}
                 <div className="px-6 py-3 border-t border-gray-200 text-sm text-gray-500">
