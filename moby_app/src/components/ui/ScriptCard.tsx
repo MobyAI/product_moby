@@ -47,21 +47,21 @@ export function ScriptCard({
             <div className="flex items-center justify-between">
                 <div>
                     {/* Script Name */}
-                    <h3 className="text-header-3 font-semibold text-white truncate flex-1 mr-4">
+                    <h3 className="text-2xl font-semibold text-white truncate flex-1 mr-4">
                         {name}
                     </h3>
 
                     {/* Created Date */}
                     {formatted && (
                         <p className="text-sm text-white mt-1">
-                            Uploaded: <span className="font-semibold text-accent">{formatted}</span>
+                            Created <span className="font-semibold text-accent">{formatted}</span>
                         </p>
                     )}
 
                     {/* Last Practiced */}
                     {formattedLastPracticed && (
                         <p className="text-sm text-white mt-0.5">
-                            Last practiced: <span className="font-semibold text-accent">{formattedLastPracticed}</span>
+                            Last practiced <span className="font-semibold text-accent">{formattedLastPracticed}</span>
                         </p>
                     )}
                 </div>

@@ -1,4 +1,5 @@
 import React from "react";
+import { Loader2 } from "lucide-react";
 
 interface ConfirmModalProps {
     isOpen: boolean;
@@ -8,6 +9,7 @@ interface ConfirmModalProps {
     cancelLabel?: string;
     onConfirm: () => void;
     onCancel: () => void;
+    isProcessing: boolean;
 }
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -18,6 +20,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     cancelLabel = "Cancel",
     onConfirm,
     onCancel,
+    isProcessing,
 }) => {
     if (!isOpen) return null;
 
@@ -36,14 +39,22 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                 <div className="flex gap-3">
                     <button
                         onClick={onCancel}
+                        disabled={isProcessing}
                         className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
                     >
                         {cancelLabel}
                     </button>
                     <button
                         onClick={onConfirm}
-                        className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                        disabled={isProcessing}
+                        className={`flex-1 px-4 py-2 text-white rounded-lg transition flex items-center justify-center gap-2 ${isProcessing
+                                ? 'bg-red-600/50 cursor-not-allowed'
+                                : 'bg-red-600 hover:bg-red-700'
+                            }`}
                     >
+                        {isProcessing && (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        )}
                         {confirmLabel}
                     </button>
                 </div>
