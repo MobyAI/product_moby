@@ -78,7 +78,7 @@ function RehearsalRoomContent() {
 
 	// Mic Check
 	// const [showMicCheck, setShowMicCheck] = useState<boolean>(false);
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	// TEMP DISABLED: eslint-disable-next-line @typescript-eslint/no-unused-vars
 	// const [micCheckComplete, setMicCheckComplete] = useState<boolean>(false);
 
 	// Rehearsal flow

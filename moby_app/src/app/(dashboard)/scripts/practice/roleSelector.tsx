@@ -1,8 +1,8 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { updateScript } from '@/lib/firebase/client/scripts';
 import { set } from 'idb-keyval';
 import type { ScriptElement } from '@/types/script';
-import { Edit2, Check, X, AlertCircle } from 'lucide-react'; // or your icon library
+import { Edit2, Check, X, AlertCircle } from 'lucide-react';
 
 export function RoleSelector({
     script,
@@ -32,12 +32,14 @@ export function RoleSelector({
 
     const currentUserRoles = useMemo(() => {
         return Object.entries(characterRoles)
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             .filter(([_, role]) => role === 'user')
             .map(([char]) => char);
     }, [characterRoles]);
 
     const pendingUserRoles = useMemo(() => {
         return Object.entries(pendingRoles)
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             .filter(([_, role]) => role === 'user')
             .map(([char]) => char);
     }, [pendingRoles]);

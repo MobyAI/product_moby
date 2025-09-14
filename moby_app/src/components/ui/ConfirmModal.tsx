@@ -9,7 +9,7 @@ interface ConfirmModalProps {
     cancelLabel?: string;
     onConfirm: () => void;
     onCancel: () => void;
-    isProcessing: boolean;
+    isProcessing?: boolean;
 }
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({

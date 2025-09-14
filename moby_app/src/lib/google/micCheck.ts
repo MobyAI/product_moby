@@ -204,25 +204,25 @@ export const useMicCheck = (): UseMicTestReturn => {
     };
 
     // Helper function to clean up WebSocket properly
-    const cleanupWebSocket = (): void => {
-        if (wsRef.current) {
-            console.log(`[MicCheck] Cleaning WebSocket (state: ${wsRef.current.readyState})`);
+    // const cleanupWebSocket = (): void => {
+    //     if (wsRef.current) {
+    //         console.log(`[MicCheck] Cleaning WebSocket (state: ${wsRef.current.readyState})`);
             
-            // Remove all event listeners to prevent memory leaks
-            wsRef.current.onopen = null;
-            wsRef.current.onmessage = null;
-            wsRef.current.onerror = null;
-            wsRef.current.onclose = null;
+    //         // Remove all event listeners to prevent memory leaks
+    //         wsRef.current.onopen = null;
+    //         wsRef.current.onmessage = null;
+    //         wsRef.current.onerror = null;
+    //         wsRef.current.onclose = null;
             
-            // Close if not already closed
-            if (wsRef.current.readyState !== WebSocket.CLOSED && 
-                wsRef.current.readyState !== WebSocket.CLOSING) {
-                wsRef.current.close(1000, 'Cleanup');
-            }
+    //         // Close if not already closed
+    //         if (wsRef.current.readyState !== WebSocket.CLOSED && 
+    //             wsRef.current.readyState !== WebSocket.CLOSING) {
+    //             wsRef.current.close(1000, 'Cleanup');
+    //         }
             
-            wsRef.current = null;
-        }
-    };
+    //         wsRef.current = null;
+    //     }
+    // };
 
     useEffect(() => {
         return cleanup;
