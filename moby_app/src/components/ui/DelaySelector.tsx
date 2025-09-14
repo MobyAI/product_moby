@@ -101,7 +101,7 @@ export const DelaySelector: React.FC<DelaySelectorProps> = ({
             {showDelayDropdown && (
                 <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 z-[1000] bg-gray-200 rounded-md p-1 shadow-xl">
                     <div className="flex flex-col">
-                        {[1000, 2000, 4000, 6000, 8000, 10000].map((value) => (
+                        {[0, 1000, 2000, 4000, 6000, 8000, 10000].map((value) => (
                             <button
                                 key={value}
                                 onMouseDown={(e) => {

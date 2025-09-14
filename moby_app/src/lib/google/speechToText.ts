@@ -660,6 +660,7 @@ export function useGoogleSTT({
 
         if (!audioCtxRef.current || !micStreamRef.current) {
             console.warn('⚠️ STT not initialized — call initializeSTT() first');
+            isActiveRef.current = false;
             return;
         }
         console.log('5. Audio initialized OK');
@@ -669,6 +670,27 @@ export function useGoogleSTT({
             console.log('6. Cleaning old WebSocket');
             wsRef.current.close();
         }
+
+        // More thorough WebSocket cleanup
+        // if (wsRef.current) {
+        //     console.log(`6. Cleaning old WebSocket (state: ${wsRef.current.readyState})`);
+
+        //     // Remove all event listeners first to prevent them from firing
+        //     wsRef.current.onopen = null;
+        //     wsRef.current.onmessage = null;
+        //     wsRef.current.onerror = null;
+        //     wsRef.current.onclose = null;
+
+        //     // Force close if not already closed
+        //     if (wsRef.current.readyState !== WebSocket.CLOSED) {
+        //         wsRef.current.close(1000, 'Starting new connection');
+        //     }
+
+        //     wsRef.current = null;
+
+        //     // Small delay to ensure cleanup completes
+        //     await new Promise(resolve => setTimeout(resolve, 100));
+        // }
 
         console.log('7. Creating new WebSocket...');
         wsRef.current = new WebSocket('wss://google-stt.fly.dev');

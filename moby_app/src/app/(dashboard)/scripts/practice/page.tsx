@@ -14,10 +14,25 @@ import { OptimizedLineRenderer } from "./lineRenderer";
 import { restoreSession, saveSession } from "./session";
 import { clear, set } from "idb-keyval";
 import LoadingScreen from "./LoadingScreen";
-import { Button, MicCheckModal, DelaySelector, CountdownTimer } from "@/components/ui";
+import {
+	Button,
+	// MicCheckModal,
+	DelaySelector,
+	CountdownTimer
+} from "@/components/ui";
 import { useAuthUser } from "@/components/providers/UserProvider";
 import { useToast } from "@/components/providers/ToastProvider";
-import { Play, Pause, SkipBack, SkipForward, RotateCcw, Undo2, Pencil } from "lucide-react";
+import {
+	Play,
+	Pause,
+	SkipBack,
+	SkipForward,
+	RotateCcw,
+	Undo2,
+	Pencil,
+	// Settings,
+	ChevronDown
+} from "lucide-react";
 
 // export default function RehearsalRoomPage() {
 function RehearsalRoomContent() {
@@ -55,15 +70,16 @@ function RehearsalRoomContent() {
 	const scriptRef = useRef<ScriptElement[] | null>(null);
 	const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
 	const [isUpdatingLine, setIsUpdatingLine] = useState(false);
+	const [showAdvanced, setShowAdvanced] = useState(false);
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const [sttProvider, setSttProvider] = useState<"google" | "deepgram">(
 		"google"
 	);
 
 	// Mic Check
-	const [showMicCheck, setShowMicCheck] = useState<boolean>(false);
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const [micCheckComplete, setMicCheckComplete] = useState<boolean>(false);
+	// const [showMicCheck, setShowMicCheck] = useState<boolean>(false);
+	// TEMP DISABLED: eslint-disable-next-line @typescript-eslint/no-unused-vars
+	// const [micCheckComplete, setMicCheckComplete] = useState<boolean>(false);
 
 	// Rehearsal flow
 	const [currentIndex, setCurrentIndex] = useState(0);
@@ -120,6 +136,13 @@ function RehearsalRoomContent() {
 				if (!rawScript) {
 					return;
 				}
+
+				// Mark all user lines as ready (they don't need TTS)
+				rawScript.forEach(element => {
+					if (element.type === 'line' && element.role === 'user') {
+						updateTTSHydrationStatus(element.index, 'ready');
+					}
+				});
 
 				setScript(rawScript);
 				scriptRef.current = rawScript;
@@ -198,28 +221,28 @@ function RehearsalRoomContent() {
 	}, [userID, scriptID]);
 
 	// Mic check
-	useEffect(() => {
-		if (!scriptID) return;
+	// useEffect(() => {
+	// 	if (!scriptID) return;
 
-		// Check if mic check was already completed for this script
-		try {
-			const completedChecks = localStorage.getItem('audioSetupsCompleted');
-			const completed = completedChecks ? JSON.parse(completedChecks) : {};
+	// 	// Check if mic check was already completed for this script
+	// 	try {
+	// 		const completedChecks = localStorage.getItem('audioSetupsCompleted');
+	// 		const completed = completedChecks ? JSON.parse(completedChecks) : {};
 
-			if (!completed[scriptID]) {
-				// Show mic check modal after a brief delay to ensure page is interactive
-				setTimeout(() => {
-					setShowMicCheck(true);
-				}, 100);
-			} else {
-				setMicCheckComplete(true);
-			}
-		} catch (err) {
-			console.error('Error checking mic setup status:', err);
-			// Show modal on error to be safe
-			setShowMicCheck(true);
-		}
-	}, [scriptID]);
+	// 		if (!completed[scriptID]) {
+	// 			// Show mic check modal after a brief delay to ensure page is interactive
+	// 			setTimeout(() => {
+	// 				setShowMicCheck(true);
+	// 			}, 100);
+	// 		} else {
+	// 			setMicCheckComplete(true);
+	// 		}
+	// 	} catch (err) {
+	// 		console.error('Error checking mic setup status:', err);
+	// 		// Show modal on error to be safe
+	// 		setShowMicCheck(true);
+	// 	}
+	// }, [scriptID]);
 
 	// Auto-scroll to current line
 	useEffect(() => {
@@ -273,6 +296,78 @@ function RehearsalRoomContent() {
 			...prev,
 			[index]: status,
 		}));
+	};
+
+	// Update role selections
+	const handleRoleChange = async (updatedScript: ScriptElement[]) => {
+		// Don't allow role changes during initial hydration
+		if (isBusy) {
+			console.log("⏳ Cannot change roles while hydration is in progress");
+			return;
+		}
+
+		console.log("🔄 Roles changed, re-hydrating script...");
+
+		// Set loading states
+		setHydrating(true);
+		setLoadProgress(0);
+		setLoadStage("👤 Updating roles...");
+
+		try {
+			// Mark all new user lines as ready immediately
+			updatedScript.forEach(element => {
+				if (element.type === 'line' && element.role === 'user') {
+					updateTTSHydrationStatus(element.index, 'ready');
+				}
+			});
+
+			// Update the script in state and ref
+			setScript(updatedScript);
+			scriptRef.current = updatedScript;
+
+			// Re-hydrate the script with new scene-partner lines
+			const wasHydrated = await hydrateScript({
+				script: updatedScript,
+				userID: userID!,
+				scriptID: scriptID!,
+				setLoadStage,
+				setScript,
+				setStorageError,
+				setEmbeddingError,
+				setEmbeddingFailedLines,
+				setTTSLoadError,
+				setTTSFailedLines,
+				updateTTSHydrationStatus,
+				getScriptLine,
+				onProgressUpdate: (hydrated, total) => {
+					const pct = total > 0 ? Math.round((hydrated / total) * 100) : 0;
+					setLoadProgress(pct);
+				},
+			});
+
+			if (wasHydrated) {
+				showToast({
+					header: "Roles Updated!",
+					line1: "Script has been re-hydrated with new roles.",
+					type: "success",
+				});
+			}
+
+			// Update the current line preparation
+			prepareUserLine(updatedScript[currentIndex]);
+
+		} catch (error) {
+			console.error("❌ Role change hydration failed:", error);
+			showToast({
+				header: "Update Failed",
+				line1: "Failed to update roles. Please try again.",
+				type: "danger",
+			});
+		} finally {
+			setHydrating(false);
+			setLoadStage(null);
+			setLoadProgress(0);
+		}
 	};
 
 	// Update script line
@@ -490,6 +585,7 @@ function RehearsalRoomContent() {
 				.slice(currentIndex, currentIndex + 5)
 				.filter(el =>
 					el.type === 'line' &&
+					el.role === 'scene-partner' &&
 					el.ttsUrl
 				)
 				.map(el => ({
@@ -1036,14 +1132,14 @@ function RehearsalRoomContent() {
 	return (
 		<>
 			{/* Mic Check Modal */}
-			<MicCheckModal
+			{/* <MicCheckModal
 				isOpen={showMicCheck}
 				onComplete={() => {
 					setShowMicCheck(false);
 					setMicCheckComplete(true);
 				}}
 				scriptId={scriptID || undefined}
-			/>
+			/> */}
 
 			{loading ? (
 				<LoadingScreen loadStage={loading}>
@@ -1057,7 +1153,7 @@ function RehearsalRoomContent() {
 						<div className="flex-1 overflow-y-auto hide-scrollbar">
 
 							{/* Header */}
-							<div className="mb-8">
+							<div className="mb-6">
 								<h1 className="text-header-2 font-bold mb-2">Practice Room</h1>
 								<p className="text-gray-400 text-sm">Follow along and practice your lines</p>
 							</div>
@@ -1173,56 +1269,58 @@ function RehearsalRoomContent() {
 								</div>
 							)}
 
-							{/* Select New Roles */}
-							{script &&
-								<div className="mb-6">
-									<div className="text-sm text-gray-400 mb-2">Role Selector</div>
-									<div className="bg-gray-800 rounded-lg p-4">
-										<div className="flex items-center gap-2 mb-2">
-											<RoleSelector
-												script={script}
-												userID={userID!}
-												scriptID={scriptID!}
-												onRolesUpdated={(updated) => {
-													setScript(updated);
-													scriptRef.current = updated;
-													prepareUserLine(updated[currentIndex]);
-													// setCurrentIndex(0);
-													// setSpokenWordMap({});
-													// prepareUserLine(updated[0]);
-												}}
-											/>
-										</div>
-										{isWaitingForUser && (
-											<div className="text-xs text-yellow-400 animate-pulse">
-												🎤 Listening for your line...
-											</div>
-										)}
-									</div>
-								</div>
-							}
+							{/* Advanced Settings Section - Collapsible */}
+							<div
+								className={`
+                					overflow-hidden transition-all duration-300 ease-out
+                					${showAdvanced
+										? 'max-h-[600px] opacity-100 mb-0'
+										: 'max-h-0 opacity-0 mb-0'
+									}`}
+							>
+								<div className="text-sm text-gray-400 mb-2">Advanced Settings</div>
 
-							{/* Silence Skip Selector */}
-							<div className="mb-6">
-								<div className="text-sm text-gray-400 mb-2">Silence Detector</div>
-								<div className="bg-gray-800 rounded-lg p-4">
-									<label htmlFor="skipMs" className="sr-only">Skip to next line delay</label>
-									<div className="text-sm text-gray-200 flex items-center flex-wrap gap-2">
-										<span>Auto advance to next line after</span>
-										<select
-											id="skipMs"
-											value={skipMs}
-											onChange={(e) => setSkipMs(Number(e.target.value))}
-											className="appearance-none bg-gray-900 border border-gray-700 rounded-md px-2 py-1 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-											title="Silence before auto-advancing"
-										>
-											<option value={2000}>2s</option>
-											<option value={4000}>4s</option>
-											<option value={6000}>6s</option>
-											<option value={8000}>8s</option>
-											<option value={10000}>10s</option>
-										</select>
-										<span>of silence.</span>
+								{/* Role Selector */}
+								{script && (
+									<div className="mb-2">
+										<div className="bg-gray-800 rounded-lg p-4">
+											<div className="flex items-center gap-2 mb-2">
+												<RoleSelector
+													script={script}
+													userID={userID!}
+													scriptID={scriptID!}
+													disabled={isBusy}
+													onRolesUpdated={handleRoleChange}
+												/>
+											</div>
+										</div>
+									</div>
+								)}
+
+								{/* Silence Skip Selector */}
+								<div className="mb-4">
+									<div className="bg-gray-800 rounded-lg p-4">
+										<label htmlFor="skipMs" className="sr-only">Skip to next line delay</label>
+										<div className="text-sm text-gray-200 flex items-center flex-wrap gap-2">
+											<span className="font-semibold">Silence Detection:</span>
+											<span className="text-gray-400 font-medium">
+												Auto advance to next line after
+											</span>
+											<select
+												id="skipMs"
+												value={skipMs}
+												onChange={(e) => setSkipMs(Number(e.target.value))}
+												className="appearance-none bg-gray-900 border border-gray-700 rounded-md px-2 py-1 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+												title="Silence before auto-advancing"
+											>
+												<option value={2000}>2s</option>
+												<option value={4000}>4s</option>
+												<option value={6000}>6s</option>
+												<option value={8000}>8s</option>
+												<option value={10000}>10s</option>
+											</select>
+											<span className="text-gray-400 font-medium">of silence.</span>
+										</div>
 									</div>
 								</div>
 							</div>
@@ -1247,13 +1345,27 @@ function RehearsalRoomContent() {
 							)}
 
 							{/* Additional Buttons */}
-							<div className="flex items-center space-x-2 ml-2">
+							<div className="flex flex-col gap-2 ml-2">
+								<Button
+									// icon={Settings}
+									onClick={() => setShowAdvanced(!showAdvanced)}
+									size="sm"
+									variant="secondary"
+									className="w-[90%] mx-auto flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed"
+									disabled={hydrating}
+								>
+									<ChevronDown className={`w-4 h-4 chevron ${showAdvanced ? 'rotated' : ''}`} />
+									<span className="flex items-center gap-2">
+										{showAdvanced ? 'Advanced Settings' : 'Advanced Settings'}
+									</span>
+								</Button>
+
 								<Button
 									icon={Undo2}
 									onClick={goBackHome}
 									size="sm"
 									variant="primary"
-									className="disabled:opacity-50 disabled:cursor-not-allowed"
+									className="w-[90%] mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
 									disabled={hydrating}
 								>
 									Go Back
@@ -1310,7 +1422,7 @@ function RehearsalRoomContent() {
 						</div>
 
 						{/* Floating Control Panel */}
-						<div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10">
+						<div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-[1000]">
 							<div className="bg-[rgba(44,47,61,0.85)] rounded-full px-9 py-3 flex items-center gap-9 shadow-xl">
 
 								{/* Previous Button */}

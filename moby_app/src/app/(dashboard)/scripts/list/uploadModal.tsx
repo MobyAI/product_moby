@@ -397,7 +397,7 @@ export default function ScriptUploadModal({
             // Add line end keywords
             const needsKws = parsedScript.some(
                 (it) => it?.type === 'line'
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     && (!Array.isArray((it as any).lineEndKeywords) || (it as any).lineEndKeywords.length === 0)
             );
 
@@ -405,9 +405,18 @@ export default function ScriptUploadModal({
                 let changed = false;
                 const withKeywords = parsedScript.map((item) => {
                     if (!(item && item.type === 'line' && typeof item.text === 'string')) return item;
+
                     const needs = !Array.isArray(item.lineEndKeywords) || item.lineEndKeywords.length === 0;
+
                     if (!needs) return item;
-                    const kws = extractLineEndKeywords(item.text);
+
+                    // Remove all content within brackets including the brackets
+                    const sanitized = item.text.replace(/\[.*?\]/g, '').trim();
+
+                    // Clean up any double spaces that might result from removal
+                    const cleaned = sanitized.replace(/\s+/g, ' ');
+
+                    const kws = extractLineEndKeywords(cleaned);
                     if (kws.length > 0) { changed = true; return { ...item, lineEndKeywords: kws }; }
                     return item;
                 });
@@ -1214,9 +1223,16 @@ const ScriptRenderer = ({
     const handleUpdate = (index: number, updatedItem: ScriptElement) => {
         // Add lineEndKeywords if it's a line element
         if (updatedItem.type === 'line' && typeof updatedItem.text === 'string') {
+
+            // Remove all content within brackets including the brackets
+            const sanitized = updatedItem.text.replace(/\[.*?\]/g, '').trim();
+
+            // Clean up any double spaces that might result from removal
+            const cleaned = sanitized.replace(/\s+/g, ' ');
+
             updatedItem = {
                 ...updatedItem,
-                lineEndKeywords: extractLineEndKeywords(updatedItem.text)
+                lineEndKeywords: extractLineEndKeywords(cleaned)
             };
             console.log('Updated keywords:', updatedItem.lineEndKeywords);
         }

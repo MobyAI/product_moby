@@ -34,28 +34,25 @@ export const useMicCheck = (): UseMicTestReturn => {
     const [error, setError] = useState<string | null>(null);
     const micCleanupRef = useRef<(() => void) | null>(null);
 
-    // Not used anymore - Saving just in case
-    // const convertFloat32ToInt16 = (float32Array: Float32Array): ArrayBuffer => {
-    //     const len = float32Array.length;
-    //     const int16Array = new Int16Array(len);
-    //     for (let i = 0; i < len; i++) {
-    //         const s = Math.max(-1, Math.min(1, float32Array[i]));
-    //         int16Array[i] = Math.round(s * 32767);
-    //     }
-    //     return int16Array.buffer;
-    // };
-
     const startMicTest = async (): Promise<void> => {
         if (isActiveRef.current) return;
 
         try {
             setError(null);
 
+            // Clean up old WebSocket
+            if (wsRef.current) {
+                wsRef.current.close(1000, 'Cleaning old WebSocket for mic test');
+            }
+
             // Clean up any existing connections
             if (micCleanupRef.current) {
                 micCleanupRef.current();
                 micCleanupRef.current = null;
             }
+
+            // Small delay to ensure WebSocket cleanup completes
+            await new Promise(resolve => setTimeout(resolve, 100));
 
             // Initialize AudioContext
             if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
@@ -158,7 +155,7 @@ export const useMicCheck = (): UseMicTestReturn => {
 
     const stopMicTest = (): void => {
         if (wsRef.current) {
-            wsRef.current.close();
+            wsRef.current.close(1000, 'Stopping mic test');
             wsRef.current = null;
         }
 
@@ -174,7 +171,7 @@ export const useMicCheck = (): UseMicTestReturn => {
     const cleanup = (): void => {
         try {
             if (wsRef.current) {
-                wsRef.current.close();
+                wsRef.current.close(1000, 'Cleaning up mic test');
                 wsRef.current = null;
             }
 
@@ -205,6 +202,27 @@ export const useMicCheck = (): UseMicTestReturn => {
             console.warn("Error during cleanup:", err);
         }
     };
+
+    // Helper function to clean up WebSocket properly
+    // const cleanupWebSocket = (): void => {
+    //     if (wsRef.current) {
+    //         console.log(`[MicCheck] Cleaning WebSocket (state: ${wsRef.current.readyState})`);
+            
+    //         // Remove all event listeners to prevent memory leaks
+    //         wsRef.current.onopen = null;
+    //         wsRef.current.onmessage = null;
+    //         wsRef.current.onerror = null;
+    //         wsRef.current.onclose = null;
+            
+    //         // Close if not already closed
+    //         if (wsRef.current.readyState !== WebSocket.CLOSED && 
+    //             wsRef.current.readyState !== WebSocket.CLOSING) {
+    //             wsRef.current.close(1000, 'Cleanup');
+    //         }
+            
+    //         wsRef.current = null;
+    //     }
+    // };
 
     useEffect(() => {
         return cleanup;

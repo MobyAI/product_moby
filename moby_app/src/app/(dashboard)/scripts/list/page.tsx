@@ -22,6 +22,7 @@ function ScriptsListContent() {
     const [hasFetched, setHasFetched] = useState(false);
     const [error, setError] = useState<BasicError | null>(null);
     const [allScripts, setAllScripts] = useState<ScriptDocWithId[]>([]);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Script upload modal
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -54,6 +55,9 @@ function ScriptsListContent() {
 
     const confirmDelete = async () => {
         if (!scriptToDelete) return;
+
+        setIsDeleting(true);
+
         try {
             await deleteScript(scriptToDelete);
             loadScripts();
@@ -63,6 +67,7 @@ function ScriptsListContent() {
         } finally {
             setConfirmOpen(false);
             setScriptToDelete(null);
+            setIsDeleting(false);
         }
     };
 
@@ -171,6 +176,7 @@ function ScriptsListContent() {
                     setConfirmOpen(false);
                     setScriptToDelete(null);
                 }}
+                isProcessing={isDeleting}
             />
 
             {/* Upload Modal */}
