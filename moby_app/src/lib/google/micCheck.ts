@@ -34,6 +34,51 @@ export const useMicCheck = (): UseMicTestReturn => {
     const [error, setError] = useState<string | null>(null);
     const micCleanupRef = useRef<(() => void) | null>(null);
 
+    // Centralized WebSocket cleanup function
+    const cleanupWebSocket = (): void => {
+        if (wsRef.current) {
+            console.log(`[MicCheck] Cleaning WebSocket (state: ${wsRef.current.readyState})`);
+
+            // Remove all event listeners to prevent memory leaks
+            wsRef.current.onopen = null;
+            wsRef.current.onmessage = null;
+            wsRef.current.onerror = null;
+            wsRef.current.onclose = null;
+
+            // Close if not already closed
+            if (wsRef.current.readyState !== WebSocket.CLOSED &&
+                wsRef.current.readyState !== WebSocket.CLOSING) {
+                wsRef.current.close(1000, 'Cleanup');
+            }
+
+            wsRef.current = null;
+        }
+    };
+
+    // Centralized audio cleanup function
+    const cleanupAudio = (): void => {
+        if (micCleanupRef.current) {
+            micCleanupRef.current();
+            micCleanupRef.current = null;
+        }
+
+        if (micStreamRef.current) {
+            micStreamRef.current.getTracks().forEach(track => {
+                if (track.readyState === "live") {
+                    track.stop();
+                }
+            });
+            micStreamRef.current = null;
+        }
+
+        if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+            audioCtxRef.current.close().catch(err =>
+                console.warn("Error closing AudioContext:", err)
+            );
+            audioCtxRef.current = null;
+        }
+    };
+
     const startMicTest = async (): Promise<void> => {
         if (isActiveRef.current) return;
 
@@ -42,7 +87,7 @@ export const useMicCheck = (): UseMicTestReturn => {
 
             // Clean up old WebSocket
             if (wsRef.current) {
-                wsRef.current.close(1000, 'Cleaning old WebSocket for mic test');
+                cleanupWebSocket();
             }
 
             // Clean up any existing connections
@@ -92,7 +137,14 @@ export const useMicCheck = (): UseMicTestReturn => {
             });
 
             // Create WebSocket connection
-            wsRef.current = new WebSocket('wss://google-stt.fly.dev');
+
+            // Fly.io
+            // wsRef.current = new WebSocket('wss://deepgram-stt.fly.dev');
+
+            // Render
+            wsRef.current = new WebSocket('wss://deepgram-websocket-server.onrender.com');
+
+            // Localhost
             // wsRef.current = new WebSocket('ws://localhost:3001');
 
             workletNode.port.onmessage = (e: MessageEvent) => {
@@ -154,10 +206,9 @@ export const useMicCheck = (): UseMicTestReturn => {
     };
 
     const stopMicTest = (): void => {
-        if (wsRef.current) {
-            wsRef.current.close(1000, 'Stopping mic test');
-            wsRef.current = null;
-        }
+        console.log('[MicCheck] Stopping mic test');
+
+        cleanupWebSocket();
 
         if (micCleanupRef.current) {
             micCleanupRef.current();
@@ -166,66 +217,30 @@ export const useMicCheck = (): UseMicTestReturn => {
 
         isActiveRef.current = false;
         setIsListening(false);
+        setTranscript('');
     };
 
     const cleanup = (): void => {
+        console.log('[MicCheck] Full cleanup initiated');
+
         try {
-            if (wsRef.current) {
-                wsRef.current.close(1000, 'Cleaning up mic test');
-                wsRef.current = null;
-            }
-
-            if (micCleanupRef.current) {
-                micCleanupRef.current();
-                micCleanupRef.current = null;
-            }
-
-            if (micStreamRef.current) {
-                micStreamRef.current.getTracks().forEach(track => {
-                    if (track.readyState === "live") {
-                        track.stop();
-                    }
-                });
-                micStreamRef.current = null;
-            }
-
-            if (audioCtxRef.current) {
-                audioCtxRef.current.close().catch(err =>
-                    console.warn("Error closing AudioContext:", err)
-                );
-                audioCtxRef.current = null;
-            }
+            cleanupWebSocket();
+            cleanupAudio();
 
             isActiveRef.current = false;
             setIsListening(false);
+            setTranscript('');
+            setError(null);
         } catch (err) {
-            console.warn("Error during cleanup:", err);
+            console.warn("[MicCheck] Error during cleanup:", err);
         }
     };
 
-    // Helper function to clean up WebSocket properly
-    // const cleanupWebSocket = (): void => {
-    //     if (wsRef.current) {
-    //         console.log(`[MicCheck] Cleaning WebSocket (state: ${wsRef.current.readyState})`);
-            
-    //         // Remove all event listeners to prevent memory leaks
-    //         wsRef.current.onopen = null;
-    //         wsRef.current.onmessage = null;
-    //         wsRef.current.onerror = null;
-    //         wsRef.current.onclose = null;
-            
-    //         // Close if not already closed
-    //         if (wsRef.current.readyState !== WebSocket.CLOSED && 
-    //             wsRef.current.readyState !== WebSocket.CLOSING) {
-    //             wsRef.current.close(1000, 'Cleanup');
-    //         }
-            
-    //         wsRef.current = null;
-    //     }
-    // };
-
     useEffect(() => {
-        return cleanup;
+        return () => {
+            console.log('[MicCheck] Component unmounting, cleaning up');
+            cleanup();
+        };
     }, []);
 
     return { startMicTest, stopMicTest, transcript, isListening, cleanup, error };
