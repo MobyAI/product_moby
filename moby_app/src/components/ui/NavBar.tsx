@@ -9,7 +9,8 @@ import {
     FileText,
     LogOut,
     User,
-    ChevronRight
+    ChevronRight,
+    LayoutDashboard
 } from "lucide-react";
 import { handleLogout } from "@/lib/api/auth";
 import { auth } from "@/lib/firebase/client/config/app";
@@ -29,7 +30,7 @@ export default function NavBar() {
     const TYPING_SPEED = 50;
 
     const routes: Route[] = [
-        // { href: "/tracker", label: "Tracker", icon: LayoutDashboard },
+        { href: "/tracker", label: "Tracker", icon: LayoutDashboard },
         { href: "/scripts/list", label: "Scripts", icon: FileText },
     ];
 
