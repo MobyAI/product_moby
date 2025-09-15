@@ -1,6 +1,7 @@
-import { useRef } from 'react';
-import { fetchSimilarity } from '@/lib/api/embeddings';
-import * as fuzz from 'fuzzball';
+import { useRef, useEffect, useCallback } from "react";
+import { fetchEmbedding, cosineSimilarity } from "@/lib/api/embeddings";
+import { embeddingModel } from "@/lib/embeddings/modelManager";
+import * as fuzz from "fuzzball";
 
 //
 // IMPORTANT: For openAI embedding: choose server near openAI's server for lower latency
@@ -10,16 +11,179 @@ interface UseDeepgramSTTProps {
     lineEndKeywords: string[];
     onCueDetected: (transcript: string) => void;
     onSilenceTimeout?: () => void;
-    expectedEmbedding: number[];
     onProgressUpdate?: (matchedCount: number) => void;
+    silenceTimers?: {
+        /** When user is silent during their turn, auto-skip to next line */
+        skipToNextMs?: number;
+        /** When there is general inactivity, pause/cleanup the stream */
+        inactivityPauseMs?: number;
+    };
+}
+
+interface OptimizedMatchingState {
+    normalizedScript: number[];
+    matchedIndices: Set<number>;
+    lastMatchedIndex: number;
+    lastReportedCount: number;
+    wordCache: Map<string, string>;
+}
+
+class OptimizedSTTMatcher {
+    private state: OptimizedMatchingState;
+    private originalWordCount: number = 0;
+    private onProgressUpdate: (count: number) => void;
+    private updateThrottleRef: ReturnType<typeof setTimeout> | null = null;
+    private prevTranscriptWords: number[] = [];
+
+    constructor(onProgressUpdate: (count: number) => void) {
+        this.onProgressUpdate = onProgressUpdate;
+        this.state = {
+            normalizedScript: [],
+            matchedIndices: new Set(),
+            lastMatchedIndex: -1,
+            lastReportedCount: 0,
+            wordCache: new Map()
+        };
+    }
+
+    setCurrentLineText(cleanedText: string, originalText?: string) {
+        this.state.matchedIndices.clear();
+        this.state.lastMatchedIndex = -1;
+        this.state.lastReportedCount = 0;
+        this.state.wordCache.clear();
+
+        // Store original word count if provided
+        if (originalText) {
+            this.originalWordCount = originalText.trim().split(/\s+/).length;
+        } else {
+            this.originalWordCount = cleanedText.trim().split(/\s+/).length;
+        }
+
+        this.state.normalizedScript = cleanedText
+            .trim()
+            .split(/\s+/)
+            .map(word => this.hashWord(this.normalizeWordCached(word)));
+
+        this.prevTranscriptWords = [];
+    }
+
+    private normalizeWordCached(word: string): string {
+        if (this.state.wordCache.has(word)) {
+            return this.state.wordCache.get(word)!;
+        }
+
+        const normalized = word.toLowerCase().replace(/[^\w]/g, '');
+        this.state.wordCache.set(word, normalized);
+        return normalized;
+    }
+
+    private hashWord(word: string): number {
+        let hash = 0;
+        for (let i = 0; i < word.length; i++) {
+            hash = ((hash << 5) - hash) + word.charCodeAt(i);
+            hash |= 0;
+        }
+        return hash;
+    }
+
+    private optimizedProgressiveMatch(transcript: string): number {
+        if (!this.state.normalizedScript.length) return 0;
+
+        const transcriptWords = transcript
+            .trim()
+            .split(/\s+/)
+            .map(word => this.hashWord(this.normalizeWordCached(word)))
+            .filter(Boolean);
+
+        if (!transcriptWords.length) return this.state.lastMatchedIndex + 1;
+
+        let newWordsStartIndex = 0;
+
+        while (
+            newWordsStartIndex < transcriptWords.length &&
+            newWordsStartIndex < this.prevTranscriptWords.length &&
+            transcriptWords[newWordsStartIndex] === this.prevTranscriptWords[newWordsStartIndex]
+        ) {
+            newWordsStartIndex++;
+        }
+
+        const newWords = transcriptWords.slice(newWordsStartIndex);
+
+        this.prevTranscriptWords = transcriptWords;
+
+        let searchStartIndex = Math.max(0, this.state.lastMatchedIndex + 1);
+
+        for (const spokenWord of newWords) {
+            const windowEnd = Math.min(
+                this.state.normalizedScript.length,
+                searchStartIndex + 4
+            );
+
+            for (let i = searchStartIndex; i < windowEnd; i++) {
+                if (
+                    !this.state.matchedIndices.has(i) &&
+                    this.state.normalizedScript[i] === spokenWord
+                ) {
+                    this.state.matchedIndices.add(i);
+                    this.state.lastMatchedIndex = i;
+                    searchStartIndex = i + 1;
+                    break;
+                }
+            }
+        }
+
+        return this.state.lastMatchedIndex + 1;
+    }
+
+    private throttledUpdate(count: number) {
+        if (this.updateThrottleRef) {
+            clearTimeout(this.updateThrottleRef);
+        }
+
+        this.updateThrottleRef = setTimeout(() => {
+            if (count > this.state.lastReportedCount) {
+                this.state.lastReportedCount = count;
+                this.onProgressUpdate(count);
+            }
+            this.updateThrottleRef = null;
+        }, 50);
+    }
+
+    processTranscript(transcript: string, isInterim: boolean = false) {
+        const matchCount = this.optimizedProgressiveMatch(transcript);
+
+        if (isInterim) {
+            this.throttledUpdate(matchCount);
+        } else {
+            if (matchCount > this.state.lastReportedCount) {
+                this.state.lastReportedCount = matchCount;
+                this.onProgressUpdate(matchCount);
+            }
+        }
+    }
+
+    completeCurrentLine() {
+        const totalWords = this.originalWordCount || this.state.normalizedScript.length;
+
+        if (totalWords > 0) {
+            this.state.lastReportedCount = totalWords;
+            this.onProgressUpdate(totalWords);
+        }
+
+        this.prevTranscriptWords = [];
+    }
+
+    getNormalizedScript(): number[] {
+        return this.state.normalizedScript;
+    }
 }
 
 export function useDeepgramSTT({
     lineEndKeywords,
     onCueDetected,
     onSilenceTimeout,
-    expectedEmbedding,
     onProgressUpdate,
+    silenceTimers,
 }: UseDeepgramSTTProps) {
     // STT setup
     const wsRef = useRef<WebSocket | null>(null);
@@ -29,80 +193,69 @@ export function useDeepgramSTT({
     const silenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const micCleanupRef = useRef<(() => void) | null>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
+    const DEFAULT_TIMERS = useRef({ skipToNextMs: 4000, inactivityPauseMs: 15000 });
+    const timersRef = useRef({
+        ...DEFAULT_TIMERS.current,
+        ...(silenceTimers ?? {}),
+    });
 
     // Cue detection
     const fullTranscript = useRef<string[]>([]);
     const lastTranscriptRef = useRef<string | null>(null);
     const repeatCountRef = useRef<number>(0);
     const repeatStartTimeRef = useRef<number | null>(null);
+    const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const hasTriggeredRef = useRef(false);
+    const processingState = useRef({
+        lastProcessedTranscript: '',
+        isProcessing: false,
+        lastSpeechFinalTime: 0,
+        utteranceEndTimeout: null as ReturnType<typeof setTimeout> | null
+    });
 
-    // Highlighting
-    const matchedScriptIndices = useRef<Set<number>>(new Set());
-    const expectedScriptWordsRef = useRef<string[] | null>(null);
-    const lastReportedCount = useRef(0);
+    // Initialize matcher
+    const matcherRef = useRef<OptimizedSTTMatcher | null>(null);
+    const currentLineTextRef = useRef<string>("");
 
-    // Highlighting helper functions
-    const normalizeWord = (word: string) =>
-        word.toLowerCase().replace(/[^\w]/g, '');
+    useEffect(() => {
+        if (onProgressUpdate) {
+            matcherRef.current = new OptimizedSTTMatcher(onProgressUpdate);
 
-    // Highlighting setup
-    const setCurrentLineText = (text: string) => {
-        matchedScriptIndices.current = new Set();
-        lastReportedCount.current = 0;
-
-        const normalizedWords = text.trim().split(/\s+/).map(normalizeWord);
-        expectedScriptWordsRef.current = normalizedWords;
-    };
-
-    // Match word to highlight
-    const progressiveWordMatch = (
-        scriptWords: string[],
-        transcript: string,
-        used: Set<number>,
-        windowSize = 3
-    ): number => {
-        const transcriptWords = transcript
-            .trim()
-            .split(/\s+/)
-            .map(w => w.toLowerCase().replace(/[^\w]/g, ''));
-
-        // Use highest matched index so far
-        let highest = -1;
-        for (const i of used) {
-            if (i > highest) highest = i;
-        }
-
-        let matchStartIndex = highest + 1;
-
-        for (const word of transcriptWords) {
-            const matchEndIndex = Math.min(scriptWords.length, matchStartIndex + windowSize);
-
-            for (let i = matchStartIndex; i < matchEndIndex; i++) {
-                if (!used.has(i) && scriptWords[i] === word) {
-                    // console.log('✅ script word:', scriptWords[i]);
-                    // console.log('🗣️ spoken word:', word);
-                    // console.log('matched index: ', i);
-
-                    used.add(i);
-                    if (i > highest) highest = i;
-
-                    matchStartIndex = i + 1;
-                    break;
-                }
+            if (currentLineTextRef.current) {
+                matcherRef.current.setCurrentLineText(currentLineTextRef.current);
             }
         }
+    }, [onProgressUpdate]);
 
-        return highest + 1;
-    };
+    const setCurrentLineText = useCallback((text: string) => {
+        // Remove all content within brackets including the brackets
+        const sanitized = text.replace(/\[.*?\]/g, '').trim();
+
+        // Clean up any double spaces that might result from removal
+        const cleaned = sanitized.replace(/\s+/g, ' ');
+
+        currentLineTextRef.current = cleaned;
+
+        // If matcher doesn't exist yet, create it
+        if (!matcherRef.current && onProgressUpdate) {
+            console.log('[Matcher] Creating matcher on-demand');
+            matcherRef.current = new OptimizedSTTMatcher(onProgressUpdate);
+        }
+
+        if (matcherRef.current) {
+            matcherRef.current.setCurrentLineText(cleaned, text);
+        } else {
+            console.warn('[Matcher] matcherRef.current is NULL!');
+        }
+    }, [onProgressUpdate]);
 
     // STT helpers
     const triggerNextLine = (transcript: string) => {
         if (hasTriggeredRef.current) return false;
         hasTriggeredRef.current = true;
 
-        if (expectedScriptWordsRef.current && onProgressUpdate) {
-            onProgressUpdate(expectedScriptWordsRef.current.length);
+        if (matcherRef.current) {
+            matcherRef.current.completeCurrentLine();
         }
 
         pauseSTT();
@@ -110,29 +263,68 @@ export function useDeepgramSTT({
         return true;
     };
 
+    useEffect(() => {
+        timersRef.current = {
+            ...DEFAULT_TIMERS.current,
+            ...(silenceTimers ?? {}),
+        };
+    }, [silenceTimers]);
+
     const resetSilenceTimeout = () => {
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
         silenceTimeoutRef.current = setTimeout(() => {
             console.log('🛑 Silence timeout — stopping Deepgram STT to save usage.');
             pauseSTT();
             onSilenceTimeout?.();
-        }, 10000);
+        }, timersRef.current.inactivityPauseMs);
     };
+
+    const resetSilenceTimer = (spokenLine: string) => {
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = setTimeout(() => {
+            if (hasTriggeredRef.current) return;
+            console.log('⏳ Silence timer triggered. Skipping to next line.');
+            triggerNextLine(spokenLine);
+        }, timersRef.current.skipToNextMs);
+    };
+
+    // Helper functions
+    const matchesEndPhrase = (transcript: string, keywords: string[]) => {
+        const normalize = (text: string) =>
+            text.toLowerCase().replace(/[\s.,!?'"“”\-]+/g, ' ').trim();
+
+        const normTranscript = normalize(transcript);
+
+        return keywords.every((kw) =>
+            normTranscript.includes(normalize(kw))
+        );
+    };
+
+    function tokens(s: string) {
+        return s.trim().split(/\s+/).filter(Boolean);
+    }
+
+    function tailText(s: string, W: number) {
+        const t = tokens(s);
+        return t.slice(-W).join(" ");
+    }
+
+    const TAIL_WINDOWS = [6, 10, 15];
+    const LOCAL_SIM_THRESHOLD = 0.8;
+    const API_SIM_THRESHOLD = 0.8;
 
     const handleFinalization = async (spokenLine: string) => {
         const start = performance.now();
 
+        // 1) Exact keyword
         if (matchesEndPhrase(spokenLine, lineEndKeywords)) {
             const end = performance.now();
-            console.log(`🔑 Keyword match detected in: ${(end - start).toFixed(2)}ms`);
-            console.log(`End timestamp: ${end.toFixed(2)}ms`);
-
+            console.log(`⚡ Keyword match passed in: ${(end - start).toFixed(2)}ms`);
             triggerNextLine(spokenLine);
             return;
-        } else {
-            console.log('🔑 Keyword match failed');
         }
 
+        // 2) Fuzzy keyword match
         if (fuzzyMatchEndKeywords(spokenLine, lineEndKeywords)) {
             const end = performance.now();
             console.log(`🤏 Fuzzy match passed in ${(end - start).toFixed(2)}ms`);
@@ -140,81 +332,75 @@ export function useDeepgramSTT({
             return;
         }
 
-        if (expectedEmbedding?.length) {
-            const similarity = await fetchSimilarity(spokenLine, expectedEmbedding);
-            console.log('Similarity: ', similarity);
-            if (similarity && similarity > 0.80) {
-                const end = performance.now();
-                console.log(`⚡ Similarity test passed in: ${(end - start).toFixed(2)}ms`);
-                console.log(`End timestamp: ${end.toFixed(2)}ms`);
-                triggerNextLine(spokenLine);
-                return;
+        // 3) Semantic (sliding tail windows with multi-window max)
+        const expectedLine = currentLineTextRef.current;
+        if (!expectedLine) return;
+
+        try {
+            if (embeddingModel.isReady()) {
+                // Local model path — compute similarity for each W, take the max
+                const sims = await Promise.all(
+                    TAIL_WINDOWS.map(async (W) => {
+                        const sTail = tailText(spokenLine, W);
+                        const eTail = tailText(expectedLine, W);
+                        const sim = await embeddingModel.getSimilarity(sTail, eTail);
+                        return { W, sim };
+                    })
+                );
+
+                const best = sims.reduce((a, b) => (b.sim > a.sim ? b : a));
+                console.log("🧩 Tail sims (local):", sims, "best:", best);
+
+                if (best.sim >= LOCAL_SIM_THRESHOLD) {
+                    const end = performance.now();
+                    console.log(`✅ Semantic similarity (local) passed in ${(end - start).toFixed(2)}ms`);
+
+                    triggerNextLine(spokenLine);
+                    return;
+                }
             } else {
-                console.log("🔁 Similarity too low.");
+                // Fallback to api call if model isn't ready
+                console.log("Using fallback for similarity...");
+
+                const [spokenEmbedding, expectedEmbedding] = await Promise.all([
+                    fetchEmbedding(spokenLine),
+                    fetchEmbedding(expectedLine),
+                ]);
+
+                if (spokenEmbedding && expectedEmbedding) {
+                    const similarity = cosineSimilarity(spokenEmbedding, expectedEmbedding);
+                    console.log("Similarity (API):", similarity);
+
+                    if (similarity > API_SIM_THRESHOLD) {
+                        console.log("✅ Similarity passed (API)!");
+                        triggerNextLine(spokenLine);
+                        return;
+                    }
+                }
             }
+        } catch (error) {
+            console.error("Similarity check failed:", error);
         }
     };
 
     const handleKeywordMatch = async (spokenLine: string) => {
-
-        if (!spokenLine && lastTranscriptRef.current) {
-            console.warn("⚠️ No finalized spoken line. Falling back to last transcript chunk.");
-            spokenLine = lastTranscriptRef.current;
-        }
-
-        if (!spokenLine) {
-            console.warn("⚠️ Missing spoken line!");
-            return;
-        }
-
         const start = performance.now();
 
         if (matchesEndPhrase(spokenLine, lineEndKeywords)) {
             const end = performance.now();
-            console.log(`🔑 Keyword match detected in: ${(end - start).toFixed(2)}ms`);
-            console.log(`End timestamp: ${end.toFixed(2)}ms`);
-
+            console.log(`⚡ Keyword match passed in: ${(end - start).toFixed(2)}ms`);
             triggerNextLine(spokenLine);
-            return;
+        } else {
+            console.log('Keyword match failed.');
         }
 
-        if (fuzzyMatchEndKeywords(spokenLine, lineEndKeywords)) {
-            const end = performance.now();
-            console.log(`🤏 Fuzzy match passed in ${(end - start).toFixed(2)}ms`);
-            triggerNextLine(spokenLine);
-            return;
-        }
+        // if (fuzzyMatchEndKeywords(spokenLine, lineEndKeywords)) {
+        //     const end = performance.now();
+        //     console.log(`🤏 Fuzzy match passed in ${(end - start).toFixed(2)}ms`);
+        //     triggerNextLine(spokenLine);
+        //     return;
+        // }
     };
-
-    const handleInterimKeywordMatch = async (triggerSource: string) => {
-        const spokenLine = lastTranscriptRef.current;
-
-        if (!spokenLine) {
-            console.warn("⚠️ Missing spoken line!");
-            return;
-        }
-
-        const start = performance.now();
-
-        console.log(`${triggerSource} received. Running match test now!`);
-
-        if (matchesEndPhrase(spokenLine, lineEndKeywords)) {
-            const end = performance.now();
-            console.log(`🔑 Keyword match detected in: ${(end - start).toFixed(2)}ms`);
-            console.log(`End timestamp: ${end.toFixed(2)}ms`);
-
-            triggerNextLine(spokenLine);
-            return;
-        }
-
-        if (fuzzyMatchEndKeywords(spokenLine, lineEndKeywords)) {
-            const end = performance.now();
-            console.log(`🤏 Fuzzy match passed in ${(end - start).toFixed(2)}ms`);
-            triggerNextLine(spokenLine);
-            return;
-        }
-    };
-
 
     const normalize = (text: string) =>
         text.toLowerCase().replace(/[\s.,!?'"“”\-]+/g, ' ').trim();
@@ -228,13 +414,8 @@ export function useDeepgramSTT({
     const fuzzyMatchEndKeywords = (
         transcript: string,
         keywords: string[],
-        threshold = 70
+        threshold = 80
     ): boolean => {
-        // const lastSentence = normalize(extractLastSentence(transcript));
-        // const words = lastSentence.split(/\s+/);
-
-        // console.log('fuzzy match last sentence: ', lastSentence);
-
         const normTranscript = normalize(transcript);
         const words = normTranscript.split(/\s+/);
 
@@ -242,11 +423,59 @@ export function useDeepgramSTT({
             const normKw = normalize(kw);
             return words.some((w) => {
                 const score = fuzz.ratio(normKw, w);
-                console.log(`🔍 Comparing "${normKw}" with "${w}" → Score: ${score}`);
+                // console.log(`🔍 Comparing "${normKw}" with "${w}" → Score: ${score}`);
                 return score >= threshold;
             });
         });
     };
+
+    // Helper functions
+    function shouldProcessTranscript(fullSpokenLine: string) {
+        // Prevent duplicate processing of same transcript
+        if (fullSpokenLine === processingState.current.lastProcessedTranscript) {
+            console.log('⏭️ Duplicate transcript - skipping');
+            return false;
+        }
+
+        // Prevent concurrent processing
+        if (processingState.current.isProcessing) {
+            console.log('⏭️ Already processing - skipping');
+            return false;
+        }
+
+        const expectedWords = matcherRef.current?.getNormalizedScript();
+        const spokenWords = fullSpokenLine.trim().split(/\s+/);
+
+        if (!expectedWords) return false;
+
+        const lengthRatio = spokenWords.length / expectedWords.length;
+        return spokenWords.length >= Math.floor(expectedWords.length * 0.75);
+    }
+
+    async function processTranscript(fullSpokenLine: string, trigger: string) {
+        // Mark as processing
+        processingState.current.isProcessing = true;
+        processingState.current.lastProcessedTranscript = fullSpokenLine;
+
+        const expectedWords = matcherRef.current?.getNormalizedScript();
+        const spokenWords = fullSpokenLine.trim().split(/\s+/);
+
+        try {
+            // Auto trigger at 100% or more
+            if (expectedWords && spokenWords.length >= expectedWords.length) {
+                console.log(`✅ [${trigger}] Full line spoken — triggering next line automatically.`);
+                triggerNextLine(fullSpokenLine);
+                return;
+            }
+
+            console.log(`🟡 [${trigger}] transcript accepted! Handling finalization...`);
+            await handleFinalization(fullSpokenLine);
+
+        } finally {
+            // Always clear processing flag
+            processingState.current.isProcessing = false;
+        }
+    }
 
     const initializeSTT = async () => {
         if (isInitializingRef.current) {
@@ -256,39 +485,60 @@ export function useDeepgramSTT({
         isInitializingRef.current = true;
 
         try {
+            // ✅ Clean up any existing worklet/mic routing
             if (micCleanupRef.current) {
                 console.log('♻️ Cleaning up existing mic/processor before reinitializing');
                 micCleanupRef.current();
                 micCleanupRef.current = null;
             }
 
+            // 🎛️ AudioContext
             if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
-                console.log('🎛️ Creating new AudioContext...');
-                audioCtxRef.current = new AudioContext({ sampleRate: 44100 });
-                await audioCtxRef.current.audioWorklet.addModule('/linearPCMProcessor.js');
-                console.log('✅ AudioWorklet module loaded!');
+                audioCtxRef.current = new AudioContext();
+                console.log("🎛️ Creating new AudioContext - sampleRate:", audioCtxRef.current.sampleRate);
+                try {
+                    await audioCtxRef.current.audioWorklet.addModule('/linearPCMProcessor.js');
+                    console.log('✅ AudioWorklet module loaded!');
+                } catch (err) {
+                    console.error('❌ Failed to load AudioWorklet module:', err);
+                    return;
+                }
             } else {
                 console.log('🎛️ Reusing existing AudioContext');
             }
 
+            // 🎤 Microphone
             if (!micStreamRef.current) {
-                console.log('🎤 Requesting mic stream...');
-                micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
-                console.log('✅ Mic stream obtained');
+                try {
+                    console.log('🎤 Requesting mic stream...');
+                    micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    console.log('✅ Mic stream obtained');
+                } catch (err) {
+                    console.error('❌ Failed to get mic stream:', err);
+                    return;
+                }
             } else {
                 console.log('🎤 Reusing existing mic stream');
             }
 
+            // 🔗 Audio routing
             const audioCtx = audioCtxRef.current!;
             const micStream = micStreamRef.current!;
             const source = audioCtx.createMediaStreamSource(micStream);
-            const workletNode = new AudioWorkletNode(audioCtx, 'linear-pcm-processor');
 
-            workletNode.port.onmessage = (e: MessageEvent<Float32Array>) => {
-                const floatInput = e.data;
-                const buffer = convertFloat32ToInt16(floatInput);
-                if (wsRef.current?.readyState === WebSocket.OPEN) {
-                    wsRef.current.send(buffer);
+            const workletNode = new AudioWorkletNode(audioCtx, 'linear-pcm-processor', {
+                numberOfInputs: 1,
+                numberOfOutputs: 1,
+                channelCount: 1,
+            });
+
+            workletNode.port.onmessage = (e: MessageEvent) => {
+                const message = e.data;
+
+                if (message.type === 'audio') {
+                    if (wsRef.current?.readyState === WebSocket.OPEN) {
+                        wsRef.current.send(message.data);
+                    }
                 }
             };
 
@@ -324,6 +574,7 @@ export function useDeepgramSTT({
 
     const startSTT = async () => {
         if (isActiveRef.current) return;
+
         isActiveRef.current = true;
         hasTriggeredRef.current = false;
         fullTranscript.current = [];
@@ -336,17 +587,31 @@ export function useDeepgramSTT({
         }
 
         if (wsRef.current) {
+            console.log('🧹 Cleaning up existing WebSocket before creating new one');
+
+            // Clear all event handlers first
             wsRef.current.onmessage = null;
             wsRef.current.onopen = null;
             wsRef.current.onerror = null;
             wsRef.current.onclose = null;
+
+            // Close if not already closed/closing
+            if (wsRef.current.readyState === WebSocket.OPEN ||
+                wsRef.current.readyState === WebSocket.CONNECTING) {
+                wsRef.current.close(1000, 'Starting new STT session');
+            }
+
+            wsRef.current = null;
         }
 
-        if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
-            wsRef.current = new WebSocket('wss://deepgram-stt.fly.dev');
-        } else {
-            console.warn('🔁 Reusing existing WebSocket');
-        }
+        // if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
+        //     wsRef.current = new WebSocket('wss://deepgram-stt.fly.dev');
+        // } else {
+        //     console.warn('🔁 Reusing existing WebSocket');
+        // }
+
+        // wsRef.current = new WebSocket('wss://deepgram-stt.fly.dev');
+        wsRef.current = new WebSocket('ws://localhost:3001');
 
         wsRef.current.onmessage = async (event: MessageEvent) => {
             if (hasTriggeredRef.current) {
@@ -371,6 +636,7 @@ export function useDeepgramSTT({
             if (transcript) {
                 console.log(`[🎙️] Transcript chunk at ${performance.now().toFixed(2)}ms:`, transcript);
                 resetSilenceTimeout();
+                resetSilenceTimer(transcript);
 
                 // if (onProgressUpdate && transcript) {
                 //     const scriptWords = expectedScriptWordsRef.current;
@@ -394,90 +660,84 @@ export function useDeepgramSTT({
                     repeatCountRef.current = 1;
                     repeatStartTimeRef.current = performance.now();
 
-                    if (onProgressUpdate) {
-                        const scriptWords = expectedScriptWordsRef.current;
-
-                        if (scriptWords && !hasTriggeredRef.current) {
-                            const matchCount = progressiveWordMatch(scriptWords, transcript, matchedScriptIndices.current);
-
-                            if (matchCount > lastReportedCount.current) {
-                                lastReportedCount.current = matchCount;
-                                onProgressUpdate(matchCount);
-                            }
-                        }
+                    if (matcherRef.current && !hasTriggeredRef.current) {
+                        matcherRef.current.processTranscript(transcript);
                     }
                 }
 
                 lastTranscriptRef.current = transcript;
 
                 const now = performance.now();
-                const repeatDuration = repeatStartTimeRef.current
-                    ? now - repeatStartTimeRef.current
-                    : 0;
+                const repeatDuration = now - (repeatStartTimeRef.current ?? now);
 
                 if (
                     repeatCountRef.current >= 2 &&
                     repeatDuration >= 400
                 ) {
-                    console.log('🟡 Repeated stable transcript detected — forcing keyword match');
-                    await handleInterimKeywordMatch(`🔁 [interim stability heuristic] @ ${performance.now().toFixed(2)}ms`);
+                    console.log('🟡 Stable transcript detected — forcing early match');
+                    await handleKeywordMatch(transcript);
                     repeatCountRef.current = 0;
                     repeatStartTimeRef.current = null;
                 }
             }
 
-            if (data.is_final && transcript) {
-                console.log(`🟡 [is_final] detected @ ${performance.now().toFixed(2)}ms`);
+            if (data.channel && transcript) {
+                // Only process is_final if speech_final is NOT true
+                // (speech_final always includes is_final)
+                if (data.is_final && !data.speech_final) {
+                    console.log(`🟡 [is_final only] detected @ ${performance.now().toFixed(2)}ms`);
 
-                fullTranscript.current.push(transcript);
+                    fullTranscript.current.push(transcript);
+                    const fullSpokenLine = fullTranscript.current.join(' ');
 
-                const fullSpokenLine = fullTranscript.current.join(' ');
-                const expectedWords = expectedScriptWordsRef.current;
-                const spokenWords = fullSpokenLine.trim().split(/\s+/);
+                    // Check if we should process this
+                    if (shouldProcessTranscript(fullSpokenLine)) {
+                        await processTranscript(fullSpokenLine, 'is_final');
+                    }
+                }
 
-                const isLongEnough = expectedWords && spokenWords.length >= Math.floor(expectedWords.length * 0.75);
+                // speech_final is the primary trigger
+                if (data.speech_final) {
+                    console.log(`🟡 [speech_final] detected @ ${performance.now().toFixed(2)}ms`);
 
-                if (isLongEnough) {
-                    console.log(`🟡 [is_final] transcript accepted @ ${performance.now().toFixed(2)}ms! Handling finalization...`);
-                    await handleKeywordMatch(transcript);
-                } else {
-                    console.log(`⏹️ Deepgram is_final transcript too short — skipping!`);
+                    // Mark that we got a speech_final
+                    processingState.current.lastSpeechFinalTime = Date.now();
+
+                    fullTranscript.current.push(transcript);
+                    const fullSpokenLine = fullTranscript.current.join(' ');
+
+                    // Clear any pending utteranceEnd timeout since speech_final handled it
+                    if (processingState.current.utteranceEndTimeout) {
+                        clearTimeout(processingState.current.utteranceEndTimeout);
+                        processingState.current.utteranceEndTimeout = null;
+                    }
+
+                    if (shouldProcessTranscript(fullSpokenLine)) {
+                        await processTranscript(fullSpokenLine, 'speech_final');
+                    }
                 }
             }
 
-            if (data.speech_final) {
-                console.log(`🟡 [speech_final] detected @ ${performance.now().toFixed(2)}ms`);
-
-                const fullSpokenLine = fullTranscript.current.join(' ');
-                const expectedWords = expectedScriptWordsRef.current;
-                const spokenWords = fullSpokenLine.trim().split(/\s+/);
-
-                const isLongEnough = expectedWords && spokenWords.length >= Math.floor(expectedWords.length * 0.75);
-
-                if (isLongEnough) {
-                    console.log(`🟡 [speech_final] transcript accepted! Handling finalization...`);
-                    await handleFinalization(fullTranscript.current.join(' '));
-                } else {
-                    console.log(`⏹️ Deepgram speech_final transcript too short — skipping!`);
-                }
-            }
-
-            // Utterance end too slow. Minimum 1000ms threshold.
+            // UtteranceEnd as fallback only
             if (data.type === "UtteranceEnd") {
                 console.log(`🟣 [utterance_end] detected @ ${performance.now().toFixed(2)}ms`);
 
-                const fullSpokenLine = fullTranscript.current.join(' ');
-                const expectedWords = expectedScriptWordsRef.current;
-                const spokenWords = fullSpokenLine.trim().split(/\s+/);
+                // Check if speech_final just fired (within last 500ms)
+                const timeSinceSpeechFinal = Date.now() - processingState.current.lastSpeechFinalTime;
 
-                const isLongEnough = expectedWords && spokenWords.length >= Math.floor(expectedWords.length * 0.75);
-
-                if (isLongEnough) {
-                    console.log(`🟣 [utterance_end] transcript accepted! Handling finalization...`);
-                    await handleFinalization(fullTranscript.current.join(' '));
-                } else {
-                    console.log(`⏹️ Deepgram utterance_end transcript too short — skipping!`);
+                if (timeSinceSpeechFinal < 500) {
+                    console.log(`⏭️ Ignoring UtteranceEnd - speech_final just fired ${timeSinceSpeechFinal}ms ago`);
+                    return;
                 }
+
+                // Delay slightly to see if speech_final is coming
+                processingState.current.utteranceEndTimeout = setTimeout(async () => {
+                    const fullSpokenLine = fullTranscript.current.join(' ');
+
+                    if (shouldProcessTranscript(fullSpokenLine)) {
+                        await processTranscript(fullSpokenLine, 'utterance_end');
+                    }
+                }, 100); // Small delay to let speech_final win if it's coming
             }
         };
 
@@ -499,14 +759,44 @@ export function useDeepgramSTT({
         const end = performance.now();
         console.log(`⏸️ pauseSTT triggered @ ${end}`);
 
+        // 🧹 Stop WebSocket with proper cleanup
         if (wsRef.current) {
-            wsRef.current.close();
+
+            // Clear handlers BEFORE closing to prevent any final events
+            wsRef.current.onmessage = null;
+            wsRef.current.onopen = null;
+            wsRef.current.onerror = null;
+            wsRef.current.onclose = null;
+
+            // Only close if not already closed/closing
+            if (wsRef.current.readyState === WebSocket.OPEN ||
+                wsRef.current.readyState === WebSocket.CONNECTING) {
+                try {
+                    wsRef.current.close(1000, 'Pausing STT');
+                } catch (err) {
+                    console.warn('⚠️ Error closing WebSocket:', err);
+                }
+            }
+
             wsRef.current = null;
         }
 
+        // ⏲️ Clear silence timeout
         if (silenceTimeoutRef.current) {
             clearTimeout(silenceTimeoutRef.current);
             silenceTimeoutRef.current = null;
+        }
+
+        // ⏲️ Clear silence detection timer
+        if (silenceTimerRef.current) {
+            clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = null;
+        }
+
+        // Clear processing state timeout
+        if (processingState.current.utteranceEndTimeout) {
+            clearTimeout(processingState.current.utteranceEndTimeout);
+            processingState.current.utteranceEndTimeout = null;
         }
 
         isActiveRef.current = false;
@@ -515,16 +805,19 @@ export function useDeepgramSTT({
     const cleanupSTT = () => {
         pauseSTT();
 
+        // 💥 Disconnect audio routing
         if (micCleanupRef.current) {
             micCleanupRef.current();
             micCleanupRef.current = null;
         }
 
+        // 💥 Stop mic stream
         if (micStreamRef.current) {
             micStreamRef.current.getTracks().forEach((track) => track.stop());
             micStreamRef.current = null;
         }
 
+        // 💥 Close AudioContext
         if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
             audioCtxRef.current.close().catch((err) => {
                 console.warn('⚠️ Error closing AudioContext:', err);
@@ -534,62 +827,4 @@ export function useDeepgramSTT({
     };
 
     return { startSTT, pauseSTT, initializeSTT, cleanupSTT, setCurrentLineText };
-}
-
-// Helpers
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function normalize(text: string) {
-    return text.toLowerCase().replace(/[.,!?']/g, '').trim();
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function splitIntoSentences(text: string): string[] {
-    const abbreviations = /\b(Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|Mt|etc)\.$/;
-    const parts = text
-        .split(/(?<=[.?!])\s+(?=[A-Z])/)
-        .filter(Boolean)
-        .map((s) => s.trim());
-
-    const sentences: string[] = [];
-    for (let i = 0; i < parts.length; i++) {
-        if (i > 0 && abbreviations.test(parts[i - 1])) {
-            sentences[sentences.length - 1] += ' ' + parts[i];
-        } else {
-            sentences.push(parts[i]);
-        }
-    }
-
-    return sentences;
-}
-
-function matchesEndPhrase(transcript: string, keywords: string[]): boolean {
-    const normalize = (text: string) =>
-        text.toLowerCase().replace(/[\s.,!?'"“”\-]+/g, ' ').trim();
-
-    const normalizedTranscript = normalize(transcript);
-
-    return keywords.every((kw) =>
-        normalizedTranscript.includes(normalize(kw))
-    );
-}
-
-// function convertFloat32ToInt16(float32Array: Float32Array): ArrayBuffer {
-//     const len = float32Array.length;
-//     const int16Array = new Int16Array(len);
-//     for (let i = 0; i < len; i++) {
-//         let s = Math.max(-1, Math.min(1, float32Array[i]));
-//         int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-//     }
-//     return int16Array.buffer;
-// }
-
-// Testing Math.round for better accuracy
-function convertFloat32ToInt16(float32Array: Float32Array): ArrayBuffer {
-    const len = float32Array.length;
-    const int16Array = new Int16Array(len);
-    for (let i = 0; i < len; i++) {
-        const s = Math.max(-1, Math.min(1, float32Array[i]));
-        int16Array[i] = Math.round(s * 32767);
-    }
-    return int16Array.buffer;
 }

@@ -21,9 +21,9 @@ wss.on('connection', (clientSocket) => {
         '?model=nova-3' +
         '&interim_results=true' +
         '&encoding=linear16' +
-        '&sample_rate=44100' +
-        '&endpointing=1000' +
-        '&utterance_end_ms=4000' +
+        '&sample_rate=16000' +
+        '&endpointing=300' +
+        '&utterance_end_ms=1000' +
         '&smart_format=true',
         {
             headers: {
@@ -59,7 +59,8 @@ wss.on('connection', (clientSocket) => {
     });
 });
 
-const PORT = 3000;
+// const PORT = 3000;
+const PORT = 3001;
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`🖥️ WebSocket Proxy listening on ws://0.0.0.0:${PORT}`);
 });

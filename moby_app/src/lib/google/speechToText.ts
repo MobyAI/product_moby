@@ -761,6 +761,7 @@ export function useGoogleSTT({
                 const expectedWords = matcherRef.current?.getNormalizedScript();
                 const spokenWords = fullSpokenLine.trim().split(/\s+/);
 
+                // Auto trigger at 100% or more
                 if (expectedWords && spokenWords.length >= expectedWords.length) {
                     console.log("✅ Full line spoken — triggering next line automatically.");
                     triggerNextLine(fullSpokenLine);
@@ -769,7 +770,6 @@ export function useGoogleSTT({
 
                 const isLongEnough = expectedWords && spokenWords.length >= Math.floor(expectedWords.length * 0.75);
                 const lengthRatio = expectedWords && spokenWords.length / expectedWords.length;
-                // const isLongEnough = expectedWords && spokenWords.length >= expectedWords.length;
                 console.log('Long enough?', lengthRatio);
 
                 if (isLongEnough) {
