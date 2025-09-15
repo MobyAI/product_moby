@@ -16,7 +16,7 @@ import { clear, set } from "idb-keyval";
 import LoadingScreen from "./LoadingScreen";
 import {
 	Button,
-	// MicCheckModal,
+	MicCheckModal,
 	DelaySelector,
 	CountdownTimer
 } from "@/components/ui";
@@ -30,7 +30,6 @@ import {
 	RotateCcw,
 	Undo2,
 	Pencil,
-	// Settings,
 	ChevronDown
 } from "lucide-react";
 
@@ -77,9 +76,9 @@ function RehearsalRoomContent() {
 	);
 
 	// Mic Check
-	// const [showMicCheck, setShowMicCheck] = useState<boolean>(false);
-	// TEMP DISABLED: eslint-disable-next-line @typescript-eslint/no-unused-vars
-	// const [micCheckComplete, setMicCheckComplete] = useState<boolean>(false);
+	const [showMicCheck, setShowMicCheck] = useState<boolean>(false);
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	const [micCheckComplete, setMicCheckComplete] = useState<boolean>(false);
 
 	// Rehearsal flow
 	const [currentIndex, setCurrentIndex] = useState(0);
@@ -221,28 +220,28 @@ function RehearsalRoomContent() {
 	}, [userID, scriptID]);
 
 	// Mic check
-	// useEffect(() => {
-	// 	if (!scriptID) return;
+	useEffect(() => {
+		if (!scriptID) return;
 
-	// 	// Check if mic check was already completed for this script
-	// 	try {
-	// 		const completedChecks = localStorage.getItem('audioSetupsCompleted');
-	// 		const completed = completedChecks ? JSON.parse(completedChecks) : {};
+		// Check if mic check was already completed for this script
+		try {
+			const completedChecks = localStorage.getItem('audioSetupsCompleted');
+			const completed = completedChecks ? JSON.parse(completedChecks) : {};
 
-	// 		if (!completed[scriptID]) {
-	// 			// Show mic check modal after a brief delay to ensure page is interactive
-	// 			setTimeout(() => {
-	// 				setShowMicCheck(true);
-	// 			}, 100);
-	// 		} else {
-	// 			setMicCheckComplete(true);
-	// 		}
-	// 	} catch (err) {
-	// 		console.error('Error checking mic setup status:', err);
-	// 		// Show modal on error to be safe
-	// 		setShowMicCheck(true);
-	// 	}
-	// }, [scriptID]);
+			if (!completed[scriptID]) {
+				// Show mic check modal after a brief delay to ensure page is interactive
+				setTimeout(() => {
+					setShowMicCheck(true);
+				}, 100);
+			} else {
+				setMicCheckComplete(true);
+			}
+		} catch (err) {
+			console.error('Error checking mic setup status:', err);
+			// Show modal on error to be safe
+			setShowMicCheck(true);
+		}
+	}, [scriptID]);
 
 	// Auto-scroll to current line
 	useEffect(() => {
@@ -1127,14 +1126,14 @@ function RehearsalRoomContent() {
 	return (
 		<>
 			{/* Mic Check Modal */}
-			{/* <MicCheckModal
+			<MicCheckModal
 				isOpen={showMicCheck}
 				onComplete={() => {
 					setShowMicCheck(false);
 					setMicCheckComplete(true);
 				}}
 				scriptId={scriptID || undefined}
-			/> */}
+			/>
 
 			{loading ? (
 				<LoadingScreen loadStage={loading}>
@@ -1342,7 +1341,6 @@ function RehearsalRoomContent() {
 							{/* Additional Buttons */}
 							<div className="flex flex-col gap-2 ml-2">
 								<Button
-									// icon={Settings}
 									onClick={() => setShowAdvanced(!showAdvanced)}
 									size="sm"
 									variant="secondary"
