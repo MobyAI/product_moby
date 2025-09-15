@@ -1,0 +1,27 @@
+# fly.toml app configuration file generated for google-stt on 2025-08-02T15:08:16-07:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'deepgram-stt'
+primary_region = 'iad'
+
+[build]
+
+[[services]]
+  internal_port = 3000
+  protocol = "tcp"
+  [services.concurrency]
+    type = "connections"
+    soft_limit = 100
+    hard_limit = 120
+[[services.ports]]
+  port = 80
+  handlers = ["http"]
+[[services.ports]]
+  port = 443
+  handlers = ["tls", "http"]
+
+[[vm]]
+  size = "shared-cpu-2x"
+  memory = "512mb"

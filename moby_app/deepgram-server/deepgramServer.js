@@ -59,7 +59,23 @@ wss.on('connection', (clientSocket) => {
     });
 });
 
+// Handle server-level errors
+wss.on('error', (error) => {
+    console.error('❌ WSS error:', error);
+});
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`🖥️ WebSocket Proxy listening on ws://0.0.0.0:${PORT}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received');
+    wss.clients.forEach((client) => {
+        client.close();
+    });
+    server.close(() => {
+        process.exit(0);
+    });
 });
