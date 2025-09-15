@@ -122,7 +122,7 @@ export class AudioPlayerWithFallbacks {
                 return element;
             });
 
-            console.log('Persisting fresh URL to Firestore...', updatedScript);
+            console.log('Persisting fresh URL to Firestore...');
 
             // Update Firestore
             await updateScript(scriptId, updatedScript);

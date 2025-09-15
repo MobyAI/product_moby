@@ -73,7 +73,7 @@ function RehearsalRoomContent() {
 	const [showAdvanced, setShowAdvanced] = useState(false);
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const [sttProvider, setSttProvider] = useState<"google" | "deepgram">(
-		"google"
+		"deepgram"
 	);
 
 	// Mic Check
@@ -871,7 +871,6 @@ function RehearsalRoomContent() {
 	function useSTT({
 		provider,
 		lineEndKeywords,
-		expectedEmbedding,
 		onCueDetected,
 		onSilenceTimeout,
 		onProgressUpdate,
@@ -879,7 +878,6 @@ function RehearsalRoomContent() {
 	}: {
 		provider: "google" | "deepgram";
 		lineEndKeywords: string[];
-		expectedEmbedding: number[];
 		onCueDetected: () => void;
 		onSilenceTimeout: () => void;
 		onProgressUpdate?: (matchedCount: number) => void;
@@ -890,7 +888,6 @@ function RehearsalRoomContent() {
 	}) {
 		const google = useGoogleSTT({
 			lineEndKeywords,
-			expectedEmbedding,
 			onCueDetected,
 			onSilenceTimeout,
 			onProgressUpdate,
@@ -899,11 +896,10 @@ function RehearsalRoomContent() {
 
 		const deepgram = useDeepgramSTT({
 			lineEndKeywords,
-			expectedEmbedding,
 			onCueDetected,
 			onSilenceTimeout,
 			onProgressUpdate,
-			// silenceTimers not configured yet
+			silenceTimers,
 		});
 
 		return provider === "google" ? google : deepgram;
@@ -930,7 +926,6 @@ function RehearsalRoomContent() {
 		useSTT({
 			provider: sttProvider,
 			lineEndKeywords: current?.lineEndKeywords ?? [],
-			expectedEmbedding: current?.expectedEmbedding ?? [],
 			onCueDetected: onUserLineMatched,
 			onSilenceTimeout: () => {
 				console.log("⏱️ Timeout reached");
