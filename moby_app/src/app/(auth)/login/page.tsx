@@ -12,7 +12,8 @@ export default function LoginPage() {
     const search = useSearchParams();
     const router = useRouter();
     // const next = search.get("next") || "home";
-    const next = search.get("next") || "/scripts/list";
+    // const next = search.get("next") || "/scripts/list";
+    const next = search.get("next") || "/tracker";
 
     async function handleSuccessfulLogin() {
         // Check if user has completed profile

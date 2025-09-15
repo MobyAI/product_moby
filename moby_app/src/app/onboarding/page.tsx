@@ -14,7 +14,8 @@ function OnboardingContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     // const finalDestination = searchParams.get("next") || "/home";
-    const finalDestination = searchParams.get("next") || "/scripts/list";
+    // const finalDestination = searchParams.get("next") || "/scripts/list";
+    const finalDestination = searchParams.get("next") || "/tracker";
     const totalSteps = 6;
 
     const [step, setStep] = useState(1);

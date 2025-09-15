@@ -22,7 +22,8 @@ const Homepage = () => {
   const startFn = () => {
     // router.push('/upload')
     // router.push('/scripts/upload')
-    router.push('/scripts/list')
+    // router.push('/scripts/list')
+    router.push('/tracker')
   }
 
   return (

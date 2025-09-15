@@ -21,7 +21,8 @@ export default async function ServerAuthProvider({
 
     if (!requireProfile && hasProfile(userStatus)) {
         // redirect if user goes to onboarding page and has profile already
-        redirect("/scripts/list");
+        // redirect("/scripts/list");
+        redirect("/tracker");
     }
 
     const value: AuthUser = {

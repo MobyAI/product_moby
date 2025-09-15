@@ -11,7 +11,8 @@ export default function SignupPage() {
     const search = useSearchParams();
     const router = useRouter();
     // const next = search.get("next") || "home";
-    const next = search.get("next") || "/scripts/list";
+    // const next = search.get("next") || "/scripts/list";
+    const next = search.get("next") || "/tracker";
     const onboardingUrl = `/onboarding?next=${encodeURIComponent(next)}`;
 
     return (
