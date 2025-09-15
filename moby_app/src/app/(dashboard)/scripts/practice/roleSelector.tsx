@@ -80,9 +80,6 @@ export function RoleSelector({
                 return el;
             });
 
-            console.log('pending roles: ', pendingRoles);
-            console.log('updated roles: ', updatedScript);
-
             // Save to Firestore
             await updateScript(scriptID, updatedScript);
             console.log('📤 Saved updated roles to Firestore');
