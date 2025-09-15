@@ -60,9 +60,9 @@ export async function addTTS(
             text: element.text,
             voiceId: element.voiceId ?? defaultVoiceId,
             voiceSettings: {
-                stability: 0.5,
-                similarityBoost: 0.75,
-                style: 0.5,
+                stability: 0,
+                similarityBoost: 0,
+                style: 0,
                 useSpeakerBoost: false
             },
             // seed: element.seed,
@@ -120,9 +120,9 @@ export async function addTTSRegenerate(
             text: element.text,
             voiceId: element.voiceId ?? defaultVoiceId,
             voiceSettings: {
-                stability: 0.5,
-                similarityBoost: 0.75,
-                style: 0.5,
+                stability: 0,
+                similarityBoost: 0,
+                style: 0,
                 useSpeakerBoost: false
             },
             // seed: element.seed,

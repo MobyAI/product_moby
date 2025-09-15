@@ -1066,7 +1066,7 @@ function RehearsalRoomContent() {
 						!editingLineIndex &&
 						ttsHydrationStatus[element.index] === 'ready' &&
 						(
-							<div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[999]">
+							<div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[100]">
 								<button
 									onClick={(e) => {
 										e.stopPropagation();
@@ -1415,7 +1415,7 @@ function RehearsalRoomContent() {
 						</div>
 
 						{/* Floating Control Panel */}
-						<div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-[1000]">
+						<div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-[200]">
 							<div className="bg-[rgba(44,47,61,0.85)] rounded-full px-9 py-3 flex items-center gap-9 shadow-xl">
 
 								{/* Previous Button */}
