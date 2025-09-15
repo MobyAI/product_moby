@@ -448,7 +448,6 @@ export function useDeepgramSTT({
 
         if (!expectedWords) return false;
 
-        const lengthRatio = spokenWords.length / expectedWords.length;
         return spokenWords.length >= Math.floor(expectedWords.length * 0.75);
     }
 
@@ -610,8 +609,8 @@ export function useDeepgramSTT({
         //     console.warn('🔁 Reusing existing WebSocket');
         // }
 
-        // wsRef.current = new WebSocket('wss://deepgram-stt.fly.dev');
-        wsRef.current = new WebSocket('ws://localhost:3001');
+        wsRef.current = new WebSocket('wss://deepgram-stt.fly.dev');
+        // wsRef.current = new WebSocket('ws://localhost:3001');
 
         wsRef.current.onmessage = async (event: MessageEvent) => {
             if (hasTriggeredRef.current) {

@@ -59,8 +59,7 @@ wss.on('connection', (clientSocket) => {
     });
 });
 
-// const PORT = 3000;
-const PORT = 3001;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`🖥️ WebSocket Proxy listening on ws://0.0.0.0:${PORT}`);
 });
