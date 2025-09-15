@@ -28,10 +28,10 @@ type AuditionCountsProps = {
 function StatCard({ label, count, bgColor, textColor = "text-black" }: StatCardProps) {
     return (
         <div
-            className={`${bgColor} rounded-2xl p-4 m-2 min-w-[150px]
+            className={`${bgColor} rounded-2xl p-4 flex-1
             shadow-sm hover:shadow-md
             border border-transparent hover:border-gray-400
-            transition-all`}
+            transition-all min-h-[100px] flex flex-col justify-center items-center text-center`}
         >
             <div className={`text-md font-light ${textColor} mb-2`}>
                 {label}
@@ -79,10 +79,10 @@ export default function AuditionCounts({ setFilterStatus }: AuditionCountsProps)
 
     if (loading) {
         return (
-            <div className="flex gap-4 overflow-x-auto pb-2">
+            <div className="flex gap-2 w-full">
                 {[...Array(6)].map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                        <div className="bg-gray-200 rounded-2xl p-4 min-w-[140px] h-[100px]"></div>
+                    <div key={i} className="animate-pulse flex-1">
+                        <div className="bg-gray-200 rounded-2xl p-4 h-[100px]"></div>
                     </div>
                 ))}
             </div>
@@ -107,11 +107,11 @@ export default function AuditionCounts({ setFilterStatus }: AuditionCountsProps)
     ];
 
     return (
-        <div className="flex gap-4 overflow-x-auto">
+        <div className="flex gap-2 w-full">
             {statCards.map((stat) => (
                 <div
                     key={stat.label}
-                    className="cursor-pointer"
+                    className="cursor-pointer flex-1"
                     onClick={() => {
                         switch (stat.label) {
                             case "Audition":

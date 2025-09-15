@@ -322,7 +322,7 @@ export default function AuditionHistory() {
 
     return (
         <>
-            <div className="flex justify-end">
+            <div className="flex justify-end items-center py-3">
                 <AddAuditionButton />
             </div>
             <div className="flex justify-center m-2">
