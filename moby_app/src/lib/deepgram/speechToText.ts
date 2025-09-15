@@ -609,7 +609,13 @@ export function useDeepgramSTT({
         //     console.warn('🔁 Reusing existing WebSocket');
         // }
 
-        wsRef.current = new WebSocket('wss://deepgram-stt.fly.dev');
+        // Fly.io
+        // wsRef.current = new WebSocket('wss://deepgram-stt.fly.dev');
+
+        // Render
+        wsRef.current = new WebSocket('wss://deepgram-websocket-server.onrender.com');
+
+        // Localhost
         // wsRef.current = new WebSocket('ws://localhost:3001');
 
         wsRef.current.onmessage = async (event: MessageEvent) => {
