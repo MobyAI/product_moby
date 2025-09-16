@@ -448,7 +448,7 @@ export function useDeepgramSTT({
 
         if (!expectedWords) return false;
 
-        return spokenWords.length >= Math.floor(expectedWords.length * 0.75);
+        return spokenWords.length >= Math.floor(expectedWords.length * 0.80);
     }
 
     async function processTranscript(fullSpokenLine: string, trigger: string) {
@@ -695,7 +695,7 @@ export function useDeepgramSTT({
                     fullTranscript.current.push(transcript);
                     const fullSpokenLine = fullTranscript.current.join(' ');
 
-                    // Check if we should process this
+                    console.log('Processing is: ', fullSpokenLine);
                     if (shouldProcessTranscript(fullSpokenLine)) {
                         await processTranscript(fullSpokenLine, 'is_final');
                     }
@@ -717,8 +717,11 @@ export function useDeepgramSTT({
                         processingState.current.utteranceEndTimeout = null;
                     }
 
+                    console.log('Processing speech_final: ', fullSpokenLine);
                     if (shouldProcessTranscript(fullSpokenLine)) {
                         await processTranscript(fullSpokenLine, 'speech_final');
+                    } else {
+                        console.log('❌ Should Process Transcript Failed');
                     }
                 }
             }
