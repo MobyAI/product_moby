@@ -1223,16 +1223,16 @@ const ScriptRenderer = ({
     const handleUpdate = (index: number, updatedItem: ScriptElement) => {
         // Add lineEndKeywords if it's a line element
         if (updatedItem.type === 'line' && typeof updatedItem.text === 'string') {
+            // Remove double spaces and trim
+            const cleanedText = updatedItem.text.replace(/\s+/g, ' ').trim();
 
             // Remove all content within brackets including the brackets
-            const sanitized = updatedItem.text.replace(/\[.*?\]/g, '').trim();
-
-            // Clean up any double spaces that might result from removal
-            const cleaned = sanitized.replace(/\s+/g, ' ');
+            const sanitized = cleanedText.replace(/\[.*?\]/g, '').replace(/\s+/g, ' ').trim();
 
             updatedItem = {
                 ...updatedItem,
-                lineEndKeywords: extractLineEndKeywords(cleaned)
+                text: cleanedText,
+                lineEndKeywords: extractLineEndKeywords(sanitized)
             };
             console.log('Updated keywords:', updatedItem.lineEndKeywords);
         }

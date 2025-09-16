@@ -422,6 +422,7 @@ function RehearsalRoomContent() {
 	const onUpdateLine = async (updateLine: ScriptElement) => {
 		setEditingLineIndex(null);
 		setIsUpdatingLine(true);
+		setHydrating(true);
 		setLoadStage('♻️ Regenerating...');
 
 		if (!script) {
@@ -431,13 +432,13 @@ function RehearsalRoomContent() {
 
 		// Inject or replace lineEndKeywords
 		if (updateLine.type === 'line' && typeof updateLine.text === 'string') {
-			// Remove all content within brackets including the brackets
-			const sanitized = updateLine.text.replace(/\[.*?\]/g, '').trim();
+			// Remove double spaces and trim
+			updateLine.text = updateLine.text.replace(/\s+/g, ' ').trim();
 
-			// Clean up any double spaces that might result from removal
-			const cleaned = sanitized.replace(/\s+/g, ' ');
+			// Remove brackets and clean up any resulting double spaces
+			const sanitized = updateLine.text.replace(/\[.*?\]/g, '').replace(/\s+/g, ' ').trim();
 
-			updateLine.lineEndKeywords = extractLineEndKeywords(cleaned);
+			updateLine.lineEndKeywords = extractLineEndKeywords(sanitized);
 			console.log('updated kw: ', updateLine.lineEndKeywords);
 		}
 
@@ -499,6 +500,9 @@ function RehearsalRoomContent() {
 			}
 		} catch (err) {
 			console.error(`❌ Failed to update line ${updateLine.index}:`, err);
+		} finally {
+			setHydrating(false);
+			setIsUpdatingLine(false);
 		}
 	};
 
@@ -1084,9 +1088,14 @@ function RehearsalRoomContent() {
 					key={element.index}
 					ref={isCurrent ? currentLineRef : null}
 					onClick={() => handleLineClick(element.index)}
-					className={`mb-6 cursor-pointer transition-all duration-200 rounded-lg p-6 relative ${isCurrent
-						? "bg-blue-50 shadow-md border-blue-200"
-						: "hover:bg-gray-50 border-gray-200 hover:shadow-sm"
+					className={`mb-6 cursor-pointer transition-all duration-200 rounded-lg p-6 relative 
+						${isCurrent
+							? "bg-blue-50 shadow-md border-blue-200"
+							: "hover:bg-gray-50 border-gray-200 hover:shadow-sm"
+						}
+						${['pending', 'updating'].includes(ttsHydrationStatus[element.index])
+							? "glow-pulse"
+							: ""
 						}`}
 				>
 					{/* Character name and status */}
