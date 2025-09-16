@@ -687,3 +687,20 @@ body {
 .chevron.rotated {
   transform: rotate(180deg);
 }
+
+/* Spin animation with delay */
+@keyframes spinPause {
+  0% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(360deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-pause {
+  animation: spinPause 1s linear infinite;
+}

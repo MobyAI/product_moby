@@ -55,13 +55,14 @@ function RehearsalRoomContent() {
 	const [loading, setLoading] = useState(false);
 	const [hydrating, setHydrating] = useState(false);
 	const [downloading, setDownloading] = useState(false);
+	const [updating, setUpdating] = useState(false);
 	const [loadStage, setLoadStage] = useState<string | null>(null);
 	const [loadProgress, setLoadProgress] = useState(0);
 	const [ttsHydrationStatus, setTTSHydrationStatus] = useState<Record<number, 'pending' | 'updating' | 'ready' | 'failed'>>({});
 	const hydrationInProgress = useRef(false);
 
 	// Disable script rehearsal until finished
-	const isBusy = hydrating || downloading;
+	const isBusy = hydrating || downloading || updating;
 
 	// Page Content
 	const [script, setScript] = useState<ScriptElement[] | null>(null);
@@ -1006,6 +1007,7 @@ function RehearsalRoomContent() {
 									script={script}
 									setScript={setScript}
 									updateScript={updateScript}
+									updatingState={[updating, setUpdating]}
 								/>
 							</div>
 						)
@@ -1056,6 +1058,7 @@ function RehearsalRoomContent() {
 									script={script}
 									setScript={setScript}
 									updateScript={updateScript}
+									updatingState={[updating, setUpdating]}
 								/>
 							</div>
 						)
@@ -1157,6 +1160,7 @@ function RehearsalRoomContent() {
 									script={script}
 									setScript={setScript}
 									updateScript={updateScript}
+									updatingState={[updating, setUpdating]}
 								/>
 							</div>
 						)

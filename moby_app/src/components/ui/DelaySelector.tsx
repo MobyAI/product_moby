@@ -12,6 +12,7 @@ interface DelaySelectorProps {
     script: ScriptElement[] | null;
     setScript: React.Dispatch<React.SetStateAction<ScriptElement[] | null>>;
     updateScript: (scriptId: string, updatedScript: ScriptElement[]) => Promise<void>;
+    updatingState: [boolean, React.Dispatch<React.SetStateAction<boolean>>];
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -37,14 +38,15 @@ export const DelaySelector: React.FC<DelaySelectorProps> = ({
     script,
     setScript,
     updateScript,
+    updatingState,
 }) => {
     const [showDelayDropdown, setShowDelayDropdown] = useState<boolean>(false);
-    const [isUpdating, setIsUpdating] = useState<boolean>(false);
+    const [updating, setUpdating] = updatingState;
 
     const handleAddDelay = async (delayValue: DelayValue): Promise<void> => {
         if (!script || !scriptId || !userId) return;
 
-        setIsUpdating(true);
+        setUpdating(true);
 
         try {
             // Find and update the script element with matching index
@@ -87,7 +89,7 @@ export const DelaySelector: React.FC<DelaySelectorProps> = ({
         } catch (error) {
             console.error('❌ Error updating delay:', error);
         } finally {
-            setIsUpdating(false);
+            setUpdating(false);
         }
     };
 
@@ -137,11 +139,11 @@ export const DelaySelector: React.FC<DelaySelectorProps> = ({
                 onBlur={() => setShowDelayDropdown(false)}
                 className="cursor-pointer flex items-center text-sm text-white bg-gray-900 px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all duration-200"
                 title="Add Delay"
-                disabled={isUpdating}
+                disabled={updating}
                 type="button"
             >
                 <Hourglass
-                    className="w-4 h-4"
+                    className={`w-4 h-4 ${updating ? 'animate-spin-pause' : ''}`}
                     strokeWidth={2}
                 />
                 <span className="ml-1.5 font-semibold">
