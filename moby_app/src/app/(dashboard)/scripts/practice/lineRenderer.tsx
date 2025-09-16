@@ -13,7 +13,7 @@ interface OptimizedLineRendererProps {
 const BASE = "word text-gray-700 transition-all duration-100";
 const MATCHED = "matched";
 const WAITING = "waiting";
-const AUDIO_TAG = "audio-tag text-gray-400 mx-1"; // Styling for audio tags
+const AUDIO_TAG = "audio-tag text-white";
 
 interface ParsedSegment {
     type: 'word' | 'audio-tag';
@@ -88,14 +88,25 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
             <div className="text-base leading-relaxed">
                 {segments.map((segment, i) => {
                     if (segment.type === 'audio-tag') {
-                        // Render audio tags without highlighting
+                        // Render audio tags without highlighting and without brackets
+                        const buttonText = segment.content.slice(1, -1);
                         return (
-                            <span
-                                key={`tag-${i}`}
-                                className={AUDIO_TAG}
+                            <button
+                                key={`btn-${element.index}-${i}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                }}
+                                className="inline-flex items-center px-2.5 py-0.5 mx-1 rounded-sm"
+                                style={{
+                                    background: '#b8b3d7',
+                                    color: '#333333',
+                                    fontWeight: '500'
+                                }}
                             >
-                                {segment.content}
-                            </span>
+                                <span className={AUDIO_TAG}>
+                                    {buttonText}
+                                </span>
+                            </button>
                         );
                     } else {
                         // Render words with potential highlighting
