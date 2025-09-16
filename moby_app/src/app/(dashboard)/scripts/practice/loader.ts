@@ -298,7 +298,6 @@ export const hydrateLine = async ({
 
     if (
         line.type !== 'line' ||
-        line.role !== 'scene-partner' ||
         typeof line.text !== 'string' ||
         line.text.trim().length === 0
     ) {

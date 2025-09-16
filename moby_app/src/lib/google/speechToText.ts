@@ -34,6 +34,7 @@ class OptimizedSTTMatcher {
     private onProgressUpdate: (count: number) => void;
     private updateThrottleRef: ReturnType<typeof setTimeout> | null = null;
     private prevTranscriptWords: number[] = [];
+    public originalWordCount: number = 0;
 
     constructor(onProgressUpdate: (count: number) => void) {
         this.onProgressUpdate = onProgressUpdate;
@@ -156,9 +157,12 @@ class OptimizedSTTMatcher {
     }
 
     completeCurrentLine() {
-        if (this.state.normalizedScript.length > 0) {
-            this.state.lastReportedCount = this.state.normalizedScript.length;
-            this.onProgressUpdate(this.state.normalizedScript.length);
+        // Use the original word count if available, otherwise fall back to sanitized count
+        const totalWords = this.originalWordCount || this.state.normalizedScript.length;
+
+        if (totalWords > 0) {
+            this.state.lastReportedCount = totalWords;
+            this.onProgressUpdate(totalWords);
         }
 
         this.prevTranscriptWords = [];
@@ -214,6 +218,10 @@ export function useGoogleSTT({
     }, [onProgressUpdate]);
 
     const setCurrentLineText = useCallback((text: string) => {
+        // Store the original text for word count purposes
+        const originalWords = text.trim().split(/\s+/);
+        const originalWordCount = originalWords.length;
+
         // Remove all content within brackets including the brackets
         const sanitized = text.replace(/\[.*?\]/g, '').trim();
 
@@ -230,6 +238,7 @@ export function useGoogleSTT({
 
         if (matcherRef.current) {
             matcherRef.current.setCurrentLineText(text);
+            matcherRef.current.originalWordCount = originalWordCount;
         } else {
             console.warn('[Matcher] matcherRef.current is NULL!');
         }
