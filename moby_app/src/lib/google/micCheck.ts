@@ -241,6 +241,8 @@ export const useMicCheck = (): UseMicTestReturn => {
             console.log('[MicCheck] Component unmounting, cleaning up');
             cleanup();
         };
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return { startMicTest, stopMicTest, transcript, isListening, cleanup, error };

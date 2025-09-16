@@ -43,7 +43,7 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
         const range = document.createRange();
 
         let charCount = 0;
-        let nodeStack: Node[] = [editableRef.current];
+        const nodeStack: Node[] = [editableRef.current];
         let foundStart = false;
 
         while (nodeStack.length > 0 && !foundStart) {
@@ -75,7 +75,9 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
     // Check if cursor is at the edge of an audio tag
     const checkAudioTagBoundary = (text: string, cursorPos: number) => {
         // Check if cursor is right after ] or right before [
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const charBefore = cursorPos > 0 ? text[cursorPos - 1] : '';
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const charAtCursor = cursorPos < text.length ? text[cursorPos] : '';
 
         // Find all audio tags
@@ -154,7 +156,7 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
         if (editableRef.current && editableRef.current.innerHTML !== applyBracketStyling(item.text)) {
             editableRef.current.innerHTML = applyBracketStyling(item.text);
         }
-    }, []);
+    }, [item.text]);
 
     // Auto-focus on mount
     useEffect(() => {
