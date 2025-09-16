@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-import { extractTextFromPDF } from "@/lib/extract/pdf";
+import { extractTextFromPDF, extractTextFromPDFWithOptions, cleanupOCR } from "@/lib/extract/pdf";
 import { extractTextFromDOCX } from "@/lib/extract/docx";
 
 const normalize = (s: string) =>
@@ -33,7 +33,18 @@ export async function POST(req: NextRequest) {
         let rawText = "";
 
         if (ext === "pdf") {
-            rawText = await extractTextFromPDF(buf);
+            // rawText = await extractTextFromPDF(buf);
+            rawText = await extractTextFromPDFWithOptions(buf, {
+                forceOCR: true,
+                ocrLanguage: 'eng',
+                ocrScale: 2.0,
+                // pageNumbers is omitted, so it processes all pages by default
+            });
+
+            console.log('OCR text: ', rawText);
+
+            // This works but defeats the purpose of caching
+            // await cleanupOCR();
         } else if (ext === "docx") {
             rawText = await extractTextFromDOCX(buf);
         } else {
