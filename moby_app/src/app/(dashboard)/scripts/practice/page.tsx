@@ -1002,8 +1002,8 @@ function RehearsalRoomContent() {
 				onClick={(e) => {
 				e.stopPropagation();
 				}}
-				className="inline-flex items-center px-2 py-0 mx-0 rounded-md"
-				style={{ background: '#c0b4d4', color: '#000' }}
+				className="inline-flex items-center px-2 py-0 mx-0 rounded-sm"
+				style={{ background: '#b8b3d7', color: '#333333', fontWeight: '500' }}
 			>
 				{buttonText}
 			</button>
