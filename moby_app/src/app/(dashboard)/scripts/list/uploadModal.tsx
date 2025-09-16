@@ -1103,39 +1103,50 @@ const RoleVoiceAssignment = ({
             </div>
 
             <div className="space-y-2 max-h-96 overflow-y-auto">
-                {voiceSamples.map(sample => (
-                    <div
-                        key={sample.voiceId}
-                        onClick={() => handleSelectVoice(sample)}
-                        className={`
-                            p-4 border rounded-lg cursor-pointer transition-all
-                            ${selectedVoiceId === sample.voiceId
-                                ? 'border-blue-500 bg-blue-50 shadow-md'
-                                : 'border-gray-300 hover:border-blue-300 hover:bg-gray-50'
-                            }
-                        `}
-                    >
-                        <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                                <h4 className="font-medium text-gray-900">{sample.name}</h4>
-                                <p className="text-sm text-gray-600 mt-1">{sample.description}</p>
+                {voiceSamples
+                    .sort((a, b) => {
+                        if (a.name === 'Jessica') return -1;
+                        if (b.name === 'Jessica') return 1;
+                        return 0;
+                    })
+                    .map(sample => (
+                        <div
+                            key={sample.voiceId}
+                            onClick={() => handleSelectVoice(sample)}
+                            className={`
+                                p-4 border rounded-lg cursor-pointer transition-all
+                                ${selectedVoiceId === sample.voiceId
+                                    ? 'border-blue-500 bg-blue-50 shadow-md'
+                                    : 'border-gray-300 hover:border-blue-300 hover:bg-gray-50'
+                                }
+                            `}
+                        >
+                            <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                    <h4 className="font-medium text-gray-900">
+                                        {sample.name}
+                                        {sample.name === 'Jessica' && (
+                                            <span className="text-sm text-blue-600 font-normal"> (crowd favorite)</span>
+                                        )}
+                                    </h4>
+                                    <p className="text-sm text-gray-600 mt-1">{sample.description}</p>
+                                </div>
+                                <button
+                                    onClick={(e) => handlePlay(sample.url, e)}
+                                    className={`
+                                        ml-4 p-2 transition-colors
+                                        ${playingUrl === sample.url
+                                            ? 'text-blue-600'
+                                            : 'text-gray-600'
+                                        }
+                                    `}
+                                >
+                                    <span className="text-xl">
+                                        {playingUrl === sample.url ? '⏸️' : '▶️'}
+                                    </span>
+                                </button>
                             </div>
-                            <button
-                                onClick={(e) => handlePlay(sample.url, e)}
-                                className={`
-                                    ml-4 p-2 transition-colors
-                                    ${playingUrl === sample.url
-                                        ? 'text-blue-600'
-                                        : 'text-gray-600'
-                                    }
-                                `}
-                            >
-                                <span className="text-xl">
-                                    {playingUrl === sample.url ? '⏸️' : '▶️'}
-                                </span>
-                            </button>
                         </div>
-                    </div>
                 ))}
             </div>
         </div>

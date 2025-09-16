@@ -81,7 +81,7 @@ export default function AddAuditionPage() {
     };
 
     return (
-        <div className="container mx-auto">
+        <div className="container">
             <div className="flex justify-end">
                 <button
                     onClick={openModal}

@@ -430,73 +430,77 @@ function RehearsalRoomContent() {
 			return;
 		}
 
+		// ✅ Normalize bracket spacing on the edited text (persisted change)
+		if (typeof updateLine.text === 'string') {
+			updateLine = { ...updateLine, text: normalizeBracketSpaces(updateLine.text) };
+		}
+
 		// Inject or replace lineEndKeywords
 		if (updateLine.type === 'line' && typeof updateLine.text === 'string') {
+			// Remove all content within brackets including the brackets for keyword picking only
+			const sanitized = updateLine.text.replace(/\[.*?\]/g, '').trim();
+			const cleaned = sanitized.replace(/\s+/g, ' '); // collapse doubles
+			updateLine.lineEndKeywords = extractLineEndKeywords(cleaned);
 			// Remove double spaces and trim
-			updateLine.text = updateLine.text.replace(/\s+/g, ' ').trim();
+			// updateLine.text = updateLine.text.replace(/\s+/g, ' ').trim();
 
-			// Remove brackets and clean up any resulting double spaces
-			const sanitized = updateLine.text.replace(/\[.*?\]/g, '').replace(/\s+/g, ' ').trim();
+			// // Remove brackets and clean up any resulting double spaces
+			// const sanitized = updateLine.text.replace(/\[.*?\]/g, '').replace(/\s+/g, ' ').trim();
 
-			updateLine.lineEndKeywords = extractLineEndKeywords(sanitized);
+			// updateLine.lineEndKeywords = extractLineEndKeywords(sanitized);
 			console.log('updated kw: ', updateLine.lineEndKeywords);
 		}
 
 		try {
-			const updatedScript = script?.map((el) =>
-				el.index === updateLine.index ? updateLine : el
-			) ?? [];
+			const updatedScript = (script?.map((el) =>
+			el.index === updateLine.index ? updateLine : el
+			)) ?? [];
 
 			setScript(updatedScript);
 			scriptRef.current = updatedScript;
 
 			if (userID && scriptID) {
-				const result = await hydrateLine({
-					line: updateLine,
-					script: updatedScript,
-					userID,
-					scriptID,
-					updateTTSHydrationStatus,
-					setStorageError,
-				});
+			const result = await hydrateLine({
+				line: updateLine,
+				script: updatedScript,
+				userID,
+				scriptID,
+				updateTTSHydrationStatus,
+				setStorageError,
+			});
 
-				// Create the final updated script with hydration results
-				const finalUpdatedScript = updatedScript.map((el) =>
-					el.index === result.index
-						? { ...el, ...result, text: updateLine.text }
-						: el
-				);
+			const finalUpdatedScript = updatedScript.map((el) =>
+				el.index === result.index
+				// keep the normalized text we just saved
+				? { ...el, ...result, text: updateLine.text }
+				: el
+			);
 
-				// Update local state
-				setScript(finalUpdatedScript);
-				scriptRef.current = finalUpdatedScript;
+			setScript(finalUpdatedScript);
+			scriptRef.current = finalUpdatedScript;
 
-				// Update Firestore
-				try {
-					await updateScript(scriptID, finalUpdatedScript);
-					console.log(`✅ Updated Firestore with updated line ${updateLine.index}`);
-				} catch {
-					console.error('❌ Failed to update Firestore');
-				}
+			try {
+				await updateScript(scriptID, finalUpdatedScript);
+				console.log(`✅ Updated Firestore with updated line ${updateLine.index}`);
+			} catch {
+				console.error('❌ Failed to update Firestore');
+			}
 
-				// Update IndexedDB cache
-				const cacheKey = `script-cache:${userID}:${scriptID}`;
-				try {
-					await set(cacheKey, finalUpdatedScript);
-					console.log(`💾 Script cached successfully in IndexedDB for line ${updateLine.index}`);
-				} catch (cacheError) {
-					console.warn('⚠️ Failed to update IndexedDB cache:', cacheError);
-					// Don't throw - Firestore update succeeded, so the critical save is done
-				}
+			const cacheKey = `script-cache:${userID}:${scriptID}`;
+			try {
+				await set(cacheKey, finalUpdatedScript);
+				console.log(`💾 Script cached successfully in IndexedDB for line ${updateLine.index}`);
+			} catch (cacheError) {
+				console.warn('⚠️ Failed to update IndexedDB cache:', cacheError);
+			}
 
-				setLoadStage('✅ Line successfully updated!');
-				setIsUpdatingLine(false);
-
-				showToast({
-					header: "Line Updated!",
-					line1: `Line ${updateLine.index} was rehydrated successfully.`,
-					type: "success",
-				});
+			setLoadStage('✅ Line successfully updated!');
+			setIsUpdatingLine(false);
+			showToast({
+				header: "Line Updated!",
+				line1: `Line ${updateLine.index} was rehydrated successfully.`,
+				type: "success",
+			});
 			}
 		} catch (err) {
 			console.error(`❌ Failed to update line ${updateLine.index}:`, err);
@@ -972,6 +976,51 @@ function RehearsalRoomContent() {
 		router.push('/scripts/list')
 	}
 
+	const normalizeBracketSpaces = (s: string) => s.replace(/\](?!\s|$)/g, "] ");
+
+	// Helper function to parse text and convert [word] to button elements
+	const parseTextWithButtons = (text: string) => {
+		// Ensure there's always a space after a closing bracket if missing
+		// text = text.replace(/\](?!\s)/g, "] ");
+
+		const parts = [];
+		const regex = /\[([^\]]+)\]/g;
+		let lastIndex = 0;
+		let match;
+
+		while ((match = regex.exec(text)) !== null) {
+			// Add text before the match
+			if (match.index > lastIndex) {
+			parts.push(text.slice(lastIndex, match.index));
+			}
+
+			// Add the button for the bracketed word
+			const buttonText = match[1];
+			parts.push(
+			<button
+				key={`btn-${match.index}-${buttonText}`}
+				onClick={(e) => {
+				e.stopPropagation();
+				}}
+				className="inline-flex items-center px-2 py-0 mx-0 rounded-sm"
+				style={{ background: '#b8b3d7', color: '#333333', fontWeight: '500' }}
+			>
+				{buttonText}
+			</button>
+			);
+
+			lastIndex = regex.lastIndex;
+		}
+
+		// Add remaining text
+		if (lastIndex < text.length) {
+			parts.push(text.slice(lastIndex));
+		}
+
+		return parts.length > 0 ? parts : [text];
+	};
+
+
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const renderScriptElement = (element: ScriptElement, index: number) => {
 		const isCurrent = element.index === currentIndex;
@@ -988,7 +1037,7 @@ function RehearsalRoomContent() {
 						}`}
 				>
 					<h2 className="text-xl font-bold uppercase tracking-wider text-gray-800">
-						{element.text}
+						{parseTextWithButtons(element.text)}
 					</h2>
 
 					{isCurrent && isPlaying && (
@@ -1040,8 +1089,9 @@ function RehearsalRoomContent() {
 					className={`relative text-center mb-6 cursor-pointer transition-all duration-200 hover:bg-gray-50 rounded-lg p-4 ${isCurrent ? "bg-blue-50 shadow-md border border-blue-200" : ""
 						}`}
 				>
-					<p className="italic text-gray-600 text-sm">({element.text})</p>
-
+					<p className="italic text-gray-600 text-sm">
+						({parseTextWithButtons(element.text)})
+					</p>
 					{isCurrent && isPlaying && (
 						<div className="text-xs text-blue-600 mt-1 animate-pulse font-medium">
 							● ACTIVE DIRECTION
@@ -1130,14 +1180,24 @@ function RehearsalRoomContent() {
 							hydrationStatus={ttsHydrationStatus[element.index]}
 						/>
 					) : (
-						<OptimizedLineRenderer
-							element={element}
-							isCurrent={isCurrent}
-							isWaitingForUser={isWaitingForUser}
-							spanRefMap={wordRefs.current}
-							matchedCount={lineStates.get(element.index)?.matched ?? 0}
-							isCompleted={lineStates.get(element.index)?.completed ?? false}
-						/>
+						<div className="text-gray-800 leading-relaxed">
+							{/* Check if OptimizedLineRenderer can handle the parsed content, 
+								otherwise render the parsed text directly */}
+							{element.text.includes('[') && element.text.includes(']') ? (
+								<div className="leading-relaxed">
+									{parseTextWithButtons(element.text)}
+								</div>
+							) : (
+								<OptimizedLineRenderer
+									element={element}
+									isCurrent={isCurrent}
+									isWaitingForUser={isWaitingForUser}
+									spanRefMap={wordRefs.current}
+									matchedCount={lineStates.get(element.index)?.matched ?? 0}
+									isCompleted={lineStates.get(element.index)?.completed ?? false}
+								/>
+							)}
+						</div>
 					)}
 
 					{/* Edit button */}
@@ -1175,6 +1235,7 @@ function RehearsalRoomContent() {
 						)
 					}
 
+					{/* Countdown */}
 					{/* Delay countdown */}
 					{showCountdown && countdownDuration > 0 && isCurrent && (
 						<div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[999]">
@@ -1198,7 +1259,7 @@ function RehearsalRoomContent() {
 					)}
 				</div>
 			);
-		}
+		}	
 
 		return null;
 	};
