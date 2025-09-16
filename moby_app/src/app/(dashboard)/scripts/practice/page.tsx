@@ -539,7 +539,15 @@ function RehearsalRoomContent() {
 			case "scene":
 			case "direction":
 				console.log(`[${current.type.toUpperCase()}]`, current.text);
-				autoAdvance(750); // Changed from 2000 to 750 for faster skip
+
+				const delay = current.customDelay || 0;
+
+				if (delay > 0) {
+					setShowCountdown(true);
+					setCountdownDuration(delay);
+				}
+
+				autoAdvance(delay);
 				break;
 
 			case "line":
@@ -971,15 +979,45 @@ function RehearsalRoomContent() {
 					key={element.index}
 					ref={isCurrent ? currentLineRef : null}
 					onClick={() => handleLineClick(element.index)}
-					className={`text-center mb-8 cursor-pointer transition-all duration-200 hover:bg-gray-50 rounded-lg p-6 ${isCurrent ? "bg-blue-50 shadow-md border border-blue-200" : ""
+					className={`relative text-center mb-8 cursor-pointer transition-all duration-200 hover:bg-gray-50 rounded-lg p-6 ${isCurrent ? "bg-blue-50 shadow-md border border-blue-200" : ""
 						}`}
 				>
 					<h2 className="text-xl font-bold uppercase tracking-wider text-gray-800">
 						{element.text}
 					</h2>
+
 					{isCurrent && isPlaying && (
 						<div className="text-xs text-blue-600 mt-2 animate-pulse font-medium">
 							● ACTIVE SCENE
+						</div>
+					)}
+
+					{/* Edit button */}
+					{isCurrent &&
+						!isPlaying &&
+						(
+							<div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[100]">
+								<DelaySelector
+									lineIndex={element.index}
+									currentDelay={element.customDelay || 0}
+									onDelayChange={handleDelayChange}
+									scriptId={scriptID}
+									userId={userID}
+									script={script}
+									setScript={setScript}
+									updateScript={updateScript}
+								/>
+							</div>
+						)
+					}
+
+					{/* Delay countdown */}
+					{showCountdown && countdownDuration > 0 && isCurrent && (
+						<div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[999]">
+							<CountdownTimer
+								duration={countdownDuration}
+								onComplete={() => setShowCountdown(false)}
+							/>
 						</div>
 					)}
 				</div>
@@ -993,13 +1031,43 @@ function RehearsalRoomContent() {
 					key={element.index}
 					ref={isCurrent ? currentLineRef : null}
 					onClick={() => handleLineClick(element.index)}
-					className={`text-center mb-6 cursor-pointer transition-all duration-200 hover:bg-gray-50 rounded-lg p-4 ${isCurrent ? "bg-blue-50 shadow-md border border-blue-200" : ""
+					className={`relative text-center mb-6 cursor-pointer transition-all duration-200 hover:bg-gray-50 rounded-lg p-4 ${isCurrent ? "bg-blue-50 shadow-md border border-blue-200" : ""
 						}`}
 				>
 					<p className="italic text-gray-600 text-sm">({element.text})</p>
+
 					{isCurrent && isPlaying && (
 						<div className="text-xs text-blue-600 mt-1 animate-pulse font-medium">
 							● ACTIVE DIRECTION
+						</div>
+					)}
+
+					{/* Edit button */}
+					{isCurrent &&
+						!isPlaying &&
+						(
+							<div className="absolute -bottom-5.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[100]">
+								<DelaySelector
+									lineIndex={element.index}
+									currentDelay={element.customDelay || 0}
+									onDelayChange={handleDelayChange}
+									scriptId={scriptID}
+									userId={userID}
+									script={script}
+									setScript={setScript}
+									updateScript={updateScript}
+								/>
+							</div>
+						)
+					}
+
+					{/* Delay countdown */}
+					{showCountdown && countdownDuration > 0 && isCurrent && (
+						<div className="absolute -bottom-5.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[999]">
+							<CountdownTimer
+								duration={countdownDuration}
+								onComplete={() => setShowCountdown(false)}
+							/>
 						</div>
 					)}
 				</div>
@@ -1094,7 +1162,7 @@ function RehearsalRoomContent() {
 						)
 					}
 
-					{/* Edit button */}
+					{/* Delay countdown */}
 					{showCountdown && countdownDuration > 0 && isCurrent && (
 						<div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[999]">
 							<CountdownTimer

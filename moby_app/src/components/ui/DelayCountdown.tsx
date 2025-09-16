@@ -21,12 +21,20 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({ duration, onComp
         return () => clearInterval(interval);
     }, [timeLeft, onComplete]);
 
-    const seconds = Math.ceil(timeLeft / 1000);
+    const displayTime = () => {
+        if (timeLeft >= 1000) {
+            // 1 second or more: show whole seconds
+            return `${Math.ceil(timeLeft / 1000)}s`;
+        } else {
+            // Below 1 second: show one decimal place
+            return `${(timeLeft / 1000).toFixed(1)}s`;
+        }
+    };
 
     return (
         <div className="flex items-center text-sm text-white bg-gray-900 px-3 py-1.5 rounded shadow-md">
             <span className="font-semibold">
-                {seconds}s
+                {displayTime()}
             </span>
         </div>
     );
