@@ -12,17 +12,18 @@ interface DelaySelectorProps {
     script: ScriptElement[] | null;
     setScript: React.Dispatch<React.SetStateAction<ScriptElement[] | null>>;
     updateScript: (scriptId: string, updatedScript: ScriptElement[]) => Promise<void>;
+    updatingState: [boolean, React.Dispatch<React.SetStateAction<boolean>>];
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const DELAY_OPTIONS: ReadonlyArray<{ value: number; label: string }> = [
     { value: 0, label: 'No delay' },
+    { value: 500, label: '0.5s delay' },
     { value: 1000, label: '1s delay' },
     { value: 2000, label: '2s delay' },
+    { value: 3000, label: '3s delay' },
     { value: 4000, label: '4s delay' },
-    { value: 6000, label: '6s delay' },
-    { value: 8000, label: '8s delay' },
-    { value: 10000, label: '10s delay' },
+    { value: 5000, label: '5s delay' },
 ] as const;
 
 type DelayValue = typeof DELAY_OPTIONS[number]['value'];
@@ -37,14 +38,15 @@ export const DelaySelector: React.FC<DelaySelectorProps> = ({
     script,
     setScript,
     updateScript,
+    updatingState,
 }) => {
     const [showDelayDropdown, setShowDelayDropdown] = useState<boolean>(false);
-    const [isUpdating, setIsUpdating] = useState<boolean>(false);
+    const [updating, setUpdating] = updatingState;
 
     const handleAddDelay = async (delayValue: DelayValue): Promise<void> => {
         if (!script || !scriptId || !userId) return;
 
-        setIsUpdating(true);
+        setUpdating(true);
 
         try {
             // Find and update the script element with matching index
@@ -87,7 +89,7 @@ export const DelaySelector: React.FC<DelaySelectorProps> = ({
         } catch (error) {
             console.error('❌ Error updating delay:', error);
         } finally {
-            setIsUpdating(false);
+            setUpdating(false);
         }
     };
 
@@ -101,7 +103,7 @@ export const DelaySelector: React.FC<DelaySelectorProps> = ({
             {showDelayDropdown && (
                 <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 z-[1000] bg-gray-200 rounded-md p-1 shadow-xl">
                     <div className="flex flex-col">
-                        {[0, 1000, 2000, 4000, 6000, 8000, 10000].map((value) => (
+                        {[0, 500, 1000, 2000, 3000, 4000, 5000].map((value) => (
                             <button
                                 key={value}
                                 onMouseDown={(e) => {
@@ -137,11 +139,11 @@ export const DelaySelector: React.FC<DelaySelectorProps> = ({
                 onBlur={() => setShowDelayDropdown(false)}
                 className="cursor-pointer flex items-center text-sm text-white bg-gray-900 px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all duration-200"
                 title="Add Delay"
-                disabled={isUpdating}
+                disabled={updating}
                 type="button"
             >
                 <Hourglass
-                    className="w-4 h-4"
+                    className={`w-4 h-4 ${updating ? 'animate-spin-pause' : ''}`}
                     strokeWidth={2}
                 />
                 <span className="ml-1.5 font-semibold">

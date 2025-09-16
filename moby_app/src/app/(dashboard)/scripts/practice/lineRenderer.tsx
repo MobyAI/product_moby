@@ -13,6 +13,13 @@ interface OptimizedLineRendererProps {
 const BASE = "word text-gray-700 transition-all duration-100";
 const MATCHED = "matched";
 const WAITING = "waiting";
+const AUDIO_TAG = "audio-tag text-gray-400 mx-1"; // Styling for audio tags
+
+interface ParsedSegment {
+    type: 'word' | 'audio-tag';
+    content: string;
+    wordIndex?: number; // Only for words, not audio tags
+}
 
 export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
     element,
@@ -23,9 +30,35 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
     isCompleted
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const words = React.useMemo(() => element.text.split(/\s+/), [element.text]);
 
-    // Collect spans when becoming current
+    // Parse text to separate words and audio tags
+    const segments = React.useMemo(() => {
+        const parsed: ParsedSegment[] = [];
+        const regex = /(\[[^\]]+\])|([^\s\[\]]+)/g;
+        let match;
+        let wordIndex = 0;
+
+        while ((match = regex.exec(element.text)) !== null) {
+            if (match[1]) {
+                // This is an audio tag [something]
+                parsed.push({
+                    type: 'audio-tag',
+                    content: match[1]
+                });
+            } else if (match[2]) {
+                // This is a regular word
+                parsed.push({
+                    type: 'word',
+                    content: match[2],
+                    wordIndex: wordIndex++
+                });
+            }
+        }
+
+        return parsed;
+    }, [element.text]);
+
+    // Collect spans when becoming current (only word spans, not audio tags)
     useEffect(() => {
         if (!isCurrent || !containerRef.current) return;
 
@@ -47,26 +80,40 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
         );
     }
 
-    // User lines with word spans
-    const containerClasses = `pl-4 border-l-3 border-gray-300 ${isWaitingForUser && isCurrent ? WAITING : ''
-        }`;
+    // User lines with word spans and audio tags
+    const containerClasses = `pl-4 border-l-3 border-gray-300 ${isWaitingForUser && isCurrent ? WAITING : ''}`;
 
     return (
         <div className={containerClasses} ref={containerRef}>
             <div className="text-base leading-relaxed">
-                {words.map((word, i) => {
-                    const isMatched = isCompleted || (isCurrent && i < matchedCount) || (!isCurrent && i < matchedCount);
-                    const spanClasses = `${BASE} ${isMatched ? MATCHED : ''}`;
+                {segments.map((segment, i) => {
+                    if (segment.type === 'audio-tag') {
+                        // Render audio tags without highlighting
+                        return (
+                            <span
+                                key={`tag-${i}`}
+                                className={AUDIO_TAG}
+                            >
+                                {segment.content}
+                            </span>
+                        );
+                    } else {
+                        // Render words with potential highlighting
+                        const isMatched = isCompleted ||
+                            (isCurrent && segment.wordIndex! < matchedCount) ||
+                            (!isCurrent && segment.wordIndex! < matchedCount);
+                        const spanClasses = `${BASE} ${isMatched ? MATCHED : ''}`;
 
-                    return (
-                        <span
-                            key={i}
-                            data-word-index={i}
-                            className={spanClasses}
-                        >
-                            {word + ' '}
-                        </span>
-                    );
+                        return (
+                            <span
+                                key={`word-${segment.wordIndex}`}
+                                data-word-index={segment.wordIndex}
+                                className={spanClasses}
+                            >
+                                {segment.content + ' '}
+                            </span>
+                        );
+                    }
                 })}
             </div>
         </div>

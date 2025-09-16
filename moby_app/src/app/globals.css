@@ -687,3 +687,42 @@ body {
 .chevron.rotated {
   transform: rotate(180deg);
 }
+
+/* Spin animation with delay */
+@keyframes spinPause {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  25% {
+    transform: rotate(360deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-pause {
+  animation: spinPause 1s linear infinite;
+}
+
+/* Script line hydrating pulse */
+@keyframes glowPulse {
+
+  0%,
+  100% {
+    box-shadow: none;
+  }
+
+  50% {
+    box-shadow: 0 0 8px rgba(147, 197, 253, 0.4),
+      0 0 16px rgba(147, 197, 253, 0.3),
+      0 0 24px rgba(147, 197, 253, 0.15);
+  }
+}
+
+.glow-pulse {
+  animation: glowPulse 1.5s ease-in-out infinite;
+  @apply bg-white;
+}
