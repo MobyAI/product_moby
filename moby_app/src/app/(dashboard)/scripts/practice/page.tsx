@@ -959,6 +959,50 @@ function RehearsalRoomContent() {
 		router.push('/scripts/list')
 	}
 
+
+	
+	// Helper function to parse text and convert [word] to button elements
+	const parseTextWithButtons = (text) => {
+		const parts = [];
+		const regex = /\[([^\]]+)\]/g;
+		let lastIndex = 0;
+		let match;
+
+		while ((match = regex.exec(text)) !== null) {
+			// Add text before the match
+			if (match.index > lastIndex) {
+				parts.push(text.slice(lastIndex, match.index));
+			}
+			
+			parts.push(' ');
+			// Add the button for the bracketed word (keeping the brackets)
+			const buttonText = match[1];
+			parts.push(
+				<button
+					key={`btn-${match.index}-${buttonText}`}
+					onClick={(e) => {
+						e.stopPropagation();
+					}}
+					className="inline-flex items-center px-2 py-0 mx-1 rounded-md"
+					style={{ background: '#c0b4d4', color: '#000' }}
+				>
+					{buttonText}
+				</button>
+			);
+			
+			lastIndex = regex.lastIndex;
+		}
+		
+		// Add remaining text after the last match
+		if (lastIndex < text.length) {
+			parts.push(text.slice(lastIndex));
+		}
+		parts.push(' ');
+		
+		return parts.length > 0 ? parts : [text];
+	};
+
+
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const renderScriptElement = (element: ScriptElement, index: number) => {
 		const isCurrent = element.index === currentIndex;
@@ -975,7 +1019,7 @@ function RehearsalRoomContent() {
 						}`}
 				>
 					<h2 className="text-xl font-bold uppercase tracking-wider text-gray-800">
-						{element.text}
+						{parseTextWithButtons(element.text)}
 					</h2>
 					{isCurrent && isPlaying && (
 						<div className="text-xs text-blue-600 mt-2 animate-pulse font-medium">
@@ -996,7 +1040,9 @@ function RehearsalRoomContent() {
 					className={`text-center mb-6 cursor-pointer transition-all duration-200 hover:bg-gray-50 rounded-lg p-4 ${isCurrent ? "bg-blue-50 shadow-md border border-blue-200" : ""
 						}`}
 				>
-					<p className="italic text-gray-600 text-sm">({element.text})</p>
+					<p className="italic text-gray-600 text-sm">
+						({parseTextWithButtons(element.text)})
+					</p>
 					{isCurrent && isPlaying && (
 						<div className="text-xs text-blue-600 mt-1 animate-pulse font-medium">
 							● ACTIVE DIRECTION
@@ -1007,117 +1053,249 @@ function RehearsalRoomContent() {
 		}
 
 		// Dialogue lines
+		// if (element.type === "line") {
+		// 	return (
+		// 		<div
+		// 			key={element.index}
+		// 			ref={isCurrent ? currentLineRef : null}
+		// 			onClick={() => handleLineClick(element.index)}
+		// 			className={`mb-6 cursor-pointer transition-all duration-200 rounded-lg p-6 relative ${isCurrent
+		// 				? "bg-blue-50 shadow-md border-blue-200"
+		// 				: "hover:bg-gray-50 border-gray-200 hover:shadow-sm"
+		// 				}`}
+		// 		>
+		// 			{/* Character name and status */}
+		// 			<div className="flex items-center justify-between mb-4">
+		// 				<div className="flex items-center gap-3">
+		// 					<h3
+		// 						className={`font-bold uppercase tracking-wide text-sm ${element.role === "user" ? "text-blue-700" : "text-purple-700"
+		// 							}`}
+		// 					>
+		// 						{element.character ||
+		// 							(element.role === "user" ? "YOU" : "SCENE PARTNER")}
+		// 					</h3>
+		// 					{isCurrent && isPlaying && (
+		// 						<span className="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full animate-pulse font-medium">
+		// 							ACTIVE
+		// 						</span>
+		// 					)}
+		// 					{isCompleted && (
+		// 						<span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">
+		// 							✓ COMPLETE
+		// 						</span>
+		// 					)}
+		// 				</div>
+		// 			</div>
+
+		// 			{/* Dialogue text */}
+		// 			{editingLineIndex === element.index ? (
+		// 				<EditableLine
+		// 					item={element}
+		// 					onUpdate={onUpdateLine}
+		// 					onClose={() => setEditingLineIndex(null)}
+		// 					hydrationStatus={ttsHydrationStatus[element.index]}
+		// 				/>
+		// 			) : (
+		// 				<div className="text-gray-800 leading-relaxed">
+		// 					{/* Check if OptimizedLineRenderer can handle the parsed content, 
+		// 						otherwise render the parsed text directly */}
+		// 					{element.text.includes('[') && element.text.includes(']') ? (
+		// 						<div className="leading-relaxed">
+		// 							{parseTextWithButtons(element.text)}
+		// 						</div>
+		// 					) : (
+		// 						<OptimizedLineRenderer
+		// 							element={element}
+		// 							isCurrent={isCurrent}
+		// 							isWaitingForUser={isWaitingForUser}
+		// 							spanRefMap={wordRefs.current}
+		// 							matchedCount={lineStates.get(element.index)?.matched ?? 0}
+		// 							isCompleted={lineStates.get(element.index)?.completed ?? false}
+		// 						/>
+		// 					)}
+		// 				</div>
+		// 			)}
+
+		// 			{/* Edit button */}
+		// 			{isCurrent &&
+		// 				!isPlaying &&
+		// 				!editingLineIndex &&
+		// 				ttsHydrationStatus[element.index] === 'ready' &&
+		// 				(
+		// 					<div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[100]">
+		// 						<button
+		// 							onClick={(e) => {
+		// 								e.stopPropagation();
+		// 								setEditingLineIndex(element.index);
+		// 							}}
+		// 							className="cursor-pointer text-sm text-white bg-gray-900 px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all"
+		// 							title="Edit Line"
+		// 						>
+		// 							<Pencil
+		// 								className="w-4 h-4"
+		// 								strokeWidth={2}
+		// 							/>
+		// 						</button>
+		// 						<DelaySelector
+		// 							lineIndex={element.index}
+		// 							currentDelay={element.customDelay || 0}
+		// 							onDelayChange={handleDelayChange}
+		// 							scriptId={scriptID}
+		// 							userId={userID}
+		// 							script={script}
+		// 							setScript={setScript}
+		// 							updateScript={updateScript}
+		// 						/>
+		// 					</div>
+		// 				)
+		// 			}
+
+		// 			{/* Countdown */}
+		// 			{showCountdown && countdownDuration > 0 && isCurrent && (
+		// 				<div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[999]">
+		// 					<CountdownTimer
+		// 						duration={countdownDuration}
+		// 						onComplete={() => setShowCountdown(false)}
+		// 					/>
+		// 				</div>
+		// 			)}
+
+		// 			{/* Loading indicator */}
+		// 			{['pending', 'updating'].includes(ttsHydrationStatus[element.index]) && (
+		// 				<div className="absolute top-4 right-4 w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+		// 			)}
+
+		// 			{/* Failed indicator */}
+		// 			{ttsHydrationStatus[element.index] === 'failed' && (
+		// 				<div className="absolute top-4 right-4 text-sm">
+		// 					❌
+		// 				</div>
+		// 			)}
+		// 		</div>
+		// 	);
+		// }
+
 		if (element.type === "line") {
-			return (
-				<div
-					key={element.index}
-					ref={isCurrent ? currentLineRef : null}
-					onClick={() => handleLineClick(element.index)}
-					className={`mb-6 cursor-pointer transition-all duration-200 rounded-lg p-6 relative ${isCurrent
-						? "bg-blue-50 shadow-md border-blue-200"
-						: "hover:bg-gray-50 border-gray-200 hover:shadow-sm"
-						}`}
-				>
-					{/* Character name and status */}
-					<div className="flex items-center justify-between mb-4">
-						<div className="flex items-center gap-3">
-							<h3
-								className={`font-bold uppercase tracking-wide text-sm ${element.role === "user" ? "text-blue-700" : "text-purple-700"
-									}`}
-							>
-								{element.character ||
-									(element.role === "user" ? "YOU" : "SCENE PARTNER")}
-							</h3>
-							{isCurrent && isPlaying && (
-								<span className="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full animate-pulse font-medium">
-									ACTIVE
-								</span>
-							)}
-							{isCompleted && (
-								<span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">
-									✓ COMPLETE
-								</span>
-							)}
-						</div>
+		return (
+			<div
+				key={element.index}
+				ref={isCurrent ? currentLineRef : null}
+				onClick={() => handleLineClick(element.index)}
+				className={`mb-6 cursor-pointer transition-all duration-200 rounded-lg p-6 relative ${isCurrent
+					? "bg-blue-50 shadow-md border-blue-200"
+					: "hover:bg-gray-50 border-gray-200 hover:shadow-sm"
+					}`}
+			>
+				{/* Character name and status */}
+				<div className="flex items-center justify-between mb-4">
+					<div className="flex items-center gap-3">
+						<h3
+							className={`font-bold uppercase tracking-wide text-sm ${element.role === "user" ? "text-blue-700" : "text-purple-700"
+								}`}
+						>
+							{element.character ||
+								(element.role === "user" ? "YOU" : "SCENE PARTNER")}
+						</h3>
+						{isCurrent && isPlaying && (
+							<span className="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full animate-pulse font-medium">
+								ACTIVE
+							</span>
+						)}
+						{isCompleted && (
+							<span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">
+								✓ COMPLETE
+							</span>
+						)}
 					</div>
+				</div>
 
-					{/* Dialogue text */}
-					{editingLineIndex === element.index ? (
-						<EditableLine
-							item={element}
-							onUpdate={onUpdateLine}
-							onClose={() => setEditingLineIndex(null)}
-							hydrationStatus={ttsHydrationStatus[element.index]}
-						/>
-					) : (
-						<OptimizedLineRenderer
-							element={element}
-							isCurrent={isCurrent}
-							isWaitingForUser={isWaitingForUser}
-							spanRefMap={wordRefs.current}
-							matchedCount={lineStates.get(element.index)?.matched ?? 0}
-							isCompleted={lineStates.get(element.index)?.completed ?? false}
-						/>
-					)}
-
-					{/* Edit button */}
-					{isCurrent &&
-						!isPlaying &&
-						!editingLineIndex &&
-						ttsHydrationStatus[element.index] === 'ready' &&
-						(
-							<div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[100]">
-								<button
-									onClick={(e) => {
-										e.stopPropagation();
-										setEditingLineIndex(element.index);
-									}}
-									className="cursor-pointer text-sm text-white bg-gray-900 px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all"
-									title="Edit Line"
-								>
-									<Pencil
-										className="w-4 h-4"
-										strokeWidth={2}
-									/>
-								</button>
-								<DelaySelector
-									lineIndex={element.index}
-									currentDelay={element.customDelay || 0}
-									onDelayChange={handleDelayChange}
-									scriptId={scriptID}
-									userId={userID}
-									script={script}
-									setScript={setScript}
-									updateScript={updateScript}
-								/>
+				{/* Dialogue text */}
+				{editingLineIndex === element.index ? (
+					<EditableLine
+						item={element}
+						onUpdate={onUpdateLine}
+						onClose={() => setEditingLineIndex(null)}
+						hydrationStatus={ttsHydrationStatus[element.index]}
+					/>
+				) : (
+					<div className="text-gray-800 leading-relaxed">
+						{/* Check if OptimizedLineRenderer can handle the parsed content, 
+						    otherwise render the parsed text directly */}
+						{element.text.includes('[') && element.text.includes(']') ? (
+							<div className="leading-relaxed">
+								{parseTextWithButtons(element.text)}
 							</div>
-						)
-					}
+						) : (
+							<OptimizedLineRenderer
+								element={element}
+								isCurrent={isCurrent}
+								isWaitingForUser={isWaitingForUser}
+								spanRefMap={wordRefs.current}
+								matchedCount={lineStates.get(element.index)?.matched ?? 0}
+								isCompleted={lineStates.get(element.index)?.completed ?? false}
+							/>
+						)}
+					</div>
+				)}
 
-					{/* Edit button */}
-					{showCountdown && countdownDuration > 0 && isCurrent && (
-						<div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[999]">
-							<CountdownTimer
-								duration={countdownDuration}
-								onComplete={() => setShowCountdown(false)}
+				{/* Edit button */}
+				{isCurrent &&
+					!isPlaying &&
+					!editingLineIndex &&
+					ttsHydrationStatus[element.index] === 'ready' &&
+					(
+						<div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[100]">
+							<button
+								onClick={(e) => {
+									e.stopPropagation();
+									setEditingLineIndex(element.index);
+								}}
+								className="cursor-pointer text-sm text-white bg-gray-900 px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all"
+								title="Edit Line"
+							>
+								<Pencil
+									className="w-4 h-4"
+									strokeWidth={2}
+								/>
+							</button>
+							<DelaySelector
+								lineIndex={element.index}
+								currentDelay={element.customDelay || 0}
+								onDelayChange={handleDelayChange}
+								scriptId={scriptID}
+								userId={userID}
+								script={script}
+								setScript={setScript}
+								updateScript={updateScript}
 							/>
 						</div>
-					)}
+					)
+				}
 
-					{/* Loading indicator */}
-					{['pending', 'updating'].includes(ttsHydrationStatus[element.index]) && (
-						<div className="absolute top-4 right-4 w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-					)}
+				{/* Countdown */}
+				{showCountdown && countdownDuration > 0 && isCurrent && (
+					<div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[999]">
+						<CountdownTimer
+							duration={countdownDuration}
+							onComplete={() => setShowCountdown(false)}
+						/>
+					</div>
+				)}
 
-					{/* Failed indicator */}
-					{ttsHydrationStatus[element.index] === 'failed' && (
-						<div className="absolute top-4 right-4 text-sm">
-							❌
-						</div>
-					)}
-				</div>
-			);
-		}
+				{/* Loading indicator */}
+				{['pending', 'updating'].includes(ttsHydrationStatus[element.index]) && (
+					<div className="absolute top-4 right-4 w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+				)}
+
+				{/* Failed indicator */}
+				{ttsHydrationStatus[element.index] === 'failed' && (
+					<div className="absolute top-4 right-4 text-sm">
+						❌
+					</div>
+				)}
+			</div>
+		);
+	}
 
 		return null;
 	};
