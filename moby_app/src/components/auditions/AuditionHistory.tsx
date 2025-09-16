@@ -271,7 +271,6 @@ export default function AuditionHistory() {
         }));
     };
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleSubmit = async () => {
         if (isEditing) {
             await updateAudition(editingId as string, formData);

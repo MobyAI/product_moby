@@ -453,54 +453,54 @@ function RehearsalRoomContent() {
 
 		try {
 			const updatedScript = (script?.map((el) =>
-			el.index === updateLine.index ? updateLine : el
+				el.index === updateLine.index ? updateLine : el
 			)) ?? [];
 
 			setScript(updatedScript);
 			scriptRef.current = updatedScript;
 
 			if (userID && scriptID) {
-			const result = await hydrateLine({
-				line: updateLine,
-				script: updatedScript,
-				userID,
-				scriptID,
-				updateTTSHydrationStatus,
-				setStorageError,
-			});
+				const result = await hydrateLine({
+					line: updateLine,
+					script: updatedScript,
+					userID,
+					scriptID,
+					updateTTSHydrationStatus,
+					setStorageError,
+				});
 
-			const finalUpdatedScript = updatedScript.map((el) =>
-				el.index === result.index
-				// keep the normalized text we just saved
-				? { ...el, ...result, text: updateLine.text }
-				: el
-			);
+				const finalUpdatedScript = updatedScript.map((el) =>
+					el.index === result.index
+						// keep the normalized text we just saved
+						? { ...el, ...result, text: updateLine.text }
+						: el
+				);
 
-			setScript(finalUpdatedScript);
-			scriptRef.current = finalUpdatedScript;
+				setScript(finalUpdatedScript);
+				scriptRef.current = finalUpdatedScript;
 
-			try {
-				await updateScript(scriptID, finalUpdatedScript);
-				console.log(`✅ Updated Firestore with updated line ${updateLine.index}`);
-			} catch {
-				console.error('❌ Failed to update Firestore');
-			}
+				try {
+					await updateScript(scriptID, finalUpdatedScript);
+					console.log(`✅ Updated Firestore with updated line ${updateLine.index}`);
+				} catch {
+					console.error('❌ Failed to update Firestore');
+				}
 
-			const cacheKey = `script-cache:${userID}:${scriptID}`;
-			try {
-				await set(cacheKey, finalUpdatedScript);
-				console.log(`💾 Script cached successfully in IndexedDB for line ${updateLine.index}`);
-			} catch (cacheError) {
-				console.warn('⚠️ Failed to update IndexedDB cache:', cacheError);
-			}
+				const cacheKey = `script-cache:${userID}:${scriptID}`;
+				try {
+					await set(cacheKey, finalUpdatedScript);
+					console.log(`💾 Script cached successfully in IndexedDB for line ${updateLine.index}`);
+				} catch (cacheError) {
+					console.warn('⚠️ Failed to update IndexedDB cache:', cacheError);
+				}
 
-			setLoadStage('✅ Line successfully updated!');
-			setIsUpdatingLine(false);
-			showToast({
-				header: "Line Updated!",
-				line1: `Line ${updateLine.index} was rehydrated successfully.`,
-				type: "success",
-			});
+				setLoadStage('✅ Line successfully updated!');
+				setIsUpdatingLine(false);
+				showToast({
+					header: "Line Updated!",
+					line1: `Line ${updateLine.index} was rehydrated successfully.`,
+					type: "success",
+				});
 			}
 		} catch (err) {
 			console.error(`❌ Failed to update line ${updateLine.index}:`, err);
@@ -991,22 +991,22 @@ function RehearsalRoomContent() {
 		while ((match = regex.exec(text)) !== null) {
 			// Add text before the match
 			if (match.index > lastIndex) {
-			parts.push(text.slice(lastIndex, match.index));
+				parts.push(text.slice(lastIndex, match.index));
 			}
 
 			// Add the button for the bracketed word
 			const buttonText = match[1];
 			parts.push(
-			<button
-				key={`btn-${match.index}-${buttonText}`}
-				onClick={(e) => {
-				e.stopPropagation();
-				}}
-				className="inline-flex items-center px-2 py-0 mx-0 rounded-sm"
-				style={{ background: '#b8b3d7', color: '#333333', fontWeight: '500' }}
-			>
-				{buttonText}
-			</button>
+				<button
+					key={`btn-${match.index}-${buttonText}`}
+					onClick={(e) => {
+						e.stopPropagation();
+					}}
+					className="inline-flex items-center px-2 py-0 mx-0 rounded-sm"
+					style={{ background: '#b8b3d7', color: '#333333', fontWeight: '500' }}
+				>
+					{buttonText}
+				</button>
 			);
 
 			lastIndex = regex.lastIndex;
@@ -1181,22 +1181,14 @@ function RehearsalRoomContent() {
 						/>
 					) : (
 						<div className="text-gray-800 leading-relaxed">
-							{/* Check if OptimizedLineRenderer can handle the parsed content, 
-								otherwise render the parsed text directly */}
-							{element.text.includes('[') && element.text.includes(']') ? (
-								<div className="leading-relaxed">
-									{parseTextWithButtons(element.text)}
-								</div>
-							) : (
-								<OptimizedLineRenderer
-									element={element}
-									isCurrent={isCurrent}
-									isWaitingForUser={isWaitingForUser}
-									spanRefMap={wordRefs.current}
-									matchedCount={lineStates.get(element.index)?.matched ?? 0}
-									isCompleted={lineStates.get(element.index)?.completed ?? false}
-								/>
-							)}
+							<OptimizedLineRenderer
+								element={element}
+								isCurrent={isCurrent}
+								isWaitingForUser={isWaitingForUser}
+								spanRefMap={wordRefs.current}
+								matchedCount={lineStates.get(element.index)?.matched ?? 0}
+								isCompleted={lineStates.get(element.index)?.completed ?? false}
+							/>
 						</div>
 					)}
 
@@ -1259,7 +1251,7 @@ function RehearsalRoomContent() {
 					)}
 				</div>
 			);
-		}	
+		}
 
 		return null;
 	};

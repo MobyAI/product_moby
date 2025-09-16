@@ -5,7 +5,7 @@ interface AuditionModalProps {
     onClose: () => void;
     onSubmit: () => void;
     auditionTypes?: {
-        [key: string] : { label: string, icon: JSX.Element}
+        [key: string]: { label: string, icon: JSX.Element }
     };
     initialData?: {
         date?: string;
@@ -42,7 +42,7 @@ interface AuditionModalProps {
     handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
 }
 
-const AuditionModal:React.FC<AuditionModalProps> = ({
+const AuditionModal: React.FC<AuditionModalProps> = ({
     isOpen,
     onClose,
     onSubmit,
@@ -81,6 +81,8 @@ const AuditionModal:React.FC<AuditionModalProps> = ({
                 status: ''
             });
         }
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleClose = () => {
@@ -114,8 +116,8 @@ const AuditionModal:React.FC<AuditionModalProps> = ({
                             {isEditing ? 'Edit Audition' : 'Add New Audition'}
                         </h2>
                         <p className="text-gray-600 mt-1">
-                            {isEditing 
-                                ? 'Update the details for this audition' 
+                            {isEditing
+                                ? 'Update the details for this audition'
                                 : 'Fill in the details for your upcoming audition'
                             }
                         </p>
