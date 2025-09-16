@@ -13,7 +13,7 @@ interface OptimizedLineRendererProps {
 const BASE = "word text-gray-700 transition-all duration-100";
 const MATCHED = "matched";
 const WAITING = "waiting";
-const AUDIO_TAG = "audio-tag text-white";
+const AUDIO_TAG = "audio-tag";
 
 interface ParsedSegment {
     type: 'word' | 'audio-tag';
@@ -58,6 +58,31 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
         return parsed;
     }, [element.text]);
 
+    // Helper function to parse text for non-user lines (without word indexing)
+    const parseNonUserText = React.useMemo(() => {
+        const parsed: { type: 'text' | 'audio-tag'; content: string }[] = [];
+        const regex = /(\[[^\]]+\])|([^[\]]+)/g;
+        let match;
+
+        while ((match = regex.exec(element.text)) !== null) {
+            if (match[1]) {
+                // This is an audio tag [something]
+                parsed.push({
+                    type: 'audio-tag',
+                    content: match[1]
+                });
+            } else if (match[2]) {
+                // This is regular text
+                parsed.push({
+                    type: 'text',
+                    content: match[2]
+                });
+            }
+        }
+
+        return parsed;
+    }, [element.text]);
+
     // Collect spans when becoming current (only word spans, not audio tags)
     useEffect(() => {
         if (!isCurrent || !containerRef.current) return;
@@ -74,7 +99,37 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
         return (
             <div className="pl-4 border-l-3 border-gray-300">
                 <p className="text-base leading-relaxed text-gray-700 px-[2px] py-[5px]">
-                    {element.text}
+                    {parseNonUserText.map((segment, i) => {
+                        if (segment.type === 'audio-tag') {
+                            // Render audio tags as buttons
+                            const buttonText = segment.content.slice(1, -1);
+                            return (
+                                <button
+                                    key={`btn-${element.index}-${i}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                    }}
+                                    className="inline-flex items-center px-2 py-0 mx-0 rounded-sm"
+                                    style={{
+                                        background: '#b8b3d7',
+                                        color: '#333333',
+                                        fontWeight: '500'
+                                    }}
+                                >
+                                    <span className={AUDIO_TAG}>
+                                        {buttonText}
+                                    </span>
+                                </button>
+                            );
+                        } else {
+                            // Render regular text
+                            return (
+                                <span key={`text-${i}`}>
+                                    {segment.content}
+                                </span>
+                            );
+                        }
+                    })}
                 </p>
             </div>
         );

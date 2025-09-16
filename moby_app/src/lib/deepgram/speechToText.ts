@@ -697,7 +697,7 @@ export function useDeepgramSTT({
 
                     console.log('Processing is: ', fullSpokenLine);
                     if (shouldProcessTranscript(fullSpokenLine)) {
-                        await processTranscript(fullSpokenLine, 'is_final');
+                        await handleKeywordMatch(fullSpokenLine);
                     }
                 }
 
