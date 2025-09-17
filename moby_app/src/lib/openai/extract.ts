@@ -1,6 +1,5 @@
 import 'server-only';
 import { OpenAI } from 'openai';
-import { parseWithGPT } from './parse';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -69,23 +68,3 @@ Example format:
 
     return response.choices[0]?.message?.content?.trim() ?? '';
 }
-
-// export async function extractAndParseScript(base64Images: string[]) {
-//     // Step 1: Extract text from all images
-//     const extractedTexts = await Promise.all(
-//         base64Images.map((image, index) =>
-//             extractScriptFromImage(image)
-//         )
-//     );
-
-//     // Step 2: Combine all extracted text
-//     const fullScriptText = extractedTexts.join('\n\n');
-
-//     // Step 3: Parse the combined text using your existing parser
-//     const parsedScript = await parseWithGPT(fullScriptText);
-
-//     return {
-//         rawText: fullScriptText,
-//         parsed: parsedScript
-//     };
-// }
