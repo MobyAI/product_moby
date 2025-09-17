@@ -5,6 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { extractScriptText } from '@/lib/api/parse/extract';
 import { extractRolesFromText } from '@/lib/api/parse/roles';
 import { parseScriptFromText } from '@/lib/api/parse/parse';
+import { extractTextFromPDFimg } from '@/lib/extract/image';
 import { ScriptElement } from '@/types/script';
 import { getAllVoiceSamples } from '@/lib/firebase/client/tts';
 import { ConfirmModal } from "@/components/ui";
@@ -20,9 +21,6 @@ interface ScriptUploadModalProps {
 }
 
 interface ExtractedTextResult {
-    parseId: string;
-    name: string;
-    ext?: string;
     text: string;
 }
 
@@ -257,6 +255,34 @@ export default function ScriptUploadModal({
             try {
                 textResult = await extractScriptText(file);
 
+                // Check if text extraction was successful and has enough unique words
+                const minUniqueWords = 50;
+                let uniqueWordCount = 0;
+
+                if (textResult && textResult.text) {
+                    // Count unique words (basic word extraction)
+                    const words = textResult.text.toLowerCase()
+                        .match(/\b[a-z]+\b/g) || [];
+                    const uniqueWords = new Set(words);
+                    uniqueWordCount = uniqueWords.size;
+                }
+
+                if ((uniqueWordCount < minUniqueWords) && (file.type === 'application/pdf' || file.name.endsWith('.pdf'))) {
+                    setProcessingStage({ message: 'Image detected! This may take longer than normal...', isComplete: false });
+
+                    // Use the PDF extraction with GPT Vision
+                    const extractedText = await extractTextFromPDFimg(file);
+
+                    textResult = {
+                        text: extractedText.text
+                    };
+
+                    // Only set characters if it's a valid array with items
+                    if (Array.isArray(extractedText.characters) && extractedText.characters.length > 0) {
+                        setExtractedRoles(extractedText.characters);
+                    }
+                }
+
                 if (!textResult || !textResult.text || textResult.text.trim().length === 0) {
                     // Set error state for empty text
                     setProcessingError({
@@ -295,10 +321,29 @@ export default function ScriptUploadModal({
             setProcessingStage({ message: 'Identifying characters...', isComplete: false });
             let rolesResult;
 
-            try {
-                rolesResult = await extractRolesFromText(textResult.text);
+            if (!extractedRoles || extractedRoles.length === 0) {
+                try {
+                    rolesResult = await extractRolesFromText(textResult.text);
 
-                if (!rolesResult || rolesResult.length === 0) {
+                    if (!rolesResult || rolesResult.length === 0) {
+                        setProcessingError({
+                            hasError: true,
+                            stage: 'character',
+                            message: 'Failed to identify characters'
+                        });
+                        setProcessingStage({
+                            message: 'Failed to identify characters',
+                            isComplete: false,
+                        });
+                        return;
+                    }
+
+                    setExtractedRoles(rolesResult);
+                    setCurrentStage(2); // Move to name input
+
+                } catch (error) {
+                    console.error('Character extraction failed:', error);
+
                     setProcessingError({
                         hasError: true,
                         stage: 'character',
@@ -310,24 +355,48 @@ export default function ScriptUploadModal({
                     });
                     return;
                 }
-
-                setExtractedRoles(rolesResult);
-                setCurrentStage(2); // Move to name input
-
-            } catch (error) {
-                console.error('Character extraction failed:', error);
-
-                setProcessingError({
-                    hasError: true,
-                    stage: 'character',
-                    message: 'Failed to identify characters'
-                });
-                setProcessingStage({
-                    message: 'Failed to identify characters',
-                    isComplete: false,
-                });
-                return;
             }
+
+            // Move to next stage and update processing message
+            setProcessingStage({
+                message: 'Characters identified',
+                isComplete: true
+            });
+            setCurrentStage(2);
+
+            // try {
+            //     rolesResult = await extractRolesFromText(textResult.text);
+
+            //     if (!rolesResult || rolesResult.length === 0) {
+            //         setProcessingError({
+            //             hasError: true,
+            //             stage: 'character',
+            //             message: 'Failed to identify characters'
+            //         });
+            //         setProcessingStage({
+            //             message: 'Failed to identify characters',
+            //             isComplete: false,
+            //         });
+            //         return;
+            //     }
+
+            //     setExtractedRoles(rolesResult);
+            //     setCurrentStage(2); // Move to name input
+
+            // } catch (error) {
+            //     console.error('Character extraction failed:', error);
+
+            //     setProcessingError({
+            //         hasError: true,
+            //         stage: 'character',
+            //         message: 'Failed to identify characters'
+            //     });
+            //     setProcessingStage({
+            //         message: 'Failed to identify characters',
+            //         isComplete: false,
+            //     });
+            //     return;
+            // }
 
             // Stage 3: Start parsing in background
             setIsParsingInBackground(true);
@@ -368,7 +437,6 @@ export default function ScriptUploadModal({
                 setIsParsingInBackground(false);
                 return;
             }
-
         } catch (error) {
             console.error('Processing error:', error);
 
@@ -1147,7 +1215,7 @@ const RoleVoiceAssignment = ({
                                 </button>
                             </div>
                         </div>
-                ))}
+                    ))}
             </div>
         </div>
     );

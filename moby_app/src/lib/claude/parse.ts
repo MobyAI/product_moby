@@ -1,4 +1,4 @@
-import 'server-only'
+import 'server-only';
 import Anthropic from '@anthropic-ai/sdk';
 
 const anthropic = new Anthropic({

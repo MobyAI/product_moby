@@ -1,4 +1,4 @@
-import 'server-only'
+import 'server-only';
 import { OpenAI } from 'openai';
 
 const openai = new OpenAI({
