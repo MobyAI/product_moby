@@ -68,6 +68,7 @@ export default function AddAuditionPage() {
         }
 
         setIsSubmitting(true);
+        console.log('Add audition page detected!');
 
         try {
             await addAudition(formData);

@@ -12,15 +12,15 @@ import {
     User,
     Filter,
     Search,
-    X
+    X,
+    Plus,
 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { AuditionData, ProjectTypeFilter, StatusFilter, AuditionsData } from "@/types/audition";
 import AuditionCounts from "./AuditionCounts";
-import AddAuditionButton from "@/app/auditions/add/page";
 import { addAudition, getAllAuditions, updateAudition } from "@/lib/firebase/client/auditions";
 import { toBasicError } from "@/types/error";
-import { LoadingScreen } from "@/components/ui";
+import { LoadingScreen, Button } from "@/components/ui";
 import AuditionModal from "./AuditionModal";
 import { flushSync } from "react-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -68,14 +68,15 @@ export default function AuditionHistory() {
 
     // TanStack Query for data fetching
     const queryClient = useQueryClient();
-    const { 
+    const {
         data: auditionsData = [],
         isLoading: loading,
         error,
-        refetch: loadAuditions
+        // refetch: loadAuditions
     } = useQuery({
         queryKey: ['auditions'],
         queryFn: getAllAuditions,
+        staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     });
 
     useEffect(() => {
@@ -105,6 +106,7 @@ export default function AuditionHistory() {
     //     console.log("Refreshing auditions data...");
     //     await loadAuditions();
     // };
+
     const handleRefresh = useCallback(async () => {
         console.log("Refreshing auditions data...");
         // await loadAuditions();
@@ -265,6 +267,8 @@ export default function AuditionHistory() {
         setIsModalOpen(false);
         document.body.style.overflow = 'auto';
         resetForm();
+        setIsEditing(false);
+        setEditingId(null);
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -279,23 +283,21 @@ export default function AuditionHistory() {
         setIsSubmitting(true);
         try {
             if (isEditing && editingId) {
+                console.log('isEditing is TRUE');
                 await updateAudition(editingId, formData);
             } else {
                 if (!formData.projectTitle || !formData.auditionRole || !formData.auditionType || !formData.date) {
                     alert('Please fill in all required fields.');
-                    setIsSubmitting(false); // Don't forget to reset this
+                    setIsSubmitting(false);
                     return;
                 }
-                
+
                 await addAudition(formData);
             }
-            
-            // Fetch updated data
-            await handleRefresh();
-            
+
             // Close modal after everything succeeds
+            await handleRefresh();
             closeModal();
-            
         } catch (error) {
             console.error('Error saving audition:', error);
             alert('Error saving audition. Please try again.');
@@ -316,7 +318,14 @@ export default function AuditionHistory() {
     return (
         <div className="flex flex-col h-full">
             <div className="flex justify-end items-center pb-3">
-                <AddAuditionButton />
+                <Button
+                    onClick={() => setIsModalOpen(true)}
+                    variant="primary"
+                    size="md"
+                    icon={Plus}
+                >
+                    Add Script
+                </Button>
             </div>
             <div className="flex justify-center m-2">
                 <AuditionCounts setFilterStatus={setFilterStatus} />

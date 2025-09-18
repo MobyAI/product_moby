@@ -31,39 +31,18 @@ import { DashboardLayout, Button } from "@/components/ui";
 import { UserProfile, ethnicities } from "@/types/profile";
 import HeadshotUploadModal from "./headshotUploadModal";
 import ResumeUploadModal from "./resumeUploadModal";
-
-type HeadshotData = {
-    id: string;
-    originalUrl: string;
-    thumbnailUrl: string;
-    fileName: string;
-    fileSize: number;
-    uploadedAt: Timestamp | FieldValue;
-};
-
-type ResumeData = {
-    id: string;
-    url: string;
-    fileName: string;
-    fileSize: number;
-    mimeType: string;
-    uploadedAt: Timestamp | FieldValue;
-};
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const ethnicityLabels = Object.fromEntries(
     ethnicities.map(eth => [eth.value, eth.label])
 );
 
 export default function ProfilePage() {
-    const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState<'headshot' | 'resume' | null>(null);
     const [saving, setSaving] = useState(false);
-    const [profile, setProfile] = useState<UserProfile | null>(null);
     const [editMode, setEditMode] = useState(false);
     const [editedProfile, setEditedProfile] = useState<UserProfile | null>(null);
-    const [headshots, setHeadshots] = useState<HeadshotData[]>([]);
     const [showHeadshotUploadModal, setShowHeadshotUploadModal] = useState(false);
-    const [resume, setResume] = useState<ResumeData | null>(null);
     const [showResumeUploadModal, setShowResumeUploadModal] = useState(false);
     const [selectedHeadshotIndex, setSelectedHeadshotIndex] = useState(0);
     const [error, setError] = useState<string | null>(null);
@@ -72,48 +51,54 @@ export default function ProfilePage() {
     const { uid, photoURL } = useAuthUser();
     const userID = uid;
     const userPhotoURL = photoURL;
+    const queryClient = useQueryClient();
 
-    useEffect(() => {
-        if (!userID) return;
-        loadUserData();
-    }, [userID]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    async function loadUserData(selectLatestHeadshot = false) {
-        try {
-            if (!userID) {
-                console.error('No user ID available');
-                router.push('/login');
-                return;
+    // Query for profile data
+    const {
+        data: profile = null,
+        isLoading: profileLoading
+    } = useQuery({
+        queryKey: ['profile', userID],
+        queryFn: async () => {
+            if (!userID) throw new Error('No user ID');
+            const result = await getUser(userID);
+            if (result.success && result.data) {
+                setEditedProfile(result.data);
+                return result.data;
             }
+            throw new Error(result.error || 'Failed to load profile');
+        },
+        enabled: !!userID
+    });
 
-            const userResult = await getUser(userID);
-            if (userResult.success && userResult.data) {
-                setProfile(userResult.data);
-                setEditedProfile(userResult.data);
-            } else {
-                setError(userResult.error || 'Failed to load profile');
-            }
+    const {
+        data: headshots = [],
+        isLoading: headshotsLoading
+    } = useQuery({
+        queryKey: ['headshots', userID],
+        queryFn: async () => {
+            if (!userID) return [];
+            const result = await getHeadshots(userID);
+            return result.success ? (result.data || []) : [];
+        },
+        enabled: !!userID
+    });
 
-            const headshotsResult = await getHeadshots(userID);
-            if (headshotsResult.success) {
-                const newHeadshots = headshotsResult.data || [];
-                setHeadshots(newHeadshots);
-                if (selectLatestHeadshot && newHeadshots.length > 0) {
-                    setSelectedHeadshotIndex(newHeadshots.length - 1);
-                }
-            }
+    const {
+        data: resume = null,
+        isLoading: resumeLoading
+    } = useQuery({
+        queryKey: ['resume', userID],
+        queryFn: async () => {
+            if (!userID) return null;
+            const result = await getResume(userID);
+            return result.success ? result.data : null;
+        },
+        enabled: !!userID
+    });
 
-            const resumeResult = await getResume(userID);
-            if (resumeResult.success) {
-                setResume(resumeResult.data);
-            }
-        } catch (error) {
-            console.error('Error loading user data:', error);
-            setError('Failed to load profile data');
-        } finally {
-            setLoading(false);
-        }
-    }
+    // Combined loading state
+    const loading = profileLoading || headshotsLoading || resumeLoading;
 
     async function handleSave() {
         if (!editedProfile) return;
@@ -123,7 +108,7 @@ export default function ProfilePage() {
         try {
             const result = await updateUserProfile(editedProfile);
             if (result.success) {
-                setProfile(editedProfile);
+                await queryClient.invalidateQueries({ queryKey: ['profile', userID] });
                 setEditMode(false);
                 router.refresh();
             } else {
@@ -150,7 +135,7 @@ export default function ProfilePage() {
             if (selectedHeadshotIndex >= headshots.length - 1) {
                 setSelectedHeadshotIndex(Math.max(0, headshots.length - 2));
             }
-            await loadUserData();
+            await queryClient.invalidateQueries({ queryKey: ['headshots', userID] });
         } catch (error) {
             console.error('Delete headshot error:', error);
             setError('Failed to delete headshot');
@@ -164,7 +149,7 @@ export default function ProfilePage() {
         setDeleting('resume');
         try {
             await deleteResume(resume?.id || '', auth.currentUser?.uid || '');
-            await loadUserData();
+            await queryClient.invalidateQueries({ queryKey: ['resume', userID] });
         } catch (error) {
             console.error('Delete resume error:', error);
             setError('Failed to delete resume');
@@ -181,6 +166,18 @@ export default function ProfilePage() {
             setError("Failed to update profile picture.");
         }
     }
+
+    const handleHeadshotUploadSuccess = async () => {
+        setShowHeadshotUploadModal(false);
+        // Refetch headshots and select the latest
+        await queryClient.invalidateQueries({ queryKey: ['headshots', userID] });
+        setSelectedHeadshotIndex(headshots.length); // Will be the new last index
+    };
+
+    const handleResumeUploadSuccess = async () => {
+        setShowResumeUploadModal(false);
+        await queryClient.invalidateQueries({ queryKey: ['resume', userID] });
+    };
 
     if (loading) {
         return (
@@ -568,19 +565,13 @@ export default function ProfilePage() {
             <HeadshotUploadModal
                 isOpen={showHeadshotUploadModal}
                 onClose={() => setShowHeadshotUploadModal(false)}
-                onSuccess={() => {
-                    setShowHeadshotUploadModal(false);
-                    loadUserData(true);
-                }}
+                onSuccess={handleHeadshotUploadSuccess}
             />
 
             <ResumeUploadModal
                 isOpen={showResumeUploadModal}
                 onClose={() => setShowResumeUploadModal(false)}
-                onSuccess={() => {
-                    setShowResumeUploadModal(false);
-                    loadUserData();
-                }}
+                onSuccess={handleResumeUploadSuccess}
             />
         </DashboardLayout>
     );
