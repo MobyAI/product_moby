@@ -38,8 +38,6 @@ export default function AuditionHistory() {
     const [filterStatus, setFilterStatus] = useState<StatusFilter>('all');
     const [showTypeFilter, setShowTypeFilter] = useState<boolean>(false);
     const [showStatusFilter, setShowStatusFilter] = useState<boolean>(false);
-    // const [loading, setLoading] = useState<boolean>(true);
-    // const [auditionsData, setAuditionsData] = useState<AuditionsData[]>([]);
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [showSearch, setShowSearch] = useState(false);
 

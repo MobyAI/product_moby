@@ -16,10 +16,6 @@ function ScriptsListContent() {
     const router = useRouter();
 
     // List page setup
-    // const [loading, setLoading] = useState(false);
-    // const [hasFetched, setHasFetched] = useState(false);
-    // const [error, setError] = useState<BasicError | null>(null);
-    // const [allScripts, setAllScripts] = useState<ScriptDocWithId[]>([]);
     const [isDeleting, setIsDeleting] = useState(false);
 
     // Script upload modal
@@ -96,30 +92,6 @@ function ScriptsListContent() {
     const handleRefresh = async () => {
         await queryClient.invalidateQueries({ queryKey: ['scripts', userID] });
     };
-
-    // const loadScripts = async () => {
-    //     setLoading(true);
-    //     setError(null);
-
-    //     try {
-    //         const scripts = await getAllScripts();
-    //         setAllScripts(scripts);
-    //     } catch (e: unknown) {
-    //         const err = toBasicError(e);
-    //         console.error("User scripts fetch failed:", err);
-    //         setError(err);
-    //         setAllScripts([]);
-    //     } finally {
-    //         setLoading(false);
-    //         setHasFetched(true);
-    //     }
-    // };
-
-    // useEffect(() => {
-    //     if (!userID) return;
-
-    //     loadScripts();
-    // }, [userID]);
 
     // Loading state
     if (loading) {

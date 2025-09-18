@@ -22,7 +22,6 @@ import {
     Flag,
     Trash2,
 } from "lucide-react";
-import { Timestamp, FieldValue } from "firebase/firestore";
 import { auth } from "@/lib/firebase/client/config/app";
 import { getUser, updateUserProfile } from "@/lib/firebase/client/user";
 import { deleteHeadshot, deleteResume, getHeadshots, getResume, setAuthPhotoURL } from "@/lib/firebase/client/media";
