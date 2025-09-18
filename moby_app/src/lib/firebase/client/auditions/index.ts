@@ -86,6 +86,7 @@ export async function getAuditionsByType(auditionType: AuditionDoc['auditionType
 
 export async function updateAudition(auditionID: string, updates: Partial<Omit<AuditionDoc, 'id' | 'ownerUid' | 'createdAt' | 'updatedAt'>>) {
     const { doc } = userAuditionsRefs();
+    console.log('what is update', updates)
     await updateDoc(doc(auditionID), {
         ...updates,
         updatedAt: serverTimestamp(),

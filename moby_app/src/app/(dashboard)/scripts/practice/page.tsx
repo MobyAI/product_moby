@@ -13,7 +13,7 @@ import EditableLine from "./editableLine";
 import { OptimizedLineRenderer } from "./lineRenderer";
 import { restoreSession, saveSession } from "./session";
 import { clear, set } from "idb-keyval";
-import LoadingScreen from "./LoadingScreen";
+import { LoadingScreen } from "@/components/ui";
 import {
 	Button,
 	MicCheckModal,
@@ -1270,9 +1270,11 @@ function RehearsalRoomContent() {
 			/>
 
 			{loading ? (
-				<LoadingScreen loadStage={loading}>
-					{loadStage}
-				</LoadingScreen>
+				<LoadingScreen
+					header="Practice Room"
+					message="Setting up your scene"
+					mode="dark"
+				/>
 			) : (
 				<div className="h-full flex relative bg-card-dark">
 

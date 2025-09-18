@@ -8,7 +8,7 @@ import type { ScriptDocWithId } from "@/types/script";
 import type { BasicError } from "@/types/error";
 import { toBasicError } from "@/types/error";
 import ScriptUploadModal from "./uploadModal";
-import { DashboardLayout, ConfirmModal, ScriptCard, Button } from "@/components/ui";
+import { DashboardLayout, ConfirmModal, ScriptCard, Button, LoadingScreen } from "@/components/ui";
 import UploadForm from "../upload/uploadFile";
 import { Plus, RotateCcw } from "lucide-react";
 
@@ -99,9 +99,11 @@ function ScriptsListContent() {
         <DashboardLayout maxWidth={75}>
             {/* Loading State */}
             {loading && (
-                <div className="flex-1 flex items-center justify-center">
-                    <p className="text-gray-600">Getting your saved scripts for you!</p>
-                </div>
+                <LoadingScreen
+                    header="Scripts"
+                    message="Grabbing your uploads"
+                    mode="light"
+                />
             )}
 
             {/* Error State */}

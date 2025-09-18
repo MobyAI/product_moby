@@ -134,7 +134,10 @@ const AuditionModal: React.FC<AuditionModalProps> = ({
                 </div>
 
                 {/* Form */}
-                <form onSubmit={() => onSubmit()}>
+                <form onSubmit={(e) => {
+                    e.preventDefault();
+                    onSubmit();
+                }}>
                     <div className="space-y-8">
                         {/* Row 1: Date and Project Title */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
