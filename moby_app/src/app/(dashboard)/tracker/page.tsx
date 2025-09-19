@@ -1,7 +1,10 @@
-"use client";
-
+import { Metadata } from 'next';
 import AuditionHistory from '@/components/auditions/AuditionHistory';
-// import AddAuditionButton from '@/app/auditions/add/page';
+
+export const metadata: Metadata = {
+    title: "Audition Tracker - Playr",
+    description: "Track and manage your audition history",
+};
 
 export default function TrackerPage() {
     return (
