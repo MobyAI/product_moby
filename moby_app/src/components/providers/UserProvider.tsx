@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase/client/config/app";
+import * as Sentry from "@sentry/nextjs";
 
 export interface AuthUser {
     uid: string;
@@ -52,6 +53,17 @@ export function UserProvider({
             // keep the server user to avoid a flash/incorrect redirect.
             const mapped = map(u);
             setUser(mapped ?? (initiallyAuthed ? value : null));
+
+            // Set Sentry user context whenever auth state changes
+            if (mapped) {
+                Sentry.setUser({
+                    id: mapped.uid,
+                    email: mapped.email,
+                    username: mapped.displayName || mapped.email,
+                });
+            } else {
+                Sentry.setUser(null); // Clear user on logout
+            }
         });
         return unsub;
     }, [initiallyAuthed, value]);
@@ -61,11 +73,11 @@ export function UserProvider({
         setUser((prev) => prev ?? value ?? null);
     }, [value]);
 
-    // If you want to redirect only in optional-auth areas:
-    useEffect(() => {
-        // Example: for optional-auth routes, if clientReady and no user, you might redirect
-        // For your protected /scripts subtree, server already redirected — no need here.
-    }, [clientReady, user, router]);
+    // // If you want to redirect only in optional-auth areas:
+    // useEffect(() => {
+    //     // Example: for optional-auth routes, if clientReady and no user, you might redirect
+    //     // For your protected /scripts subtree, server already redirected — no need here.
+    // }, [clientReady, user, router]);
 
     return (
         <UserContext.Provider value={{ user, clientReady, initiallyAuthed }}>

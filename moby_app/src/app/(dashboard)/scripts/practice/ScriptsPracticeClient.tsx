@@ -32,6 +32,7 @@ import {
     Pencil,
     ChevronDown
 } from "lucide-react";
+import * as Sentry from "@sentry/nextjs";
 
 // export default function RehearsalRoomPage() {
 function RehearsalRoomContent() {
@@ -160,6 +161,7 @@ function RehearsalRoomContent() {
                     });
                 } catch (e) {
                     console.warn("Model initialization failed, using fallback", e);
+                    Sentry.captureException(e);
                 } finally {
                     setDownloading(false);
                 }
@@ -195,6 +197,7 @@ function RehearsalRoomContent() {
                     }
                 } catch (e) {
                     console.error("Hydration failed", e);
+                    Sentry.captureException(e);
                 }
 
                 // 4) Restore session
@@ -239,6 +242,7 @@ function RehearsalRoomContent() {
             }
         } catch (err) {
             console.error('Error checking mic setup status:', err);
+            Sentry.captureException(err);
             // Show modal on error to be safe
             setShowMicCheck(true);
         }
@@ -358,6 +362,7 @@ function RehearsalRoomContent() {
 
         } catch (error) {
             console.error("❌ Role change hydration failed:", error);
+            Sentry.captureException(error);
             showToast({
                 header: "Update Failed",
                 line1: "Failed to update roles. Please try again.",
@@ -504,6 +509,7 @@ function RehearsalRoomContent() {
             }
         } catch (err) {
             console.error(`❌ Failed to update line ${updateLine.index}:`, err);
+            Sentry.captureException(err);
         } finally {
             setHydrating(false);
             setIsUpdatingLine(false);

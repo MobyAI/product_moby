@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import * as Sentry from "@sentry/nextjs";
 
 type Props = {
     mode: "login" | "signup";
@@ -34,8 +35,9 @@ export default function Form({
         try {
             setLoading("email");
             await onEmailPassword(email, pw);
-        } catch {
+        } catch (err) {
             setError("Sign in failed. Please check your email/password and try again.");
+            Sentry.captureException(err);
         } finally {
             setLoading(null);
         }
@@ -46,8 +48,9 @@ export default function Form({
         try {
             setLoading("google");
             await onGoogle();
-        } catch {
+        } catch (err) {
             setError("Google sign in failed.");
+            Sentry.captureException(err);
         } finally {
             setLoading(null);
         }
