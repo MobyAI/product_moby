@@ -20,7 +20,7 @@ export default function Error({
             <div className="text-center p-8 bg-white/90 rounded-xl shadow-lg max-w-lg">
                 <h2 className="text-header-2 font-bold mb-4">Something went wrong!</h2>
                 <p className="text-gray-600 mb-6">
-                    We've been notified and will look into it.
+                    {"We've been notified and will look into it."}
                 </p>
                 <button
                     onClick={() => reset()}

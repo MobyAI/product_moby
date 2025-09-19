@@ -55,7 +55,7 @@ export default function GlobalError({
               fontSize: "0.95rem",
             }}
           >
-            We encountered an unexpected error. The issue has been reported and we'll look into it.
+            {"We encountered an unexpected error. The issue has been reported and we'll look into it."}
           </p>
           <button
             onClick={() => reset()}

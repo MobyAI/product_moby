@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase/client/config/app";
 import * as Sentry from "@sentry/nextjs";
 
@@ -28,7 +28,7 @@ export function UserProvider({
     value: AuthUser | null; // non-null in protected trees (from ServerAuthProvider)
     children: React.ReactNode;
 }) {
-    const router = useRouter();
+    // const router = useRouter();
     const initiallyAuthed = !!value;
 
     // Start with the server user so there is no flicker/hydration mismatch
