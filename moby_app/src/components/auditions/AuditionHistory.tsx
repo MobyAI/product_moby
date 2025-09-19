@@ -324,7 +324,7 @@ export default function AuditionHistory() {
                     size="md"
                     icon={Plus}
                 >
-                    Add Script
+                    Add Audition
                 </Button>
             </div>
             <div className="flex justify-center m-2">
