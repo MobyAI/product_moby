@@ -3,6 +3,7 @@ import { updateScript } from '@/lib/firebase/client/scripts';
 import { set } from 'idb-keyval';
 import type { ScriptElement } from '@/types/script';
 import { Edit2, Check, X, AlertCircle } from 'lucide-react';
+import * as Sentry from "@sentry/nextjs";
 
 export function RoleSelector({
     script,
@@ -95,6 +96,7 @@ export function RoleSelector({
             setPendingRoles({});
         } catch (err) {
             console.error('❌ Failed to save script:', err);
+            Sentry.captureException(err);
             alert('Failed to save role changes. Please try again.');
         } finally {
             setIsSaving(false);

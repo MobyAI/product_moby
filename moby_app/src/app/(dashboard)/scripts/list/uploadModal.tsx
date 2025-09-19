@@ -9,9 +9,7 @@ import { extractTextFromPDFimg } from '@/lib/extract/image';
 import { ScriptElement } from '@/types/script';
 import { getAllVoiceSamples } from '@/lib/firebase/client/tts';
 import { ConfirmModal } from "@/components/ui";
-
-// Error handling! Especially for api calls. What to do if failed?
-// What if stage has an error (like parsed script) and nothing is shown?
+import * as Sentry from "@sentry/nextjs";
 
 interface ScriptUploadModalProps {
     isOpen: boolean;
@@ -238,6 +236,7 @@ export default function ScriptUploadModal({
             setVoiceSamples(data);
         } catch (err) {
             console.error('Failed to load voice samples:', err);
+            Sentry.captureException(err);
         } finally {
             setVoicesLoading(false);
         }
@@ -301,6 +300,7 @@ export default function ScriptUploadModal({
                 setExtractedText(textResult);
             } catch (error) {
                 console.error('Text extraction failed:', error);
+                Sentry.captureException(error);
 
                 // Set error state for API failure
                 setProcessingError({
@@ -343,6 +343,7 @@ export default function ScriptUploadModal({
 
                 } catch (error) {
                     console.error('Character extraction failed:', error);
+                    Sentry.captureException(error);
 
                     setProcessingError({
                         hasError: true,
@@ -424,6 +425,7 @@ export default function ScriptUploadModal({
                 setProcessingStage({ message: 'Script parsing complete', isComplete: true });
             } catch (error) {
                 console.error('Script parsing failed:', error);
+                Sentry.captureException(error);
 
                 setProcessingError({
                     hasError: true,
@@ -439,6 +441,7 @@ export default function ScriptUploadModal({
             }
         } catch (error) {
             console.error('Processing error:', error);
+            Sentry.captureException(error);
 
             setProcessingError({
                 hasError: true,
@@ -587,6 +590,7 @@ export default function ScriptUploadModal({
 
         } catch (error) {
             console.error('Failed to save script:', error);
+            Sentry.captureException(error);
             setProcessingStage({ message: 'Failed to save script', isComplete: true });
 
             // Show error to user

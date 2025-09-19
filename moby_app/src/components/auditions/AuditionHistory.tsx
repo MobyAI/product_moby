@@ -24,6 +24,7 @@ import { LoadingScreen, Button } from "@/components/ui";
 import AuditionModal from "./AuditionModal";
 import { flushSync } from "react-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import * as Sentry from "@sentry/nextjs";
 
 // Sort configuration type
 interface SortConfig {
@@ -300,6 +301,7 @@ export default function AuditionHistory() {
             closeModal();
         } catch (error) {
             console.error('Error saving audition:', error);
+            Sentry.captureException(error);
             alert('Error saving audition. Please try again.');
         } finally {
             setIsSubmitting(false);

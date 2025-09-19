@@ -8,7 +8,8 @@ import ScriptUploadModal from "./uploadModal";
 import { DashboardLayout, ConfirmModal, ScriptCard, Button, LoadingScreen } from "@/components/ui";
 import UploadForm from "../upload/uploadFile";
 import { Plus, RotateCcw } from "lucide-react";
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import * as Sentry from "@sentry/nextjs";
 
 function ScriptsListContent() {
     const { uid } = useAuthUser();
@@ -74,6 +75,7 @@ function ScriptsListContent() {
             await queryClient.invalidateQueries({ queryKey: ['scripts', userID] });
         } catch (err) {
             console.error("Failed to delete script:", err);
+            Sentry.captureException(err);
             alert("Failed to delete script. Please try again.");
         } finally {
             setConfirmOpen(false);

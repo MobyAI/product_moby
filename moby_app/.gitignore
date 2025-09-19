@@ -54,3 +54,6 @@ moby-google-key.base64
 
 # alternates
 /src/alternates/
+
+# Sentry Config File
+.env.sentry-build-plugin

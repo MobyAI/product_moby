@@ -5,6 +5,7 @@ import { addTTS, addTTSRegenerate } from "@/lib/api/tts";
 import { getScript, updateScript } from "@/lib/firebase/client/scripts";
 import { embeddingModel } from "@/lib/embeddings/modelManager";
 import pLimit from "p-limit";
+import * as Sentry from "@sentry/nextjs";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const isQuotaExceeded = (error: any) =>
@@ -73,6 +74,7 @@ export const loadScript = async ({
                 console.log('💾 Script cached successfully');
             } catch (err) {
                 console.warn('⚠️ Failed to store script in IndexedDB:', err);
+                Sentry.captureException(err);
                 if (isQuotaExceeded(err)) {
                     setStorageError(true);
                 }
@@ -89,6 +91,7 @@ export const loadScript = async ({
     } catch (err) {
         // Display load error page
         console.error('❌ Error loading script:', err);
+        Sentry.captureException(err);
         setLoadStage('❌ Unexpected error loading script');
     }
 };
@@ -192,6 +195,7 @@ export const hydrateScript = async ({
                                 return updated;
                             } catch (err) {
                                 console.warn(`❌ addTTS failed for line ${element.index}`, err);
+                                Sentry.captureException(err);
                                 ttsFailedIndexes.push(element.index);
                                 return element;
                             }
@@ -225,6 +229,7 @@ export const hydrateScript = async ({
                                 return updated;
                             } catch (err) {
                                 console.warn(`❌ Retry failed for TTS line ${element.index}`, err);
+                                Sentry.captureException(err);
 
                                 retryFailed.push(element.index);
                                 updateTTSHydrationStatus?.(element.index, 'failed');
@@ -252,6 +257,7 @@ export const hydrateScript = async ({
             console.log('💾 Script cached successfully');
         } catch (err) {
             console.warn('⚠️ Failed to store script in IndexedDB:', err);
+            Sentry.captureException(err);
             if (isQuotaExceeded(err)) {
                 setStorageError(true);
             }
@@ -262,7 +268,8 @@ export const hydrateScript = async ({
         try {
             await updateScript(scriptID, withTTS);
         } catch (err) {
-            console.warn('⚠️ Failed to save update to database:', err)
+            console.warn('⚠️ Failed to save update to database:', err);
+            Sentry.captureException(err);
         }
 
         const end = performance.now();
@@ -274,6 +281,7 @@ export const hydrateScript = async ({
     } catch (err) {
         // Display load error page
         console.error('❌ Error loading script:', err);
+        Sentry.captureException(err);
         setLoadStage('❌ Unexpected error loading script');
         return false;
     }
@@ -321,6 +329,7 @@ export const hydrateLine = async ({
             console.log('💾 Script cached successfully');
         } catch (err) {
             console.warn('⚠️ Failed to store script in IndexedDB:', err);
+            Sentry.captureException(err);
             if (isQuotaExceeded(err)) {
                 setStorageError(true);
             }
@@ -330,13 +339,15 @@ export const hydrateLine = async ({
         try {
             await updateScript(scriptID, updatedScript);
         } catch (err) {
-            console.warn('⚠️ Failed to save update to database:', err)
+            console.warn('⚠️ Failed to save update to database:', err);
+            Sentry.captureException(err);
         }
 
         updateTTSHydrationStatus?.(line.index, 'ready');
         return updatedLine;
     } catch (err) {
         console.error(`❌ hydrateLineWithTTS failed for line ${line.index}`, err);
+        Sentry.captureException(err);
         updateTTSHydrationStatus?.(line.index, 'failed');
         return line;
     }
@@ -369,6 +380,7 @@ export const initializeEmbeddingModel = async ({
         return true;
     } catch (error) {
         console.error('Failed to initialize embedding model:', error);
+        Sentry.captureException(error);
         if (setLoadStage) {
             setLoadStage('⚠️ AI model unavailable (using fallback)');
         }

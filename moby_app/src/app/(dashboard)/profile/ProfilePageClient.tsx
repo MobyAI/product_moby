@@ -31,6 +31,7 @@ import { UserProfile, ethnicities } from "@/types/profile";
 import HeadshotUploadModal from "./headshotUploadModal";
 import ResumeUploadModal from "./resumeUploadModal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import * as Sentry from "@sentry/nextjs";
 
 const ethnicityLabels = Object.fromEntries(
     ethnicities.map(eth => [eth.value, eth.label])
@@ -113,8 +114,9 @@ export default function ProfilePage() {
             } else {
                 setError(result.error || 'Failed to save profile');
             }
-        } catch {
+        } catch (err) {
             setError('Failed to save profile');
+            Sentry.captureException(err);
         } finally {
             setSaving(false);
         }
@@ -137,6 +139,7 @@ export default function ProfilePage() {
             await queryClient.invalidateQueries({ queryKey: ['headshots', userID] });
         } catch (error) {
             console.error('Delete headshot error:', error);
+            Sentry.captureException(error);
             setError('Failed to delete headshot');
         } finally {
             setDeleting(null);
@@ -151,6 +154,7 @@ export default function ProfilePage() {
             await queryClient.invalidateQueries({ queryKey: ['resume', userID] });
         } catch (error) {
             console.error('Delete resume error:', error);
+            Sentry.captureException(error);
             setError('Failed to delete resume');
         } finally {
             setDeleting(null);
@@ -161,8 +165,9 @@ export default function ProfilePage() {
         try {
             await setAuthPhotoURL(url);
             router.refresh();
-        } catch {
+        } catch (error) {
             setError("Failed to update profile picture.");
+            Sentry.captureException(error);
         }
     }
 
