@@ -5,14 +5,14 @@ import { getCountingStatsWithFilters } from "@/lib/firebase/client/user";
 import type { StatusFilter } from '@/types/audition';
 import { useQuery } from '@tanstack/react-query';
 
-type CountingStats = {
-    auditions: number;
-    completed: number;
-    declined: number;
-    callbacks: number;
-    holds: number;
-    bookings: number;
-};
+// type CountingStats = {
+//     auditions: number;
+//     completed: number;
+//     declined: number;
+//     callbacks: number;
+//     holds: number;
+//     bookings: number;
+// };
 
 type StatCardProps = {
     label: string;

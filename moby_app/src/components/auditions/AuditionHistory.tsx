@@ -112,7 +112,7 @@ export default function AuditionHistory() {
         // Refresh using tanstack react query
         await queryClient.invalidateQueries({ queryKey: ['auditions'] });
         await queryClient.invalidateQueries({ queryKey: ['auditionStats'] });
-    }, []);
+    }, [queryClient]);
 
     // Project type config
     const projectTypeConfig: Record<string, { label: string; icon: ReactElement }> = {
