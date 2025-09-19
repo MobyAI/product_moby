@@ -191,7 +191,7 @@ function RehearsalRoomContent() {
                     if (wasHydrated) {
                         showToast({
                             header: "Script Ready!",
-                            line1: "You can begin rehearsing now.",
+                            // line1: "You can begin rehearsing now.",
                             type: "success",
                         });
                     }
