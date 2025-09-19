@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -26,7 +26,7 @@ import { auth } from "@/lib/firebase/client/config/app";
 import { getUser, updateUserProfile } from "@/lib/firebase/client/user";
 import { deleteHeadshot, deleteResume, getHeadshots, getResume, setAuthPhotoURL } from "@/lib/firebase/client/media";
 import { useAuthUser } from "@/components/providers/UserProvider";
-import { DashboardLayout, Button } from "@/components/ui";
+import { DashboardLayout, Button, LoadingScreen } from "@/components/ui";
 import { UserProfile, ethnicities } from "@/types/profile";
 import HeadshotUploadModal from "./headshotUploadModal";
 import ResumeUploadModal from "./resumeUploadModal";
@@ -180,15 +180,11 @@ export default function ProfilePage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 relative">
-                        <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
-                        <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 rounded-full animate-spin"></div>
-                    </div>
-                    <p className="text-gray-600">Loading profile...</p>
-                </div>
-            </div>
+            <LoadingScreen
+                header="Profile Page"
+                message="Getting your details"
+                mode="light"
+            />
         );
     }
 

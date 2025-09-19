@@ -108,7 +108,10 @@ export default function AuditionHistory() {
     const handleRefresh = useCallback(async () => {
         console.log("Refreshing auditions data...");
         // await loadAuditions();
+
+        // Refresh using tanstack react query
         await queryClient.invalidateQueries({ queryKey: ['auditions'] });
+        await queryClient.invalidateQueries({ queryKey: ['auditionStats'] });
     }, []);
 
     // Project type config
@@ -281,7 +284,6 @@ export default function AuditionHistory() {
         setIsSubmitting(true);
         try {
             if (isEditing && editingId) {
-                console.log('isEditing is TRUE');
                 await updateAudition(editingId, formData);
             } else {
                 if (!formData.projectTitle || !formData.auditionRole || !formData.auditionType || !formData.date) {

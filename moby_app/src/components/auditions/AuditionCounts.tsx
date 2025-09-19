@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 // import { getCountingStats } from "@/lib/firebase/client/user";
 import { getCountingStatsWithFilters } from "@/lib/firebase/client/user";
 import type { StatusFilter } from '@/types/audition';
+import { useQuery } from '@tanstack/react-query';
 
 type CountingStats = {
     auditions: number;
@@ -44,38 +44,28 @@ function StatCard({ label, count, bgColor, textColor = "text-black" }: StatCardP
 }
 
 export default function AuditionCounts({ setFilterStatus }: AuditionCountsProps) {
-    const [stats, setStats] = useState<CountingStats>({
-        auditions: 0,
-        completed: 0,
-        declined: 0,
-        callbacks: 0,
-        holds: 0,
-        bookings: 0,
-    });
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        async function fetchStats() {
-            try {
-                setLoading(true);
-                // const result = await getCountingStats();
-                const result = await getCountingStatsWithFilters();
-                if (result.success && result.data) {
-                    setStats(result.data);
-                } else {
-                    setError(result.error || 'Failed to load stats');
-                }
-            } catch (err) {
-                setError('Failed to load stats');
-                console.error('Error fetching stats:', err);
-            } finally {
-                setLoading(false);
+    const {
+        data: stats = {
+            auditions: 0,
+            completed: 0,
+            declined: 0,
+            callbacks: 0,
+            holds: 0,
+            bookings: 0,
+        },
+        isLoading: loading,
+        error
+    } = useQuery({
+        queryKey: ['auditionStats'],
+        queryFn: async () => {
+            const result = await getCountingStatsWithFilters();
+            if (result.success && result.data) {
+                return result.data;
             }
-        }
-
-        fetchStats();
-    }, []);
+            throw new Error(result.error || 'Failed to load stats');
+        },
+        staleTime: 5 * 60 * 1000, // Consider fresh for 5 minutes
+    });
 
     if (loading) {
         return (
@@ -92,7 +82,7 @@ export default function AuditionCounts({ setFilterStatus }: AuditionCountsProps)
     if (error) {
         return (
             <div className="text-red-500 text-center p-4">
-                {error}
+                {error instanceof Error ? error.message : 'Failed to load stats'}
             </div>
         );
     }
