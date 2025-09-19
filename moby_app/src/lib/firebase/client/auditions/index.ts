@@ -45,14 +45,25 @@ function userAuditionsRefs() {
 
 export async function addAudition(auditionData: Omit<AuditionDoc, 'ownerUid' | 'createdAt' | 'updatedAt'>) {
     const { uid, coll } = userAuditionsRefs();
-    console.log('what is auditiondata', auditionData)
-    const ref = await addDoc(coll, {
+
+    const newDoc = {
         ...auditionData,
         ownerUid: uid,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+    };
+
+    const ref = await addDoc(coll, {
+        ...newDoc,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
     });
-    return ref.id;
+
+    // Return the complete document with ID for immediate view
+    return {
+        id: ref.id,
+        ...newDoc
+    };
 }
 
 export async function getAudition(auditionID: string) {
@@ -86,6 +97,7 @@ export async function getAuditionsByType(auditionType: AuditionDoc['auditionType
 
 export async function updateAudition(auditionID: string, updates: Partial<Omit<AuditionDoc, 'id' | 'ownerUid' | 'createdAt' | 'updatedAt'>>) {
     const { doc } = userAuditionsRefs();
+    console.log('what is update', updates)
     await updateDoc(doc(auditionID), {
         ...updates,
         updatedAt: serverTimestamp(),

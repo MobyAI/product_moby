@@ -1,16 +1,14 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { getAllScripts, deleteScript } from "@/lib/firebase/client/scripts";
 import { useAuthUser } from "@/components/providers/UserProvider";
-import type { ScriptDocWithId } from "@/types/script";
-import type { BasicError } from "@/types/error";
-import { toBasicError } from "@/types/error";
 import ScriptUploadModal from "./uploadModal";
-import { DashboardLayout, ConfirmModal, ScriptCard, Button } from "@/components/ui";
+import { DashboardLayout, ConfirmModal, ScriptCard, Button, LoadingScreen } from "@/components/ui";
 import UploadForm from "../upload/uploadFile";
 import { Plus, RotateCcw } from "lucide-react";
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 function ScriptsListContent() {
     const { uid } = useAuthUser();
@@ -18,10 +16,6 @@ function ScriptsListContent() {
     const router = useRouter();
 
     // List page setup
-    const [loading, setLoading] = useState(false);
-    const [hasFetched, setHasFetched] = useState(false);
-    const [error, setError] = useState<BasicError | null>(null);
-    const [allScripts, setAllScripts] = useState<ScriptDocWithId[]>([]);
     const [isDeleting, setIsDeleting] = useState(false);
 
     // Script upload modal
@@ -31,6 +25,21 @@ function ScriptsListContent() {
     // Delete confirm modal
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [scriptToDelete, setScriptToDelete] = useState<string | null>(null);
+
+    // TanStack Query for fetching scripts
+    const queryClient = useQueryClient();
+    const {
+        data: allScripts = [],
+        isLoading: loading,
+        error,
+        isFetched,
+        // refetch: loadScripts
+    } = useQuery({
+        queryKey: ['scripts', userID],
+        queryFn: getAllScripts,
+        enabled: !!userID, // Only run query if userID exists
+        staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    });
 
     const handleFileSelect = () => {
         const input = document.createElement('input');
@@ -60,7 +69,9 @@ function ScriptsListContent() {
 
         try {
             await deleteScript(scriptToDelete);
-            loadScripts();
+
+            // Invalidate cache to refetch updated list
+            await queryClient.invalidateQueries({ queryKey: ['scripts', userID] });
         } catch (err) {
             console.error("Failed to delete script:", err);
             alert("Failed to delete script. Please try again.");
@@ -71,46 +82,38 @@ function ScriptsListContent() {
         }
     };
 
-    const loadScripts = async () => {
-        setLoading(true);
-        setError(null);
+    const handleUploadSuccess = async () => {
+        setSelectedFile(null);
 
-        try {
-            const scripts = await getAllScripts();
-            setAllScripts(scripts);
-        } catch (e: unknown) {
-            const err = toBasicError(e);
-            console.error("User scripts fetch failed:", err);
-            setError(err);
-            setAllScripts([]);
-        } finally {
-            setLoading(false);
-            setHasFetched(true);
-        }
+        // Refetch scripts list after upload
+        await queryClient.invalidateQueries({ queryKey: ['scripts', userID] });
     };
 
-    useEffect(() => {
-        if (!userID) return;
+    const handleRefresh = async () => {
+        await queryClient.invalidateQueries({ queryKey: ['scripts', userID] });
+    };
 
-        loadScripts();
-    }, [userID]);
+    // Loading state
+    if (loading) {
+        return (
+            <LoadingScreen
+                header="Scripts"
+                message="Grabbing your uploads"
+                mode="light"
+            />
+        );
+    }
 
     return (
         <DashboardLayout maxWidth={75}>
-            {/* Loading State */}
-            {loading && (
-                <div className="flex-1 flex items-center justify-center">
-                    <p className="text-gray-600">Getting your saved scripts for you!</p>
-                </div>
-            )}
 
             {/* Error State */}
-            {!loading && error && (
+            {error && (
                 <div className="flex-1 flex items-center justify-center">
                     <div className="flex flex-col justify-center items-center space-y-4 rounded-md border border-red-200 bg-red-50 p-8">
                         <p className="text-lg text-red-700 font-medium">Failed to load scripts</p>
                         <Button
-                            onClick={loadScripts}
+                            onClick={handleRefresh}
                             size="md"
                             variant="primary"
                             icon={RotateCcw}
@@ -122,14 +125,14 @@ function ScriptsListContent() {
             )}
 
             {/* Empty State - Upload Form */}
-            {!loading && !error && hasFetched && allScripts.length === 0 && (
+            {!error && isFetched && allScripts.length === 0 && (
                 <div className="flex-1 flex items-center justify-center">
                     <UploadForm onFileUpload={handleFileSelect} />
                 </div>
             )}
 
             {/* Scripts List */}
-            {!loading && !error && allScripts.length > 0 && (
+            {!error && allScripts.length > 0 && (
                 <div className="h-full flex flex-col">
                     {/* Header with Add Button */}
                     <div className="flex items-center justify-between mb-6">
@@ -184,7 +187,7 @@ function ScriptsListContent() {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 file={selectedFile}
-                onComplete={loadScripts}
+                onComplete={handleUploadSuccess}
             />
         </DashboardLayout>
     )

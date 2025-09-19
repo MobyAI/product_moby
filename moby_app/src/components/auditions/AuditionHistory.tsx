@@ -12,16 +12,18 @@ import {
     User,
     Filter,
     Search,
-    X
+    X,
+    Plus,
 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { AuditionData, ProjectTypeFilter, StatusFilter, AuditionsData } from "@/types/audition";
 import AuditionCounts from "./AuditionCounts";
-import AddAuditionButton from "@/app/auditions/add/page";
 import { addAudition, getAllAuditions, updateAudition } from "@/lib/firebase/client/auditions";
 import { toBasicError } from "@/types/error";
+import { LoadingScreen, Button } from "@/components/ui";
 import AuditionModal from "./AuditionModal";
 import { flushSync } from "react-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Sort configuration type
 interface SortConfig {
@@ -36,12 +38,10 @@ export default function AuditionHistory() {
     const [filterStatus, setFilterStatus] = useState<StatusFilter>('all');
     const [showTypeFilter, setShowTypeFilter] = useState<boolean>(false);
     const [showStatusFilter, setShowStatusFilter] = useState<boolean>(false);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [auditionsData, setAuditionsData] = useState<AuditionsData[]>([]);
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [showSearch, setShowSearch] = useState(false);
 
-     const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState({
         date: '',
         projectTitle: '',
         castingDirector: '',
@@ -64,6 +64,26 @@ export default function AuditionHistory() {
     const searchInputRef = useRef(null);
     const parentRef = useRef(null);
 
+    // TanStack Query for data fetching
+    const queryClient = useQueryClient();
+    const {
+        data: auditionsData = [],
+        isLoading: loading,
+        error,
+        // refetch: loadAuditions
+    } = useQuery({
+        queryKey: ['auditions'],
+        queryFn: getAllAuditions,
+        staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    });
+
+    useEffect(() => {
+        if (error) {
+            const err = toBasicError(error);
+            console.error("User auditions fetch failed:", err);
+        }
+    }, [error]);
+
     // Close filter dropdowns when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -79,33 +99,20 @@ export default function AuditionHistory() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const loadAuditions = async () => {
-        setLoading(true);
-        try {
-            const auditions = await getAllAuditions();
-            setAuditionsData(auditions);
-        } catch (e: unknown) {
-            const err = toBasicError(e);
-            console.error("User auditions fetch failed:", err);
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    // Fetch auditions data on component mount
-    useEffect(() => {
-        loadAuditions();
-    }, []);
-
     // Refresh function to be passed to AddAuditionButton
     // const handleRefresh = async () => {
     //     console.log("Refreshing auditions data...");
     //     await loadAuditions();
     // };
+
     const handleRefresh = useCallback(async () => {
         console.log("Refreshing auditions data...");
-        await loadAuditions();
-    }, []);
+        // await loadAuditions();
+
+        // Refresh using tanstack react query
+        await queryClient.invalidateQueries({ queryKey: ['auditions'] });
+        await queryClient.invalidateQueries({ queryKey: ['auditionStats'] });
+    }, [queryClient]);
 
     // Project type config
     const projectTypeConfig: Record<string, { label: string; icon: ReactElement }> = {
@@ -195,11 +202,11 @@ export default function AuditionHistory() {
     // Loading state
     if (loading) {
         return (
-            <div className="w-full bg-white rounded-lg shadow-sm p-8">
-                <div className="flex justify-center items-center">
-                    <div className="text-gray-500">Loading auditions...</div>
-                </div>
-            </div>
+            <LoadingScreen
+                header="Audition Tracker"
+                message="Loading your audition history"
+                mode="light"
+            />
         );
     }
 
@@ -216,32 +223,32 @@ export default function AuditionHistory() {
     //         billing: auditionData.billing || '',
     //         status: auditionData.status || ''
     //     });
-        
+
     //     // Set editing mode and store the ID for updates
     //     setIsEditing(true);
     //     setEditingId(auditionData.id); // Assuming each audition has a unique ID
-        
+
     //     // Open the modal
     //     setIsModalOpen(true);
     // };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const openModalWithData = (auditionData: any) => {
-    flushSync(() => {
-        setFormData({
-            date: auditionData.date,
-            projectTitle: auditionData.projectTitle || '',
-            auditionType: auditionData.auditionType || '',
-            castingDirector: auditionData.castingDirector || '',
-            auditionRole: auditionData.auditionRole || '',
-            source: auditionData.source || '',
-            billing: auditionData.billing || '',
-            status: auditionData.status || ''
+        flushSync(() => {
+            setFormData({
+                date: auditionData.date,
+                projectTitle: auditionData.projectTitle || '',
+                auditionType: auditionData.auditionType || '',
+                castingDirector: auditionData.castingDirector || '',
+                auditionRole: auditionData.auditionRole || '',
+                source: auditionData.source || '',
+                billing: auditionData.billing || '',
+                status: auditionData.status || ''
+            });
+            setIsEditing(true);
+            setEditingId(auditionData.id);
+            setIsModalOpen(true);
         });
-        setIsEditing(true);
-        setEditingId(auditionData.id);
-        setIsModalOpen(true);
-    });
-};
+    };
 
 
     const resetForm = () => {
@@ -261,6 +268,8 @@ export default function AuditionHistory() {
         setIsModalOpen(false);
         document.body.style.overflow = 'auto';
         resetForm();
+        setIsEditing(false);
+        setEditingId(null);
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -270,43 +279,30 @@ export default function AuditionHistory() {
             [name]: value
         }));
     };
-    
+
     const handleSubmit = async () => {
-        if (isEditing) {
-            await updateAudition(editingId as string, formData);
-        } else {
-            if (!formData.projectTitle || !formData.auditionRole || !formData.auditionType || !formData.date) {
-                console.log('is it coming from here')
-                console.log('what is formData', formData)
-                alert('Please fill in all required fields.');
-                return;
-            }
+        setIsSubmitting(true);
+        try {
+            if (isEditing && editingId) {
+                await updateAudition(editingId, formData);
+            } else {
+                if (!formData.projectTitle || !formData.auditionRole || !formData.auditionType || !formData.date) {
+                    alert('Please fill in all required fields.');
+                    setIsSubmitting(false);
+                    return;
+                }
 
-            setIsSubmitting(true);
-                console.log('FORMDATA', formData)
-
-            try {
-                // Add the audition to the database
-                console.log('FORMDATA', formData)
                 await addAudition(formData);
-
-                // If status is set and matches our mapping, increment that specific stat
-                // if (formData.status && statusToStatsMapping[formData.status]) {
-                //     const statKey = statusToStatsMapping[formData.status];
-                //     await updateCountingStat(statKey, 1);
-                //     console.log(`Incremented ${statKey} stat for status: ${formData.status}`);
-                // }
-
-                // Trigger refresh of the audition list
-                handleRefresh();
-                closeModal();
-
-            } catch (error) {
-                console.error('Error saving audition:', error);
-                alert('Error saving audition. Please try again.');
-            } finally {
-                setIsSubmitting(false);
             }
+
+            // Close modal after everything succeeds
+            await handleRefresh();
+            closeModal();
+        } catch (error) {
+            console.error('Error saving audition:', error);
+            alert('Error saving audition. Please try again.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -320,14 +316,21 @@ export default function AuditionHistory() {
     };
 
     return (
-        <>
-            <div className="flex justify-end items-center py-3">
-                <AddAuditionButton />
+        <div className="flex flex-col h-full">
+            <div className="flex justify-end items-center pb-3">
+                <Button
+                    onClick={() => setIsModalOpen(true)}
+                    variant="primary"
+                    size="md"
+                    icon={Plus}
+                >
+                    Add Script
+                </Button>
             </div>
             <div className="flex justify-center m-2">
                 <AuditionCounts setFilterStatus={setFilterStatus} />
             </div>
-            <div className="w-full bg-white rounded-lg shadow-sm">
+            <div className="flex-1 flex flex-col bg-white rounded-lg shadow-sm min-h-0">
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-200">
                     <div className="flex items-center justify-between">
@@ -576,7 +579,7 @@ export default function AuditionHistory() {
                                                     transform: `translateY(${virtualRow.start}px)`,
                                                 }}
                                             >
-                                                <div 
+                                                <div
                                                     className="flex px-6 py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors text-sm"
                                                     onClick={() => openModalWithData(audition)}
                                                 >
@@ -626,7 +629,7 @@ export default function AuditionHistory() {
                 </div>
 
                 {isModalOpen && (
-                    <AuditionModal 
+                    <AuditionModal
                         isOpen={isModalOpen}
                         onClose={closeModal}
                         onSubmit={handleSubmit}
@@ -645,6 +648,6 @@ export default function AuditionHistory() {
                     Showing {filteredAndSortedAuditions.length} of {auditionsData.length} auditions
                 </div>
             </div>
-        </>
+        </div>
     );
 };
