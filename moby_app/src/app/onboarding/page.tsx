@@ -90,7 +90,7 @@ function OnboardingContent() {
                                 <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto">
                                     <User className="w-8 h-8 text-purple-600" />
                                 </div>
-                                <h2 className="text-2xl font-semibold">{"What's your name?"}</h2>
+                                <h2 className="text-2xl font-semibold text-gray-500">{"What's your name?"}</h2>
                             </div>
                             <div className="space-y-3">
                                 <input
@@ -99,7 +99,7 @@ function OnboardingContent() {
                                     value={profile.firstName}
                                     onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
                                     onKeyDown={(e) => e.key === 'Enter' && profile.firstName && profile.lastName && setStep(2)}
-                                    className="w-full rounded-xl border-2 px-4 py-3 text-lg focus:border-purple-500 focus:outline-none transition-colors"
+                                    className="text-gray-500 w-full rounded-xl border-2 px-4 py-3 text-lg focus:border-purple-500 focus:outline-none transition-colors"
                                     autoFocus
                                 />
                                 <input
@@ -108,7 +108,7 @@ function OnboardingContent() {
                                     value={profile.lastName}
                                     onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
                                     onKeyDown={(e) => e.key === 'Enter' && profile.firstName && profile.lastName && setStep(2)}
-                                    className="w-full rounded-xl border-2 px-4 py-3 text-lg focus:border-purple-500 focus:outline-none transition-colors"
+                                    className="text-gray-500 w-full rounded-xl border-2 px-4 py-3 text-lg focus:border-purple-500 focus:outline-none transition-colors"
                                 />
                             </div>
                             <button
@@ -129,7 +129,7 @@ function OnboardingContent() {
                                 <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-blue-100 rounded-full flex items-center justify-center mx-auto">
                                     <Calendar className="w-8 h-8 text-blue-600" />
                                 </div>
-                                <h2 className="text-2xl font-semibold">How old are you?</h2>
+                                <h2 className="text-2xl font-semibold text-gray-500">How old are you?</h2>
                                 <p className="text-gray-500">Slide to select your age</p>
                             </div>
                             <div className="space-y-4">
@@ -181,7 +181,7 @@ function OnboardingContent() {
                                 <div className="w-16 h-16 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-full flex items-center justify-center mx-auto">
                                     <Globe className="w-8 h-8 text-orange-600" />
                                 </div>
-                                <h2 className="text-2xl font-semibold">Your background</h2>
+                                <h2 className="text-2xl font-semibold text-gray-500">Your background</h2>
                                 <p className="text-gray-500">Select all that apply</p>
                             </div>
                             <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
@@ -236,7 +236,7 @@ function OnboardingContent() {
                                 <div className="w-16 h-16 bg-gradient-to-br from-pink-100 to-red-100 rounded-full flex items-center justify-center mx-auto">
                                     <Ruler className="w-8 h-8 text-red-600" />
                                 </div>
-                                <h2 className="text-2xl font-semibold">How tall are you?</h2>
+                                <h2 className="text-2xl font-semibold text-gray-500">How tall are you?</h2>
                                 <p className="text-gray-500">Slide to set your height</p>
                             </div>
                             <div className="space-y-4">
@@ -289,7 +289,7 @@ function OnboardingContent() {
                                 <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-full flex items-center justify-center mx-auto">
                                     <Camera className="w-8 h-8 text-indigo-600" />
                                 </div>
-                                <h2 className="text-2xl font-semibold">Upload Your Headshot</h2>
+                                <h2 className="text-2xl font-semibold text-gray-500">Upload Your Headshot</h2>
                                 <p className="text-gray-500">Professional photo for your profile</p>
                             </div>
 
@@ -405,7 +405,7 @@ function OnboardingContent() {
                                 <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-full flex items-center justify-center mx-auto">
                                     <FileText className="w-8 h-8 text-emerald-600" />
                                 </div>
-                                <h2 className="text-2xl font-semibold">Upload Your Resume</h2>
+                                <h2 className="text-2xl font-semibold text-gray-500">Upload Your Resume</h2>
                                 <p className="text-gray-500">PDF or DOCX format</p>
                             </div>
 

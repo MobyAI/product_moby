@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-    <!-- Play button with rounded edges -->
-    <path d="M10 6 L10 26 L26 16 Z" fill="rgba(242, 204, 143, 1)" stroke="rgba(242, 204, 143, 1)" stroke-width="4"
-        stroke-linejoin="round" stroke-linecap="round" />
-</svg>

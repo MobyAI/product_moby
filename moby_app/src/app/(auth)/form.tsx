@@ -76,7 +76,7 @@ export default function Form({
 
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-semibold">{title}</h1>
+            <h1 className="text-2xl font-semibold text-black">{title}</h1>
 
             <div className="flex justify-center">
                 <button
@@ -143,7 +143,7 @@ export default function Form({
                     placeholder="Email"
                     value={email}
                     onChange={(e) => setEmail(e.currentTarget.value)}
-                    className="w-full rounded-md border px-3 py-2"
+                    className="w-full rounded-md border px-3 py-2 text-gray-500"
                 />
                 <input
                     type="password"
@@ -151,7 +151,7 @@ export default function Form({
                     placeholder="Password"
                     value={pw}
                     onChange={(e) => setPw(e.currentTarget.value)}
-                    className="w-full rounded-md border px-3 py-2"
+                    className="w-full rounded-md border px-3 py-2 text-gray-500"
                 />
                 {error && <p className="text-sm text-red-600">{error}</p>}
                 <button

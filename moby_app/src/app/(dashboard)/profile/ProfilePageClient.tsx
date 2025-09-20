@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -32,12 +32,13 @@ import HeadshotUploadModal from "./headshotUploadModal";
 import ResumeUploadModal from "./resumeUploadModal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Sentry from "@sentry/nextjs";
+import { useToast } from "@/components/providers/ToastProvider";
 
 const ethnicityLabels = Object.fromEntries(
     ethnicities.map(eth => [eth.value, eth.label])
 );
 
-export default function ProfilePage() {
+function ProfilePageContent() {
     const [deleting, setDeleting] = useState<'headshot' | 'resume' | null>(null);
     const [saving, setSaving] = useState(false);
     const [editMode, setEditMode] = useState(false);
@@ -52,6 +53,7 @@ export default function ProfilePage() {
     const userID = uid;
     const userPhotoURL = photoURL;
     const queryClient = useQueryClient();
+    const { showToast } = useToast();
 
     // Query for profile data
     const {
@@ -117,6 +119,12 @@ export default function ProfilePage() {
         } catch (err) {
             setError('Failed to save profile');
             Sentry.captureException(err);
+
+            showToast({
+                header: "An error occurred",
+                line1: "Please try again",
+                type: "danger",
+            });
         } finally {
             setSaving(false);
         }
@@ -574,5 +582,19 @@ export default function ProfilePage() {
                 onSuccess={handleResumeUploadSuccess}
             />
         </DashboardLayout>
+    );
+}
+
+export default function ProfilePage() {
+    return (
+        <Suspense fallback={
+            <LoadingScreen
+                header="Profile Page"
+                message="Getting your details"
+                mode="light"
+            />
+        }>
+            <ProfilePageContent />
+        </Suspense>
     );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo, ReactElement, useCallback } from "react";
+import React, { useState, useEffect, useRef, useMemo, ReactElement, useCallback, Suspense } from "react";
 import {
     ChevronDown,
     ChevronUp,
@@ -25,6 +25,7 @@ import AuditionModal from "./AuditionModal";
 import { flushSync } from "react-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Sentry from "@sentry/nextjs";
+import { useToast } from "@/components/providers/ToastProvider";
 
 // Sort configuration type
 interface SortConfig {
@@ -32,7 +33,7 @@ interface SortConfig {
     direction: 'asc' | 'desc';
 }
 
-export default function AuditionHistory() {
+function AuditionHistoryContent() {
     // State Management
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'date', direction: 'desc' });
     const [filterType, setFilterType] = useState<ProjectTypeFilter>('all');
@@ -56,7 +57,6 @@ export default function AuditionHistory() {
     const [isEditing, setIsEditing] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Refs
@@ -64,6 +64,9 @@ export default function AuditionHistory() {
     const statusFilterRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef(null);
     const parentRef = useRef(null);
+
+    // Toast Message
+    const { showToast } = useToast();
 
     // TanStack Query for data fetching
     const queryClient = useQueryClient();
@@ -200,17 +203,6 @@ export default function AuditionHistory() {
         overscan: 5, // Number of items to render outside of view
     });
 
-    // Loading state
-    if (loading) {
-        return (
-            <LoadingScreen
-                header="Audition Tracker"
-                message="Loading your audition history"
-                mode="light"
-            />
-        );
-    }
-
     // // eslint-disable-next-line @typescript-eslint/no-explicit-any
     // const openModalWithData = (auditionData: any) => {
     //     // Pre-populate form data with the audition data
@@ -286,14 +278,29 @@ export default function AuditionHistory() {
         try {
             if (isEditing && editingId) {
                 await updateAudition(editingId, formData);
+
+                showToast({
+                    header: "Audition updated!",
+                    type: "success",
+                });
             } else {
                 if (!formData.projectTitle || !formData.auditionRole || !formData.auditionType || !formData.date) {
-                    alert('Please fill in all required fields.');
+                    showToast({
+                        header: "Missing fields detected",
+                        line1: "Please fill in required fields and try again",
+                        type: "warning",
+                    });
+
                     setIsSubmitting(false);
                     return;
                 }
 
                 await addAudition(formData);
+
+                showToast({
+                    header: "New audition added!",
+                    type: "success",
+                });
             }
 
             // Close modal after everything succeeds
@@ -302,7 +309,11 @@ export default function AuditionHistory() {
         } catch (error) {
             console.error('Error saving audition:', error);
             Sentry.captureException(error);
-            alert('Error saving audition. Please try again.');
+            showToast({
+                header: "An error occurred",
+                line1: "Please try again",
+                type: "danger",
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -316,6 +327,17 @@ export default function AuditionHistory() {
         voiceover: { label: 'Voiceover', icon: <Video className="w-4 h-4" /> },
         other: { label: 'Other', icon: <Video className="w-4 h-4" /> }
     };
+
+    // Loading state
+    if (loading) {
+        return (
+            <LoadingScreen
+                header="Audition Tracker"
+                message="Loading your audition history"
+                mode="light"
+            />
+        );
+    }
 
     return (
         <div className="flex flex-col h-full">
@@ -653,3 +675,17 @@ export default function AuditionHistory() {
         </div>
     );
 };
+
+export default function AuditionHistory() {
+    return (
+        <Suspense fallback={
+            <LoadingScreen
+                header="Audition Tracker"
+                message="Loading your audition history"
+                mode="light"
+            />
+        }>
+            <AuditionHistoryContent />
+        </Suspense>
+    );
+}
