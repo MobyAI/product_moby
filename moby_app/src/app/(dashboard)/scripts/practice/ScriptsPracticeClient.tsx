@@ -30,7 +30,9 @@ import {
     RotateCcw,
     Undo2,
     Pencil,
-    ChevronDown
+    ChevronDown,
+    RefreshCw,
+    AlertCircle,
 } from "lucide-react";
 import * as Sentry from "@sentry/nextjs";
 
@@ -363,8 +365,8 @@ function RehearsalRoomContent() {
             console.error("❌ Role change hydration failed:", error);
             Sentry.captureException(error);
             showToast({
-                header: "Role update failed",
-                line1: "Please try again",
+                header: "Failed to update resources",
+                line1: "Some lines readings may fail",
                 type: "danger",
             });
         } finally {
@@ -423,6 +425,7 @@ function RehearsalRoomContent() {
         return [];
     }
 
+    // Rehydrate after line edit
     const onUpdateLine = async (updateLine: ScriptElement) => {
         setEditingLineIndex(null);
         setIsUpdatingLine(true);
@@ -486,8 +489,9 @@ function RehearsalRoomContent() {
                 try {
                     await updateScript(scriptID, finalUpdatedScript);
                     console.log(`✅ Updated Firestore with updated line ${updateLine.index}`);
-                } catch {
+                } catch (err) {
                     console.error('❌ Failed to update Firestore');
+                    Sentry.captureException(err);
                 }
 
                 const cacheKey = `script-cache:${userID}:${scriptID}`;
@@ -496,9 +500,14 @@ function RehearsalRoomContent() {
                     console.log(`💾 Script cached successfully in IndexedDB for line ${updateLine.index}`);
                 } catch (cacheError) {
                     console.warn('⚠️ Failed to update IndexedDB cache:', cacheError);
+                    Sentry.captureException(cacheError);
                 }
 
                 setLoadStage('✅ Line successfully updated!');
+
+                // Update status to ready after successful refresh
+                updateTTSHydrationStatus(updateLine.index, 'ready');
+
                 setIsUpdatingLine(false);
                 showToast({
                     header: "Line updated!",
@@ -508,8 +517,89 @@ function RehearsalRoomContent() {
         } catch (err) {
             console.error(`❌ Failed to update line ${updateLine.index}:`, err);
             Sentry.captureException(err);
+
+            // Reset status back to failed on error
+            updateTTSHydrationStatus(updateLine.index, 'failed');
+
             showToast({
                 header: "Line failed to update",
+                line1: "Please try again",
+                type: "danger",
+            });
+        } finally {
+            setHydrating(false);
+            setIsUpdatingLine(false);
+        }
+    };
+
+    // Refresh failed audio
+    const onRefreshLine = async (updateLine: ScriptElement) => {
+        setIsUpdatingLine(true);
+        setHydrating(true);
+        setLoadStage('♻️ Regenerating...');
+
+        if (!script) {
+            console.warn('❌ Tried to update line before script was loaded.');
+            return;
+        }
+
+        try {
+            if (userID && scriptID) {
+                const result = await hydrateLine({
+                    line: updateLine,
+                    script: script,
+                    userID,
+                    scriptID,
+                    updateTTSHydrationStatus,
+                    setStorageError,
+                });
+
+                const finalUpdatedScript = script.map((el) =>
+                    el.index === result.index
+                        ? { ...el, ...result }
+                        : el
+                );
+
+                setScript(finalUpdatedScript);
+                scriptRef.current = finalUpdatedScript;
+
+                try {
+                    await updateScript(scriptID, finalUpdatedScript);
+                    console.log(`✅ Updated Firestore with refreshed line ${updateLine.index}`);
+                } catch (err) {
+                    console.error('❌ Failed to update Firestore');
+                    Sentry.captureException(err);
+                }
+
+                const cacheKey = `script-cache:${userID}:${scriptID}`;
+                try {
+                    await set(cacheKey, finalUpdatedScript);
+                    console.log(`💾 Script cached successfully in IndexedDB for line ${updateLine.index}`);
+                } catch (cacheError) {
+                    console.warn('⚠️ Failed to update IndexedDB cache:', cacheError);
+                    Sentry.captureException(cacheError);
+                }
+
+                setLoadStage('✅ Line successfully refreshed!');
+                setIsUpdatingLine(false);
+
+                // Update status to ready after successful refresh
+                updateTTSHydrationStatus(updateLine.index, 'ready');
+
+                showToast({
+                    header: "Line refreshed!",
+                    type: "success",
+                });
+            }
+        } catch (err) {
+            console.error(`❌ Failed to refresh line ${updateLine.index}:`, err);
+            Sentry.captureException(err);
+
+            // Reset status back to failed on error
+            updateTTSHydrationStatus(updateLine.index, 'failed');
+
+            showToast({
+                header: "Line failed to refresh",
                 line1: "Please try again",
                 type: "danger",
             });
@@ -679,13 +769,17 @@ function RehearsalRoomContent() {
             .catch((err) => {
                 console.warn("⚠️ All audio playback strategies failed", err);
 
+                // Mark as failed
+                updateTTSHydrationStatus(current.index, 'failed');
+
                 showToast({
                     header: "Scene partner line failed",
-                    type: "danger",
-                    duration: 2000,
+                    line1: "Pause and try to refresh?",
+                    type: "danger"
                 });
 
-                autoAdvance(1000);
+                // Matched timing of the toast message to give user chance to pause and refresh the line
+                autoAdvance(3500);
             });
 
         return () => {
@@ -724,7 +818,7 @@ function RehearsalRoomContent() {
                     type: "success",
                 });
 
-                setIsFinished(true);setIsFinished
+                setIsFinished(true); setIsFinished
                 cleanupSTT();
                 setIsPlaying(false);
                 return;
@@ -1226,42 +1320,66 @@ function RehearsalRoomContent() {
                         </div>
                     )}
 
-                    {/* Edit button */}
-                    {isCurrent &&
-                        !isPlaying &&
-                        !editingLineIndex &&
-                        ttsHydrationStatus[element.index] === 'ready' &&
-                        (
-                            <div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[100]">
+                    {/* Edit and Refresh buttons */}
+                    {isCurrent && !isPlaying && !editingLineIndex && (
+                        <div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[100]">
+                            {/* Show refresh button if TTS failed */}
+                            {ttsHydrationStatus[element.index] === 'failed' && (
                                 <button
-                                    onClick={(e) => {
+                                    onClick={async (e) => {
                                         e.stopPropagation();
-                                        setEditingLineIndex(element.index);
+                                        await onRefreshLine(element);
                                     }}
-                                    className="cursor-pointer text-sm text-white bg-gray-900 px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all"
-                                    title="Edit Line"
+                                    disabled={isUpdatingLine}
+                                    className={`
+                                        cursor-pointer text-sm text-white px-3 py-1.5 rounded shadow-md 
+                                        hover:shadow-lg transition-all
+                                        ${isUpdatingLine
+                                            ? 'bg-gray-500 cursor-not-allowed opacity-50'
+                                            : 'bg-red-600 hover:bg-red-700'
+                                        }
+                                        `}
+                                    title="Refresh Failed Audio"
                                 >
-                                    <Pencil
-                                        className="w-4 h-4"
+                                    <RefreshCw
+                                        className={`w-4 h-4 ${isUpdatingLine ? 'animate-spin' : ''}`}
                                         strokeWidth={2}
                                     />
                                 </button>
-                                <DelaySelector
-                                    lineIndex={element.index}
-                                    currentDelay={element.customDelay || 0}
-                                    onDelayChange={handleDelayChange}
-                                    scriptId={scriptID}
-                                    userId={userID}
-                                    script={script}
-                                    setScript={setScript}
-                                    updateScript={updateScript}
-                                    updatingState={[updating, setUpdating]}
-                                />
-                            </div>
-                        )
-                    }
+                            )}
 
-                    {/* Countdown */}
+                            {/* Show edit buttons only if TTS is ready */}
+                            {ttsHydrationStatus[element.index] === 'ready' && (
+                                <>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditingLineIndex(element.index);
+                                        }}
+                                        className="cursor-pointer text-sm text-white bg-gray-900 px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all"
+                                        title="Edit Line"
+                                    >
+                                        <Pencil
+                                            className="w-4 h-4"
+                                            strokeWidth={2}
+                                        />
+                                    </button>
+                                    <DelaySelector
+                                        lineIndex={element.index}
+                                        currentDelay={element.customDelay || 0}
+                                        onDelayChange={handleDelayChange}
+                                        scriptId={scriptID}
+                                        userId={userID}
+                                        script={script}
+                                        setScript={setScript}
+                                        updateScript={updateScript}
+                                        updatingState={[updating, setUpdating]}
+                                    />
+                                </>
+                            )}
+                        </div>
+                    )}
+
                     {/* Delay countdown */}
                     {showCountdown && countdownDuration > 0 && isCurrent && (
                         <div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[999]">
@@ -1279,8 +1397,8 @@ function RehearsalRoomContent() {
 
                     {/* Failed indicator */}
                     {ttsHydrationStatus[element.index] === 'failed' && (
-                        <div className="absolute top-4 right-4 text-sm">
-                            ❌
+                        <div className="absolute top-4 right-4 text-sm text-red-500">
+                            <AlertCircle className="w-5 h-5" />
                         </div>
                     )}
                 </div>
