@@ -165,11 +165,11 @@ function ToastViewport({
                 aria-live={tone.aria}
                 className={[
                     "pointer-events-auto relative flex items-center overflow-hidden rounded-2xl shadow-2xl backdrop-blur-md",
-                    "transition-all duration-200 border",
+                    "transition-all duration-200 border border-2",
                     tone.bg,
                     tone.border,
                     tone.text,
-                    visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3",
+                    visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
                 ].join(" ")}
             >
                 {/* Icon circle */}
@@ -181,12 +181,12 @@ function ToastViewport({
 
                 {/* Content */}
                 <div className="flex-1 px-4 py-4 mr-10">
-                    <div className="text-lg font-bold tracking-tight whitespace-nowrap">{toast.header}</div>
+                    <div className="text-lg text-white font-bold tracking-tight whitespace-nowrap">{toast.header}</div>
                     {toast.line1 && (
-                        <div className="mt-0.5 text-sm font-bold whitespace-nowrap">{toast.line1}</div>
+                        <div className="mt-0.5 text-sm text-gray-50 font-medium whitespace-nowrap">{toast.line1}</div>
                     )}
                     {toast.line2 && (
-                        <div className="mt-0.5 text-sm font-bold whitespace-nowrap">{toast.line2}</div>
+                        <div className="mt-0.5 text-sm text-gray-50 font-medium whitespace-nowrap">{toast.line2}</div>
                     )}
                 </div>
 
