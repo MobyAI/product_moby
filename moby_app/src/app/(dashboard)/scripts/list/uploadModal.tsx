@@ -666,13 +666,31 @@ export default function ScriptUploadModal({
                     <div className={`transition-all duration-300 ${isTransitioning ? 'opacity-0 transform translate-x-full' : 'opacity-100 transform translate-x-0'}`}>
 
                         {/* Stage 0: Voice Samples */}
-                        {currentStage === 0 && processingError.hasError && processingError.stage === 'voice' && (
-                            <div className="p-6">
-                                <ProcessingError
-                                    onClose={confirmClose}
-                                    error={processingError}
-                                />
-                            </div>
+                        {currentStage === 0 && (
+                            <>
+                                {!(processingError.hasError && processingError.stage === 'voice') ? (
+                                    <div className="text-center py-12">
+                                        {/* Animated Logo/Icon */}
+                                        <div className="w-24 h-24 mx-auto mb-6 relative">
+                                            <div className="absolute inset-0 border-4 border-blue-900/20 rounded-full"></div>
+                                            <div className="absolute inset-0 border-4 border-transparent border-t-purple-900 rounded-full animate-spin"></div>
+                                            <div className="absolute inset-2 border-2 border-indigo-900/40 border-b-transparent rounded-full animate-spin animate-reverse" style={{ animationDuration: '1.5s' }}></div>
+                                        </div>
+                                        <p className="text-gray-600">Setting up voice library...</p>
+
+                                        {/* Fun Loading Messages */}
+                                        <div className="mt-8 text-white/60 text-sm">
+                                            <RotatingTips tipSet="processing" />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // Error state
+                                    <ProcessingError
+                                        onClose={confirmClose}
+                                        error={processingError}
+                                    />
+                                )}
+                            </>
                         )}
 
                         {/* Stage 1: Loading */}

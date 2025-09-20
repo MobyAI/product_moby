@@ -1542,7 +1542,7 @@ function RehearsalRoomContent() {
                             {/* Script Header */}
                             <div className="text-center py-8 px-8 border-b border-gray-200 shrink-0">
                                 <h1 className="text-header-2 font-bold text-gray-900">
-                                    {scriptName ? scriptName : "Your"}
+                                    {scriptName ? scriptName : "Your Script"}
                                 </h1>
                                 {/* <p className="text-gray-600">Follow along and practice your lines</p> */}
                             </div>
