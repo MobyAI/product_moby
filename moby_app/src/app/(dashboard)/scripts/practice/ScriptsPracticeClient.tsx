@@ -41,7 +41,6 @@ function RehearsalRoomContent() {
 
     const { uid } = useAuthUser();
     const userID = uid;
-
     const { showToast } = useToast();
 
     const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -91,6 +90,7 @@ function RehearsalRoomContent() {
     const [skipMs, setSkipMs] = useState(4000);
     const [showCountdown, setShowCountdown] = useState(false);
     const [countdownDuration, setCountdownDuration] = useState(0);
+    const [isFinished, setIsFinished] = useState(false);
 
     // Error handling
     const [storageError, setStorageError] = useState(false);
@@ -190,7 +190,7 @@ function RehearsalRoomContent() {
 
                     if (wasHydrated) {
                         showToast({
-                            header: "Script Ready!",
+                            header: "Script ready!",
                             // line1: "You can begin rehearsing now.",
                             type: "success",
                         });
@@ -351,8 +351,7 @@ function RehearsalRoomContent() {
 
             if (wasHydrated) {
                 showToast({
-                    header: "Roles Updated!",
-                    line1: "Script has been re-hydrated with new roles.",
+                    header: "Roles updated!",
                     type: "success",
                 });
             }
@@ -364,8 +363,7 @@ function RehearsalRoomContent() {
             console.error("❌ Role change hydration failed:", error);
             Sentry.captureException(error);
             showToast({
-                header: "Update Failed",
-                line1: "Failed to update roles. Please try again.",
+                header: "Role update failed",
                 type: "danger",
             });
         } finally {
@@ -502,14 +500,17 @@ function RehearsalRoomContent() {
                 setLoadStage('✅ Line successfully updated!');
                 setIsUpdatingLine(false);
                 showToast({
-                    header: "Line Updated!",
-                    line1: `Line ${updateLine.index} was rehydrated successfully.`,
+                    header: "Line updated!",
                     type: "success",
                 });
             }
         } catch (err) {
             console.error(`❌ Failed to update line ${updateLine.index}:`, err);
             Sentry.captureException(err);
+            showToast({
+                header: "Line failed to update",
+                type: "danger",
+            });
         } finally {
             setHydrating(false);
             setIsUpdatingLine(false);
@@ -675,6 +676,13 @@ function RehearsalRoomContent() {
             })
             .catch((err) => {
                 console.warn("⚠️ All audio playback strategies failed", err);
+
+                showToast({
+                    header: "Scene partner line failed",
+                    type: "danger",
+                    duration: 2000,
+                });
+
                 autoAdvance(1000);
             });
 
@@ -708,6 +716,13 @@ function RehearsalRoomContent() {
 
             if (endOfScript) {
                 console.log("🎬 Rehearsal complete — cleaning up STT");
+
+                showToast({
+                    header: "Congratulations, you finished!",
+                    type: "success",
+                });
+
+                setIsFinished(true);setIsFinished
                 cleanupSTT();
                 setIsPlaying(false);
                 return;
@@ -755,6 +770,7 @@ function RehearsalRoomContent() {
         setShowCountdown(false);
         setCountdownDuration(0);
         setIsWaitingForUser(false);
+        setIsFinished(false);
         pauseSTT();
 
         if (advanceTimeoutRef.current) {
@@ -781,6 +797,7 @@ function RehearsalRoomContent() {
         setShowCountdown(false);
         setCountdownDuration(0);
         setIsWaitingForUser(false);
+        setIsFinished(false);
         setCurrentIndex((i) => {
             const prevIndex = Math.max(i - 1, 0);
             const prevLine = script?.find((el) => el.index === prevIndex);
@@ -803,6 +820,7 @@ function RehearsalRoomContent() {
         setShowCountdown(false);
         setCountdownDuration(0);
         setIsWaitingForUser(false);
+        setIsFinished(false);
         cleanupSTT();
         setCurrentIndex(0);
 
@@ -820,6 +838,7 @@ function RehearsalRoomContent() {
         setShowCountdown(false);
         setCountdownDuration(0);
         setIsWaitingForUser(false);
+        setIsFinished(false);
         pauseSTT();
 
         if (advanceTimeoutRef.current) {
@@ -871,6 +890,13 @@ function RehearsalRoomContent() {
 
                 if (endOfScript) {
                     console.log("🎬 User finished final line — cleaning up STT");
+
+                    showToast({
+                        header: "Congratulations, you finished!",
+                        type: "success",
+                    });
+
+                    setIsFinished(true);
                     cleanupSTT();
                     setIsPlaying(false);
                     return i;
@@ -1536,20 +1562,20 @@ function RehearsalRoomContent() {
                                 )}
 
                                 {/* End of Script */}
-                                {script && currentIndex >= script.length && (
+                                {script && currentIndex === script.length - 1 && isFinished && !isPlaying && (
                                     <div className="text-center py-16 border-t border-gray-200 mt-12">
                                         <div className="text-6xl mb-6">🎉</div>
-                                        <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                                        <h2 className="text-header-4 text-gray-900 mb-4">
                                             Rehearsal Complete!
                                         </h2>
                                         <p className="text-gray-600 text-lg mb-8">
-                                            Excellent work! You&apos;ve practiced the entire script.
+                                            {"Excellent work! You've practiced the entire script."}
                                         </p>
                                         <button
                                             onClick={handleRestart}
-                                            className="px-8 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-lg"
+                                            className="px-4 py-4 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors font-medium text-lg"
                                         >
-                                            🔄 Practice Again
+                                            <RotateCcw className="h-6 w-6" />
                                         </button>
                                     </div>
                                 )}

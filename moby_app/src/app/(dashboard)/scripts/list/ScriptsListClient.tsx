@@ -10,11 +10,13 @@ import UploadForm from "../upload/uploadFile";
 import { Plus, RotateCcw } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Sentry from "@sentry/nextjs";
+import { useToast } from "@/components/providers/ToastProvider";
 
 function ScriptsListContent() {
     const { uid } = useAuthUser();
     const userID = uid;
     const router = useRouter();
+    const { showToast } = useToast();
 
     // List page setup
     const [isDeleting, setIsDeleting] = useState(false);
@@ -76,7 +78,10 @@ function ScriptsListContent() {
         } catch (err) {
             console.error("Failed to delete script:", err);
             Sentry.captureException(err);
-            alert("Failed to delete script. Please try again.");
+            showToast({
+                header: "Failed to delete script",
+                type: "danger",
+            });
         } finally {
             setConfirmOpen(false);
             setScriptToDelete(null);
@@ -86,6 +91,11 @@ function ScriptsListContent() {
 
     const handleUploadSuccess = async () => {
         setSelectedFile(null);
+
+        showToast({
+            header: "New script uploaded!",
+            type: "success",
+        });
 
         // Refetch scripts list after upload
         await queryClient.invalidateQueries({ queryKey: ['scripts', userID] });

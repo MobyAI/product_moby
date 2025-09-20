@@ -32,6 +32,7 @@ import HeadshotUploadModal from "./headshotUploadModal";
 import ResumeUploadModal from "./resumeUploadModal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Sentry from "@sentry/nextjs";
+import { useToast } from "@/components/providers/ToastProvider";
 
 const ethnicityLabels = Object.fromEntries(
     ethnicities.map(eth => [eth.value, eth.label])
@@ -52,6 +53,7 @@ export default function ProfilePage() {
     const userID = uid;
     const userPhotoURL = photoURL;
     const queryClient = useQueryClient();
+    const { showToast } = useToast();
 
     // Query for profile data
     const {
@@ -117,6 +119,11 @@ export default function ProfilePage() {
         } catch (err) {
             setError('Failed to save profile');
             Sentry.captureException(err);
+
+            showToast({
+                header: "An error occurred",
+                type: "danger",
+            });
         } finally {
             setSaving(false);
         }

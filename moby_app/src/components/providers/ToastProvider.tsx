@@ -20,7 +20,6 @@ export interface ShowToastOptions {
     line1?: string;
     line2?: string;
     type?: ToastType;
-    /** ms; default 3500 */
     duration?: number;
 }
 
@@ -115,7 +114,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         clearTimers();
         const withDefaults: ToastState = {
             id: Date.now(),
-            duration: opts.duration ?? 60000,
+            duration: opts.duration ?? 3000,
             type: opts.type ?? "neutral",
             header: opts.header,
             line1: opts.line1,
@@ -165,7 +164,7 @@ function ToastViewport({
                 role="alert"
                 aria-live={tone.aria}
                 className={[
-                    "pointer-events-auto relative flex items-center w-full max-w-sm overflow-hidden rounded-2xl shadow-2xl backdrop-blur-md",
+                    "pointer-events-auto relative flex items-center overflow-hidden rounded-2xl shadow-2xl backdrop-blur-md",
                     "transition-all duration-200 border",
                     tone.bg,
                     tone.border,
@@ -181,7 +180,7 @@ function ToastViewport({
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 px-4 py-4 pr-10">
+                <div className="flex-1 px-4 py-4 mr-10">
                     <div className="text-lg font-bold tracking-tight whitespace-nowrap">{toast.header}</div>
                     {toast.line1 && (
                         <div className="mt-0.5 text-sm font-bold whitespace-nowrap">{toast.line1}</div>

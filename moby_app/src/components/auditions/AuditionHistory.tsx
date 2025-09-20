@@ -25,6 +25,7 @@ import AuditionModal from "./AuditionModal";
 import { flushSync } from "react-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Sentry from "@sentry/nextjs";
+import { useToast } from "@/components/providers/ToastProvider";
 
 // Sort configuration type
 interface SortConfig {
@@ -56,7 +57,6 @@ export default function AuditionHistory() {
     const [isEditing, setIsEditing] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Refs
@@ -64,6 +64,9 @@ export default function AuditionHistory() {
     const statusFilterRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef(null);
     const parentRef = useRef(null);
+
+    // Toast Message
+    const { showToast } = useToast();
 
     // TanStack Query for data fetching
     const queryClient = useQueryClient();
@@ -286,6 +289,11 @@ export default function AuditionHistory() {
         try {
             if (isEditing && editingId) {
                 await updateAudition(editingId, formData);
+
+                showToast({
+                    header: "Audition updated!",
+                    type: "success",
+                });
             } else {
                 if (!formData.projectTitle || !formData.auditionRole || !formData.auditionType || !formData.date) {
                     alert('Please fill in all required fields.');
@@ -294,6 +302,11 @@ export default function AuditionHistory() {
                 }
 
                 await addAudition(formData);
+
+                showToast({
+                    header: "New audition added!",
+                    type: "success",
+                });
             }
 
             // Close modal after everything succeeds
@@ -302,7 +315,10 @@ export default function AuditionHistory() {
         } catch (error) {
             console.error('Error saving audition:', error);
             Sentry.captureException(error);
-            alert('Error saving audition. Please try again.');
+            showToast({
+                header: "An error occurred",
+                type: "danger",
+            });
         } finally {
             setIsSubmitting(false);
         }
