@@ -139,6 +139,7 @@ export default function ScriptUploadModal({
     const [parsedScript, setParsedScript] = useState<ScriptElement[] | null>(null);
     const [showCloseConfirm, setShowCloseConfirm] = useState(false);
     const [scriptSaving, setScriptSaving] = useState(false);
+    const [scriptSaveError, setScriptSaveError] = useState(false);
 
     // User Inputs State
     const [scriptName, setScriptName] = useState('');
@@ -575,6 +576,7 @@ export default function ScriptUploadModal({
         // Show loading state while saving
         setProcessingStage({ message: 'Saving script...', isComplete: false });
         setScriptSaving(true);
+        setScriptSaveError(false);
 
         try {
             // Create normalized lookup maps and enrich the script
@@ -619,7 +621,7 @@ export default function ScriptUploadModal({
             setProcessingStage({ message: 'Failed to save script', isComplete: true });
 
             // Show error to user
-            alert('Failed to save script. Please try again.');
+            setScriptSaveError(true);
         } finally {
             setScriptSaving(false);
         }
@@ -990,6 +992,12 @@ export default function ScriptUploadModal({
 
                                 {/* Save button */}
                                 <div className="pt-4 flex-shrink-0">
+                                    {scriptSaveError && (
+                                        <p className="text-sm text-red-600 mb-2">
+                                            Error saving script, please try again.
+                                        </p>
+                                    )}
+
                                     <button
                                         onClick={handleComplete}
                                         disabled={!canComplete || scriptSaving}

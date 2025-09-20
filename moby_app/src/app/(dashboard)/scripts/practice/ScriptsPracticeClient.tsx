@@ -364,6 +364,7 @@ function RehearsalRoomContent() {
             Sentry.captureException(error);
             showToast({
                 header: "Role update failed",
+                line1: "Please try again",
                 type: "danger",
             });
         } finally {
@@ -509,6 +510,7 @@ function RehearsalRoomContent() {
             Sentry.captureException(err);
             showToast({
                 header: "Line failed to update",
+                line1: "Please try again",
                 type: "danger",
             });
         } finally {

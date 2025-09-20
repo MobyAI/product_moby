@@ -85,6 +85,7 @@ function ScriptsListContent() {
             Sentry.captureException(err);
             showToast({
                 header: "Failed to delete script",
+                line1: "Please try again",
                 type: "danger",
             });
         } finally {

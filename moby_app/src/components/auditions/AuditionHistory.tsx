@@ -296,7 +296,12 @@ export default function AuditionHistory() {
                 });
             } else {
                 if (!formData.projectTitle || !formData.auditionRole || !formData.auditionType || !formData.date) {
-                    alert('Please fill in all required fields.');
+                    showToast({
+                        header: "Missing fields detected",
+                        line1: "Please fill in required fields and try again",
+                        type: "warning",
+                    });
+
                     setIsSubmitting(false);
                     return;
                 }
@@ -317,6 +322,7 @@ export default function AuditionHistory() {
             Sentry.captureException(error);
             showToast({
                 header: "An error occurred",
+                line1: "Please try again",
                 type: "danger",
             });
         } finally {

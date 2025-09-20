@@ -4,6 +4,7 @@ import { set } from 'idb-keyval';
 import type { ScriptElement } from '@/types/script';
 import { Edit2, Check, X, AlertCircle } from 'lucide-react';
 import * as Sentry from "@sentry/nextjs";
+import { useToast } from "@/components/providers/ToastProvider";
 
 export function RoleSelector({
     script,
@@ -21,6 +22,8 @@ export function RoleSelector({
     const [isEditing, setIsEditing] = useState(false);
     const [pendingRoles, setPendingRoles] = useState<Record<string, 'user' | 'scene-partner'>>({});
     const [isSaving, setIsSaving] = useState(false);
+
+    const { showToast } = useToast();
 
     const characterRoles = useMemo(() => getCharacterRoles(script), [script]);
 
@@ -97,7 +100,12 @@ export function RoleSelector({
         } catch (err) {
             console.error('❌ Failed to save script:', err);
             Sentry.captureException(err);
-            alert('Failed to save role changes. Please try again.');
+
+            showToast({
+                header: "Failed to update roles",
+                line1: "Please try again",
+                type: "danger",
+            });
         } finally {
             setIsSaving(false);
         }

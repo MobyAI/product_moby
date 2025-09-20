@@ -122,6 +122,7 @@ export default function ProfilePage() {
 
             showToast({
                 header: "An error occurred",
+                line1: "Please try again",
                 type: "danger",
             });
         } finally {
