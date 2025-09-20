@@ -73,6 +73,11 @@ function ScriptsListContent() {
         try {
             await deleteScript(scriptToDelete);
 
+            showToast({
+                header: "Script deleted!",
+                type: "success",
+            });
+
             // Invalidate cache to refetch updated list
             await queryClient.invalidateQueries({ queryKey: ['scripts', userID] });
         } catch (err) {

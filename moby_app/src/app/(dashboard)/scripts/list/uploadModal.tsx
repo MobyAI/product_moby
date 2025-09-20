@@ -53,7 +53,7 @@ interface EditableLineProps {
     onClose: () => void;
 }
 
-type ProcessingErrorStage = 'text' | 'character' | 'parse' | 'general' | null;
+type ProcessingErrorStage = 'voice' | 'text' | 'character' | 'parse' | 'general' | null;
 
 interface ProcessingError {
     hasError: boolean;
@@ -149,6 +149,7 @@ export default function ScriptUploadModal({
     // Voice library state
     const [voiceSamples, setVoiceSamples] = useState<VoiceSample[] | null>(null);
     const [voicesLoading, setVoicesLoading] = useState(false);
+    const [voiceLoadError, setVoiceLoadError] = useState(false);
     const [voiceAssignments, setVoiceAssignments] = useState<Record<string, VoiceAssignment>>({});
     const [confirmationModal, setConfirmationModal] = useState<{
         isOpen: boolean;
@@ -187,6 +188,8 @@ export default function ScriptUploadModal({
             stage: null,
             message: '',
         });
+        setVoiceLoadError(false);
+        setVoicesLoading(false);
     };
 
     // Update handleClose to show confirmation
@@ -200,47 +203,69 @@ export default function ScriptUploadModal({
         onClose();
     };
 
-    // Start processing when file is provided
-    useEffect(() => {
-        if (!isOpen) return;
-
-        // Load voices (checking auth)
-        if (!voiceSamples && !voicesLoading) {
-            if (auth.currentUser) {
-                // User already authenticated
-                loadVoiceSamples();
-            } else {
-                // Set up listener in case auth is still initializing
-                const unsubscribe = onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        loadVoiceSamples();
-                        unsubscribe(); // Unsubscribe after loading
-                    }
-                });
-                return () => unsubscribe();
-            }
-        }
-
-        // Start file processing if file exists
-        if (file) {
-            startProcessing();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOpen, file]);
-
     // Separate the voice loading function
     const loadVoiceSamples = async () => {
         setVoicesLoading(true);
+        setVoiceLoadError(false);
+
         try {
             const data = await getAllVoiceSamples();
+
+            // Check if data is valid
+            if (!data || data.length === 0) {
+                throw new Error('No voice samples available');
+            }
+
             setVoiceSamples(data);
         } catch (err) {
             console.error('Failed to load voice samples:', err);
             Sentry.captureException(err);
+
+            // Set error state
+            setVoiceLoadError(true);
+            setProcessingError({
+                hasError: true,
+                stage: 'voice',
+                message: 'Unable to load.'
+            });
+
+            setCurrentStage(0);
         } finally {
             setVoicesLoading(false);
         }
     };
+
+    // Update the useEffect to prevent processing if voices fail
+    useEffect(() => {
+        if (!isOpen) return;
+
+        // Load voices (checking auth)
+        const loadVoicesAndProcess = async () => {
+            if (!voiceSamples && !voicesLoading && !voiceLoadError) {
+                if (auth.currentUser) {
+                    // User already authenticated
+                    await loadVoiceSamples();
+                } else {
+                    // Set up listener in case auth is still initializing
+                    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            await loadVoiceSamples();
+                            unsubscribe(); // Unsubscribe after loading
+                        }
+                    });
+                    return () => unsubscribe();
+                }
+            }
+
+            // Only start file processing if file exists AND voices loaded successfully
+            if (file && voiceSamples && !voiceLoadError) {
+                startProcessing();
+            }
+        };
+
+        loadVoicesAndProcess();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, file, voiceSamples, voiceLoadError]);
 
     const startProcessing = async () => {
         if (!file) return;
@@ -267,7 +292,7 @@ export default function ScriptUploadModal({
                 }
 
                 if ((uniqueWordCount < minUniqueWords) && (file.type === 'application/pdf' || file.name.endsWith('.pdf'))) {
-                    setProcessingStage({ message: 'Image detected! This may take longer than normal...', isComplete: false });
+                    setProcessingStage({ message: 'Image detected! This may take a little longer...', isComplete: false });
 
                     // Use the PDF extraction with GPT Vision
                     const extractedText = await extractTextFromPDFimg(file);
@@ -639,6 +664,16 @@ export default function ScriptUploadModal({
                         : 'p-6 overflow-y-auto max-h-[60vh]'
                 }>
                     <div className={`transition-all duration-300 ${isTransitioning ? 'opacity-0 transform translate-x-full' : 'opacity-100 transform translate-x-0'}`}>
+
+                        {/* Stage 0: Voice Samples */}
+                        {currentStage === 0 && processingError.hasError && processingError.stage === 'voice' && (
+                            <div className="p-6">
+                                <ProcessingError
+                                    onClose={confirmClose}
+                                    error={processingError}
+                                />
+                            </div>
+                        )}
 
                         {/* Stage 1: Loading */}
                         {currentStage === 1 && (
@@ -1399,6 +1434,13 @@ const ScriptRenderer = ({
 const ProcessingError: React.FC<ProcessingErrorProps> = ({ error, onClose }) => {
     const getErrorDetails = () => {
         switch (error.stage) {
+            case 'voice':
+                return {
+                    title: 'Voice Library Failed',
+                    tips: [
+                        'Please check your internet connection and try again.',
+                    ],
+                };
             case 'text':
                 return {
                     title: 'Text Extraction Failed',
