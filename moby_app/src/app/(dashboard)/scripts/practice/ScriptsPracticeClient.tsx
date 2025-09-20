@@ -1436,7 +1436,7 @@ function RehearsalRoomContent() {
 
                             {/* Header */}
                             <div className="mb-6">
-                                <h1 className="text-header-2 font-bold mb-2">Practice Room</h1>
+                                <h1 className="text-header-2 text-white font-bold mb-2">Practice Room</h1>
                                 <p className="text-gray-400 text-sm">Follow along and practice your lines</p>
                             </div>
 

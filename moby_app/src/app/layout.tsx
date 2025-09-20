@@ -16,9 +16,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Playr",
   description: "Tool for actors",
-  icons: {
-    icon: '/favicon.svg',
-  },
 };
 
 export default function RootLayout({
