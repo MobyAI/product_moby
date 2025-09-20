@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -38,7 +38,7 @@ const ethnicityLabels = Object.fromEntries(
     ethnicities.map(eth => [eth.value, eth.label])
 );
 
-export default function ProfilePage() {
+function ProfilePageContent() {
     const [deleting, setDeleting] = useState<'headshot' | 'resume' | null>(null);
     const [saving, setSaving] = useState(false);
     const [editMode, setEditMode] = useState(false);
@@ -582,5 +582,19 @@ export default function ProfilePage() {
                 onSuccess={handleResumeUploadSuccess}
             />
         </DashboardLayout>
+    );
+}
+
+export default function ProfilePage() {
+    return (
+        <Suspense fallback={
+            <LoadingScreen
+                header="Profile Page"
+                message="Getting your details"
+                mode="light"
+            />
+        }>
+            <ProfilePageContent />
+        </Suspense>
     );
 }
