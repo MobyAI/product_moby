@@ -818,7 +818,7 @@ function RehearsalRoomContent() {
                     type: "success",
                 });
 
-                setIsFinished(true); setIsFinished
+                setIsFinished(true);
                 cleanupSTT();
                 setIsPlaying(false);
                 return;
@@ -866,7 +866,6 @@ function RehearsalRoomContent() {
         setShowCountdown(false);
         setCountdownDuration(0);
         setIsWaitingForUser(false);
-        setIsFinished(false);
         pauseSTT();
 
         if (advanceTimeoutRef.current) {
