@@ -1,5 +1,5 @@
 import { Fragment, useState, useCallback } from 'react';
-import { Dialog as HeadlessDialog, Transition } from '@headlessui/react';
+import { Dialog as HeadlessDialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
 import {
     AlertTriangle,
     Info,
@@ -9,6 +9,14 @@ import {
     Trash2,
     X
 } from 'lucide-react';
+
+// Add this style tag to your global CSS or use a CSS-in-JS solution
+// For the radial gradient effect, you may need to add this to your global styles:
+/*
+.bg-gradient-radial {
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+}
+*/
 
 export type DialogType = 'confirm' | 'alert' | 'success' | 'error' | 'warning' | 'info' | 'delete';
 
@@ -28,51 +36,51 @@ interface DialogProps {
 const dialogConfig = {
     confirm: {
         icon: AlertCircle,
-        iconBg: 'bg-blue-100',
-        iconColor: 'text-blue-600',
-        confirmBtnClass: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500',
+        iconBg: 'bg-gray-800',
+        iconColor: 'text-gray-400',
+        confirmBtnClass: 'bg-gray-700 hover:bg-gray-600 focus:ring-gray-500 text-white',
         defaultConfirmText: 'Confirm'
     },
     delete: {
         icon: Trash2,
-        iconBg: 'bg-red-100',
-        iconColor: 'text-red-600',
-        confirmBtnClass: 'bg-red-600 hover:bg-red-700 focus:ring-red-500',
+        iconBg: 'bg-red-950/30',
+        iconColor: 'text-red-400',
+        confirmBtnClass: 'bg-red-600 hover:bg-red-700 focus:ring-red-500 text-white',
         defaultConfirmText: 'Delete'
     },
     alert: {
         icon: AlertCircle,
-        iconBg: 'bg-gray-100',
-        iconColor: 'text-gray-600',
-        confirmBtnClass: 'bg-gray-600 hover:bg-gray-700 focus:ring-gray-500',
+        iconBg: 'bg-gray-800',
+        iconColor: 'text-gray-400',
+        confirmBtnClass: 'bg-gray-700 hover:bg-gray-600 focus:ring-gray-500 text-white',
         defaultConfirmText: 'OK'
     },
     success: {
         icon: CheckCircle,
-        iconBg: 'bg-green-100',
-        iconColor: 'text-green-600',
-        confirmBtnClass: 'bg-green-600 hover:bg-green-700 focus:ring-green-500',
-        defaultConfirmText: 'OK'
+        iconBg: 'bg-green-950/30',
+        iconColor: 'text-green-400',
+        confirmBtnClass: 'bg-gray-700 hover:bg-gray-600 focus:ring-gray-500 text-white',
+        defaultConfirmText: 'Got it, thanks!'
     },
     error: {
         icon: XCircle,
-        iconBg: 'bg-red-100',
-        iconColor: 'text-red-600',
-        confirmBtnClass: 'bg-red-600 hover:bg-red-700 focus:ring-red-500',
+        iconBg: 'bg-red-950/30',
+        iconColor: 'text-red-400',
+        confirmBtnClass: 'bg-gray-700 hover:bg-gray-600 focus:ring-gray-500 text-white',
         defaultConfirmText: 'OK'
     },
     warning: {
         icon: AlertTriangle,
-        iconBg: 'bg-yellow-100',
-        iconColor: 'text-yellow-600',
-        confirmBtnClass: 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500',
+        iconBg: 'bg-yellow-950/30',
+        iconColor: 'text-yellow-400',
+        confirmBtnClass: 'bg-gray-700 hover:bg-gray-600 focus:ring-gray-500 text-white',
         defaultConfirmText: 'OK'
     },
     info: {
         icon: Info,
-        iconBg: 'bg-blue-100',
-        iconColor: 'text-blue-600',
-        confirmBtnClass: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500',
+        iconBg: 'bg-blue-950/30',
+        iconColor: 'text-blue-400',
+        confirmBtnClass: 'bg-gray-700 hover:bg-gray-600 focus:ring-gray-500 text-white',
         defaultConfirmText: 'OK'
     }
 };
@@ -106,9 +114,9 @@ export default function Dialog({
     const primaryButtonText = confirmText || config.defaultConfirmText;
 
     return (
-        <Transition.Root show={isOpen} as={Fragment}>
+        <Transition show={isOpen} as={Fragment}>
             <HeadlessDialog as="div" className="relative z-50" onClose={onClose}>
-                <Transition.Child
+                <TransitionChild
                     as={Fragment}
                     enter="ease-out duration-300"
                     enterFrom="opacity-0"
@@ -117,12 +125,12 @@ export default function Dialog({
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
-                    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-                </Transition.Child>
+                    <div className="fixed inset-0 bg-black/80 transition-opacity" />
+                </TransitionChild>
 
                 <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
                     <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                        <Transition.Child
+                        <TransitionChild
                             as={Fragment}
                             enter="ease-out duration-300"
                             enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
@@ -131,33 +139,33 @@ export default function Dialog({
                             leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                             leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                         >
-                            <HeadlessDialog.Panel className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                            <DialogPanel className="relative transform overflow-hidden p-3 rounded-xl bg-[#141414] text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                                {/* Radial gradient overlay for subtle white glow inside the dialog */}
+                                <div className="absolute inset-0 pointer-events-none rounded-xl" style={{ background: 'radial-gradient(circle at center, rgba(255, 255, 255, 0.03) 0%, transparent 70%)' }} />
                                 {/* Close button (X) in top right corner */}
                                 {showCloseButton && (
-                                    <div className="absolute right-0 top-0 pr-4 pt-4">
+                                    <div className="absolute right-0 top-0 pr-4 pt-4 z-10">
                                         <button
                                             type="button"
-                                            className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                            className="rounded-md bg-transparent text-gray-500 hover:text-gray-400 focus:outline-none transition-colors"
                                             onClick={onClose}
                                             disabled={isLoading}
                                         >
                                             <span className="sr-only">Close</span>
-                                            <X className="h-5 w-5" aria-hidden="true" />
+                                            <X className="h-4 w-4" aria-hidden="true" />
                                         </button>
                                     </div>
                                 )}
 
-                                <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                                <div className="relative px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                                     <div className="sm:flex sm:items-start">
-                                        <div className={`mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${config.iconBg} sm:mx-0 sm:h-10 sm:w-10`}>
-                                            <Icon className={`h-6 w-6 ${config.iconColor}`} aria-hidden="true" />
-                                        </div>
-                                        <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-                                            <HeadlessDialog.Title as="h3" className="text-base font-semibold leading-6 text-gray-900">
+                                        {/* Hide icon for cleaner look */}
+                                        <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
+                                            <DialogTitle as="h3" className="text-lg font-medium leading-6 text-white">
                                                 {title}
-                                            </HeadlessDialog.Title>
-                                            <div className="mt-2">
-                                                <p className="text-sm text-gray-500 whitespace-pre-wrap">
+                                            </DialogTitle>
+                                            <div className="mt-3">
+                                                <p className="text-sm text-gray-400 whitespace-pre-wrap">
                                                     {message}
                                                 </p>
                                             </div>
@@ -165,12 +173,12 @@ export default function Dialog({
                                     </div>
                                 </div>
 
-                                <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                                <div className="relative py-4 sm:flex sm:px-6 space-x-2">
                                     {/* Primary action button */}
                                     <button
                                         type="button"
                                         disabled={isLoading}
-                                        className={`inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm ${config.confirmBtnClass} sm:ml-3 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2`}
+                                        className={`inline-flex w-full justify-center rounded-lg px-4 py-2.5 text-sm font-semibold shadow-sm ${config.confirmBtnClass} sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 transition-colors`}
                                         onClick={handlePrimaryAction}
                                     >
                                         {isLoading ? (
@@ -191,19 +199,19 @@ export default function Dialog({
                                         <button
                                             type="button"
                                             disabled={isLoading}
-                                            className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                            className="mt-3 inline-flex w-full justify-center rounded-lg bg-white/10 px-4 py-2.5 text-sm font-semibold text-gray-300 shadow-sm hover:bg-white/20 hover:text-white sm:mt-0 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none transition-colors"
                                             onClick={onClose}
                                         >
                                             {cancelText}
                                         </button>
                                     )}
                                 </div>
-                            </HeadlessDialog.Panel>
-                        </Transition.Child>
+                            </DialogPanel>
+                        </TransitionChild>
                     </div>
                 </div>
             </HeadlessDialog>
-        </Transition.Root>
+        </Transition>
     );
 }
 

@@ -732,3 +732,8 @@ body {
   animation: glowPulse 1.5s ease-in-out infinite;
   @apply bg-white;
 }
+
+/* Dialog Box BG */
+.bg-gradient-radial {
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+}

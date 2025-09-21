@@ -27,6 +27,7 @@ import { getUser, updateUserProfile } from "@/lib/firebase/client/user";
 import { deleteHeadshot, deleteResume, getHeadshots, getResume, setAuthPhotoURL } from "@/lib/firebase/client/media";
 import { useAuthUser } from "@/components/providers/UserProvider";
 import { DashboardLayout, Button, LoadingScreen } from "@/components/ui";
+import Dialog, { useDialog } from '@/components/ui/Dialog';
 import { UserProfile, ethnicities } from "@/types/profile";
 import HeadshotUploadModal from "./headshotUploadModal";
 import ResumeUploadModal from "./resumeUploadModal";
@@ -54,6 +55,7 @@ function ProfilePageContent() {
     const userPhotoURL = photoURL;
     const queryClient = useQueryClient();
     const { showToast } = useToast();
+    const { dialogProps, openConfirm } = useDialog();
 
     // Query for profile data
     const {
@@ -114,7 +116,7 @@ function ProfilePageContent() {
                 setEditMode(false);
                 router.refresh();
             } else {
-                setError(result.error || 'Failed to save profile');
+                setError('Failed to save profile');
             }
         } catch (err) {
             setError('Failed to save profile');
@@ -136,37 +138,84 @@ function ProfilePageContent() {
         setError(null);
     }
 
+    // async function handleDeleteHeadshot(headshotId: string) {
+    //     if (!confirm('Are you sure you want to delete this headshot?')) return;
+    //     setDeleting('headshot');
+    //     try {
+    //         await deleteHeadshot(headshotId, auth.currentUser?.uid || '');
+    //         if (selectedHeadshotIndex >= headshots.length - 1) {
+    //             setSelectedHeadshotIndex(Math.max(0, headshots.length - 2));
+    //         }
+    //         await queryClient.invalidateQueries({ queryKey: ['headshots', userID] });
+    //     } catch (error) {
+    //         console.error('Delete headshot error:', error);
+    //         Sentry.captureException(error);
+    //         setError('Failed to delete headshot');
+    //     } finally {
+    //         setDeleting(null);
+    //     }
+    // }
+
     async function handleDeleteHeadshot(headshotId: string) {
-        if (!confirm('Are you sure you want to delete this headshot?')) return;
-        setDeleting('headshot');
-        try {
-            await deleteHeadshot(headshotId, auth.currentUser?.uid || '');
-            if (selectedHeadshotIndex >= headshots.length - 1) {
-                setSelectedHeadshotIndex(Math.max(0, headshots.length - 2));
-            }
-            await queryClient.invalidateQueries({ queryKey: ['headshots', userID] });
-        } catch (error) {
-            console.error('Delete headshot error:', error);
-            Sentry.captureException(error);
-            setError('Failed to delete headshot');
-        } finally {
-            setDeleting(null);
-        }
+        openConfirm(
+            'Delete Headshot',
+            'Are you sure you want to delete this headshot? This action cannot be undone.',
+            async () => {
+                setError(null);
+                setDeleting('headshot');
+                try {
+                    await deleteHeadshot(headshotId, auth.currentUser?.uid || '');
+                    if (selectedHeadshotIndex >= headshots.length - 1) {
+                        setSelectedHeadshotIndex(Math.max(0, headshots.length - 2));
+                    }
+                    await queryClient.invalidateQueries({ queryKey: ['headshots', userID] });
+                } catch (error) {
+                    console.error('Delete headshot error:', error);
+                    Sentry.captureException(error);
+                    setError('Failed to delete headshot');
+                } finally {
+                    setDeleting(null);
+                }
+            },
+            { type: 'delete' }
+        );
     }
 
+    // async function handleDeleteResume() {
+    //     if (!confirm('Are you sure you want to delete your resume?')) return;
+    //     setDeleting('resume');
+    //     try {
+    //         await deleteResume(resume?.id || '', auth.currentUser?.uid || '');
+    //         await queryClient.invalidateQueries({ queryKey: ['resume', userID] });
+    //     } catch (error) {
+    //         console.error('Delete resume error:', error);
+    //         Sentry.captureException(error);
+    //         setError('Failed to delete resume');
+    //     } finally {
+    //         setDeleting(null);
+    //     }
+    // }
+
     async function handleDeleteResume() {
-        if (!confirm('Are you sure you want to delete your resume?')) return;
-        setDeleting('resume');
-        try {
-            await deleteResume(resume?.id || '', auth.currentUser?.uid || '');
-            await queryClient.invalidateQueries({ queryKey: ['resume', userID] });
-        } catch (error) {
-            console.error('Delete resume error:', error);
-            Sentry.captureException(error);
-            setError('Failed to delete resume');
-        } finally {
-            setDeleting(null);
-        }
+        openConfirm(
+            'Delete Resume',
+            'Are you sure you want to delete your resume? This action cannot be undone.',
+            async () => {
+                setError(null);
+                setDeleting('resume');
+                try {
+                    await deleteResume(resume?.id || '', auth.currentUser?.uid || '');
+                    await queryClient.invalidateQueries({ queryKey: ['resume', userID] });
+                } catch (error) {
+                    console.error('Delete resume error:', error);
+                    Sentry.captureException(error);
+                    setError('Failed to delete resume');
+                } finally {
+                    setDeleting(null);
+                }
+            },
+            { type: 'delete' }
+        );
     }
 
     async function handleSetProfilePic(url: string) {
@@ -581,6 +630,8 @@ function ProfilePageContent() {
                 onClose={() => setShowResumeUploadModal(false)}
                 onSuccess={handleResumeUploadSuccess}
             />
+
+            <Dialog {...dialogProps} />
         </DashboardLayout>
     );
 }
