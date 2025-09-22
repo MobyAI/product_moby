@@ -138,24 +138,6 @@ function ProfilePageContent() {
         setError(null);
     }
 
-    // async function handleDeleteHeadshot(headshotId: string) {
-    //     if (!confirm('Are you sure you want to delete this headshot?')) return;
-    //     setDeleting('headshot');
-    //     try {
-    //         await deleteHeadshot(headshotId, auth.currentUser?.uid || '');
-    //         if (selectedHeadshotIndex >= headshots.length - 1) {
-    //             setSelectedHeadshotIndex(Math.max(0, headshots.length - 2));
-    //         }
-    //         await queryClient.invalidateQueries({ queryKey: ['headshots', userID] });
-    //     } catch (error) {
-    //         console.error('Delete headshot error:', error);
-    //         Sentry.captureException(error);
-    //         setError('Failed to delete headshot');
-    //     } finally {
-    //         setDeleting(null);
-    //     }
-    // }
-
     async function handleDeleteHeadshot(headshotId: string) {
         openConfirm(
             'Delete Headshot',
@@ -180,21 +162,6 @@ function ProfilePageContent() {
             { type: 'delete' }
         );
     }
-
-    // async function handleDeleteResume() {
-    //     if (!confirm('Are you sure you want to delete your resume?')) return;
-    //     setDeleting('resume');
-    //     try {
-    //         await deleteResume(resume?.id || '', auth.currentUser?.uid || '');
-    //         await queryClient.invalidateQueries({ queryKey: ['resume', userID] });
-    //     } catch (error) {
-    //         console.error('Delete resume error:', error);
-    //         Sentry.captureException(error);
-    //         setError('Failed to delete resume');
-    //     } finally {
-    //         setDeleting(null);
-    //     }
-    // }
 
     async function handleDeleteResume() {
         openConfirm(
