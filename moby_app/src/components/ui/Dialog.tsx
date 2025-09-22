@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
     AlertTriangle,
     Info,
@@ -48,7 +48,7 @@ const dialogConfig = {
         icon: AlertCircle,
         confirmBtnClass:
             "bg-gray-700 hover:bg-gray-600 focus:ring-gray-500 text-white",
-        defaultConfirmText: "OK",
+        defaultConfirmText: "Got it, thanks!",
     },
     success: {
         icon: CheckCircle,
@@ -60,19 +60,19 @@ const dialogConfig = {
         icon: XCircle,
         confirmBtnClass:
             "bg-gray-700 hover:bg-gray-600 focus:ring-gray-500 text-white",
-        defaultConfirmText: "OK",
+        defaultConfirmText: "Got it, thanks!",
     },
     warning: {
         icon: AlertTriangle,
         confirmBtnClass:
             "bg-gray-700 hover:bg-gray-600 focus:ring-gray-500 text-white",
-        defaultConfirmText: "OK",
+        defaultConfirmText: "Got it, thanks!",
     },
     info: {
         icon: Info,
         confirmBtnClass:
             "bg-gray-700 hover:bg-gray-600 focus:ring-gray-500 text-white",
-        defaultConfirmText: "OK",
+        defaultConfirmText: "Got it, thanks!",
     },
 };
 
@@ -218,7 +218,7 @@ export default function Dialog({
                     <button
                         type="button"
                         disabled={isLoading}
-                        className={`inline-flex w-full justify-center rounded-lg px-4 py-2.5 text-sm font-semibold shadow-sm ${config.confirmBtnClass} sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 transition-colors`}
+                        className={`inline-flex w-full justify-center rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm ${config.confirmBtnClass} sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 transition-colors`}
                         onClick={handlePrimaryAction}
                     >
                         {isLoading ? (
@@ -254,7 +254,7 @@ export default function Dialog({
                         <button
                             type="button"
                             disabled={isLoading}
-                            className="mt-3 inline-flex w-full justify-center rounded-lg bg-white/10 px-4 py-2.5 text-sm font-semibold text-gray-300 shadow-sm hover:bg-white/20 hover:text-white sm:mt-0 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none transition-colors"
+                            className="mt-3 inline-flex w-full justify-center rounded-lg bg-white/10 px-4 py-2.5 text-sm font-medium text-gray-300 shadow-sm hover:bg-white/20 hover:text-white sm:mt-0 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none transition-colors"
                             onClick={onClose}
                         >
                             {cancelText}

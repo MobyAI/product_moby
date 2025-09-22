@@ -9,6 +9,7 @@ import { extractTextFromPDFimg } from '@/lib/extract/image';
 import { ScriptElement } from '@/types/script';
 import { getAllVoiceSamples } from '@/lib/firebase/client/tts';
 import { ConfirmModal } from "@/components/ui";
+import Dialog, { useDialog } from '@/components/ui/Dialog';
 import * as Sentry from "@sentry/nextjs";
 
 interface ScriptUploadModalProps {
@@ -137,7 +138,6 @@ export default function ScriptUploadModal({
     });
     const [extractedRoles, setExtractedRoles] = useState<string[] | null>([]);
     const [parsedScript, setParsedScript] = useState<ScriptElement[] | null>(null);
-    const [showCloseConfirm, setShowCloseConfirm] = useState(false);
     const [scriptSaving, setScriptSaving] = useState(false);
     const [scriptSaveError, setScriptSaveError] = useState(false);
 
@@ -170,6 +170,9 @@ export default function ScriptUploadModal({
     const [isTransitioning, setIsTransitioning] = useState(false);
     const modalRef = useRef(null);
 
+    // Dialog component
+    const { dialogProps, openConfirm } = useDialog();
+
     // Reset function
     const resetModal = () => {
         setCurrentStage(0);
@@ -180,7 +183,6 @@ export default function ScriptUploadModal({
         setRoleAssignments({});
         setVoiceAssignments({});
         setUserRole('');
-        setShowCloseConfirm(false);
         setProcessingStage({ message: '', isComplete: false });
         setIsParsingInBackground(false);
         setIsTransitioning(false);
@@ -195,11 +197,17 @@ export default function ScriptUploadModal({
 
     // Update handleClose to show confirmation
     const handleClose = () => {
-        setShowCloseConfirm(true);
+        openConfirm(
+            'Close',
+            'Are you sure you want to close? Upload will be cancelled.',
+            async () => {
+                confirmClose();
+            },
+            { type: 'confirm' }
+        );
     };
 
     const confirmClose = () => {
-        setShowCloseConfirm(false);
         resetModal();
         onClose();
     };
@@ -646,7 +654,7 @@ export default function ScriptUploadModal({
                 <div className="bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 p-6 text-white">
                     <div className="flex justify-between items-start">
                         <div className="flex-1">
-                            <h2 className="text-2xl font-bold mb-2">Upload Script</h2>
+                            <h2 className="text-2xl text-white font-bold mb-2">Upload Script</h2>
                             <ProcessingIndicator stage={processingStage} />
                         </div>
                         <button
@@ -1025,15 +1033,7 @@ export default function ScriptUploadModal({
                 </div>
 
                 {/* Close Confirmation Modal */}
-                <ConfirmModal
-                    isOpen={showCloseConfirm}
-                    title="Confirm Close"
-                    message="Are you sure you want to close? All your progress will be lost."
-                    confirmLabel="Close"
-                    cancelLabel="Cancel"
-                    onConfirm={confirmClose}
-                    onCancel={() => setShowCloseConfirm(false)}
-                />
+                <Dialog {...dialogProps} />
             </div>
         </div>
     );
