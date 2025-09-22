@@ -27,7 +27,7 @@ import { getUser, updateUserProfile } from "@/lib/firebase/client/user";
 import { deleteHeadshot, deleteResume, getHeadshots, getResume, setAuthPhotoURL } from "@/lib/firebase/client/media";
 import { useAuthUser } from "@/components/providers/UserProvider";
 import { DashboardLayout, Button, LoadingScreen } from "@/components/ui";
-import Dialog, { useDialog } from '@/components/ui/Dialog';
+import Dialog, { useDialog } from "@/components/ui/Dialog";
 import { UserProfile, ethnicities } from "@/types/profile";
 import HeadshotUploadModal from "./headshotUploadModal";
 import ResumeUploadModal from "./resumeUploadModal";

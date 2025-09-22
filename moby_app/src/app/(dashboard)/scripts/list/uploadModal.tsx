@@ -8,7 +8,6 @@ import { parseScriptFromText } from '@/lib/api/parse/parse';
 import { extractTextFromPDFimg } from '@/lib/extract/image';
 import { ScriptElement } from '@/types/script';
 import { getAllVoiceSamples } from '@/lib/firebase/client/tts';
-import { ConfirmModal } from "@/components/ui";
 import Dialog, { useDialog } from '@/components/ui/Dialog';
 import * as Sentry from "@sentry/nextjs";
 
@@ -171,6 +170,9 @@ export default function ScriptUploadModal({
     const [isTransitioning, setIsTransitioning] = useState(false);
     const modalRef = useRef(null);
 
+    // Use a ref to track if processing should continue
+    const shouldContinueProcessing = useRef(true);
+
     // Dialog component
     const { dialogProps, openConfirm } = useDialog();
 
@@ -194,6 +196,14 @@ export default function ScriptUploadModal({
         });
         setVoiceLoadError(false);
         setVoicesLoading(false);
+        shouldContinueProcessing.current = true;
+    };
+
+    // Cancel processing
+    const cancelProcessing = () => {
+        shouldContinueProcessing.current = false;
+
+        setProcessingStage({ message: 'Processing cancelled', isComplete: false });
     };
 
     // Update handleClose to show confirmation
@@ -209,6 +219,7 @@ export default function ScriptUploadModal({
     };
 
     const confirmClose = () => {
+        cancelProcessing();
         resetModal();
         onClose();
     };
@@ -268,7 +279,7 @@ export default function ScriptUploadModal({
             }
 
             // Only start file processing if file exists AND voices loaded successfully
-            if (file && voiceSamples && !voiceLoadError) {
+            if (file && voiceSamples && !voiceLoadError && shouldContinueProcessing.current) {
                 startProcessing();
             }
         };
@@ -287,7 +298,18 @@ export default function ScriptUploadModal({
             let textResult;
 
             try {
+                // Check if we should continue
+                if (!shouldContinueProcessing.current) {
+                    console.log('Processing cancelled');
+                    return;
+                }
+
                 textResult = await extractScriptText(file);
+
+                if (!shouldContinueProcessing.current) {
+                    console.log('Processing cancelled');
+                    return;
+                }
 
                 // Check if text extraction was successful and has enough unique words
                 const minUniqueWords = 50;
@@ -304,8 +326,18 @@ export default function ScriptUploadModal({
                 if ((uniqueWordCount < minUniqueWords) && (file.type === 'application/pdf' || file.name.endsWith('.pdf'))) {
                     setProcessingStage({ message: 'Image detected! This may take a little longer...', isComplete: false });
 
+                    if (!shouldContinueProcessing.current) {
+                        console.log('Processing cancelled');
+                        return;
+                    }
+
                     // Use the PDF extraction with GPT Vision
                     const extractedText = await extractTextFromPDFimg(file);
+
+                    if (!shouldContinueProcessing.current) {
+                        console.log('Processing cancelled');
+                        return;
+                    }
 
                     textResult = {
                         text: extractedText.text
@@ -358,7 +390,17 @@ export default function ScriptUploadModal({
 
             if (!extractedRoles || extractedRoles.length === 0) {
                 try {
+                    if (!shouldContinueProcessing.current) {
+                        console.log('Processing cancelled');
+                        return;
+                    }
+
                     rolesResult = await extractRolesFromText(textResult.text);
+
+                    if (!shouldContinueProcessing.current) {
+                        console.log('Processing cancelled');
+                        return;
+                    }
 
                     if (!rolesResult || rolesResult.length === 0) {
                         setProcessingError({
@@ -439,7 +481,17 @@ export default function ScriptUploadModal({
             setProcessingStage({ message: 'Parsing script structure...', isComplete: false });
 
             try {
+                if (!shouldContinueProcessing.current) {
+                    console.log('Processing cancelled');
+                    return;
+                }
+
                 const parsedResult = await parseScriptFromText(textResult.text);
+
+                if (!shouldContinueProcessing.current) {
+                    console.log('Processing cancelled');
+                    return;
+                }
 
                 if (!parsedResult || parsedResult.length === 0) {
                     setProcessingError({

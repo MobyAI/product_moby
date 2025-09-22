@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { getAllScripts, deleteScript } from "@/lib/firebase/client/scripts";
 import { useAuthUser } from "@/components/providers/UserProvider";
 import ScriptUploadModal from "./uploadModal";
-import { DashboardLayout, ConfirmModal, ScriptCard, Button, LoadingScreen } from "@/components/ui";
+import { DashboardLayout, ScriptCard, Button, LoadingScreen } from "@/components/ui";
+import Dialog, { useDialog } from "@/components/ui/Dialog";
 import UploadForm from "../upload/uploadFile";
 import { Plus, RotateCcw } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +18,7 @@ function ScriptsListContent() {
     const userID = uid;
     const router = useRouter();
     const { showToast } = useToast();
+    const { dialogProps, openConfirm } = useDialog();
 
     // List page setup
     const [isDeleting, setIsDeleting] = useState(false);
@@ -61,38 +63,35 @@ function ScriptsListContent() {
     };
 
     const handleDeleteClick = (id: string) => {
-        setScriptToDelete(id);
-        setConfirmOpen(true);
-    };
+        openConfirm(
+            'Delete Script',
+            'Are you sure you want to delete this script? This action cannot be undone.',
+            async () => {
+                setIsDeleting(true);
+                try {
+                    await deleteScript(id);
 
-    const confirmDelete = async () => {
-        if (!scriptToDelete) return;
+                    showToast({
+                        header: "Script deleted!",
+                        type: "success",
+                    });
 
-        setIsDeleting(true);
-
-        try {
-            await deleteScript(scriptToDelete);
-
-            showToast({
-                header: "Script deleted!",
-                type: "success",
-            });
-
-            // Invalidate cache to refetch updated list
-            await queryClient.invalidateQueries({ queryKey: ['scripts', userID] });
-        } catch (err) {
-            console.error("Failed to delete script:", err);
-            Sentry.captureException(err);
-            showToast({
-                header: "Failed to delete script",
-                line1: "Please try again",
-                type: "danger",
-            });
-        } finally {
-            setConfirmOpen(false);
-            setScriptToDelete(null);
-            setIsDeleting(false);
-        }
+                    // Invalidate cache to refetch updated list
+                    await queryClient.invalidateQueries({ queryKey: ['scripts', userID] });
+                } catch (err) {
+                    console.error("Failed to delete script:", err);
+                    Sentry.captureException(err);
+                    showToast({
+                        header: "Failed to delete script",
+                        line1: "Please try again",
+                        type: "danger",
+                    });
+                } finally {
+                    setIsDeleting(false);
+                }
+            },
+            { type: 'delete' }
+        );
     };
 
     const handleUploadSuccess = async () => {
@@ -186,19 +185,7 @@ function ScriptsListContent() {
             )}
 
             {/* Delete Confirmation Modal */}
-            <ConfirmModal
-                isOpen={confirmOpen}
-                title="Delete Script"
-                message="Are you sure you want to delete this script? This action cannot be undone."
-                confirmLabel="Delete"
-                cancelLabel="Cancel"
-                onConfirm={confirmDelete}
-                onCancel={() => {
-                    setConfirmOpen(false);
-                    setScriptToDelete(null);
-                }}
-                isProcessing={isDeleting}
-            />
+            <Dialog {...dialogProps} />
 
             {/* Upload Modal */}
             <ScriptUploadModal
