@@ -607,7 +607,7 @@ function AuditionHistoryContent() {
                                                     className="flex px-6 py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors text-sm"
                                                     onClick={() => openModalWithData(audition)}
                                                 >
-                                                    <div className="flex-none w-32 flex items-center gap-2">
+                                                    <div className="flex-none w-32 flex items-center gap-2 text-gray-400">
                                                         <Calendar className="w-4 h-4 text-gray-400" />
                                                         {new Date(audition.date).toLocaleDateString('en-US', {
                                                             month: 'short',

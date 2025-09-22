@@ -35,6 +35,7 @@ import {
     AlertCircle,
 } from "lucide-react";
 import * as Sentry from "@sentry/nextjs";
+import { useQueryClient } from "@tanstack/react-query";
 
 // export default function RehearsalRoomPage() {
 function RehearsalRoomContent() {
@@ -44,6 +45,7 @@ function RehearsalRoomContent() {
     const { uid } = useAuthUser();
     const userID = uid;
     const { showToast } = useToast();
+    const queryClient = useQueryClient();
 
     const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const currentLineRef = useRef<HTMLDivElement>(null);
@@ -1098,10 +1100,10 @@ function RehearsalRoomContent() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const goBackHome = () => {
-        // router.push('/home')
-        router.push('/scripts/list')
-    }
+    const goBackHome = async () => {
+        await queryClient.invalidateQueries({ queryKey: ['scripts', userID] });
+        router.push('/scripts/list');
+    };
 
     const normalizeBracketSpaces = (s: string) => s.replace(/\](?!\s|$)/g, "] ");
 
