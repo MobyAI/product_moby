@@ -46,6 +46,7 @@ interface ScriptRendererProps {
     script: ScriptElement[] | null;
     onScriptUpdate?: (updatedScript: ScriptElement[]) => void;
     editable?: boolean;
+    onClose: () => void;
 }
 
 interface EditableLineProps {
@@ -994,6 +995,7 @@ export default function ScriptUploadModal({
                                             script={parsedScript}
                                             onScriptUpdate={(updatedScript) => setParsedScript(updatedScript)}
                                             editable={true}
+                                            onClose={confirmClose}
                                         />
                                     )}
                                 </div>
@@ -1351,12 +1353,28 @@ const EditableLine = ({ item, onUpdate, onClose }: EditableLineProps) => {
 const ScriptRenderer = ({
     script,
     onScriptUpdate,
-    editable = false
+    editable = false,
+    onClose,
 }: ScriptRendererProps) => {
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
     // Error handling if there is no parsed script here
-    if (!script) return null;
+    if (!script) {
+        return (
+            <div className="flex flex-col items-center justify-center py-12">
+                <div className="text-center">
+                    <p className="text-lg font-semibold text-gray-900 mb-2">An error occurred</p>
+                    <p className="text-gray-600 mb-4">Script is unavailable. Please close and try again.</p>
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     const handleLineClick = (index: number, item: ScriptElement) => {
         if (editable && item.type === 'line') {
