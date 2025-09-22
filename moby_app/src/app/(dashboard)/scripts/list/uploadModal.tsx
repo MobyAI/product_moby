@@ -224,6 +224,21 @@ export default function ScriptUploadModal({
         onClose();
     };
 
+    // Listen for page unload
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            shouldContinueProcessing.current = false;
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        // Cleanup on unmount
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            shouldContinueProcessing.current = false;
+        };
+    }, []);
+
     // Separate the voice loading function
     const loadVoiceSamples = async () => {
         setVoicesLoading(true);
@@ -279,7 +294,7 @@ export default function ScriptUploadModal({
             }
 
             // Only start file processing if file exists AND voices loaded successfully
-            if (file && voiceSamples && !voiceLoadError && shouldContinueProcessing.current) {
+            if (file && voiceSamples && !voiceLoadError) {
                 startProcessing();
             }
         };
@@ -290,6 +305,9 @@ export default function ScriptUploadModal({
 
     const startProcessing = async () => {
         if (!file) return;
+
+        // Start processing
+        shouldContinueProcessing.current = true;
 
         try {
             // Stage 1: Extract Text
