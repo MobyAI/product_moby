@@ -20,9 +20,6 @@ function ScriptsListContent() {
     const { showToast } = useToast();
     const { dialogProps, openConfirm } = useDialog();
 
-    // List page setup
-    const [isDeleting, setIsDeleting] = useState(false);
-
     // Script upload modal
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -63,7 +60,6 @@ function ScriptsListContent() {
             'Delete Script',
             'Are you sure you want to delete this script? This action cannot be undone.',
             async () => {
-                setIsDeleting(true);
                 try {
                     await deleteScript(id);
 
@@ -82,8 +78,6 @@ function ScriptsListContent() {
                         line1: "Please try again",
                         type: "danger",
                     });
-                } finally {
-                    setIsDeleting(false);
                 }
             },
             { type: 'delete' }

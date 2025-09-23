@@ -347,6 +347,7 @@ export function useDialog() {
         } else {
             closeDialog();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dialogState.onConfirm, closeDialog]);
 
     return {
