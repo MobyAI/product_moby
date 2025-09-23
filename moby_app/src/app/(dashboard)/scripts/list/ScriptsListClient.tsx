@@ -27,10 +27,6 @@ function ScriptsListContent() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-    // Delete confirm modal
-    const [confirmOpen, setConfirmOpen] = useState(false);
-    const [scriptToDelete, setScriptToDelete] = useState<string | null>(null);
-
     // TanStack Query for fetching scripts
     const queryClient = useQueryClient();
     const {

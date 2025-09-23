@@ -65,6 +65,9 @@ function RehearsalRoomContent() {
     const [ttsHydrationStatus, setTTSHydrationStatus] = useState<Record<number, 'pending' | 'updating' | 'ready' | 'failed'>>({});
     const hydrationInProgress = useRef(false);
 
+    // Use a ref to track if processing should continue
+    const shouldContinueProcessing = useRef(true);
+
     // Disable script rehearsal until finished
     const isBusy = hydrating || downloading || updating;
 
@@ -113,14 +116,15 @@ function RehearsalRoomContent() {
     useEffect(() => {
         if (!userID || !scriptID) return;
 
+        // Start processing
+        shouldContinueProcessing.current = true;
+
         // Check if hydration is already running
         if (hydrationInProgress.current) {
             console.log("⏭️ Hydration already in progress, skipping...");
             return;
         }
         hydrationInProgress.current = true;
-
-        console.log("🔥 useEffect triggered", { userID, scriptID });
 
         (async () => {
             setLoading(true);
@@ -139,6 +143,12 @@ function RehearsalRoomContent() {
                 });
 
                 if (!rawScript) {
+                    return;
+                }
+
+                // Check if we should continue
+                if (!shouldContinueProcessing.current) {
+                    console.log('Load and hydration cancelled');
                     return;
                 }
 
@@ -170,6 +180,11 @@ function RehearsalRoomContent() {
                     setDownloading(false);
                 }
 
+                if (!shouldContinueProcessing.current) {
+                    console.log('Load and hydration cancelled');
+                    return;
+                }
+
                 // 3) Hydrate script
                 setLoadProgress(0);
                 try {
@@ -192,16 +207,20 @@ function RehearsalRoomContent() {
                         },
                     });
 
-                    if (wasHydrated) {
+                    if (shouldContinueProcessing.current && wasHydrated) {
                         showToast({
                             header: "Script ready!",
-                            // line1: "You can begin rehearsing now.",
                             type: "success",
                         });
                     }
                 } catch (e) {
                     console.error("Hydration failed", e);
                     Sentry.captureException(e);
+                }
+
+                if (!shouldContinueProcessing.current) {
+                    console.log('Load and hydration cancelled');
+                    return;
                 }
 
                 // 4) Restore session
@@ -220,12 +239,29 @@ function RehearsalRoomContent() {
         // Optional: Reset on cleanup in case component unmounts
         return () => {
             hydrationInProgress.current = false;
+            shouldContinueProcessing.current = false;
             setHydrating(false);
             setDownloading(false);
             setLoading(false);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userID, scriptID]);
+
+    // Listen for page unload to stop processing
+    useEffect(() => {
+        // For browser-level navigation (refresh, close tab, back button)
+        const handleBeforeUnload = () => {
+            shouldContinueProcessing.current = false;
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        // Cleanup on unmount
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            shouldContinueProcessing.current = false;
+        };
+    }, []);
 
     // Mic check
     useEffect(() => {
