@@ -2,11 +2,15 @@ import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // compiler: {
-  //   removeConsole: {
-  //     exclude: ['error', 'warn'],
-  //   },
-  // },
+  compiler: {
+    ...(process.env.NODE_ENV === 'production'
+      ? {
+        removeConsole: {
+          exclude: ['error', 'warn'],
+        },
+      }
+      : {}),
+  },
   webpack: (config) => {
     // Exclude STT servers from webpack processing
     config.watchOptions = {

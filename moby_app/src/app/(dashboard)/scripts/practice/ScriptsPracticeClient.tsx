@@ -10,6 +10,7 @@ import { AudioPlayerWithFallbacks } from "@/lib/audioplayer/withFallbacks";
 import { loadScript, hydrateScript, hydrateLine, initializeEmbeddingModel } from "./loader";
 import { RoleSelector } from "./roleSelector";
 import EditableLine from "./editableLine";
+import EditableDirection from "./editableDirection";
 import { OptimizedLineRenderer } from "./lineRenderer";
 import { restoreSession, saveSession } from "./session";
 import { clear, set } from "idb-keyval";
@@ -76,6 +77,7 @@ function RehearsalRoomContent() {
     const [scriptName, setScriptName] = useState<string | null>(null);
     const scriptRef = useRef<ScriptElement[] | null>(null);
     const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
+    const [editingDirectionIndex, setEditingDirectionIndex] = useState<number | null>(null);
     const [isUpdatingLine, setIsUpdatingLine] = useState(false);
     const [showAdvanced, setShowAdvanced] = useState(false);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -514,26 +516,18 @@ function RehearsalRoomContent() {
                         : el
                 );
 
+                // --- 1. Save to Firestore ---
+                await updateScript(scriptID, finalUpdatedScript);
+
+                // --- 2. Save to IndexedDB ---
+                const cacheKey = `script-cache:${userID}:${scriptID}`;
+                await set(cacheKey, finalUpdatedScript);
+
+                // --- 3. Commit to local state only after both succeed ---
                 setScript(finalUpdatedScript);
                 scriptRef.current = finalUpdatedScript;
 
-                try {
-                    await updateScript(scriptID, finalUpdatedScript);
-                    console.log(`✅ Updated Firestore with updated line ${updateLine.index}`);
-                } catch (err) {
-                    console.error('❌ Failed to update Firestore');
-                    Sentry.captureException(err);
-                }
-
-                const cacheKey = `script-cache:${userID}:${scriptID}`;
-                try {
-                    await set(cacheKey, finalUpdatedScript);
-                    console.log(`💾 Script cached successfully in IndexedDB for line ${updateLine.index}`);
-                } catch (cacheError) {
-                    console.warn('⚠️ Failed to update IndexedDB cache:', cacheError);
-                    Sentry.captureException(cacheError);
-                }
-
+                // --- 4. Signal success ---
                 setLoadStage('✅ Line successfully updated!');
 
                 // Update status to ready after successful refresh
@@ -560,6 +554,60 @@ function RehearsalRoomContent() {
         } finally {
             setHydrating(false);
             setIsUpdatingLine(false);
+        }
+    };
+
+    const onUpdateDirection = async (updateDirection: ScriptElement) => {
+
+        if (!script) {
+            console.warn('❌ Tried to update direction before script was loaded.');
+            return;
+        }
+
+        // Normalize spacing before saving
+        if (typeof updateDirection.text === 'string') {
+            updateDirection = {
+                ...updateDirection,
+                text: updateDirection.text.replace(/\s+/g, ' ').trim(),
+            };
+        }
+
+        try {
+            // Build updated script array
+            const updatedScript = (script?.map((el) =>
+                el.index === updateDirection.index ? updateDirection : el
+            )) ?? [];
+
+            if (userID && scriptID) {
+                // --- 1. Save to Firestore ---
+                await updateScript(scriptID, updatedScript);
+                console.log(`✅ Firestore updated for direction ${updateDirection.index}`);
+
+                // --- 2. Save to IndexedDB ---
+                const cacheKey = `script-cache:${userID}:${scriptID}`;
+                await set(cacheKey, updatedScript);
+                console.log(`💾 IndexedDB updated for direction ${updateDirection.index}`);
+
+                // --- 3. Commit to local state only after both succeed ---
+                setScript(updatedScript);
+                scriptRef.current = updatedScript;
+                setEditingDirectionIndex(null);
+
+                // --- 4. Signal success ---
+                showToast({
+                    header: "Direction updated!",
+                    type: "success",
+                });
+            }
+        } catch (err) {
+            console.error(`❌ Failed to update direction ${updateDirection.index}:`, err);
+            Sentry.captureException(err);
+
+            showToast({
+                header: "Direction update failed",
+                line1: "Your change was not saved",
+                type: "danger",
+            });
         }
     };
 
@@ -1195,7 +1243,7 @@ function RehearsalRoomContent() {
                         }`}
                 >
                     <h2 className="text-xl font-bold uppercase tracking-wider text-gray-800">
-                        {parseTextWithButtons(element.text)}
+                        {element.text}
                     </h2>
 
                     {isCurrent && isPlaying && (
@@ -1247,9 +1295,20 @@ function RehearsalRoomContent() {
                     className={`relative text-center mb-6 cursor-pointer transition-all duration-200 hover:bg-gray-50 rounded-lg p-4 ${isCurrent ? "bg-blue-50 shadow-md border border-blue-200" : ""
                         }`}
                 >
-                    <p className="italic text-gray-600 text-sm">
-                        ({parseTextWithButtons(element.text)})
-                    </p>
+
+                    {/* Editable Direction */}
+                    {editingDirectionIndex === element.index ? (
+                        <EditableDirection
+                            item={element}
+                            onUpdate={onUpdateDirection}
+                            onClose={() => setEditingDirectionIndex(null)}
+                        />
+                    ) : (
+                        <p className="italic text-gray-600 text-sm">
+                            {element.text}
+                        </p>
+                    )}
+
                     {isCurrent && isPlaying && (
                         <div className="text-xs text-blue-600 mt-1 animate-pulse font-medium">
                             ● ACTIVE DIRECTION
@@ -1261,6 +1320,19 @@ function RehearsalRoomContent() {
                         !isPlaying &&
                         (
                             <div className="absolute -bottom-5.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[100]">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingDirectionIndex(element.index);
+                                    }}
+                                    className="cursor-pointer text-sm text-white bg-gray-900 px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all"
+                                    title="Edit Line"
+                                >
+                                    <Pencil
+                                        className="w-4 h-4"
+                                        strokeWidth={2}
+                                    />
+                                </button>
                                 <DelaySelector
                                     lineIndex={element.index}
                                     currentDelay={element.customDelay || 0}
