@@ -8,7 +8,7 @@ import { parseScriptFromText } from '@/lib/api/parse/parse';
 import { extractTextFromPDFimg } from '@/lib/extract/image';
 import { ScriptElement } from '@/types/script';
 import { getAllVoiceSamples } from '@/lib/firebase/client/tts';
-import { ConfirmModal } from "@/components/ui";
+import Dialog, { useDialog } from '@/components/ui/Dialog';
 import * as Sentry from "@sentry/nextjs";
 
 interface ScriptUploadModalProps {
@@ -45,6 +45,7 @@ interface ScriptRendererProps {
     script: ScriptElement[] | null;
     onScriptUpdate?: (updatedScript: ScriptElement[]) => void;
     editable?: boolean;
+    onClose: () => void;
 }
 
 interface EditableLineProps {
@@ -137,7 +138,6 @@ export default function ScriptUploadModal({
     });
     const [extractedRoles, setExtractedRoles] = useState<string[] | null>([]);
     const [parsedScript, setParsedScript] = useState<ScriptElement[] | null>(null);
-    const [showCloseConfirm, setShowCloseConfirm] = useState(false);
     const [scriptSaving, setScriptSaving] = useState(false);
     const [scriptSaveError, setScriptSaveError] = useState(false);
 
@@ -170,6 +170,12 @@ export default function ScriptUploadModal({
     const [isTransitioning, setIsTransitioning] = useState(false);
     const modalRef = useRef(null);
 
+    // Use a ref to track if processing should continue
+    const shouldContinueProcessing = useRef(true);
+
+    // Dialog component
+    const { dialogProps, openConfirm } = useDialog();
+
     // Reset function
     const resetModal = () => {
         setCurrentStage(0);
@@ -180,7 +186,6 @@ export default function ScriptUploadModal({
         setRoleAssignments({});
         setVoiceAssignments({});
         setUserRole('');
-        setShowCloseConfirm(false);
         setProcessingStage({ message: '', isComplete: false });
         setIsParsingInBackground(false);
         setIsTransitioning(false);
@@ -191,18 +196,48 @@ export default function ScriptUploadModal({
         });
         setVoiceLoadError(false);
         setVoicesLoading(false);
+        shouldContinueProcessing.current = true;
+    };
+
+    // Cancel processing
+    const cancelProcessing = () => {
+        shouldContinueProcessing.current = false;
+
+        setProcessingStage({ message: 'Processing cancelled', isComplete: false });
     };
 
     // Update handleClose to show confirmation
     const handleClose = () => {
-        setShowCloseConfirm(true);
+        openConfirm(
+            'Close',
+            'Are you sure you want to close? Upload will be cancelled.',
+            async () => {
+                confirmClose();
+            },
+            { type: 'confirm' }
+        );
     };
 
     const confirmClose = () => {
-        setShowCloseConfirm(false);
+        cancelProcessing();
         resetModal();
         onClose();
     };
+
+    // Listen for page unload
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            shouldContinueProcessing.current = false;
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        // Cleanup on unmount
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            shouldContinueProcessing.current = false;
+        };
+    }, []);
 
     // Separate the voice loading function
     const loadVoiceSamples = async () => {
@@ -271,6 +306,9 @@ export default function ScriptUploadModal({
     const startProcessing = async () => {
         if (!file) return;
 
+        // Start processing
+        shouldContinueProcessing.current = true;
+
         try {
             // Stage 1: Extract Text
             setProcessingStage({ message: 'Extracting text from document...', isComplete: false });
@@ -278,7 +316,18 @@ export default function ScriptUploadModal({
             let textResult;
 
             try {
+                // Check if we should continue
+                if (!shouldContinueProcessing.current) {
+                    console.log('Processing cancelled');
+                    return;
+                }
+
                 textResult = await extractScriptText(file);
+
+                if (!shouldContinueProcessing.current) {
+                    console.log('Processing cancelled');
+                    return;
+                }
 
                 // Check if text extraction was successful and has enough unique words
                 const minUniqueWords = 50;
@@ -295,8 +344,18 @@ export default function ScriptUploadModal({
                 if ((uniqueWordCount < minUniqueWords) && (file.type === 'application/pdf' || file.name.endsWith('.pdf'))) {
                     setProcessingStage({ message: 'Image detected! This may take a little longer...', isComplete: false });
 
+                    if (!shouldContinueProcessing.current) {
+                        console.log('Processing cancelled');
+                        return;
+                    }
+
                     // Use the PDF extraction with GPT Vision
                     const extractedText = await extractTextFromPDFimg(file);
+
+                    if (!shouldContinueProcessing.current) {
+                        console.log('Processing cancelled');
+                        return;
+                    }
 
                     textResult = {
                         text: extractedText.text
@@ -349,7 +408,17 @@ export default function ScriptUploadModal({
 
             if (!extractedRoles || extractedRoles.length === 0) {
                 try {
+                    if (!shouldContinueProcessing.current) {
+                        console.log('Processing cancelled');
+                        return;
+                    }
+
                     rolesResult = await extractRolesFromText(textResult.text);
+
+                    if (!shouldContinueProcessing.current) {
+                        console.log('Processing cancelled');
+                        return;
+                    }
 
                     if (!rolesResult || rolesResult.length === 0) {
                         setProcessingError({
@@ -430,7 +499,17 @@ export default function ScriptUploadModal({
             setProcessingStage({ message: 'Parsing script structure...', isComplete: false });
 
             try {
+                if (!shouldContinueProcessing.current) {
+                    console.log('Processing cancelled');
+                    return;
+                }
+
                 const parsedResult = await parseScriptFromText(textResult.text);
+
+                if (!shouldContinueProcessing.current) {
+                    console.log('Processing cancelled');
+                    return;
+                }
 
                 if (!parsedResult || parsedResult.length === 0) {
                     setProcessingError({
@@ -646,7 +725,7 @@ export default function ScriptUploadModal({
                 <div className="bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 p-6 text-white">
                     <div className="flex justify-between items-start">
                         <div className="flex-1">
-                            <h2 className="text-2xl font-bold mb-2">Upload Script</h2>
+                            <h2 className="text-2xl text-white font-bold mb-2">Upload Script</h2>
                             <ProcessingIndicator stage={processingStage} />
                         </div>
                         <button
@@ -986,6 +1065,7 @@ export default function ScriptUploadModal({
                                             script={parsedScript}
                                             onScriptUpdate={(updatedScript) => setParsedScript(updatedScript)}
                                             editable={true}
+                                            onClose={confirmClose}
                                         />
                                     )}
                                 </div>
@@ -1025,15 +1105,7 @@ export default function ScriptUploadModal({
                 </div>
 
                 {/* Close Confirmation Modal */}
-                <ConfirmModal
-                    isOpen={showCloseConfirm}
-                    title="Confirm Close"
-                    message="Are you sure you want to close? All your progress will be lost."
-                    confirmLabel="Close"
-                    cancelLabel="Cancel"
-                    onConfirm={confirmClose}
-                    onCancel={() => setShowCloseConfirm(false)}
-                />
+                <Dialog {...dialogProps} />
             </div>
         </div>
     );
@@ -1351,12 +1423,28 @@ const EditableLine = ({ item, onUpdate, onClose }: EditableLineProps) => {
 const ScriptRenderer = ({
     script,
     onScriptUpdate,
-    editable = false
+    editable = false,
+    onClose,
 }: ScriptRendererProps) => {
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
     // Error handling if there is no parsed script here
-    if (!script) return null;
+    if (!script) {
+        return (
+            <div className="flex flex-col items-center justify-center py-12">
+                <div className="text-center">
+                    <p className="text-lg font-semibold text-gray-900 mb-2">An error occurred</p>
+                    <p className="text-gray-600 mb-4">Script is unavailable. Please close and try again.</p>
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     const handleLineClick = (index: number, item: ScriptElement) => {
         if (editable && item.type === 'line') {

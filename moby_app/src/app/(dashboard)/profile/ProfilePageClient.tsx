@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -27,6 +27,7 @@ import { getUser, updateUserProfile } from "@/lib/firebase/client/user";
 import { deleteHeadshot, deleteResume, getHeadshots, getResume, setAuthPhotoURL } from "@/lib/firebase/client/media";
 import { useAuthUser } from "@/components/providers/UserProvider";
 import { DashboardLayout, Button, LoadingScreen } from "@/components/ui";
+import Dialog, { useDialog } from "@/components/ui/Dialog";
 import { UserProfile, ethnicities } from "@/types/profile";
 import HeadshotUploadModal from "./headshotUploadModal";
 import ResumeUploadModal from "./resumeUploadModal";
@@ -46,13 +47,13 @@ function ProfilePageContent() {
     const [showHeadshotUploadModal, setShowHeadshotUploadModal] = useState(false);
     const [showResumeUploadModal, setShowResumeUploadModal] = useState(false);
     const [selectedHeadshotIndex, setSelectedHeadshotIndex] = useState(0);
-    const [error, setError] = useState<string | null>(null);
 
     const router = useRouter();
     const { uid, photoURL } = useAuthUser();
     const userID = uid;
     const userPhotoURL = photoURL;
     const queryClient = useQueryClient();
+    const { dialogProps, openConfirm } = useDialog();
     const { showToast } = useToast();
 
     // Query for profile data
@@ -65,7 +66,7 @@ function ProfilePageContent() {
             if (!userID) throw new Error('No user ID');
             const result = await getUser(userID);
             if (result.success && result.data) {
-                setEditedProfile(result.data);
+                // setEditedProfile(result.data);
                 return result.data;
             }
             throw new Error(result.error || 'Failed to load profile');
@@ -99,29 +100,33 @@ function ProfilePageContent() {
         enabled: !!userID
     });
 
+    useEffect(() => {
+        if (profile) {
+            setEditedProfile(profile);
+        }
+    }, [profile]);
+
     // Combined loading state
     const loading = profileLoading || headshotsLoading || resumeLoading;
 
     async function handleSave() {
         if (!editedProfile) return;
         setSaving(true);
-        setError(null);
 
         try {
             const result = await updateUserProfile(editedProfile);
-            if (result.success) {
-                await queryClient.invalidateQueries({ queryKey: ['profile', userID] });
-                setEditMode(false);
-                router.refresh();
-            } else {
-                setError(result.error || 'Failed to save profile');
+            if (!result.success) {
+                throw new Error("Profile update returned unsuccessful");
             }
+
+            await queryClient.invalidateQueries({ queryKey: ['profile', userID] });
+            setEditMode(false);
+            router.refresh();
         } catch (err) {
-            setError('Failed to save profile');
             Sentry.captureException(err);
 
             showToast({
-                header: "An error occurred",
+                header: "Failed to save changes",
                 line1: "Please try again",
                 type: "danger",
             });
@@ -133,40 +138,61 @@ function ProfilePageContent() {
     function handleCancel() {
         setEditedProfile(profile);
         setEditMode(false);
-        setError(null);
     }
 
     async function handleDeleteHeadshot(headshotId: string) {
-        if (!confirm('Are you sure you want to delete this headshot?')) return;
-        setDeleting('headshot');
-        try {
-            await deleteHeadshot(headshotId, auth.currentUser?.uid || '');
-            if (selectedHeadshotIndex >= headshots.length - 1) {
-                setSelectedHeadshotIndex(Math.max(0, headshots.length - 2));
-            }
-            await queryClient.invalidateQueries({ queryKey: ['headshots', userID] });
-        } catch (error) {
-            console.error('Delete headshot error:', error);
-            Sentry.captureException(error);
-            setError('Failed to delete headshot');
-        } finally {
-            setDeleting(null);
-        }
+        openConfirm(
+            'Delete Headshot',
+            'Are you sure you want to delete this headshot? This action cannot be undone.',
+            async () => {
+                setDeleting('headshot');
+                try {
+                    await deleteHeadshot(headshotId, auth.currentUser?.uid || '');
+                    if (selectedHeadshotIndex >= headshots.length - 1) {
+                        setSelectedHeadshotIndex(Math.max(0, headshots.length - 2));
+                    }
+                    await queryClient.invalidateQueries({ queryKey: ['headshots', userID] });
+                } catch (error) {
+                    console.error('Delete headshot error:', error);
+                    Sentry.captureException(error);
+
+                    showToast({
+                        header: "Failed to delete",
+                        line1: "Please try again",
+                        type: "danger",
+                    });
+                } finally {
+                    setDeleting(null);
+                }
+            },
+            { type: 'delete' }
+        );
     }
 
     async function handleDeleteResume() {
-        if (!confirm('Are you sure you want to delete your resume?')) return;
-        setDeleting('resume');
-        try {
-            await deleteResume(resume?.id || '', auth.currentUser?.uid || '');
-            await queryClient.invalidateQueries({ queryKey: ['resume', userID] });
-        } catch (error) {
-            console.error('Delete resume error:', error);
-            Sentry.captureException(error);
-            setError('Failed to delete resume');
-        } finally {
-            setDeleting(null);
-        }
+        openConfirm(
+            'Delete Resume',
+            'Are you sure you want to delete your resume? This action cannot be undone.',
+            async () => {
+                setDeleting('resume');
+                try {
+                    await deleteResume(resume?.id || '', auth.currentUser?.uid || '');
+                    await queryClient.invalidateQueries({ queryKey: ['resume', userID] });
+                } catch (error) {
+                    console.error('Delete resume error:', error);
+                    Sentry.captureException(error);
+
+                    showToast({
+                        header: "Failed to delete",
+                        line1: "Please try again",
+                        type: "danger",
+                    });
+                } finally {
+                    setDeleting(null);
+                }
+            },
+            { type: 'delete' }
+        );
     }
 
     async function handleSetProfilePic(url: string) {
@@ -174,20 +200,38 @@ function ProfilePageContent() {
             await setAuthPhotoURL(url);
             router.refresh();
         } catch (error) {
-            setError("Failed to update profile picture.");
             Sentry.captureException(error);
+
+            showToast({
+                header: "Failed to update",
+                line1: "Please try again",
+                type: "danger",
+            });
         }
     }
 
     const handleHeadshotUploadSuccess = async () => {
         setShowHeadshotUploadModal(false);
-        // Refetch headshots and select the latest
+
+        showToast({
+            header: "Upload success!",
+            type: "success",
+        });
+
+        // Update display
         await queryClient.invalidateQueries({ queryKey: ['headshots', userID] });
         setSelectedHeadshotIndex(headshots.length); // Will be the new last index
     };
 
     const handleResumeUploadSuccess = async () => {
         setShowResumeUploadModal(false);
+
+        showToast({
+            header: "Upload success!",
+            type: "success",
+        });
+
+        // Update display
         await queryClient.invalidateQueries({ queryKey: ['resume', userID] });
     };
 
@@ -222,7 +266,15 @@ function ProfilePageContent() {
                         <p className="text-xl text-gray-600 mt-1">Hey, {profile.firstName}! 👋</p>
                     </div>
                     {!editMode ? (
-                        <Button onClick={() => setEditMode(true)} size="sm" variant="secondary" icon={Edit2}>
+                        <Button
+                            onClick={() => {
+                                setEditedProfile(profile);
+                                setEditMode(true);
+                            }}
+                            size="sm"
+                            variant="secondary"
+                            icon={Edit2}
+                        >
                             Edit
                         </Button>
                     ) : (
@@ -241,11 +293,6 @@ function ProfilePageContent() {
                         </div>
                     )}
                 </div>
-                {error && (
-                    <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
-                        {error}
-                    </div>
-                )}
             </div>
 
             {/* Main Content - Two Column Layout */}
@@ -374,7 +421,7 @@ function ProfilePageContent() {
                                         type="text"
                                         value={editedProfile?.firstName || ''}
                                         onChange={(e) => setEditedProfile(prev => prev ? { ...prev, firstName: e.target.value } : null)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                                     />
                                 ) : (
                                     <p className="text-gray-900 py-2">{profile.firstName}</p>
@@ -389,7 +436,7 @@ function ProfilePageContent() {
                                         type="text"
                                         value={editedProfile?.lastName || ''}
                                         onChange={(e) => setEditedProfile(prev => prev ? { ...prev, lastName: e.target.value } : null)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                                     />
                                 ) : (
                                     <p className="text-gray-900 py-2">{profile.lastName}</p>
@@ -417,7 +464,7 @@ function ProfilePageContent() {
                                             max="100"
                                             value={editedProfile?.age || 0}
                                             onChange={(e) => setEditedProfile(prev => prev ? { ...prev, age: parseInt(e.target.value) } : null)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                                         />
                                     ) : (
                                         <p className="text-gray-900 py-2">{profile.age} years old</p>
@@ -441,7 +488,7 @@ function ProfilePageContent() {
                                                         const currentInches = (editedProfile?.height || 0) % 12;
                                                         setEditedProfile(prev => prev ? { ...prev, height: feet * 12 + currentInches } : null);
                                                     }}
-                                                    className="w-14 px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+                                                    className="w-14 px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-gray-900"
                                                 />
                                                 <span className="text-gray-600 text-sm">ft</span>
                                             </div>
@@ -456,7 +503,7 @@ function ProfilePageContent() {
                                                         const currentFeet = Math.floor((editedProfile?.height || 0) / 12);
                                                         setEditedProfile(prev => prev ? { ...prev, height: currentFeet * 12 + inches } : null);
                                                     }}
-                                                    className="w-14 px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+                                                    className="w-14 px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-gray-900"
                                                 />
                                                 <span className="text-gray-600 text-sm">in</span>
                                             </div>
@@ -581,6 +628,8 @@ function ProfilePageContent() {
                 onClose={() => setShowResumeUploadModal(false)}
                 onSuccess={handleResumeUploadSuccess}
             />
+
+            <Dialog {...dialogProps} />
         </DashboardLayout>
     );
 }
