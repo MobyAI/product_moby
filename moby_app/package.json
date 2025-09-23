@@ -16,7 +16,6 @@
     "@elevenlabs/elevenlabs-js": "^2.15.0",
     "@google-cloud/speech": "^7.2.0",
     "@google-cloud/text-to-speech": "^6.2.0",
-    "@headlessui/react": "^2.2.8",
     "@sentry/nextjs": "^10.12.0",
     "@tanstack/react-query": "^5.89.0",
     "@tanstack/react-virtual": "^3.13.12",
