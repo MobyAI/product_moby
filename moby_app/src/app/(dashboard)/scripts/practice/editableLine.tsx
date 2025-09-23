@@ -9,15 +9,27 @@ type EditableLineProps = {
 };
 
 export default function EditableLine({ item, onUpdate, onClose, hydrationStatus }: EditableLineProps) {
-    const [draftText, setDraftText] = useState(item.text);
+    const originalTextRef = useRef<string>('');
     const editableRef = useRef<HTMLDivElement>(null);
     const isComposing = useRef(false);
+    const [draftText, setDraftText] = useState(() => {
+        const trimmedText = item.text.trim();
+        originalTextRef.current = trimmedText;
+        return trimmedText;
+    });
+
+    // Check for updates before save
+    const hasContentChanged = (currentText: string): boolean => {
+        const current = currentText.trim();
+        const original = originalTextRef.current;
+        return current !== original;
+    };
 
     // Apply styling to bracketed text
     const applyBracketStyling = (text: string): string => {
         return text.replace(
-            /(\[[^\]]*\])/g,
-            '<span class="text-gray-400">$1</span>'
+            /(\[tag:\s*[^\]]*\])/g,
+            '<span class="text-purple-700">$1</span>'
         );
     };
 
@@ -74,28 +86,28 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
 
     // Check if cursor is at the edge of an audio tag
     const checkAudioTagBoundary = (text: string, cursorPos: number) => {
-        // Check if cursor is right after ] or right before [
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const charBefore = cursorPos > 0 ? text[cursorPos - 1] : '';
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const charAtCursor = cursorPos < text.length ? text[cursorPos] : '';
-
-        // Find all audio tags
-        const regex = /\[[^\]]*\]/g;
+        // Find all audio tags with "tag:" prefix
+        const regex = /\[tag:\s*[^\]]*\]/g;
         let match;
 
         while ((match = regex.exec(text)) !== null) {
             const tagStart = match.index;
             const tagEnd = match.index + match[0].length;
+            const immutableEnd = tagStart + 5; // "[tag: ".length = 5
 
             // Check if cursor is at the boundary of this tag
             if (cursorPos === tagEnd || cursorPos === tagStart) {
-                return { tagStart, tagEnd, tagContent: match[0] };
+                return { tagStart, tagEnd, tagContent: match[0], immutableEnd };
             }
 
-            // Check if cursor is inside the tag
-            if (cursorPos > tagStart && cursorPos < tagEnd) {
-                return { tagStart, tagEnd, tagContent: match[0] };
+            // Check if cursor is inside the immutable part "[tag: "
+            if (cursorPos > tagStart && cursorPos <= immutableEnd) {
+                return { tagStart, tagEnd, tagContent: match[0], immutableEnd };
+            }
+
+            // Check if cursor is anywhere else inside the tag
+            if (cursorPos > immutableEnd && cursorPos < tagEnd) {
+                return { tagStart, tagEnd, tagContent: match[0], immutableEnd };
             }
         }
 
@@ -192,39 +204,66 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
                 const cursorPos = saveCursorPosition();
 
                 if (cursorPos !== null) {
-                    // Check if we're about to delete a bracket
-                    let aboutToDeleteBracket = false;
+                    // Check if we're about to delete any part of an audio tag structure
+                    let aboutToDeleteImmutable = false;
+                    let charToDelete = '';
 
                     if (e.key === 'Backspace' && cursorPos > 0) {
-                        // Check if character before cursor is ] or [
-                        const charBefore = text[cursorPos - 1];
-                        aboutToDeleteBracket = charBefore === '[' || charBefore === ']';
+                        charToDelete = text[cursorPos - 1];
+                        // Check if character before cursor is part of immutable structure
+                        aboutToDeleteImmutable = charToDelete === '[' || charToDelete === ']' ||
+                            charToDelete === 't' || charToDelete === 'a' ||
+                            charToDelete === 'g' || charToDelete === ':';
                     } else if (e.key === 'Delete' && cursorPos < text.length) {
-                        // Check if character at cursor is [ or ]
-                        const charAtCursor = text[cursorPos];
-                        aboutToDeleteBracket = charAtCursor === '[' || charAtCursor === ']';
+                        charToDelete = text[cursorPos];
+                        // Check if character at cursor is part of immutable structure
+                        aboutToDeleteImmutable = charToDelete === '[' || charToDelete === ']' ||
+                            charToDelete === 't' || charToDelete === 'a' ||
+                            charToDelete === 'g' || charToDelete === ':';
                     }
 
-                    if (aboutToDeleteBracket) {
-                        // Find the audio tag that contains this bracket
+                    if (aboutToDeleteImmutable) {
+                        // Find the audio tag that contains this character
                         const tagInfo = checkAudioTagBoundary(text, cursorPos);
 
                         if (tagInfo) {
-                            // Check if tag is already selected
-                            const currentSelection = selection?.toString();
-                            if (currentSelection === tagInfo.tagContent) {
-                                // Tag is already selected, delete it
-                                e.preventDefault();
-                                range.deleteContents();
-                                handleInput();
-                                return;
+                            // Additional check: make sure we're actually trying to delete immutable parts
+                            let isImmutableDeletion = false;
+
+                            if (e.key === 'Backspace') {
+                                // Check if we're trying to delete opening bracket, "tag", colon, or space after colon
+                                if (cursorPos <= tagInfo.immutableEnd) {
+                                    isImmutableDeletion = true;
+                                }
+                                // Also protect closing bracket
+                                if (cursorPos === tagInfo.tagEnd && text[cursorPos - 1] === ']') {
+                                    isImmutableDeletion = true;
+                                }
+                            } else if (e.key === 'Delete') {
+                                // Check if we're trying to delete any part of "[tag: " or closing bracket
+                                if (cursorPos < tagInfo.immutableEnd ||
+                                    (cursorPos === tagInfo.tagEnd - 1 && text[cursorPos] === ']')) {
+                                    isImmutableDeletion = true;
+                                }
                             }
 
-                            // Otherwise, select the entire audio tag
-                            e.preventDefault();
-                            if (selectAudioTag(tagInfo.tagStart, tagInfo.tagEnd)) {
-                                // The tag is now selected, user needs to press delete again
-                                return;
+                            if (isImmutableDeletion) {
+                                // Check if tag is already selected
+                                const currentSelection = selection?.toString();
+                                if (currentSelection === tagInfo.tagContent) {
+                                    // Tag is already selected, delete it
+                                    e.preventDefault();
+                                    range.deleteContents();
+                                    handleInput();
+                                    return;
+                                }
+
+                                // Otherwise, select the entire audio tag
+                                e.preventDefault();
+                                if (selectAudioTag(tagInfo.tagStart, tagInfo.tagEnd)) {
+                                    // The tag is now selected, user needs to press delete again
+                                    return;
+                                }
                             }
                         }
                     }
@@ -232,9 +271,8 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
             }
         }
 
-        // Trigger on Ctrl+A or when typing [ or ]
+        // Trigger on [ or ]
         const isAudioTagTrigger =
-            (e.key === 'a' && e.ctrlKey && !e.metaKey) ||
             e.key === '[' ||
             e.key === ']';
 
@@ -266,7 +304,6 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
                 const needSpaceBefore = offset > 0 && charBefore && charBefore !== ' ' && charBefore !== '\n';
                 const needSpaceAfter = charAfter && charAfter !== ' ' && charAfter !== '\n';
 
-
                 // Create text nodes
                 const fragments = [];
 
@@ -275,8 +312,10 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
                 }
 
                 const openBracket = document.createTextNode('[');
+                const tagPrefix = document.createTextNode('tag: ');
                 const closeBracket = document.createTextNode(']');
-                fragments.push(openBracket, closeBracket);
+
+                fragments.push(openBracket, tagPrefix, closeBracket);
 
                 if (needSpaceAfter) {
                     fragments.push(document.createTextNode(' '));
@@ -288,8 +327,8 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
                     range.setStartAfter(node);
                 });
 
-                // Position cursor between brackets
-                range.setStartAfter(openBracket);
+                // Position cursor after "tag: " and before the closing bracket
+                range.setStartAfter(tagPrefix);
                 range.setEndBefore(closeBracket);
                 selection?.removeAllRanges();
                 selection?.addRange(range);
@@ -319,8 +358,39 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
         }
     };
 
+    // Add this function to normalize audio tag spacing
+    const normalizeAudioTagSpacing = (text: string): string => {
+        return text
+            // First normalize spacing inside tags
+            .replace(/\[tag:\s*(.*?)\]/g, (match, content) => {
+                const trimmedContent = content.trim();
+                return trimmedContent ? `[tag: ${trimmedContent}]` : '';
+            })
+            // Collapse extra spaces left behind if tag was removed
+            .replace(/\s{2,}/g, ' ')
+            .trim();
+    };
+
     const handleSave = () => {
-        onUpdate({ ...item, text: draftText });
+        if (editableRef.current) {
+            const currentText = editableRef.current.innerText || '';
+            const normalizedText = normalizeAudioTagSpacing(currentText);
+
+            // Only save if content has actually changed
+            if (hasContentChanged(normalizedText)) {
+                onUpdate({ ...item, text: normalizedText });
+            } else {
+                // Just close without saving since nothing changed
+                onClose();
+            }
+        } else {
+            const normalizedText = normalizeAudioTagSpacing(draftText);
+            if (hasContentChanged(normalizedText)) {
+                onUpdate({ ...item, text: normalizedText });
+            } else {
+                onClose();
+            }
+        }
     };
 
     // Handle paste to ensure plain text
@@ -402,7 +472,7 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
                                 </div>
                             </div>
                         </div>
-                        <span>{`Insert audio tags by pressing: Ctrl+A or [`}</span>
+                        <span>{`Insert audio tags by pressing opening or closing bracket.`}</span>
                     </div>
                 </div>
             </div>

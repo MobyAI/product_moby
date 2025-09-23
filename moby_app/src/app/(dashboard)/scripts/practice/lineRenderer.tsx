@@ -13,10 +13,9 @@ interface OptimizedLineRendererProps {
 const BASE = "word text-gray-700 transition-all duration-100";
 const MATCHED = "matched";
 const WAITING = "waiting";
-const AUDIO_TAG = "audio-tag";
 
 interface ParsedSegment {
-    type: 'word' | 'audio-tag';
+    type: 'word' | 'brackets';
     content: string;
     wordIndex?: number; // Only for words, not audio tags
 }
@@ -40,9 +39,9 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
 
         while ((match = regex.exec(element.text)) !== null) {
             if (match[1]) {
-                // This is an audio tag [something]
+                // This is anything in brackets - Not meant to be read out loud and matched
                 parsed.push({
-                    type: 'audio-tag',
+                    type: 'brackets',
                     content: match[1]
                 });
             } else if (match[2]) {
@@ -60,15 +59,15 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
 
     // Helper function to parse text for non-user lines (without word indexing)
     const parseNonUserText = React.useMemo(() => {
-        const parsed: { type: 'text' | 'audio-tag'; content: string }[] = [];
+        const parsed: { type: 'text' | 'brackets'; content: string }[] = [];
         const regex = /(\[[^\]]+\])|([^[\]]+)/g;
         let match;
 
         while ((match = regex.exec(element.text)) !== null) {
             if (match[1]) {
-                // This is an audio tag [something]
+                // This is anything in brackets - Not meant to be read out loud and matched
                 parsed.push({
-                    type: 'audio-tag',
+                    type: 'brackets',
                     content: match[1]
                 });
             } else if (match[2]) {
@@ -83,7 +82,7 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
         return parsed;
     }, [element.text]);
 
-    // Collect spans when becoming current (only word spans, not audio tags)
+    // Collect spans when becoming current (only word spans, not bracketed text)
     useEffect(() => {
         if (!isCurrent || !containerRef.current) return;
 
@@ -100,27 +99,28 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
             <div className="pl-4 border-l-3 border-gray-300">
                 <p className="text-base leading-relaxed text-gray-700 px-[2px] py-[5px]">
                     {parseNonUserText.map((segment, i) => {
-                        if (segment.type === 'audio-tag') {
-                            // Render audio tags as buttons
-                            const buttonText = segment.content.slice(1, -1);
-                            return (
-                                <button
-                                    key={`btn-${element.index}-${i}`}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                    }}
-                                    className="inline-flex items-center px-2 py-0 mx-0 rounded-sm"
-                                    style={{
-                                        background: '#b8b3d7',
-                                        color: '#333333',
-                                        fontWeight: '500'
-                                    }}
-                                >
-                                    <span className={AUDIO_TAG}>
-                                        {buttonText}
+                        if (segment.type === 'brackets') {
+                            // Strip outer [ ]
+                            const inner = segment.content.slice(1, -1).trim();
+
+                            if (inner.toLowerCase().startsWith("tag:")) {
+                                const tagText = inner.slice(4).trim(); // remove "tag:"
+                                return (
+                                    <span
+                                        key={`tag-${element.index}-${i}`}
+                                        className="inline-block rounded-full bg-purple-600 text-white text-sm font-medium px-3 py-1 mx-1"
+                                    >
+                                        {tagText}
                                     </span>
-                                </button>
-                            );
+                                );
+                            } else {
+                                // ✅ Normal bracketed text, render as plain span with brackets
+                                return (
+                                    <span key={`text-${i}`} className="text-gray-400 italic">
+                                        {segment.content + ' '}
+                                    </span>
+                                );
+                            }
                         } else {
                             // Render regular text
                             return (
@@ -142,27 +142,29 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
         <div className={containerClasses} ref={containerRef}>
             <div className="text-base leading-relaxed">
                 {segments.map((segment, i) => {
-                    if (segment.type === 'audio-tag') {
-                        // Render audio tags without highlighting and without brackets
-                        const buttonText = segment.content.slice(1, -1);
-                        return (
-                            <button
-                                key={`btn-${element.index}-${i}`}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                }}
-                                className="inline-flex items-center px-2.5 py-0.5 mx-1 rounded-sm"
-                                style={{
-                                    background: '#b8b3d7',
-                                    color: '#333333',
-                                    fontWeight: '500'
-                                }}
-                            >
-                                <span className={AUDIO_TAG}>
-                                    {buttonText}
+                    if (segment.type === 'brackets') {
+                        // Strip outer [ ]
+                        const inner = segment.content.slice(1, -1).trim();
+
+                        if (inner.toLowerCase().startsWith("tag:")) {
+                            // ✅ Audio tag
+                            const tagText = inner.slice(4).trim(); // remove "tag:"
+                            return (
+                                <span
+                                    key={`tag-${element.index}-${i}`}
+                                    className="inline-block rounded-full bg-purple-600 text-white text-sm font-medium px-3 py-1 mx-1"
+                                >
+                                    {tagText}
                                 </span>
-                            </button>
-                        );
+                            );
+                        } else {
+                            // ✅ Normal bracketed text, render as plain span with brackets
+                            return (
+                                <span key={`text-${i}`} className="text-gray-400 italic">
+                                    {segment.content + ' '}
+                                </span>
+                            );
+                        }
                     } else {
                         // Render words with potential highlighting
                         const isMatched = isCompleted ||
