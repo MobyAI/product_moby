@@ -54,21 +54,13 @@ export async function fetchElevenTTS({
     applyTextNormalization = 'auto',
     outputFormat = 'mp3_44100_128',
 }: TTSRequestV3): Promise<Blob> {
-    // Clean the text before sending
-    const cleanedText = text
-        .replace(/_+/g, '[pause]')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-    console.log('cleaned text: ', cleanedText);
-
     const res = await fetch('/api/tts/elevenlabs', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            text: cleanedText,
+            text: text,
             voiceId,
             voiceSettings,
             languageCode,

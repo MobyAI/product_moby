@@ -482,17 +482,10 @@ function RehearsalRoomContent() {
 
         // Inject or replace lineEndKeywords
         if (updateLine.type === 'line' && typeof updateLine.text === 'string') {
-            // Remove all content within brackets including the brackets for keyword picking only
-            const sanitized = updateLine.text.replace(/\[.*?\]/g, '').trim();
+            // Remove all content within brackets [] or parentheses () including the brackets/parens
+            const sanitized = updateLine.text.replace(/(\[.*?\]|\(.*?\))/g, '').trim();
             const cleaned = sanitized.replace(/\s+/g, ' '); // collapse doubles
             updateLine.lineEndKeywords = extractLineEndKeywords(cleaned);
-            // Remove double spaces and trim
-            // updateLine.text = updateLine.text.replace(/\s+/g, ' ').trim();
-
-            // // Remove brackets and clean up any resulting double spaces
-            // const sanitized = updateLine.text.replace(/\[.*?\]/g, '').replace(/\s+/g, ' ').trim();
-
-            // updateLine.lineEndKeywords = extractLineEndKeywords(sanitized);
             console.log('updated kw: ', updateLine.lineEndKeywords);
         }
 

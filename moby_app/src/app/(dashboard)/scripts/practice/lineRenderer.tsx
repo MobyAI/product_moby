@@ -15,7 +15,7 @@ const MATCHED = "matched";
 const WAITING = "waiting";
 
 interface ParsedSegment {
-    type: 'word' | 'brackets';
+    type: 'word' | 'other';
     content: string;
     wordIndex?: number; // Only for words, not audio tags
 }
@@ -33,7 +33,7 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
     // Parse text to separate words and audio tags
     const segments = React.useMemo(() => {
         const parsed: ParsedSegment[] = [];
-        const regex = /(\[[^\]]+\])|([^\s\[\]]+)/g;
+        const regex = /(\[[^\]]+\]|\([^)]*\))|([^\s\[\]()]+)/g;
         let match;
         let wordIndex = 0;
 
@@ -41,7 +41,7 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
             if (match[1]) {
                 // This is anything in brackets - Not meant to be read out loud and matched
                 parsed.push({
-                    type: 'brackets',
+                    type: 'other',
                     content: match[1]
                 });
             } else if (match[2]) {
@@ -59,15 +59,15 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
 
     // Helper function to parse text for non-user lines (without word indexing)
     const parseNonUserText = React.useMemo(() => {
-        const parsed: { type: 'text' | 'brackets'; content: string }[] = [];
-        const regex = /(\[[^\]]+\])|([^[\]]+)/g;
+        const parsed: { type: 'text' | 'other'; content: string }[] = [];
+        const regex = /(\[[^\]]+\]|\([^)]*\))|([^\s\[\]()]+)/g;
         let match;
 
         while ((match = regex.exec(element.text)) !== null) {
             if (match[1]) {
                 // This is anything in brackets - Not meant to be read out loud and matched
                 parsed.push({
-                    type: 'brackets',
+                    type: 'other',
                     content: match[1]
                 });
             } else if (match[2]) {
@@ -99,7 +99,7 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
             <div className="pl-4 border-l-3 border-gray-300">
                 <p className="text-base leading-relaxed text-gray-700 px-[2px] py-[5px]">
                     {parseNonUserText.map((segment, i) => {
-                        if (segment.type === 'brackets') {
+                        if (segment.type === 'other') {
                             // Strip outer [ ]
                             const inner = segment.content.slice(1, -1).trim();
 
@@ -125,7 +125,7 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
                             // Render regular text
                             return (
                                 <span key={`text-${i}`}>
-                                    {segment.content}
+                                    {segment.content + ' '}
                                 </span>
                             );
                         }
@@ -142,7 +142,7 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
         <div className={containerClasses} ref={containerRef}>
             <div className="text-base leading-relaxed">
                 {segments.map((segment, i) => {
-                    if (segment.type === 'brackets') {
+                    if (segment.type === 'other') {
                         // Strip outer [ ]
                         const inner = segment.content.slice(1, -1).trim();
 
