@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export async function extractRolesFromText(
-    text: string
+    text: string,
+    showToast?: (options: any) => void
 ): Promise<string[] | null> {
     if (!text || !text.trim()) {
         console.error("extractRolesFromText: empty text");
@@ -14,9 +16,29 @@ export async function extractRolesFromText(
                 Accept: "application/json",
             },
             body: JSON.stringify({ text }),
+            credentials: 'include'
         });
 
         if (!res.ok) {
+            if (res.status === 401) {
+                if (showToast) {
+                    showToast({
+                        header: "Session has expired",
+                        line1: "Please try logging in again",
+                        type: "danger",
+                    });
+                }
+                await fetch('/api/sessionLogout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 3500);
+
+                throw new Error('Unauthorized');
+            }
             console.error("Failed to extract roles:", await res.text());
             return null;
         }

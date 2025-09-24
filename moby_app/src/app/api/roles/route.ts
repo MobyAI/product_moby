@@ -2,13 +2,14 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getRolesWithClaude } from '@/lib/claude/extractRoles';
+import { withAuth } from "@/lib/api/withAuth";
 
 type Payload = {
     text: string;
     parseId?: string;
 };
 
-export async function POST(req: NextRequest) {
+async function handler(req: any) {
     const t0 = performance.now();
 
     try {
@@ -29,3 +30,5 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Failed to parse roles' }, { status: 500 });
     }
 }
+
+export const POST = withAuth(handler);

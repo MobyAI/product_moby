@@ -2,11 +2,25 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export const config = {
-    matcher: ['/scripts/:path*'],
+    matcher: [
+        '/scripts/:path*',
+        '/api/((?!auth|public|health).*)' // Protect all API routes except auth/public/health
+    ],
 };
 
 export function middleware(req: NextRequest) {
     const { pathname, search } = req.nextUrl;
+
+    // Public API routes that don't need auth
+    const publicApiRoutes = [
+        '/api/auth/sessionLogin',
+        '/api/auth/sessionCheck',
+        '/api/auth/sessionLogout',
+    ];
+
+    if (publicApiRoutes.some(route => pathname.startsWith(route))) {
+        return NextResponse.next();
+    }
 
     // If there’s no Firebase session cookie, block/redirect
     const session = req.cookies.get('__session')?.value;

@@ -1,10 +1,10 @@
-// app/api/extract-from-image/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { extractScriptFromImage } from '@/lib/openai/extract';
+import { withAuth } from "@/lib/api/withAuth";
 
-export async function POST(request: NextRequest) {
+async function handler(req: any) {
     try {
-        const { images } = await request.json();
+        const { images } = await req.json();
 
         if (!images || !Array.isArray(images)) {
             return NextResponse.json(
@@ -29,6 +29,8 @@ export async function POST(request: NextRequest) {
         );
     }
 }
+
+export const POST = withAuth(handler);
 
 // Optional: Add rate limiting or request size limits
 export const runtime = 'nodejs'; // Use Node.js runtime

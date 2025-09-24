@@ -99,7 +99,8 @@ export async function extractTextFromPDFimg(
             },
             body: JSON.stringify({
                 images: base64Images
-            })
+            }),
+            credentials: 'include'
         });
 
         if (!response.ok) {

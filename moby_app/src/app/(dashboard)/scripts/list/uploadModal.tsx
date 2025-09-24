@@ -10,6 +10,7 @@ import { ScriptElement } from '@/types/script';
 import { getAllVoiceSamples } from '@/lib/firebase/client/tts';
 import Dialog, { useDialog } from '@/components/ui/Dialog';
 import * as Sentry from "@sentry/nextjs";
+import { useToast } from "@/components/providers/ToastProvider";
 
 interface ScriptUploadModalProps {
     isOpen: boolean;
@@ -176,6 +177,9 @@ export default function ScriptUploadModal({
     // Dialog component
     const { dialogProps, openConfirm } = useDialog();
 
+    // Toast message
+    const { showToast } = useToast();
+
     // Reset function
     const resetModal = () => {
         setCurrentStage(0);
@@ -322,7 +326,7 @@ export default function ScriptUploadModal({
                     return;
                 }
 
-                textResult = await extractScriptText(file);
+                textResult = await extractScriptText(file, showToast);
 
                 if (!shouldContinueProcessing.current) {
                     console.log('Processing cancelled');
@@ -413,7 +417,7 @@ export default function ScriptUploadModal({
                         return;
                     }
 
-                    rolesResult = await extractRolesFromText(textResult.text);
+                    rolesResult = await extractRolesFromText(textResult.text, showToast);
 
                     if (!shouldContinueProcessing.current) {
                         console.log('Processing cancelled');
@@ -504,7 +508,7 @@ export default function ScriptUploadModal({
                     return;
                 }
 
-                const parsedResult = await parseScriptFromText(textResult.text);
+                const parsedResult = await parseScriptFromText(textResult.text, showToast);
 
                 if (!shouldContinueProcessing.current) {
                     console.log('Processing cancelled');

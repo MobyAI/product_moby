@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { embedText } from "@/lib/openai/embed";
+import { withAuth } from "@/lib/api/withAuth";
 
-export async function POST(req: Request) {
+async function handler(req: any) {
     try {
         const { expectedLine } = await req.json();
 
@@ -17,3 +18,5 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
+
+export const POST = withAuth(handler);

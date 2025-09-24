@@ -3,6 +3,7 @@ export async function fetchEmbedding(expectedLine: string): Promise<number[] | n
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ expectedLine }),
+        credentials: 'include'
     });
 
     if (!res.ok) {
