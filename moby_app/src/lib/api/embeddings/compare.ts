@@ -3,6 +3,7 @@ export async function fetchSimilarity(spokenLine: string, expectedEmbedding: num
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ spokenLine, expectedEmbedding }),
+        credentials: 'include'
     });
 
     if (!res.ok) {

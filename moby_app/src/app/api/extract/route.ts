@@ -1,8 +1,9 @@
 export const runtime = "nodejs";
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { extractTextFromPDF } from "@/lib/extract/pdf";
 import { extractTextFromDOCX } from "@/lib/extract/docx";
+import { withAuth } from "@/lib/api/withAuth";
 
 const normalize = (s: string) =>
     s.replace(/\r\n/g, "\n")
@@ -10,7 +11,8 @@ const normalize = (s: string) =>
         .replace(/\n{3,}/g, "\n\n")
         .trim();
 
-export async function POST(req: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handler(req: any) {
     // Expect multipart/form-data with a "file" field
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -57,3 +59,5 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Failed to extract text" }, { status: 500 });
     }
 }
+
+export const POST = withAuth(handler);

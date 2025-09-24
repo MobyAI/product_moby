@@ -1,11 +1,13 @@
 export const runtime = 'nodejs';
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { parseWithClaude } from '@/lib/claude/parse';
+import { withAuth } from "@/lib/api/withAuth";
 
 type Payload = { text: string; parseId?: string };
 
-export async function POST(req: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handler(req: any) {
     const t0 = performance.now();
 
     try {
@@ -27,3 +29,5 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Failed to parse script' }, { status: 500 });
     }
 }
+
+export const POST = withAuth(handler);

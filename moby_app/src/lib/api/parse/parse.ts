@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export async function parseScriptFromText(
-    text: string
+    text: string,
+    showToast?: (options: any) => void
 ): Promise<any | null> {
     if (!text || !text.trim()) {
         console.error("parseScriptFromText: empty text");
@@ -15,9 +16,29 @@ export async function parseScriptFromText(
                 Accept: "application/json",
             },
             body: JSON.stringify({ text }),
+            credentials: 'include'
         });
 
         if (!res.ok) {
+            if (res.status === 401) {
+                if (showToast) {
+                    showToast({
+                        header: "Session has expired",
+                        line1: "Please try logging in again",
+                        type: "danger",
+                    });
+                }
+                await fetch('/api/sessionLogout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 3500);
+                
+                throw new Error('Unauthorized');
+            }
             console.error("Failed to parse script:", await res.text());
             return null;
         }

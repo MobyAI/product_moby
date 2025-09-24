@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { embedText } from "@/lib/openai/embed";
+import { withAuth } from "@/lib/api/withAuth";
 
-export async function POST(req: Request) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handler(req: any) {
     try {
         const { expectedLine } = await req.json();
 
@@ -17,3 +19,5 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
+
+export const POST = withAuth(handler);
