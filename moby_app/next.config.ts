@@ -3,9 +3,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   compiler: {
-    removeConsole: {
-      exclude: ['error', 'warn'],
-    },
+    ...(process.env.NODE_ENV === 'production'
+      ? {
+        removeConsole: {
+          exclude: ['error', 'warn'],
+        },
+      }
+      : {}),
   },
   webpack: (config) => {
     // Exclude STT servers from webpack processing

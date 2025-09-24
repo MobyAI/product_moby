@@ -47,17 +47,30 @@ export async function addTTS(
 
         const sanitizeForTTS = (text: string): string => {
             return text
+                // Remove parenthetical text (anything in parentheses)
+                .replace(/\([^)]*\)/g, '')
+
+                // Remove bracketed text WITHOUT "tag:" prefix
+                .replace(/\[(?!\s*tag:)[^\]]*\]/gi, '')
+
+                // Strip the "tag:" prefix from remaining audio tags
+                .replace(/\[\s*tag:\s*([^\]]+)\]/gi, '[$1]')
+
                 // Replace one or more underscores with pause
                 .replace(/_+/g, ' [pause] ')
-                // Remove parenthetical text
-                .replace(/\([^)]*\)/g, '')
+
+                // Replace two or more periods with [pause]
+                .replace(/\.{2,}/g, ' [pause] ')
+
                 // Collapse multiple spaces caused by removals
                 .replace(/\s+/g, ' ')
                 .trim();
         };
 
+        console.log('sanitized for tts: ', sanitizeForTTS(element.text));
+
         const blob = await fetchElevenTTS({
-            text: element.text,
+            text: sanitizeForTTS(element.text),
             voiceId: element.voiceId ?? defaultVoiceId,
             voiceSettings: {
                 stability: 0,
@@ -105,19 +118,32 @@ export async function addTTSRegenerate(
                 : 'kdmDKE6EkgrWrrykO9Qt';
 
     try {
-        // const sanitizeForTTS = (text: string): string => {
-        //     return text
-        //         // Replace one or more underscores with pause
-        //         .replace(/_+/g, ' [pause] ')
-        //         // Remove parenthetical text
-        //         .replace(/\([^)]*\)/g, '')
-        //         // Collapse multiple spaces caused by removals
-        //         .replace(/\s+/g, ' ')
-        //         .trim();
-        // };
+        const sanitizeForTTS = (text: string): string => {
+            return text
+                // Remove parenthetical text (anything in parentheses)
+                .replace(/\([^)]*\)/g, '')
+
+                // Remove bracketed text WITHOUT "tag:" prefix
+                .replace(/\[(?!\s*tag:)[^\]]*\]/gi, '')
+
+                // Strip the "tag:" prefix from remaining audio tags
+                .replace(/\[\s*tag:\s*([^\]]+)\]/gi, '[$1]')
+
+                // Replace one or more underscores with pause
+                .replace(/_+/g, ' [pause] ')
+
+                // Replace two or more periods with [pause]
+                .replace(/\.{2,}/g, ' [pause] ')
+
+                // Collapse multiple spaces caused by removals
+                .replace(/\s+/g, ' ')
+                .trim();
+        };
+
+        console.log('sanitized for tts: ', sanitizeForTTS(element.text));
 
         const blob = await fetchElevenTTS({
-            text: element.text,
+            text: sanitizeForTTS(element.text),
             voiceId: element.voiceId ?? defaultVoiceId,
             voiceSettings: {
                 stability: 0,

@@ -228,8 +228,11 @@ export function useDeepgramSTT({
     }, [onProgressUpdate]);
 
     const setCurrentLineText = useCallback((text: string) => {
-        // Remove all content within brackets including the brackets
-        const sanitized = text.replace(/\[.*?\]/g, '').trim();
+        // Remove all content within brackets and parenthesis
+        const sanitized = text
+            .replace(/\[.*?\]/g, '')   // remove [ ... ]
+            .replace(/\(.*?\)/g, '')   // remove ( ... )
+            .trim();
 
         // Clean up any double spaces that might result from removal
         const cleaned = sanitized.replace(/\s+/g, ' ');
