@@ -5,16 +5,19 @@ interface AuthenticatedRequest extends NextRequest {
     user: {
         uid: string;
         email?: string;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         [key: string]: any;
     };
 }
 
 type AuthenticatedHandler = (
     req: AuthenticatedRequest,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     context?: any
 ) => Promise<NextResponse> | NextResponse;
 
 export function withAuth(handler: AuthenticatedHandler) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return async (req: NextRequest, context?: any) => {
         try {
             // Use your existing verifySession function

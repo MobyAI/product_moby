@@ -1,6 +1,6 @@
 export const runtime = "nodejs";
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { extractTextFromPDF } from "@/lib/extract/pdf";
 import { extractTextFromDOCX } from "@/lib/extract/docx";
 import { withAuth } from "@/lib/api/withAuth";
@@ -11,6 +11,7 @@ const normalize = (s: string) =>
         .replace(/\n{3,}/g, "\n\n")
         .trim();
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handler(req: any) {
     // Expect multipart/form-data with a "file" field
     const formData = await req.formData();

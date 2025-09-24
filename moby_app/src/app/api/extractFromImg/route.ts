@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { extractScriptFromImage } from '@/lib/openai/extract';
 import { withAuth } from "@/lib/api/withAuth";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handler(req: any) {
     try {
         const { images } = await req.json();

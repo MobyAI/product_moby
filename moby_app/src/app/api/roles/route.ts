@@ -1,6 +1,6 @@
 export const runtime = 'nodejs';
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getRolesWithClaude } from '@/lib/claude/extractRoles';
 import { withAuth } from "@/lib/api/withAuth";
 
@@ -9,6 +9,7 @@ type Payload = {
     parseId?: string;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handler(req: any) {
     const t0 = performance.now();
 

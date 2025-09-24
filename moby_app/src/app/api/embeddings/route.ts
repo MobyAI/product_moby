@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { embedText } from "@/lib/openai/embed";
 import { withAuth } from "@/lib/api/withAuth";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handler(req: any) {
     try {
         const { expectedLine } = await req.json();
