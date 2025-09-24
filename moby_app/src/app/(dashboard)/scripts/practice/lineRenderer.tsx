@@ -114,10 +114,10 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
                                     </span>
                                 );
                             } else {
-                                // ✅ Normal bracketed text, render as plain span with brackets
+                                // ✅ Normal bracketed text, render as plain span with brackets or parenthesis
                                 return (
-                                    <span key={`text-${i}`} className="text-gray-400 italic">
-                                        {segment.content + ' '}
+                                    <span key={`other-${i}`} className="text-gray-400 italic mx-1">
+                                        {segment.content}
                                     </span>
                                 );
                             }
@@ -125,7 +125,7 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
                             // Render regular text
                             return (
                                 <span key={`text-${i}`}>
-                                    {segment.content + ' '}
+                                    {segment.content + " "}
                                 </span>
                             );
                         }
@@ -158,10 +158,10 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
                                 </span>
                             );
                         } else {
-                            // ✅ Normal bracketed text, render as plain span with brackets
+                            // ✅ Normal bracketed text, render as plain span with brackets or parenthesis
                             return (
-                                <span key={`text-${i}`} className="text-gray-400 italic">
-                                    {segment.content + ' '}
+                                <span key={`other-${i}`} className="text-gray-400 italic mx-1">
+                                    {segment.content}
                                 </span>
                             );
                         }
@@ -176,9 +176,9 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
                             <span
                                 key={`word-${segment.wordIndex}`}
                                 data-word-index={segment.wordIndex}
-                                className={spanClasses}
+                                className={`${spanClasses}`}
                             >
-                                {segment.content + ' '}
+                                {segment.content + " "}
                             </span>
                         );
                     }
