@@ -108,7 +108,7 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
                                 return (
                                     <span
                                         key={`tag-${element.index}-${i}`}
-                                        className="inline-block rounded-full bg-purple-600 text-white text-sm font-medium px-3 py-1 mx-1"
+                                        className="inline-block rounded-full bg-purple-600 text-white text-sm font-medium px-3 py-0.75 mx-1"
                                     >
                                         {tagText}
                                     </span>
@@ -152,7 +152,7 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
                             return (
                                 <span
                                     key={`tag-${element.index}-${i}`}
-                                    className="inline-block rounded-full bg-purple-600 text-white text-sm font-medium px-3 py-1 mx-1"
+                                    className="inline-block rounded-full bg-purple-600 text-white text-sm font-medium px-3 py-0.75 mx-1"
                                 >
                                     {tagText}
                                 </span>

@@ -1318,6 +1318,7 @@ function RehearsalRoomContent() {
                     {/* Edit button */}
                     {isCurrent &&
                         !isPlaying &&
+                        !editingDirectionIndex &&
                         (
                             <div className="absolute -bottom-5.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[100]">
                                 <button

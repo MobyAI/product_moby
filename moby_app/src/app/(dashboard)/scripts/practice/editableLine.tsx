@@ -18,6 +18,10 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
         return trimmedText;
     });
 
+    // History of text values
+    const historyRef = useRef<string[]>([]);
+    const redoRef = useRef<string[]>([]);
+
     // Check for updates before save
     const hasContentChanged = (currentText: string): boolean => {
         const current = currentText.trim();
@@ -271,10 +275,31 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
             }
         }
 
-        // Trigger on [ or ]
-        const isAudioTagTrigger =
-            e.key === '[' ||
-            e.key === ']';
+        // Shortcuts
+        const isAudioTagTrigger = e.key === '[';
+        const isUndo = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey;
+        const isRedo = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && e.shiftKey;
+
+        if (isUndo) {
+            e.preventDefault();
+            if (historyRef.current.length > 1) {
+                const current = historyRef.current.pop()!; // current value
+                redoRef.current.push(current);
+                const prev = historyRef.current[historyRef.current.length - 1];
+                restoreContent(prev);
+            }
+            return;
+        }
+
+        if (isRedo) {
+            e.preventDefault();
+            if (redoRef.current.length > 0) {
+                const next = redoRef.current.pop()!;
+                historyRef.current.push(next);
+                restoreContent(next);
+            }
+            return;
+        }
 
         if (isAudioTagTrigger && !isComposing.current) {
             e.preventDefault();
@@ -343,6 +368,13 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
     const handleInput = () => {
         if (editableRef.current) {
             const text = editableRef.current.innerText || '';
+
+            // Push into history only if different from last entry
+            if (historyRef.current[historyRef.current.length - 1] !== text) {
+                historyRef.current.push(text);
+                redoRef.current = []; // clear redo stack
+            }
+
             setDraftText(text);
 
             // Save cursor position
@@ -414,6 +446,21 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
         handleInput();
     };
 
+    // Handle undo/redo
+    const restoreContent = (text: string) => {
+        if (editableRef.current) {
+            setDraftText(text);
+            editableRef.current.innerHTML = applyBracketStyling(text);
+            // place cursor at end
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(editableRef.current);
+            range.collapse(false);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+        }
+    };
+
     return (
         <div className="pl-4 border-l-4 border-gray-300">
             <div className="text-base leading-relaxed">
@@ -472,7 +519,7 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
                                 </div>
                             </div>
                         </div>
-                        <span>{`Insert audio tags by pressing opening or closing bracket.`}</span>
+                        <span>{`Insert audio tags by pressing open bracket key ( [ )`}</span>
                     </div>
                 </div>
             </div>
