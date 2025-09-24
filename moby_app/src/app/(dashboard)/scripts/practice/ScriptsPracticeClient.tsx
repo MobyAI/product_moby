@@ -1184,48 +1184,47 @@ function RehearsalRoomContent() {
 
     const normalizeBracketSpaces = (s: string) => s.replace(/\](?!\s|$)/g, "] ");
 
-    // Helper function to parse text and convert [word] to button elements
-    const parseTextWithButtons = (text: string) => {
-        // Ensure there's always a space after a closing bracket if missing
-        // text = text.replace(/\](?!\s)/g, "] ");
+    // // Helper function to parse text and convert [word] to button elements
+    // const parseTextWithButtons = (text: string) => {
+    //     // Ensure there's always a space after a closing bracket if missing
+    //     // text = text.replace(/\](?!\s)/g, "] ");
 
-        const parts = [];
-        const regex = /\[([^\]]+)\]/g;
-        let lastIndex = 0;
-        let match;
+    //     const parts = [];
+    //     const regex = /\[([^\]]+)\]/g;
+    //     let lastIndex = 0;
+    //     let match;
 
-        while ((match = regex.exec(text)) !== null) {
-            // Add text before the match
-            if (match.index > lastIndex) {
-                parts.push(text.slice(lastIndex, match.index));
-            }
+    //     while ((match = regex.exec(text)) !== null) {
+    //         // Add text before the match
+    //         if (match.index > lastIndex) {
+    //             parts.push(text.slice(lastIndex, match.index));
+    //         }
 
-            // Add the button for the bracketed word
-            const buttonText = match[1];
-            parts.push(
-                <button
-                    key={`btn-${match.index}-${buttonText}`}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                    }}
-                    className="inline-flex items-center px-2 py-0 mx-0 rounded-sm"
-                    style={{ background: '#b8b3d7', color: '#333333', fontWeight: '500' }}
-                >
-                    {buttonText}
-                </button>
-            );
+    //         // Add the button for the bracketed word
+    //         const buttonText = match[1];
+    //         parts.push(
+    //             <button
+    //                 key={`btn-${match.index}-${buttonText}`}
+    //                 onClick={(e) => {
+    //                     e.stopPropagation();
+    //                 }}
+    //                 className="inline-flex items-center px-2 py-0 mx-0 rounded-sm"
+    //                 style={{ background: '#b8b3d7', color: '#333333', fontWeight: '500' }}
+    //             >
+    //                 {buttonText}
+    //             </button>
+    //         );
 
-            lastIndex = regex.lastIndex;
-        }
+    //         lastIndex = regex.lastIndex;
+    //     }
 
-        // Add remaining text
-        if (lastIndex < text.length) {
-            parts.push(text.slice(lastIndex));
-        }
+    //     // Add remaining text
+    //     if (lastIndex < text.length) {
+    //         parts.push(text.slice(lastIndex));
+    //     }
 
-        return parts.length > 0 ? parts : [text];
-    };
-
+    //     return parts.length > 0 ? parts : [text];
+    // };
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const renderScriptElement = (element: ScriptElement, index: number) => {
