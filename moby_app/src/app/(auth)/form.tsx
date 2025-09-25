@@ -4,42 +4,72 @@ import { useState } from "react";
 import * as Sentry from "@sentry/nextjs";
 
 type Props = {
-    mode: "login" | "signup";
-    onGoogle: () => Promise<void>;
-    onEmailPassword: (email: string, password: string) => Promise<void>;
-    switchHref: string;
-    switchText: string;
-    switchCta: string;
+    mode: "login" | "signup" | "password-setup";
+    onGoogle?: () => Promise<void>;
+    onEmailPassword?: (email: string, password: string) => Promise<void>;
+    onPasswordSetup?: (password: string) => Promise<void>;
+    switchHref?: string;
+    switchText?: string;
+    switchCta?: string;
+    userEmail?: string; // For displaying in password-setup mode
 };
 
 export default function Form({
     mode,
     onGoogle,
     onEmailPassword,
+    onPasswordSetup,
     switchHref,
     switchText,
     switchCta,
+    userEmail,
 }: Props) {
     const [email, setEmail] = useState("");
     const [pw, setPw] = useState("");
-    const [loading, setLoading] = useState<null | "google" | "email">(null);
+    const [confirmPw, setConfirmPw] = useState("");
+    const [loading, setLoading] = useState<null | "google" | "email" | "password">(null);
     const [error, setError] = useState<string | null>(null);
 
     async function submitEmail(e: React.FormEvent) {
         e.preventDefault();
         setError(null);
-        if (!email || !pw) {
-            setError("Email and password are required.");
-            return;
-        }
-        try {
-            setLoading("email");
-            await onEmailPassword(email, pw);
-        } catch (err) {
-            setError("Sign in failed. Please check your email/password and try again.");
-            Sentry.captureException(err);
-        } finally {
-            setLoading(null);
+
+        if (mode === "password-setup") {
+            if (!pw) {
+                setError("Password is required.");
+                return;
+            }
+            if (pw !== confirmPw) {
+                setError("Passwords do not match.");
+                return;
+            }
+            if (pw.length < 6) {
+                setError("Password must be at least 6 characters.");
+                return;
+            }
+            try {
+                setLoading("password");
+                await onPasswordSetup?.(pw);
+            } catch (err) {
+                setError("Failed to set password. Please try again.");
+                Sentry.captureException(err);
+            } finally {
+                setLoading(null);
+            }
+        } else {
+            if (!email || !pw) {
+                setError("Email and password are required.");
+                return;
+            }
+            try {
+                setLoading("email");
+                await onEmailPassword?.(email, pw);
+            } catch (err) {
+                setError("Sign in failed. Please check your email/password and try again.");
+                Sentry.captureException(err);
+            } finally {
+                setLoading(null);
+            }
         }
     }
 
@@ -47,7 +77,7 @@ export default function Form({
         setError(null);
         try {
             setLoading("google");
-            await onGoogle();
+            await onGoogle?.();
         } catch (err) {
             setError("Google sign in failed.");
             Sentry.captureException(err);
@@ -56,7 +86,11 @@ export default function Form({
         }
     }
 
-    const title = mode === "login" ? "Sign in" : "Create your account";
+    const title = mode === "login"
+        ? "Sign in"
+        : mode === "signup"
+            ? "Create your account"
+            : "Set up password access";
 
     if (loading !== null) {
         return (
@@ -69,11 +103,62 @@ export default function Form({
                         style={{ animationDuration: "1.5s", animationDirection: "reverse" }}
                     />
                 </div>
-                <p className="text-gray-700 text-lg font-medium">Signing you in…</p>
+                <p className="text-gray-700 text-lg font-medium">
+                    {mode === "password-setup" ? "Setting up password..." : "Signing you in…"}
+                </p>
             </div>
         );
     }
 
+    // Password setup mode - simplified form
+    if (mode === "password-setup") {
+        return (
+            <div className="space-y-6">
+                <h1 className="text-2xl font-semibold text-black">{title}</h1>
+
+                <div className="text-sm text-gray-600 space-y-2">
+                    <p>{`You're signed in with Google using ${userEmail}`}</p>
+                    <p>{"Set a password to also enable email & password sign-in."}</p>
+                </div>
+
+                <form onSubmit={submitEmail} className="space-y-3">
+                    <input
+                        type="password"
+                        autoComplete="new-password"
+                        placeholder="Password"
+                        value={pw}
+                        onChange={(e) => setPw(e.currentTarget.value)}
+                        className="w-full rounded-md border px-3 py-2 text-gray-500"
+                    />
+                    <input
+                        type="password"
+                        autoComplete="new-password"
+                        placeholder="Confirm Password"
+                        value={confirmPw}
+                        onChange={(e) => setConfirmPw(e.currentTarget.value)}
+                        className="w-full rounded-md border px-3 py-2 text-gray-500"
+                    />
+                    {error && <p className="text-sm text-red-600">{error}</p>}
+                    <button
+                        type="submit"
+                        disabled={loading !== null}
+                        className="w-full rounded-lg bg-black text-white px-4 py-2"
+                    >
+                        {loading === "password" ? "Setting up..." : "Set Password"}
+                    </button>
+                </form>
+
+                <button
+                    onClick={() => window.location.href = switchHref || '/'}
+                    className="text-sm text-gray-600 underline"
+                >
+                    Skip for now
+                </button>
+            </div>
+        );
+    }
+
+    // Original login/signup modes
     return (
         <div className="space-y-6">
             <h1 className="text-2xl font-semibold text-black">{title}</h1>
@@ -85,6 +170,7 @@ export default function Form({
                     onClick={submitGoogle}
                     disabled={loading !== null}
                 >
+                    {/* ... Google button content stays the same ... */}
                     <div className="gsi-material-button-state"></div>
                     <div className="gsi-material-button-content-wrapper">
                         <div className="gsi-material-button-icon">
@@ -95,29 +181,10 @@ export default function Form({
                                 xmlnsXlink="http://www.w3.org/1999/xlink"
                                 style={{ display: "block" }}
                             >
-                                <path
-                                    fill="#EA4335"
-                                    d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0
-          14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5
-          24 9.5z"
-                                />
-                                <path
-                                    fill="#4285F4"
-                                    d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94
-          c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6
-          c4.51-4.18 7.09-10.36 7.09-17.65z"
-                                />
-                                <path
-                                    fill="#FBBC05"
-                                    d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19
-          C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-                                />
-                                <path
-                                    fill="#34A853"
-                                    d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6
-          c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98
-          6.19C6.51 42.62 14.62 48 24 48z"
-                                />
+                                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
                                 <path fill="none" d="M0 0h48v48H0z" />
                             </svg>
                         </div>
@@ -160,12 +227,8 @@ export default function Form({
                     className="w-full rounded-lg bg-black text-white px-4 py-2"
                 >
                     {loading === "email"
-                        ? mode === "login"
-                            ? "Signing in…"
-                            : "Creating account…"
-                        : mode === "login"
-                            ? "Sign in with email"
-                            : "Create account"}
+                        ? mode === "login" ? "Signing in…" : "Creating account…"
+                        : mode === "login" ? "Sign in with email" : "Create account"}
                 </button>
             </form>
 
