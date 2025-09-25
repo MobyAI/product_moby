@@ -6,6 +6,7 @@ import Form from "../form";
 import {
     handleEmailPasswordLogin,
     handleGoogleLogin,
+    sendSessionLogin,
 } from "@/lib/api/auth";
 import { checkUserProfileExists } from "@/lib/firebase/client/user";
 import { updatePassword } from "firebase/auth";
@@ -70,7 +71,16 @@ export default function LoginPage() {
                     const user = auth.currentUser;
                     if (user) {
                         await updatePassword(user, password);
-                        await handleSuccessfulLogin();
+
+                        // IMPORTANT: Refresh the session cookie after password update
+                        const newIdToken = await user.getIdToken(true); // force refresh
+                        const sessionResult = await sendSessionLogin(newIdToken);
+
+                        if (sessionResult.success) {
+                            await handleSuccessfulLogin();
+                        } else {
+                            throw new Error("Failed to refresh session after password update");
+                        }
                     }
                 }}
                 switchHref={next} // Skip button goes to the next page

@@ -6,6 +6,7 @@ import Form from "../form";
 import {
     handleEmailPasswordRegister,
     handleGoogleLogin,
+    sendSessionLogin,
 } from "@/lib/api/auth";
 import { updatePassword } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/config/app";
@@ -58,7 +59,16 @@ export default function SignupPage() {
                     const user = auth.currentUser;
                     if (user) {
                         await updatePassword(user, password);
-                        router.replace(onboardingUrl);
+
+                        // IMPORTANT: Refresh the session cookie after password update
+                        const newIdToken = await user.getIdToken(true); // force refresh
+                        const sessionResult = await sendSessionLogin(newIdToken);
+
+                        if (sessionResult.success) {
+                            router.replace(onboardingUrl);
+                        } else {
+                            throw new Error("Failed to refresh session after password update");
+                        }
                     }
                 }}
                 switchHref={onboardingUrl} // Skip button continues to onboarding

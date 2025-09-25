@@ -11,15 +11,16 @@ Parse the script into JSON. Each object must include:
 - "type": "scene", "line", or "direction"
 - "index": original order in script
 - For "line": include "character", "gender", inferred "tone", and "actingInstructions"
+- Parenthetical text within a character's dialogue (e.g., "(beat)", "(whispers)", "(resumes normal voice)") should be kept as part of the line's text, not separated as directions
+- Only treat text as "direction" type when it's a standalone stage direction between character lines (e.g., "She checks Remy's expression...")
 
 Guidelines for "actingInstructions" (Must be ≤100 characters):
-- Focus on the context of the moment and who the character is speaking to and why.
-- Highlight audience dynamics (e.g., intimate, confrontational, persuasive, performative).
-- Include subtext or intent (e.g., revealing, accusing, persuading, resisting, deflecting).
-- Use emotion or tone sparingly, only when not obvious from the context or when crucial for delivery.
-- Avoid generic emotion labels (like "angry" or "sad"); prefer situational phrasing (e.g., “defending herself under pressure”).
-- Favor performative phrasing that helps the actor shape delivery (e.g., “trying to hold it together in front of an ex”).
-- If the line is humorous, sarcastic, or teasing, append “No laughter added.”, to the actingInstructions to ensure the TTS voice avoids inserting laughter.
+- Establish the scene context and maintain it across related lines (e.g., "confessing to new friend at bar", "defending position in courtroom")
+- When the scene/setting/dynamic shifts, update the context accordingly
+- Include who the character is speaking to and the relationship dynamic
+- Specify the ongoing situation or conversation thread (e.g., "mid-confession about past relationship", "building to revelation")
+- Include subtext or intent within that scene context
+- Build on previous emotional beats when appropriate (e.g., "continuing confession, now more vulnerable")
 
 Do not rewrite anything. Do not add commentary.
 
