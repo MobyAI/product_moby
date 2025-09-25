@@ -13,9 +13,9 @@ export function middleware(req: NextRequest) {
 
     // Public API routes that don't need auth
     const publicApiRoutes = [
-        '/api/auth/sessionLogin',
-        '/api/auth/sessionCheck',
-        '/api/auth/sessionLogout',
+        '/api/sessionLogin',
+        '/api/sessionCheck',
+        '/api/sessionLogout',
     ];
 
     if (publicApiRoutes.some(route => pathname.startsWith(route))) {
