@@ -117,8 +117,8 @@ export default function Form({
                 <h1 className="text-2xl font-semibold text-black">{title}</h1>
 
                 <div className="text-sm text-gray-600 space-y-2">
-                    <p>You're signed in with Google using {userEmail}</p>
-                    <p>Set a password to also enable email & password sign-in.</p>
+                    <p>{`You're signed in with Google using ${userEmail}`}</p>
+                    <p>{"Set a password to also enable email & password sign-in."}</p>
                 </div>
 
                 <form onSubmit={submitEmail} className="space-y-3">
