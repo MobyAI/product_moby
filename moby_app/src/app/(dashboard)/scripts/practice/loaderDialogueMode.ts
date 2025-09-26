@@ -5,6 +5,7 @@ import pLimit from 'p-limit';
 import * as Sentry from '@sentry/react';
 import { set } from 'idb-keyval';
 import type { AlignmentData } from "@/types/alignment";
+import { sanitizeForTTS } from "@/lib/helpers/sanitizerTTS";
 
 // Extend ScriptElement locally for this file only
 interface ScriptElementWithTiming extends ScriptElement {
@@ -336,7 +337,7 @@ const splitAudioIntoSegments = async (
         const endTime = Math.min(audioBuffer.duration, timing.endTime + endPaddingSeconds);
 
         const startSample = Math.floor(startTime * sampleRate);
-        const endSample = Math.ceil(endTime * sampleRate);
+        const endSample = Math.floor(endTime * sampleRate);
         const segmentLength = endSample - startSample;
 
         // Add diagnostic logging
@@ -415,23 +416,31 @@ export const hydrateScriptWithDialogue = async ({
 
     try {
         // Get all lines that need TTS
-        const scenePartnerLines = script.filter(
+        const linesNeedingHydration = script.filter(
             (element: ScriptElement) =>
                 element.type === 'line' &&
                 (!element.ttsUrl || element.ttsUrl.length === 0)
         );
 
-        if (scenePartnerLines.length === 0) {
+        if (linesNeedingHydration.length === 0) {
             console.log('✅ All scene-partner lines already have audio');
+
+            // Still update TTS status for UI
+            script.forEach(element => {
+                if (element.type === 'line') {
+                    updateTTSHydrationStatus?.(element.index, 'ready');
+                }
+            });
+
             setLoadStage('✅ Script ready!');
             return false;
         }
 
-        const totalOperations = scenePartnerLines.length;
+        const totalOperations = linesNeedingHydration.length;
         let completedOperations = 0;
 
         // Update status to pending for all lines
-        scenePartnerLines.forEach(line => {
+        linesNeedingHydration.forEach(line => {
             updateTTSHydrationStatus?.(line.index, 'pending');
         });
 
@@ -439,7 +448,7 @@ export const hydrateScriptWithDialogue = async ({
         setLoadStage('🎤 Generating dialogue audio...');
 
         // Check if any lines are missing voiceId
-        const linesWithoutVoice = scenePartnerLines.filter(line => !line.voiceId);
+        const linesWithoutVoice = linesNeedingHydration.filter(line => !line.voiceId);
         if (linesWithoutVoice.length > 0 && showToast) {
             showToast({
                 header: "Missing voice selection",
@@ -448,8 +457,8 @@ export const hydrateScriptWithDialogue = async ({
             });
         }
 
-        const dialogueEntries: DialogueEntry[] = scenePartnerLines.map(line => ({
-            text: line.text,
+        const dialogueEntries: DialogueEntry[] = linesNeedingHydration.map(line => ({
+            text: sanitizeForTTS(line.text),
             voiceId: line.voiceId || VOICE_MAPPING.default,
             lineIndex: line.index
         }));
@@ -487,16 +496,16 @@ export const hydrateScriptWithDialogue = async ({
         // Step 2: Get forced alignment
         setLoadStage('🎯 Aligning audio with text...');
 
-        const fullTranscript = scenePartnerLines.map(line => line.text).join(' ');
+        const fullTranscript = linesNeedingHydration.map(line => line.text).join(' ');
         const alignmentData = await getForcedAlignment(audioBlob, fullTranscript);
         console.log('✅ Forced alignment complete');
 
         // Step 3: Map timestamps to lines
-        const timingMap = mapAlignmentToLines(alignmentData, scenePartnerLines);
+        const timingMap = mapAlignmentToLines(alignmentData, linesNeedingHydration);
 
         // Check if all lines got timestamps
         const failedLines: number[] = [];
-        scenePartnerLines.forEach(line => {
+        linesNeedingHydration.forEach(line => {
             if (!timingMap.has(line.index)) {
                 failedLines.push(line.index);
                 console.warn(`❌ No timing found for line ${line.index}`);
