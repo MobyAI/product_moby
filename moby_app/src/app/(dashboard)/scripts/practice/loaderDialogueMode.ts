@@ -13,11 +13,6 @@ interface ScriptElementWithTiming extends ScriptElement {
     duration?: number;
 }
 
-// Type guard to check if element has timing
-// const hasTimingData = (element: ScriptElement | ScriptElementWithTiming): element is ScriptElementWithTiming => {
-//     return 'startTime' in element && 'endTime' in element;
-// };
-
 interface DialogueEntry {
     text: string;
     voiceId: string;
@@ -238,7 +233,7 @@ const mapAlignmentToLines = (
                 }
             }
 
-            // ADD SLIDING WINDOW HERE - Right after the for loop, before wordIndex++
+            // Sliding Window to look ahead and skip words that shouldn't have been spoken
             if (!matched && wordsFound > 0) {
                 // Look within next 10 words for our target
                 const lookAheadWindow = 10;
@@ -380,7 +375,7 @@ const splitAudioIntoSegments = async (
     return segmentMap;
 };
 
-// Main hydration function using dialogue mode
+// Hydration function using dialogue mode
 export const hydrateScriptWithDialogue = async ({
     script,
     userID,
@@ -392,6 +387,7 @@ export const hydrateScriptWithDialogue = async ({
     setTTSFailedLines,
     updateTTSHydrationStatus,
     onProgressUpdate,
+    showToast,
 }: {
     script: ScriptElement[];
     userID: string;
@@ -403,6 +399,7 @@ export const hydrateScriptWithDialogue = async ({
     setTTSFailedLines: (lines: number[]) => void;
     updateTTSHydrationStatus?: (index: number, status: 'pending' | 'ready' | 'failed') => void;
     onProgressUpdate?: (hydratedCount: number, totalCount: number) => void;
+    showToast: (props: { header: string; line1?: string; type: 'success' | 'danger' | 'warning' | 'neutral' }) => void;
 }): Promise<boolean> => {
     if (!userID || !scriptID) return false;
 
@@ -439,6 +436,16 @@ export const hydrateScriptWithDialogue = async ({
         // Step 1: Generate dialogue audio for all scene-partner lines
         setLoadStage('🎤 Generating dialogue audio...');
 
+        // Check if any lines are missing voiceId
+        const linesWithoutVoice = scenePartnerLines.filter(line => !line.voiceId);
+        if (linesWithoutVoice.length > 0 && showToast) {
+            showToast({
+                header: "Missing voice selection",
+                line1: "Using default voice",
+                type: "warning"
+            });
+        }
+
         const dialogueEntries: DialogueEntry[] = scenePartnerLines.map(line => ({
             text: line.text,
             voiceId: line.voiceId || VOICE_MAPPING.default,
@@ -458,6 +465,17 @@ export const hydrateScriptWithDialogue = async ({
         });
 
         if (!response.ok) {
+            const errorMessage = await response.text().catch(() => 'Unknown error');
+            console.error(`TTS API failed with status ${response.status}: ${errorMessage}`);
+
+            showToast({
+                header: "Audio generation failed",
+                line1: response.status === 429
+                    ? "Rate limit exceeded. Please try again later"
+                    : "Unable to generate scene partner audio",
+                type: "danger"
+            });
+
             throw new Error('Failed to generate dialogue audio');
         }
 
@@ -555,21 +573,16 @@ export const hydrateScriptWithDialogue = async ({
         setLoadStage('💾 Saving...');
 
         try {
-            // Cast back to ScriptElement[] for caching if needed
-            // The timing data will be preserved in the cached object
+            // The timing data preserved in the cached object
             await set(scriptCacheKey, updatedScript as ScriptElement[]);
             console.log('💾 Script cached successfully');
         } catch (err) {
             console.warn('⚠️ Failed to cache script:', err);
             Sentry.captureException(err);
-            //   if (err?.name === 'QuotaExceededError') {
-            //     setStorageError(true);
-            //   }
         }
 
         // Step 7: Save to database
         try {
-            // Cast back to ScriptElement[] for database if needed
             await updateScript(scriptID, updatedScript as ScriptElement[]);
             console.log('✅ Script saved to database');
         } catch (err) {
@@ -581,7 +594,6 @@ export const hydrateScriptWithDialogue = async ({
         console.log(`⏱️ Script hydrated with dialogue mode in ${(end - start).toFixed(2)} ms`);
 
         setLoadStage('✅ Resources loaded!');
-        // Cast back to ScriptElement[] for setScript
         setScript(updatedScript as ScriptElement[]);
 
         return failedLines.length === 0; // Return true only if all lines succeeded

@@ -205,6 +205,7 @@ function RehearsalRoomContent() {
                             const pct = total > 0 ? Math.round((hydrated / total) * 100) : 0;
                             setLoadProgress(pct);
                         },
+                        showToast,
                     });
 
                     if (shouldContinueProcessing.current && wasHydrated) {
