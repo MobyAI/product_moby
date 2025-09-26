@@ -316,23 +316,38 @@ function RehearsalRoomContent() {
         setLoadStage('🚰 Retrying hydration');
         setLoading(true);
 
-        await hydrateScript({
-            script: script,
-            userID,
-            scriptID,
-            setLoadStage,
-            setScript,
-            setStorageError,
-            setEmbeddingError,
-            setEmbeddingFailedLines,
-            setTTSLoadError,
-            setTTSFailedLines,
-            updateTTSHydrationStatus,
-            getScriptLine,
-        });
+        try {
+            const wasHydrated = await hydrateScriptWithDialogue({
+                script: script,
+                userID,
+                scriptID,
+                setLoadStage,
+                setScript,
+                setStorageError,
+                setTTSLoadError,
+                setTTSFailedLines,
+                updateTTSHydrationStatus,
+                onProgressUpdate: (hydrated, total) => {
+                    const pct = total > 0 ? Math.round((hydrated / total) * 100) : 0;
+                    setLoadProgress(pct);
+                },
+                showToast,
+            });
 
-        setLoadStage('✅ Retry succeeded!');
-        setLoading(false);
+            if (shouldContinueProcessing.current && wasHydrated) {
+                showToast({
+                    header: "Script ready!",
+                    type: "success",
+                });
+
+                setLoadStage('✅ Retry succeeded!');
+            }
+        } catch (e) {
+            console.error("Retry failed", e);
+            Sentry.captureException(e);
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Track TTS audio generation status
