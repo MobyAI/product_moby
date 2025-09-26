@@ -161,10 +161,10 @@ const mapAlignmentToLines = (
 
     for (const line of scenePartnerLines) {
         const lineWords = preprocessLineForAlignment(line.text);
+        const matchedWords: string[] = [];
         let wordsFound = 0;
         let lineStartTime: number | undefined;
         let lineEndTime: number | undefined;
-        let matchedWords: string[] = [];
         let searchedWords = 0;
         let firstMatchIndex = -1; // Track where we found the first word of this line
         let lastMatchIndex = -1;  // Track where we found the last matched word
@@ -201,6 +201,7 @@ const mapAlignmentToLines = (
 
                     if (wordsFound === 0) {
                         lineStartTime = words[wordIndex].start;
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
                         firstMatchIndex = wordIndex;
                         console.log(`  ✓ Found first word "${targetWord}" in "${alignedWordRaw}" at index ${wordIndex}`);
                     }
@@ -317,6 +318,7 @@ const splitAudioIntoSegments = async (
     audioBlob: Blob,
     timingMap: Map<number, { startTime: number; endTime: number }>
 ): Promise<Map<number, Blob>> => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const arrayBuffer = await audioBlob.arrayBuffer();
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
