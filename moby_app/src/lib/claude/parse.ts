@@ -10,17 +10,19 @@ export async function parseWithClaude(scriptText: string) {
 Parse the script into JSON. Each object must include:
 - "type": "scene", "line", or "direction"
 - "index": original order in script
-- For "line": include "character", "gender", inferred "tone", and "actingInstructions"
-- Parenthetical text within a character's dialogue (e.g., "(beat)", "(whispers)", "(resumes normal voice)") should be kept as part of the line's text, not separated as directions
-- Only treat text as "direction" type when it's a standalone stage direction between character lines (e.g., "She checks Remy's expression...")
+- For "line": include "character", "gender", inferred "tone"
+- Parenthetical text within a character's dialogue (e.g., "(whispers)", "(shouts)") should be kept as part of the line's text, not separated as directions
+- Only treat text as "direction" type when it's a standalone stage direction between character lines (e.g., "She looks around nervously")
 
-Guidelines for "actingInstructions" (Must be ≤100 characters):
-- Establish the scene context and maintain it across related lines (e.g., "confessing to new friend at bar", "defending position in courtroom")
-- When the scene/setting/dynamic shifts, update the context accordingly
-- Include who the character is speaking to and the relationship dynamic
-- Specify the ongoing situation or conversation thread (e.g., "mid-confession about past relationship", "building to revelation")
-- Include subtext or intent within that scene context
-- Build on previous emotional beats when appropriate (e.g., "continuing confession, now more vulnerable")
+TONE INSTRUCTIONS:
+- Up to 2 words describing HOW to deliver the line (not what/where/who)
+- Keep tone CONSISTENT for a character throughout a scene unless emotion fundamentally shifts
+- Focus on delivery style: "anxious whisper", "cold anger", "gentle warmth", "barely controlled"
+- Same character in same scene = same tone (unless major emotional change occurs)
+- Prioritize scene-level consistency over line-by-line variation
+- Examples of good tones: "defensive edge", "weary resignation", "nervous energy", "quiet intensity"
+- BAD: changing tone every line just because words differ
+- GOOD: maintaining "playful teasing" for entire flirtatious scene
 
 Do not rewrite anything. Do not add commentary.
 
@@ -41,7 +43,7 @@ Your JSON must be parsable by JavaScript’s JSON.parse(). To ensure this:
 Example format:
 [
     { "index": 0, "type": "scene", "text": "INT. KITCHEN – DAY" },
-    { "index": 1, "type": "line", "character": "JANE", "gender": "female", "text": "What are you doing here?", "tone": "suspicious", "actingInstructions": "Suspicious and guarded, confronting someone unexpectedly." },
+    { "index": 1, "type": "line", "character": "JANE", "gender": "female", "text": "Hey. (whispers) What are you doing here?", "tone": "anxious whisper" },
     { "index": 2, "type": "direction", "text": "He steps back cautiously." }
 ]
 

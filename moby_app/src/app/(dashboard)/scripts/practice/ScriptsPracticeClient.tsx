@@ -8,6 +8,7 @@ import type { ScriptElement } from "@/types/script";
 import { updateScript, setLastPracticed } from "@/lib/firebase/client/scripts";
 import { AudioPlayerWithFallbacks } from "@/lib/audioplayer/withFallbacks";
 import { loadScript, hydrateScript, hydrateLine, initializeEmbeddingModel } from "./loader";
+import { hydrateScriptWithDialogue } from "./loaderDialogueMode";
 import { RoleSelector } from "./roleSelector";
 import EditableLine from "./editableLine";
 import EditableDirection from "./editableDirection";
@@ -190,19 +191,16 @@ function RehearsalRoomContent() {
                 // 3) Hydrate script
                 setLoadProgress(0);
                 try {
-                    const wasHydrated = await hydrateScript({
+                    const wasHydrated = await hydrateScriptWithDialogue({
                         script: rawScript,
                         userID,
                         scriptID,
                         setLoadStage,
                         setScript,
                         setStorageError,
-                        setEmbeddingError,
-                        setEmbeddingFailedLines,
                         setTTSLoadError,
                         setTTSFailedLines,
                         updateTTSHydrationStatus,
-                        getScriptLine,
                         onProgressUpdate: (hydrated, total) => {
                             const pct = total > 0 ? Math.round((hydrated / total) * 100) : 0;
                             setLoadProgress(pct);
@@ -843,7 +841,11 @@ function RehearsalRoomContent() {
                     setCountdownDuration(delay);
                 }
 
-                autoAdvance(delay);
+                // Add minimum delay to prevent stuttering
+                const minDelay = 50;
+                const actualDelay = Math.max(delay, minDelay);
+
+                autoAdvance(actualDelay);
             })
             .catch((err) => {
                 console.warn("⚠️ All audio playback strategies failed", err);
