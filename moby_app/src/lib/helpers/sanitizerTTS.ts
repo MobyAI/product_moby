@@ -65,6 +65,11 @@ export const sanitizeForTTS = (text: string): string => {
                 return match;
             }
 
+            // Check if it's "beat" and convert to "pause"
+            if (trimmedContent.toLowerCase() === 'beat') {
+                return '[pause]';
+            }
+
             // Check if it's in the approved audio tags list
             // Convert to lowercase for case-insensitive matching
             if (approvedAudioTags.has(trimmedContent.toLowerCase())) {
@@ -88,4 +93,8 @@ export const sanitizeForTTS = (text: string): string => {
         // Collapse multiple spaces caused by replacements
         .replace(/\s+/g, ' ')
         .trim();
+};
+
+export const isApprovedTag = (tag: string): boolean => {
+    return approvedAudioTags.has(tag.toLowerCase());
 };

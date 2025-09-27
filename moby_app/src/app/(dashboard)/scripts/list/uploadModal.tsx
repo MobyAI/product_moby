@@ -6,6 +6,7 @@ import { extractScriptText } from '@/lib/api/parse/extract';
 import { extractRolesFromText } from '@/lib/api/parse/roles';
 import { parseScriptFromText } from '@/lib/api/parse/parse';
 import { extractTextFromPDFimg } from '@/lib/extract/image';
+import { isApprovedTag } from '@/lib/helpers/sanitizerTTS';
 import { ScriptElement } from '@/types/script';
 import { getAllVoiceSamples } from '@/lib/firebase/client/tts';
 import Dialog, { useDialog } from '@/components/ui/Dialog';
@@ -574,6 +575,56 @@ export default function ScriptUploadModal({
     useEffect(() => {
         if (currentStage === 5 && parsedScript) {
 
+            // Process approved tags - convert parentheses to brackets and add "tag: " prefix
+            const needsTagProcessing = parsedScript.some(
+                (it) => it?.type === 'line' && typeof it.text === 'string' &&
+                    (it.text.includes('(') || it.text.includes('['))
+            );
+
+            if (needsTagProcessing) {
+                let changed = false;
+                const processedTags = parsedScript.map((item) => {
+                    if (!(item && item.type === 'line' && typeof item.text === 'string')) return item;
+
+                    let processedText = item.text;
+
+                    // Process parenthetical text first - convert to brackets if approved
+                    processedText = processedText.replace(/\(([^)]+)\)/g, (match, content) => {
+                        const trimmedContent = content.trim();
+                        if (isApprovedTag(trimmedContent)) {
+                            changed = true;
+                            return `[tag: ${trimmedContent}]`;
+                        }
+                        return match; // Keep as is if not approved
+                    });
+
+                    // Process bracketed text - add "tag: " prefix if approved and doesn't already have it
+                    processedText = processedText.replace(/\[([^\]]+)\]/g, (match, content) => {
+                        const trimmedContent = content.trim();
+                        // Skip if already has "tag: " prefix
+                        if (/^tag:\s*/i.test(trimmedContent)) {
+                            return match;
+                        }
+                        // Add prefix if approved
+                        if (isApprovedTag(trimmedContent)) {
+                            changed = true;
+                            return `[tag: ${trimmedContent}]`;
+                        }
+                        return match; // Keep as is if not approved
+                    });
+
+                    if (processedText !== item.text) {
+                        return { ...item, text: processedText };
+                    }
+                    return item;
+                });
+
+                if (changed) {
+                    setParsedScript(processedTags);
+                    return;
+                }
+            }
+
             // Add line end keywords
             const needsKws = parsedScript.some(
                 (it) => it?.type === 'line'
@@ -590,8 +641,8 @@ export default function ScriptUploadModal({
 
                     if (!needs) return item;
 
-                    // Remove all content within brackets including the brackets
-                    const sanitized = item.text.replace(/\[.*?\]/g, '').trim();
+                    // Remove all content within brackets [] or parentheses ()
+                    const sanitized = item.text.replace(/(\[.*?\]|\(.*?\))/g, '').trim();
 
                     // Clean up any double spaces that might result from removal
                     const cleaned = sanitized.replace(/\s+/g, ' ');

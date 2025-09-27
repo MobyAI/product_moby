@@ -498,7 +498,7 @@ function RehearsalRoomContent() {
 
         // Inject or replace lineEndKeywords
         if (updateLine.type === 'line' && typeof updateLine.text === 'string') {
-            // Remove all content within brackets [] or parentheses () including the brackets/parens
+            // Remove all content within brackets [] or parentheses ()
             const sanitized = updateLine.text.replace(/(\[.*?\]|\(.*?\))/g, '').trim();
             const cleaned = sanitized.replace(/\s+/g, ' '); // collapse doubles
             updateLine.lineEndKeywords = extractLineEndKeywords(cleaned);
