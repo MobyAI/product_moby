@@ -26,31 +26,31 @@ const VOICE_MAPPING: Record<string, string> = {
 };
 
 // Convert AudioBuffer to Blob
-const audioBufferToBlob = async (audioBuffer: AudioBuffer): Promise<Blob> => {
-    const numberOfChannels = audioBuffer.numberOfChannels;
-    const length = audioBuffer.length * numberOfChannels * 2;
-    const arrayBuffer = new ArrayBuffer(length);
-    const view = new DataView(arrayBuffer);
-    const channels: Float32Array[] = [];
-    let offset = 0;
+// const audioBufferToBlob = async (audioBuffer: AudioBuffer): Promise<Blob> => {
+//     const numberOfChannels = audioBuffer.numberOfChannels;
+//     const length = audioBuffer.length * numberOfChannels * 2;
+//     const arrayBuffer = new ArrayBuffer(length);
+//     const view = new DataView(arrayBuffer);
+//     const channels: Float32Array[] = [];
+//     let offset = 0;
 
-    for (let i = 0; i < audioBuffer.numberOfChannels; i++) {
-        channels.push(audioBuffer.getChannelData(i));
-    }
+//     for (let i = 0; i < audioBuffer.numberOfChannels; i++) {
+//         channels.push(audioBuffer.getChannelData(i));
+//     }
 
-    for (let i = 0; i < audioBuffer.length; i++) {
-        for (let channel = 0; channel < numberOfChannels; channel++) {
-            const sample = channels[channel][i];
-            const clampedSample = Math.max(-1, Math.min(1, sample));
-            view.setInt16(offset, clampedSample * 0x7FFF, true);
-            offset += 2;
-        }
-    }
+//     for (let i = 0; i < audioBuffer.length; i++) {
+//         for (let channel = 0; channel < numberOfChannels; channel++) {
+//             const sample = channels[channel][i];
+//             const clampedSample = Math.max(-1, Math.min(1, sample));
+//             view.setInt16(offset, clampedSample * 0x7FFF, true);
+//             offset += 2;
+//         }
+//     }
 
-    // Create WAV header
-    const wavHeader = createWavHeader(arrayBuffer, audioBuffer.sampleRate, numberOfChannels);
-    return new Blob([wavHeader, arrayBuffer], { type: 'audio/wav' });
-};
+//     // Create WAV header
+//     const wavHeader = createWavHeader(arrayBuffer, audioBuffer.sampleRate, numberOfChannels);
+//     return new Blob([wavHeader, arrayBuffer], { type: 'audio/wav' });
+// };
 
 const createWavHeader = (audioData: ArrayBuffer, sampleRate: number, numberOfChannels: number): ArrayBuffer => {
     const header = new ArrayBuffer(44);
@@ -91,7 +91,7 @@ export const getForcedAlignment = async (
     transcript: string
 ): Promise<AlignmentData> => {
     const formData = new FormData();
-    formData.append('audio', audioBlob, 'audio.mp3');
+    formData.append('audio', audioBlob, 'audio.wav');
     formData.append('transcript', transcript);
 
     const response = await fetch('/api/alignment', {
@@ -319,63 +319,179 @@ const splitAudioIntoSegments = async (
     audioBlob: Blob,
     timingMap: Map<number, { startTime: number; endTime: number }>
 ): Promise<Map<number, Blob>> => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    // PCM parameters
+    const sampleRate = 48000;
+    const numberOfChannels = 1;
+    const bytesPerSample = 2;
+    const bytesPerSecond = sampleRate * numberOfChannels * bytesPerSample;
+
+    // Get the raw data
     const arrayBuffer = await audioBlob.arrayBuffer();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-    const sampleRate = audioBuffer.sampleRate;
+    // Check if this has a WAV header (from our concatenation) or is raw PCM
+    const view = new DataView(arrayBuffer);
+    let pcmData: Uint8Array;
+
+    // Check for "RIFF" header
+    if (view.getUint32(0, false) === 0x52494646) {
+        // Has WAV header, skip it
+        pcmData = new Uint8Array(arrayBuffer, 44);
+        console.log('Found WAV header, skipping 44 bytes');
+    } else {
+        // Raw PCM data
+        pcmData = new Uint8Array(arrayBuffer);
+        console.log('Raw PCM data, no header to skip');
+    }
+
+    console.log(`PCM data size: ${pcmData.length} bytes`);
+    console.log(`Audio duration: ${pcmData.length / bytesPerSecond} seconds`);
+
     const segmentMap = new Map<number, Blob>();
-    const startPaddingSeconds = 0.05;  // 50ms before (catches beginning)
-    const endPaddingSeconds = 0;    // 0ms to avoid overlap
+    const startPaddingSeconds = 0.05;
+    const endPaddingSeconds = 0;
 
-    // Sort entries by line index to process in order
     const sortedEntries = Array.from(timingMap.entries()).sort((a, b) => a[0] - b[0]);
 
     for (const [lineIndex, timing] of sortedEntries) {
         const startTime = Math.max(0, timing.startTime - startPaddingSeconds);
-        const endTime = Math.min(audioBuffer.duration, timing.endTime + endPaddingSeconds);
+        const endTime = Math.max(startTime, timing.endTime + endPaddingSeconds);
 
-        const startSample = Math.floor(startTime * sampleRate);
-        const endSample = Math.floor(endTime * sampleRate);
-        const segmentLength = endSample - startSample;
+        const startByte = Math.floor(startTime * bytesPerSecond);
+        const endByte = Math.floor(endTime * bytesPerSecond);
 
-        // Add diagnostic logging
-        console.log(`Line ${lineIndex}: startTime=${startTime.toFixed(3)}s (sample ${startSample}), endTime=${endTime.toFixed(3)}s (sample ${endSample}), length=${segmentLength} samples`);
+        const alignedStartByte = startByte - (startByte % bytesPerSample);
+        const alignedEndByte = endByte - (endByte % bytesPerSample);
 
-        // Check for anomalies
-        if (lineIndex > 0) {
-            const prevEntry = sortedEntries[sortedEntries.findIndex(e => e[0] === lineIndex) - 1];
-            if (prevEntry) {
-                const prevEndTime = prevEntry[1].endTime;
-                if (timing.startTime < prevEndTime) {
-                    console.warn(`⚠️ Line ${lineIndex} starts (${timing.startTime}) before previous line ends (${prevEndTime})`);
-                }
-            }
+        // Clamp to actual data size
+        const actualStartByte = Math.min(alignedStartByte, pcmData.length);
+        const actualEndByte = Math.min(alignedEndByte, pcmData.length);
+        const segmentLength = actualEndByte - actualStartByte;
+
+        console.log(`Line ${lineIndex}: startTime=${startTime.toFixed(3)}s (byte ${actualStartByte}), endTime=${endTime.toFixed(3)}s (byte ${actualEndByte}), length=${segmentLength} bytes`);
+
+        if (segmentLength <= 0) {
+            console.warn(`⚠️ Line ${lineIndex} has invalid segment length: ${segmentLength}`);
+            continue;
         }
 
-        const segmentBuffer = audioContext.createBuffer(
-            audioBuffer.numberOfChannels,
-            segmentLength,
-            sampleRate
-        );
+        // Extract PCM segment
+        const segmentPCM = pcmData.slice(actualStartByte, actualEndByte);
 
-        for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
-            const sourceData = audioBuffer.getChannelData(channel);
-            const segmentData = segmentBuffer.getChannelData(channel);
+        // Create WAV header for this segment
+        const createWavHeader = (dataLength: number): ArrayBuffer => {
+            const header = new ArrayBuffer(44);
+            const view = new DataView(header);
 
-            for (let i = 0; i < segmentLength; i++) {
-                if (startSample + i < sourceData.length) {
-                    segmentData[i] = sourceData[startSample + i];
-                }
-            }
-        }
+            view.setUint32(0, 0x52494646, false); // "RIFF"
+            view.setUint32(4, dataLength + 36, true);
+            view.setUint32(8, 0x57415645, false); // "WAVE"
+            view.setUint32(12, 0x666d7420, false); // "fmt "
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, numberOfChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * numberOfChannels * bytesPerSample, true);
+            view.setUint16(32, numberOfChannels * bytesPerSample, true);
+            view.setUint16(34, 16, true);
+            view.setUint32(36, 0x64617461, false); // "data"
+            view.setUint32(40, dataLength, true);
 
-        const segmentBlob = await audioBufferToBlob(segmentBuffer);
+            return header;
+        };
+
+        const wavHeader = createWavHeader(segmentPCM.length);
+        const segmentBlob = new Blob([wavHeader, segmentPCM], { type: 'audio/wav' });
+
         segmentMap.set(lineIndex, segmentBlob);
     }
 
     return segmentMap;
+};
+
+// Function to split dialogue entries into batches
+const splitDialogueIntoBatches = (
+    entries: DialogueEntry[],
+    maxChars: number = 800
+): DialogueEntry[][] => {
+    const batches: DialogueEntry[][] = [];
+    let currentBatch: DialogueEntry[] = [];
+    let currentCharCount = 0;
+
+    for (const entry of entries) {
+        const entryCharCount = entry.text.length;
+
+        // If adding this entry would exceed the limit AND we have entries in current batch
+        if (currentCharCount + entryCharCount > maxChars && currentBatch.length > 0) {
+            // Save current batch and start a new one
+            batches.push(currentBatch);
+            currentBatch = [entry];
+            currentCharCount = entryCharCount;
+        } else {
+            // Add to current batch
+            currentBatch.push(entry);
+            currentCharCount += entryCharCount;
+        }
+    }
+
+    // Don't forget the last batch
+    if (currentBatch.length > 0) {
+        batches.push(currentBatch);
+    }
+
+    return batches;
+};
+
+// Function to concatenate audio blobs
+const concatenateAudioBlobs = async (blobs: Blob[]): Promise<Blob> => {
+    // PCM parameters for 48000 Hz
+    const sampleRate = 48000;
+    const numberOfChannels = 1; // ElevenLabs returns mono PCM
+    const bytesPerSample = 2; // 16-bit audio
+
+    // Convert all blobs to ArrayBuffers (raw PCM data - NO HEADERS)
+    const pcmBuffers = await Promise.all(
+        blobs.map(blob => blob.arrayBuffer())
+    );
+
+    // Calculate total size in bytes
+    const totalBytes = pcmBuffers.reduce((sum, buffer) => sum + buffer.byteLength, 0);
+
+    // Create a single buffer for all PCM data
+    const combinedPCM = new Uint8Array(totalBytes);
+
+    // Copy all PCM data into the combined buffer
+    let offset = 0;
+    for (const buffer of pcmBuffers) {
+        combinedPCM.set(new Uint8Array(buffer), offset);
+        offset += buffer.byteLength;
+    }
+
+    // Create WAV header for the combined PCM data
+    const createWavHeader = (dataLength: number): ArrayBuffer => {
+        const header = new ArrayBuffer(44);
+        const view = new DataView(header);
+
+        view.setUint32(0, 0x52494646, false); // "RIFF"
+        view.setUint32(4, dataLength + 36, true);
+        view.setUint32(8, 0x57415645, false); // "WAVE"
+        view.setUint32(12, 0x666d7420, false); // "fmt "
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, numberOfChannels, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * numberOfChannels * bytesPerSample, true);
+        view.setUint16(32, numberOfChannels * bytesPerSample, true);
+        view.setUint16(34, 16, true);
+        view.setUint32(36, 0x64617461, false); // "data"
+        view.setUint32(40, dataLength, true);
+
+        return header;
+    };
+
+    const wavHeader = createWavHeader(totalBytes);
+
+    // Return with header for forced alignment API
+    return new Blob([wavHeader, combinedPCM], { type: 'audio/wav' });
 };
 
 // Hydration function using dialogue mode
@@ -416,10 +532,16 @@ export const hydrateScriptWithDialogue = async ({
 
     try {
         // Get all lines that need TTS
+        // const linesNeedingHydration = script.filter(
+        //     (element: ScriptElement) =>
+        //         element.type === 'line' &&
+        //         (!element.ttsUrl || element.ttsUrl.length === 0)
+        // );
+
+        // Quick regeneration of all lines for testing
         const linesNeedingHydration = script.filter(
             (element: ScriptElement) =>
-                element.type === 'line' &&
-                (!element.ttsUrl || element.ttsUrl.length === 0)
+                element.type === 'line'
         );
 
         if (linesNeedingHydration.length === 0) {
@@ -463,45 +585,110 @@ export const hydrateScriptWithDialogue = async ({
             lineIndex: line.index
         }));
 
-        const response = await fetch('/api/tts/dialogue', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                dialogue: dialogueEntries,
-                modelId: 'eleven_v3',
-                applyTextNormalization: 'auto'
-            }),
+        // Log to verify pauses were added
+        console.log('📝 Dialogue entries with pauses:', dialogueEntries);
+
+        // Split into batches (800 characters per batch)
+        const batches = splitDialogueIntoBatches(dialogueEntries, 800);
+        console.log(`📦 Split into ${batches.length} batches:`);
+        batches.forEach((batch, i) => {
+            const charCount = batch.reduce((sum, e) => sum + e.text.length, 0);
+            console.log(`  Batch ${i + 1}: ${batch.length} entries, ${charCount} characters`);
+            console.log(`    Lines ${batch[0].lineIndex} to ${batch[batch.length - 1].lineIndex}`);
         });
 
-        if (!response.ok) {
-            const errorMessage = await response.text().catch(() => 'Unknown error');
-            console.error(`TTS API failed with status ${response.status}: ${errorMessage}`);
+        // Generate audio for each batch
+        setLoadStage(`🎤 Generating dialogue audio (${batches.length} batches)...`);
+        const audioBlobs: Blob[] = [];
 
-            showToast({
-                header: "Audio generation failed",
-                line1: response.status === 429
-                    ? "Rate limit exceeded. Please try again later"
-                    : "Unable to generate scene partner audio",
-                type: "danger"
+        for (let i = 0; i < batches.length; i++) {
+            const batch = batches[i];
+            console.log(`📤 Generating batch ${i + 1}/${batches.length}...`);
+
+            const response = await fetch('/api/tts/dialogue', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    dialogue: batch,
+                    modelId: 'eleven_v3',
+                    outputFormat: 'pcm_48000',
+                    applyTextNormalization: 'auto'
+                }),
             });
 
-            throw new Error('Failed to generate dialogue audio');
+            if (!response.ok) {
+                const errorMessage = await response.text().catch(() => 'Unknown error');
+                console.error(`TTS API failed for batch ${i + 1}: ${response.status}: ${errorMessage}`);
+
+                showToast({
+                    header: `Audio generation failed (batch ${i + 1})`,
+                    line1: response.status === 429
+                        ? "Rate limit exceeded. Please try again later"
+                        : "Unable to generate scene partner audio",
+                    type: "danger"
+                });
+
+                throw new Error(`Failed to generate dialogue audio for batch ${i + 1}`);
+            }
+
+            const batchBlob = await response.blob();
+            console.log(`Batch ${i + 1} MIME type: ${batchBlob.type}`);
+
+            const firstBytes = new Uint8Array(await batchBlob.slice(0, 20).arrayBuffer());
+            console.log(`First bytes:`, firstBytes);
+
+            audioBlobs.push(batchBlob);
+            console.log(`✅ Batch ${i + 1} generated (${(batchBlob.size / 1024).toFixed(2)} KB)`);
+
+            // Optional: Add a small delay between batches to avoid rate limiting
+            if (i < batches.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
         }
 
-        const audioBlob = await response.blob();
-        console.log('✅ Dialogue audio generated');
+        // Concatenate all audio blobs
+        console.log('🔗 Concatenating audio batches...');
+        const audioBlob = await concatenateAudioBlobs(audioBlobs);
+        console.log(`✅ Combined audio generated (${(audioBlob.size / 1024 / 1024).toFixed(2)} MB)`);
+
+        // Auto-play the combined audio
+        // const playAudio = async (blob: Blob) => {
+        //     const audioUrl = URL.createObjectURL(blob);
+        //     const audio = new Audio(audioUrl);
+
+        //     audio.addEventListener('ended', () => {
+        //         URL.revokeObjectURL(audioUrl); // Clean up
+        //         console.log('✅ Audio playback completed');
+        //     });
+
+        //     try {
+        //         await audio.play();
+        //         console.log('▶️ Playing combined audio...');
+        //     } catch (err) {
+        //         console.log('❌ Autoplay blocked. Audio element stored as window.debugAudio');
+        //         (window as any).debugAudio = audio; // Store for manual play
+        //     }
+        // };
+
+        // await playAudio(audioBlob);
 
         // Step 2: Get forced alignment
         setLoadStage('🎯 Aligning audio with text...');
 
-        const fullTranscript = linesNeedingHydration.map(line => line.text).join(' ');
+        const fullTranscript = linesNeedingHydration
+            .map(line => sanitizeForTTS(line.text))
+            .join(' ');
         const alignmentData = await getForcedAlignment(audioBlob, fullTranscript);
         console.log('✅ Forced alignment complete');
 
         // Step 3: Map timestamps to lines
-        const timingMap = mapAlignmentToLines(alignmentData, linesNeedingHydration);
+        const sanitizedLines = linesNeedingHydration.map(line => ({
+            ...line,
+            text: sanitizeForTTS(line.text)
+        }));
+        const timingMap = mapAlignmentToLines(alignmentData, sanitizedLines);
 
         // Check if all lines got timestamps
         const failedLines: number[] = [];

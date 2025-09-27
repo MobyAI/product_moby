@@ -19,10 +19,11 @@ interface DialogueEntry {
 interface DialogueOptions {
     dialogue: DialogueEntry[];
     modelId?: string;
+    outputFormat?: string;
     applyTextNormalization?: 'auto' | 'on' | 'off';
 }
 
-async function streamToBlob(stream: ReadableStream<Uint8Array>): Promise<Blob> {
+async function streamToBlob(stream: ReadableStream<Uint8Array>, mimeType: string): Promise<Blob> {
     const reader = stream.getReader();
     const chunks: Uint8Array[] = [];
 
@@ -32,14 +33,14 @@ async function streamToBlob(stream: ReadableStream<Uint8Array>): Promise<Blob> {
         if (value) chunks.push(value);
     }
 
-    const blob = new Blob(chunks, { type: 'audio/mpeg' });
-    return blob;
+    return new Blob(chunks, { type: mimeType });
 }
 
 export async function fetchDialogueTTSBlob(options: DialogueOptions): Promise<Blob> {
     const {
         dialogue,
         modelId = 'eleven_v3',
+        outputFormat = 'mp3_44100_128',
         applyTextNormalization = 'auto',
     } = options;
 
@@ -52,9 +53,10 @@ export async function fetchDialogueTTSBlob(options: DialogueOptions): Promise<Bl
     const stream = await elevenlabs.textToDialogue.convert({
         modelId: modelId,
         inputs: formattedInputs,
-        outputFormat: 'mp3_44100_128',
+        outputFormat: outputFormat as any,
         applyTextNormalization: applyTextNormalization,
     });
 
-    return await streamToBlob(stream);
+    const mimeType = outputFormat.startsWith('pcm') ? 'audio/wav' : 'audio/mpeg';
+    return await streamToBlob(stream, mimeType);
 }

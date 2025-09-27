@@ -6,20 +6,23 @@ import { withAuth } from "@/lib/api/withAuth";
 async function handler(req: any) {
     try {
         const body = await req.json();
-        const { dialogue, modelId, applyTextNormalization } = body;
+        const { dialogue, modelId, applyTextNormalization, outputFormat } = body;
 
         const audioBlob = await fetchDialogueTTSBlob({
             dialogue,
             modelId,
-            applyTextNormalization
+            applyTextNormalization,
+            outputFormat,
         });
 
         // Convert blob to buffer for response
         const arrayBuffer = await audioBlob.arrayBuffer();
 
+        const contentType = outputFormat?.startsWith('pcm') ? 'audio/wav' : 'audio/mpeg';
+
         return new NextResponse(arrayBuffer, {
             headers: {
-                'Content-Type': 'audio/mpeg',
+                'Content-Type': contentType,
             },
         });
     } catch (error) {
