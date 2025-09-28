@@ -314,7 +314,178 @@ const mapAlignmentToLines = (
     return timingMap;
 };
 
+// // Split audio into segments using Web Audio API
+// // With silence detector
+// const splitAudioIntoSegments = async (
+//     audioBlob: Blob,
+//     timingMap: Map<number, { startTime: number; endTime: number }>
+// ): Promise<Map<number, Blob>> => {
+//     const sampleRate = 48000;
+//     const numberOfChannels = 1;
+//     const bytesPerSample = 2;
+//     const bytesPerSecond = sampleRate * numberOfChannels * bytesPerSample;
+
+//     const arrayBuffer = await audioBlob.arrayBuffer();
+//     const view = new DataView(arrayBuffer);
+//     let pcmData: Uint8Array;
+
+//     if (view.getUint32(0, false) === 0x52494646) {
+//         pcmData = new Uint8Array(arrayBuffer, 44);
+//         console.log('Found WAV header, skipping 44 bytes');
+//     } else {
+//         pcmData = new Uint8Array(arrayBuffer);
+//         console.log('Raw PCM data, no header to skip');
+//     }
+
+//     // Convert PCM bytes to samples for silence detection
+//     const pcmSamples = new Int16Array(pcmData.buffer, pcmData.byteOffset, pcmData.length / 2);
+
+//     // Silence detection function
+//     const findSilencePoint = (
+//         startSample: number,
+//         lineIndex: number,
+//         nextLineStartTime: number | undefined,
+//         maxSearchSamples: number = sampleRate * 0.05, // Search up to 50ms forward
+//         silenceThreshold: number = 0.02, // ~2% of max amplitude
+//         minSilenceDuration: number = sampleRate * 0.01 // 10ms of silence
+//     ): number => {
+//         const maxAmplitude = 32767; // Max for 16-bit audio
+//         const threshold = maxAmplitude * silenceThreshold;
+
+//         let silentSamples = 0;
+//         let lastSilenceStart = -1;
+
+//         // Limit search to not exceed next line's start
+//         let searchEnd = Math.min(startSample + maxSearchSamples, pcmSamples.length);
+//         if (nextLineStartTime !== undefined) {
+//             const nextLineStartSample = Math.floor(nextLineStartTime * sampleRate);
+//             searchEnd = Math.min(searchEnd, nextLineStartSample - 480); // Stop 10ms before next line
+//         }
+
+//         for (let i = startSample; i < searchEnd; i++) {
+//             if (Math.abs(pcmSamples[i]) < threshold) {
+//                 if (silentSamples === 0) {
+//                     lastSilenceStart = i; // Mark where this silence region starts
+//                 }
+//                 silentSamples++;
+
+//                 if (silentSamples >= minSilenceDuration) {
+//                     // Found sufficient silence, but keep scanning to check for non-silence
+//                     continue;
+//                 }
+//             } else {
+//                 // Hit non-silence
+//                 if (silentSamples >= minSilenceDuration) {
+//                     // We had found valid silence, but now hit non-silence (likely next line's audio)
+//                     // Include half the silence duration as buffer
+//                     const halfSilence = Math.floor(silentSamples / 2);
+//                     const trimPoint = lastSilenceStart + halfSilence;
+
+//                     // Trying full silence
+//                     // const trimPoint = lastSilenceStart + silentSamples;
+//                     // console.log(`  Line ${lineIndex}: Found ${silentSamples} samples of silence starting at ${lastSilenceStart}, trimming at ${trimPoint} (includes ${silentSamples} samples of buffer), before non-silence at ${i}`);
+
+//                     return trimPoint;
+//                 }
+//                 silentSamples = 0; // Reset counter
+//                 lastSilenceStart = -1;
+//             }
+//         }
+
+//         // If we ended the loop with valid silence (no non-silence after it)
+//         if (silentSamples >= minSilenceDuration && lastSilenceStart !== -1) {
+//             // Include half the silence as buffer here too
+//             // const halfSilence = Math.floor(silentSamples / 2);
+//             // const trimPoint = lastSilenceStart + halfSilence;
+
+//             // console.log(`  Line ${lineIndex}: Found ${silentSamples} samples of silence at end, trimming at ${trimPoint} (includes ${halfSilence} samples of buffer)`);
+//             // return trimPoint;
+
+//             // Include the full silence duration found
+//             const trimPoint = lastSilenceStart + silentSamples;
+
+//             console.log(`  Line ${lineIndex}: Found ${silentSamples} samples of silence at end, trimming at ${trimPoint} (includes full silence duration)`);
+//             return trimPoint;
+//         }
+
+//         // No valid silence found, return original position
+//         console.log(`No silence found at line ${lineIndex}`);
+//         return startSample;
+//     };
+
+//     const segmentMap = new Map<number, Blob>();
+//     const startPaddingSeconds = 0.05;
+//     const sortedEntries = Array.from(timingMap.entries()).sort((a, b) => a[0] - b[0]);
+
+//     for (let i = 0; i < sortedEntries.length; i++) {
+//         const [lineIndex, timing] = sortedEntries[i];
+//         const nextEntry = sortedEntries[i + 1];
+//         const nextLineStartTime = nextEntry ? nextEntry[1].startTime : undefined;
+//         const startTime = Math.max(0, timing.startTime - startPaddingSeconds);
+
+//         // Find the end point using silence detection
+//         const originalEndTime = timing.endTime;
+//         const initialEndSample = Math.floor(timing.endTime * sampleRate);
+//         const silenceStartSample = findSilencePoint(
+//             initialEndSample,
+//             lineIndex,
+//             nextLineStartTime
+//         );
+//         const adjustedEndTime = silenceStartSample / sampleRate;
+
+//         // Detailed comparison logging
+//         console.log(`Line ${lineIndex}:`);
+//         console.log(`  Original end: ${originalEndTime.toFixed(3)}s`);
+//         console.log(`  Adjusted end: ${adjustedEndTime.toFixed(3)}s`);
+//         console.log(`  Adjustment: ${(adjustedEndTime - originalEndTime).toFixed(3)}s (${adjustedEndTime > originalEndTime ? 'extended' : 'trimmed'})`);
+
+//         const startByte = Math.floor(startTime * bytesPerSecond);
+//         const endByte = Math.floor(adjustedEndTime * bytesPerSecond);
+
+//         const alignedStartByte = startByte - (startByte % bytesPerSample);
+//         const alignedEndByte = endByte - (endByte % bytesPerSample);
+
+//         const actualStartByte = Math.min(alignedStartByte, pcmData.length);
+//         const actualEndByte = Math.min(alignedEndByte, pcmData.length);
+//         const segmentLength = actualEndByte - actualStartByte;
+
+//         if (segmentLength <= 0) {
+//             console.warn(`⚠️ Line ${lineIndex} has invalid segment length: ${segmentLength} `);
+//             continue;
+//         }
+
+//         const segmentPCM = pcmData.slice(actualStartByte, actualEndByte);
+
+//         // Create WAV header
+//         const createWavHeader = (dataLength: number): ArrayBuffer => {
+//             const header = new ArrayBuffer(44);
+//             const view = new DataView(header);
+//             view.setUint32(0, 0x52494646, false);
+//             view.setUint32(4, dataLength + 36, true);
+//             view.setUint32(8, 0x57415645, false);
+//             view.setUint32(12, 0x666d7420, false);
+//             view.setUint32(16, 16, true);
+//             view.setUint16(20, 1, true);
+//             view.setUint16(22, numberOfChannels, true);
+//             view.setUint32(24, sampleRate, true);
+//             view.setUint32(28, sampleRate * numberOfChannels * bytesPerSample, true);
+//             view.setUint16(32, numberOfChannels * bytesPerSample, true);
+//             view.setUint16(34, 16, true);
+//             view.setUint32(36, 0x64617461, false);
+//             view.setUint32(40, dataLength, true);
+//             return header;
+//         };
+
+//         const wavHeader = createWavHeader(segmentPCM.length);
+//         const segmentBlob = new Blob([wavHeader, segmentPCM], { type: 'audio/wav' });
+//         segmentMap.set(lineIndex, segmentBlob);
+//     }
+
+//     return segmentMap;
+// };
+
 // Split audio into segments using Web Audio API
+// NO silence detector
 const splitAudioIntoSegments = async (
     audioBlob: Blob,
     timingMap: Map<number, { startTime: number; endTime: number }>
@@ -336,126 +507,93 @@ const splitAudioIntoSegments = async (
         console.log('Raw PCM data, no header to skip');
     }
 
-    // Convert PCM bytes to samples for silence detection
-    const pcmSamples = new Int16Array(pcmData.buffer, pcmData.byteOffset, pcmData.length / 2);
-
-    // Silence detection function
-    const findSilencePoint = (
-        startSample: number,
-        lineIndex: number,
-        nextLineStartTime: number | undefined,
-        maxSearchSamples: number = sampleRate * 0.05, // Search up to 50ms forward
-        silenceThreshold: number = 0.02, // ~2% of max amplitude
-        minSilenceDuration: number = sampleRate * 0.005 // 5ms of silence
-    ): number => {
-        const maxAmplitude = 32767; // Max for 16-bit audio
-        const threshold = maxAmplitude * silenceThreshold;
-
-        let silentSamples = 0;
-        let lastSilenceStart = -1;
-
-        // Limit search to not exceed next line's start
-        let searchEnd = Math.min(startSample + maxSearchSamples, pcmSamples.length);
-        if (nextLineStartTime !== undefined) {
-            const nextLineStartSample = Math.floor(nextLineStartTime * sampleRate);
-            searchEnd = Math.min(searchEnd, nextLineStartSample - 480); // Stop 10ms before next line
-        }
-
-        for (let i = startSample; i < searchEnd; i++) {
-            if (Math.abs(pcmSamples[i]) < threshold) {
-                if (silentSamples === 0) {
-                    lastSilenceStart = i; // Mark where this silence region starts
-                }
-                silentSamples++;
-
-                if (silentSamples >= minSilenceDuration) {
-                    // Found sufficient silence, but keep scanning to check for non-silence
-                    continue;
-                }
-            } else {
-                // Hit non-silence
-                if (silentSamples >= minSilenceDuration) {
-                    // We had found valid silence, but now hit non-silence (likely next line's audio)
-                    // Include half the silence duration as buffer
-                    const halfSilence = Math.floor(silentSamples / 2);
-                    const trimPoint = lastSilenceStart + halfSilence;
-
-                    // Trying full silence
-                    // const trimPoint = lastSilenceStart + silentSamples;
-                    // console.log(`  Line ${lineIndex}: Found ${silentSamples} samples of silence starting at ${lastSilenceStart}, trimming at ${trimPoint} (includes ${silentSamples} samples of buffer), before non-silence at ${i}`);
-
-                    return trimPoint;
-                }
-                silentSamples = 0; // Reset counter
-                lastSilenceStart = -1;
-            }
-        }
-
-        // If we ended the loop with valid silence (no non-silence after it)
-        if (silentSamples >= minSilenceDuration && lastSilenceStart !== -1) {
-            // Include half the silence as buffer here too
-            // const halfSilence = Math.floor(silentSamples / 2);
-            // const trimPoint = lastSilenceStart + halfSilence;
-
-            // console.log(`  Line ${lineIndex}: Found ${silentSamples} samples of silence at end, trimming at ${trimPoint} (includes ${halfSilence} samples of buffer)`);
-            // return trimPoint;
-
-            // Include the full silence duration found
-            const trimPoint = lastSilenceStart + silentSamples;
-
-            console.log(`  Line ${lineIndex}: Found ${silentSamples} samples of silence at end, trimming at ${trimPoint} (includes full silence duration)`);
-            return trimPoint;
-        }
-
-        // No valid silence found, return original position
-        console.log(`No silence found at line ${lineIndex}`);
-        return startSample;
-    };
-
     const segmentMap = new Map<number, Blob>();
-    const startPaddingSeconds = 0.1;
     const sortedEntries = Array.from(timingMap.entries()).sort((a, b) => a[0] - b[0]);
+
+    // Padding
+    const startPaddingSeconds = 0.05;
+    const endPaddingSeconds = 0.05;
 
     for (let i = 0; i < sortedEntries.length; i++) {
         const [lineIndex, timing] = sortedEntries[i];
         const nextEntry = sortedEntries[i + 1];
         const nextLineStartTime = nextEntry ? nextEntry[1].startTime : undefined;
-        const startTime = Math.max(0, timing.startTime - startPaddingSeconds);
 
-        // Find the end point using silence detection
-        const originalEndTime = timing.endTime;
-        const initialEndSample = Math.floor(timing.endTime * sampleRate);
-        const silenceStartSample = findSilencePoint(
-            initialEndSample,
-            lineIndex,
-            nextLineStartTime
-        );
-        const adjustedEndTime = silenceStartSample / sampleRate;
-
-        // Detailed comparison logging
+        // Log original timings and gap analysis
         console.log(`Line ${lineIndex}:`);
-        console.log(`  Original end: ${originalEndTime.toFixed(3)}s`);
-        console.log(`  Adjusted end: ${adjustedEndTime.toFixed(3)}s`);
-        console.log(`  Adjustment: ${(adjustedEndTime - originalEndTime).toFixed(3)}s (${adjustedEndTime > originalEndTime ? 'extended' : 'trimmed'})`);
+        console.log(`  Original timing: ${timing.startTime.toFixed(3)}s - ${timing.endTime.toFixed(3)}s`);
+        if (nextEntry) {
+            const gapToNext = nextEntry[1].startTime - timing.endTime;
+            console.log(`  Gap to next line: ${(gapToNext * 1000).toFixed(1)}ms`);
+            if (gapToNext < 0) {
+                console.log(`  ⚠️ OVERLAP DETECTED: Lines ${lineIndex} and ${nextEntry[0]} overlap by ${Math.abs(gapToNext * 1000).toFixed(1)}ms`);
+            }
+        }
 
-        const startByte = Math.floor(startTime * bytesPerSecond);
-        const endByte = Math.floor(adjustedEndTime * bytesPerSecond);
+        const gap = nextEntry ? nextEntry[1].startTime - timing.endTime : 1.0;
 
-        const alignedStartByte = startByte - (startByte % bytesPerSample);
-        const alignedEndByte = endByte - (endByte % bytesPerSample);
+        // Account for the fact that both lines get padded
+        const effectiveGap = gap - startPaddingSeconds - endPaddingSeconds;
 
-        const actualStartByte = Math.min(alignedStartByte, pcmData.length);
-        const actualEndByte = Math.min(alignedEndByte, pcmData.length);
+        // Determine actual end padding based on effective gap
+        let actualEndPadding;
+        if (effectiveGap < 0.1) { // Less than 100ms effective gap after padding
+            actualEndPadding = 0; // No end padding to avoid overlap
+        } else {
+            actualEndPadding = Math.min(endPaddingSeconds, gap * 0.5);
+        }
+
+        // Calculate times with padding
+        const startTime = Math.max(0, timing.startTime - startPaddingSeconds);
+        let endTime = timing.endTime + actualEndPadding;
+
+        if (nextLineStartTime !== undefined) {
+            const maxEndTime = nextLineStartTime - 0.01;
+            endTime = Math.min(endTime, maxEndTime);
+        }
+
+        const audioLengthSeconds = pcmData.length / bytesPerSecond;
+        endTime = Math.min(endTime, audioLengthSeconds);
+
+        // Convert to samples first for better precision
+        const startSample = Math.floor(startTime * sampleRate);
+        const endSample = Math.floor(endTime * sampleRate);
+
+        // Convert samples to bytes
+        const startByte = startSample * bytesPerSample * numberOfChannels;
+        let endByte = endSample * bytesPerSample * numberOfChannels;
+
+        // After calculating endByte, ensure it doesn't equal or exceed the next segment's start
+        if (nextEntry) {
+            const nextStartTime = Math.max(0, nextEntry[1].startTime - startPaddingSeconds);
+            const nextStartSample = Math.floor(nextStartTime * sampleRate);
+            const nextStartByte = nextStartSample * bytesPerSample * numberOfChannels;
+
+            // Ensure we stop at least 1 sample before the next segment starts
+            if (endByte >= nextStartByte) {
+                endByte = nextStartByte - (bytesPerSample * numberOfChannels);
+                console.log(`  ⚠️ Trimmed line ${lineIndex} end to prevent overlap with line ${nextEntry[0]}`);
+            }
+        }
+
+        const actualStartByte = Math.max(0, Math.min(startByte, pcmData.length));
+        const actualEndByte = Math.max(0, Math.min(endByte, pcmData.length));
         const segmentLength = actualEndByte - actualStartByte;
 
+        console.log(`Line ${lineIndex}:`);
+        console.log(`  Time: ${startTime.toFixed(3)}s - ${endTime.toFixed(3)}s`);
+        console.log(`  Samples: ${startSample} - ${endSample}`);
+        console.log(`  Bytes: ${actualStartByte} - ${actualEndByte}`);
+        console.log(`  Length: ${segmentLength} bytes`);
+
         if (segmentLength <= 0) {
-            console.warn(`⚠️ Line ${lineIndex} has invalid segment length: ${segmentLength} `);
+            console.warn(`⚠️ Line ${lineIndex} has invalid segment length: ${segmentLength}`);
             continue;
         }
 
         const segmentPCM = pcmData.slice(actualStartByte, actualEndByte);
 
-        // Create WAV header
+        // Create WAV header (keeping your existing function)
         const createWavHeader = (dataLength: number): ArrayBuffer => {
             const header = new ArrayBuffer(44);
             const view = new DataView(header);

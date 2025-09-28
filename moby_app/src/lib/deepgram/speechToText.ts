@@ -2,6 +2,7 @@ import { useRef, useEffect, useCallback } from "react";
 import { fetchEmbedding, cosineSimilarity } from "@/lib/api/embeddings";
 import { embeddingModel } from "@/lib/embeddings/modelManager";
 import * as fuzz from "fuzzball";
+import * as Sentry from '@sentry/react';
 
 //
 // IMPORTANT: For openAI embedding: choose server near openAI's server for lower latency
@@ -649,6 +650,10 @@ export function useDeepgramSTT({
 
                 wsRef.current.onerror = (e) => {
                     console.warn('❌ WebSocket error:', e);
+                    Sentry.captureMessage('WebSocket error in Deepgram STT', {
+                        level: 'warning',
+                        extra: { error: e }
+                    });
                 };
 
                 wsRef.current.onclose = (e) => {
@@ -730,6 +735,9 @@ export function useDeepgramSTT({
                     console.log('✅ AudioWorklet module loaded!');
                 } catch (err) {
                     console.error('❌ Failed to load AudioWorklet module:', err);
+                    Sentry.captureException(err, {
+                        tags: { component: 'deepgram-stt', error_type: 'audioworklet_load' }
+                    });
                     return;
                 }
             } else {
@@ -744,6 +752,9 @@ export function useDeepgramSTT({
                     console.log('✅ Mic stream obtained');
                 } catch (err) {
                     console.error('❌ Failed to get mic stream:', err);
+                    Sentry.captureException(err, {
+                        tags: { component: 'deepgram-stt', error_type: 'mic_access' }
+                    });
                     return;
                 }
             } else {
@@ -776,6 +787,9 @@ export function useDeepgramSTT({
                 workletNode.connect(audioCtx.destination);
             } catch (err) {
                 console.error('⚠️ Failed to connect audio nodes:', err);
+                Sentry.captureException(err, {
+                    tags: { component: 'deepgram-stt', error_type: 'audio-nodes' }
+                });
             }
 
             micCleanupRef.current = () => {
@@ -798,6 +812,9 @@ export function useDeepgramSTT({
             }
         } catch (err) {
             console.warn('⚠️ Failed to resume AudioContext:', err);
+            Sentry.captureException(err, {
+                tags: { component: 'deepgram-stt', error_type: 'audio-context' }
+            });
         }
     };
 
