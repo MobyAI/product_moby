@@ -345,7 +345,7 @@ const splitAudioIntoSegments = async (
         lineIndex: number,
         nextLineStartTime: number | undefined,
         maxSearchSamples: number = sampleRate * 0.05, // Search up to 50ms forward
-        silenceThreshold: number = 0.005, // ~0.5% of max amplitude
+        silenceThreshold: number = 0.02, // ~2% of max amplitude
         minSilenceDuration: number = sampleRate * 0.005 // 5ms of silence
     ): number => {
         const maxAmplitude = 32767; // Max for 16-bit audio
@@ -380,7 +380,10 @@ const splitAudioIntoSegments = async (
                     const halfSilence = Math.floor(silentSamples / 2);
                     const trimPoint = lastSilenceStart + halfSilence;
 
-                    console.log(`  Line ${lineIndex}: Found ${silentSamples} samples of silence starting at ${lastSilenceStart}, trimming at ${trimPoint} (includes ${halfSilence} samples of buffer), before non-silence at ${i}`);
+                    // Trying full silence
+                    // const trimPoint = lastSilenceStart + silentSamples;
+                    // console.log(`  Line ${lineIndex}: Found ${silentSamples} samples of silence starting at ${lastSilenceStart}, trimming at ${trimPoint} (includes ${silentSamples} samples of buffer), before non-silence at ${i}`);
+
                     return trimPoint;
                 }
                 silentSamples = 0; // Reset counter
@@ -391,10 +394,16 @@ const splitAudioIntoSegments = async (
         // If we ended the loop with valid silence (no non-silence after it)
         if (silentSamples >= minSilenceDuration && lastSilenceStart !== -1) {
             // Include half the silence as buffer here too
-            const halfSilence = Math.floor(silentSamples / 2);
-            const trimPoint = lastSilenceStart + halfSilence;
+            // const halfSilence = Math.floor(silentSamples / 2);
+            // const trimPoint = lastSilenceStart + halfSilence;
 
-            console.log(`  Line ${lineIndex}: Found ${silentSamples} samples of silence at end, trimming at ${trimPoint} (includes ${halfSilence} samples of buffer)`);
+            // console.log(`  Line ${lineIndex}: Found ${silentSamples} samples of silence at end, trimming at ${trimPoint} (includes ${halfSilence} samples of buffer)`);
+            // return trimPoint;
+
+            // Include the full silence duration found
+            const trimPoint = lastSilenceStart + silentSamples;
+
+            console.log(`  Line ${lineIndex}: Found ${silentSamples} samples of silence at end, trimming at ${trimPoint} (includes full silence duration)`);
             return trimPoint;
         }
 
@@ -404,7 +413,7 @@ const splitAudioIntoSegments = async (
     };
 
     const segmentMap = new Map<number, Blob>();
-    const startPaddingSeconds = 0.05;
+    const startPaddingSeconds = 0.1;
     const sortedEntries = Array.from(timingMap.entries()).sort((a, b) => a[0] - b[0]);
 
     for (let i = 0; i < sortedEntries.length; i++) {
@@ -598,17 +607,17 @@ export const hydrateScriptWithDialogue = async ({
 
     try {
         // Get all lines that need TTS
-        const linesNeedingHydration = script.filter(
-            (element: ScriptElement) =>
-                element.type === 'line' &&
-                (!element.ttsUrl || element.ttsUrl.length === 0)
-        );
-
-        // // Quick regeneration of all lines for testing
         // const linesNeedingHydration = script.filter(
         //     (element: ScriptElement) =>
-        //         element.type === 'line'
+        //         element.type === 'line' &&
+        //         (!element.ttsUrl || element.ttsUrl.length === 0)
         // );
+
+        // Quick regeneration of all lines for testing
+        const linesNeedingHydration = script.filter(
+            (element: ScriptElement) =>
+                element.type === 'line'
+        );
 
         if (linesNeedingHydration.length === 0) {
             console.log('✅ All scene-partner lines already have audio');
