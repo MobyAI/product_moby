@@ -319,73 +319,141 @@ const splitAudioIntoSegments = async (
     audioBlob: Blob,
     timingMap: Map<number, { startTime: number; endTime: number }>
 ): Promise<Map<number, Blob>> => {
-    // PCM parameters
     const sampleRate = 48000;
     const numberOfChannels = 1;
     const bytesPerSample = 2;
     const bytesPerSecond = sampleRate * numberOfChannels * bytesPerSample;
 
-    // Get the raw data
     const arrayBuffer = await audioBlob.arrayBuffer();
-
-    // Check if this has a WAV header (from our concatenation) or is raw PCM
     const view = new DataView(arrayBuffer);
     let pcmData: Uint8Array;
 
-    // Check for "RIFF" header
     if (view.getUint32(0, false) === 0x52494646) {
-        // Has WAV header, skip it
         pcmData = new Uint8Array(arrayBuffer, 44);
         console.log('Found WAV header, skipping 44 bytes');
     } else {
-        // Raw PCM data
         pcmData = new Uint8Array(arrayBuffer);
         console.log('Raw PCM data, no header to skip');
     }
 
-    console.log(`PCM data size: ${pcmData.length} bytes`);
-    console.log(`Audio duration: ${pcmData.length / bytesPerSecond} seconds`);
+    // Convert PCM bytes to samples for silence detection
+    const pcmSamples = new Int16Array(pcmData.buffer, pcmData.byteOffset, pcmData.length / 2);
+
+    // Silence detection function
+    const findSilencePoint = (
+        startSample: number,
+        lineIndex: number,
+        nextLineStartTime: number | undefined,
+        maxSearchSamples: number = sampleRate * 0.05, // Search up to 50ms forward
+        silenceThreshold: number = 0.005, // ~0.5% of max amplitude
+        minSilenceDuration: number = sampleRate * 0.005 // 5ms of silence
+    ): number => {
+        const maxAmplitude = 32767; // Max for 16-bit audio
+        const threshold = maxAmplitude * silenceThreshold;
+
+        let silentSamples = 0;
+        let lastSilenceStart = -1;
+
+        // Limit search to not exceed next line's start
+        let searchEnd = Math.min(startSample + maxSearchSamples, pcmSamples.length);
+        if (nextLineStartTime !== undefined) {
+            const nextLineStartSample = Math.floor(nextLineStartTime * sampleRate);
+            searchEnd = Math.min(searchEnd, nextLineStartSample - 480); // Stop 10ms before next line
+        }
+
+        for (let i = startSample; i < searchEnd; i++) {
+            if (Math.abs(pcmSamples[i]) < threshold) {
+                if (silentSamples === 0) {
+                    lastSilenceStart = i; // Mark where this silence region starts
+                }
+                silentSamples++;
+
+                if (silentSamples >= minSilenceDuration) {
+                    // Found sufficient silence, but keep scanning to check for non-silence
+                    continue;
+                }
+            } else {
+                // Hit non-silence
+                if (silentSamples >= minSilenceDuration) {
+                    // We had found valid silence, but now hit non-silence (likely next line's audio)
+                    // Include half the silence duration as buffer
+                    const halfSilence = Math.floor(silentSamples / 2);
+                    const trimPoint = lastSilenceStart + halfSilence;
+
+                    console.log(`  Line ${lineIndex}: Found ${silentSamples} samples of silence starting at ${lastSilenceStart}, trimming at ${trimPoint} (includes ${halfSilence} samples of buffer), before non-silence at ${i}`);
+                    return trimPoint;
+                }
+                silentSamples = 0; // Reset counter
+                lastSilenceStart = -1;
+            }
+        }
+
+        // If we ended the loop with valid silence (no non-silence after it)
+        if (silentSamples >= minSilenceDuration && lastSilenceStart !== -1) {
+            // Include half the silence as buffer here too
+            const halfSilence = Math.floor(silentSamples / 2);
+            const trimPoint = lastSilenceStart + halfSilence;
+
+            console.log(`  Line ${lineIndex}: Found ${silentSamples} samples of silence at end, trimming at ${trimPoint} (includes ${halfSilence} samples of buffer)`);
+            return trimPoint;
+        }
+
+        // No valid silence found, return original position
+        console.log(`No silence found at line ${lineIndex}`);
+        return startSample;
+    };
 
     const segmentMap = new Map<number, Blob>();
     const startPaddingSeconds = 0.05;
-    const endPaddingSeconds = 0;
-
     const sortedEntries = Array.from(timingMap.entries()).sort((a, b) => a[0] - b[0]);
 
-    for (const [lineIndex, timing] of sortedEntries) {
+    for (let i = 0; i < sortedEntries.length; i++) {
+        const [lineIndex, timing] = sortedEntries[i];
+        const nextEntry = sortedEntries[i + 1];
+        const nextLineStartTime = nextEntry ? nextEntry[1].startTime : undefined;
         const startTime = Math.max(0, timing.startTime - startPaddingSeconds);
-        const endTime = Math.max(startTime, timing.endTime + endPaddingSeconds);
+
+        // Find the end point using silence detection
+        const originalEndTime = timing.endTime;
+        const initialEndSample = Math.floor(timing.endTime * sampleRate);
+        const silenceStartSample = findSilencePoint(
+            initialEndSample,
+            lineIndex,
+            nextLineStartTime
+        );
+        const adjustedEndTime = silenceStartSample / sampleRate;
+
+        // Detailed comparison logging
+        console.log(`Line ${lineIndex}:`);
+        console.log(`  Original end: ${originalEndTime.toFixed(3)}s`);
+        console.log(`  Adjusted end: ${adjustedEndTime.toFixed(3)}s`);
+        console.log(`  Adjustment: ${(adjustedEndTime - originalEndTime).toFixed(3)}s (${adjustedEndTime > originalEndTime ? 'extended' : 'trimmed'})`);
 
         const startByte = Math.floor(startTime * bytesPerSecond);
-        const endByte = Math.floor(endTime * bytesPerSecond);
+        const endByte = Math.floor(adjustedEndTime * bytesPerSecond);
 
         const alignedStartByte = startByte - (startByte % bytesPerSample);
         const alignedEndByte = endByte - (endByte % bytesPerSample);
 
-        // Clamp to actual data size
         const actualStartByte = Math.min(alignedStartByte, pcmData.length);
         const actualEndByte = Math.min(alignedEndByte, pcmData.length);
         const segmentLength = actualEndByte - actualStartByte;
 
-        console.log(`Line ${lineIndex}: startTime=${startTime.toFixed(3)}s (byte ${actualStartByte}), endTime=${endTime.toFixed(3)}s (byte ${actualEndByte}), length=${segmentLength} bytes`);
-
         if (segmentLength <= 0) {
-            console.warn(`⚠️ Line ${lineIndex} has invalid segment length: ${segmentLength}`);
+            console.warn(`⚠️ Line ${lineIndex} has invalid segment length: ${segmentLength} `);
             continue;
         }
 
-        // Extract PCM segment
         const segmentPCM = pcmData.slice(actualStartByte, actualEndByte);
 
-        // Create WAV header for this segment
+        // Create WAV header
         const createWavHeader = (dataLength: number): ArrayBuffer => {
             const header = new ArrayBuffer(44);
             const view = new DataView(header);
-
-            view.setUint32(0, 0x52494646, false); // "RIFF"
+            view.setUint32(0, 0x52494646, false);
             view.setUint32(4, dataLength + 36, true);
-            view.setUint32(8, 0x57415645, false); // "WAVE"
-            view.setUint32(12, 0x666d7420, false); // "fmt "
+            view.setUint32(8, 0x57415645, false);
+            view.setUint32(12, 0x666d7420, false);
             view.setUint32(16, 16, true);
             view.setUint16(20, 1, true);
             view.setUint16(22, numberOfChannels, true);
@@ -393,15 +461,13 @@ const splitAudioIntoSegments = async (
             view.setUint32(28, sampleRate * numberOfChannels * bytesPerSample, true);
             view.setUint16(32, numberOfChannels * bytesPerSample, true);
             view.setUint16(34, 16, true);
-            view.setUint32(36, 0x64617461, false); // "data"
+            view.setUint32(36, 0x64617461, false);
             view.setUint32(40, dataLength, true);
-
             return header;
         };
 
         const wavHeader = createWavHeader(segmentPCM.length);
         const segmentBlob = new Blob([wavHeader, segmentPCM], { type: 'audio/wav' });
-
         segmentMap.set(lineIndex, segmentBlob);
     }
 
@@ -523,7 +589,7 @@ export const hydrateScriptWithDialogue = async ({
     if (!userID || !scriptID) return false;
 
     const start = performance.now();
-    const scriptCacheKey = `script-cache:${userID}:${scriptID}`;
+    const scriptCacheKey = `script - cache:${userID}:${scriptID} `;
 
     // Reset error states
     setStorageError(false);
@@ -532,17 +598,17 @@ export const hydrateScriptWithDialogue = async ({
 
     try {
         // Get all lines that need TTS
-        // const linesNeedingHydration = script.filter(
-        //     (element: ScriptElement) =>
-        //         element.type === 'line' &&
-        //         (!element.ttsUrl || element.ttsUrl.length === 0)
-        // );
-
-        // Quick regeneration of all lines for testing
         const linesNeedingHydration = script.filter(
             (element: ScriptElement) =>
-                element.type === 'line'
+                element.type === 'line' &&
+                (!element.ttsUrl || element.ttsUrl.length === 0)
         );
+
+        // // Quick regeneration of all lines for testing
+        // const linesNeedingHydration = script.filter(
+        //     (element: ScriptElement) =>
+        //         element.type === 'line'
+        // );
 
         if (linesNeedingHydration.length === 0) {
             console.log('✅ All scene-partner lines already have audio');
@@ -590,15 +656,15 @@ export const hydrateScriptWithDialogue = async ({
 
         // Split into batches (800 characters per batch)
         const batches = splitDialogueIntoBatches(dialogueEntries, 800);
-        console.log(`📦 Split into ${batches.length} batches:`);
+        console.log(`📦 Split into ${batches.length} batches: `);
         batches.forEach((batch, i) => {
             const charCount = batch.reduce((sum, e) => sum + e.text.length, 0);
             console.log(`  Batch ${i + 1}: ${batch.length} entries, ${charCount} characters`);
-            console.log(`    Lines ${batch[0].lineIndex} to ${batch[batch.length - 1].lineIndex}`);
+            console.log(`    Lines ${batch[0].lineIndex} to ${batch[batch.length - 1].lineIndex} `);
         });
 
         // Generate audio for each batch
-        setLoadStage(`🎤 Generating dialogue audio (${batches.length} batches)...`);
+        setLoadStage(`🎤 Generating dialogue audio(${batches.length} batches)...`);
         const audioBlobs: Blob[] = [];
 
         for (let i = 0; i < batches.length; i++) {
