@@ -963,7 +963,7 @@ function RehearsalRoomContent() {
         setShowCountdown(false);
         setCountdownDuration(0);
         setIsWaitingForUser(false);
-        pauseSTT();
+        pauseSTT(true);
 
         if (advanceTimeoutRef.current) {
             clearTimeout(advanceTimeoutRef.current);
@@ -1031,7 +1031,7 @@ function RehearsalRoomContent() {
         setCountdownDuration(0);
         setIsWaitingForUser(false);
         setIsFinished(false);
-        pauseSTT();
+        pauseSTT(true);
 
         if (advanceTimeoutRef.current) {
             clearTimeout(advanceTimeoutRef.current);

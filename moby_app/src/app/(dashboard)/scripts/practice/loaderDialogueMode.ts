@@ -607,17 +607,17 @@ export const hydrateScriptWithDialogue = async ({
 
     try {
         // Get all lines that need TTS
-        // const linesNeedingHydration = script.filter(
-        //     (element: ScriptElement) =>
-        //         element.type === 'line' &&
-        //         (!element.ttsUrl || element.ttsUrl.length === 0)
-        // );
-
-        // Quick regeneration of all lines for testing
         const linesNeedingHydration = script.filter(
             (element: ScriptElement) =>
-                element.type === 'line'
+                element.type === 'line' &&
+                (!element.ttsUrl || element.ttsUrl.length === 0)
         );
+
+        // Quick regeneration of all lines for testing
+        // const linesNeedingHydration = script.filter(
+        //     (element: ScriptElement) =>
+        //         element.type === 'line'
+        // );
 
         if (linesNeedingHydration.length === 0) {
             console.log('✅ All scene-partner lines already have audio');
