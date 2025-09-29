@@ -5,7 +5,7 @@ import pLimit from 'p-limit';
 import * as Sentry from '@sentry/react';
 import { set } from 'idb-keyval';
 import type { AlignmentData } from "@/types/alignment";
-import { sanitizeForTTS } from "@/lib/helpers/sanitizerTTS";
+import { sanitizeForDialogueMode, sanitizeForAlignment } from "@/lib/helpers/sanitizerTTS";
 
 // Extend ScriptElement locally for this file only
 interface ScriptElementWithTiming extends ScriptElement {
@@ -109,20 +109,7 @@ export const getForcedAlignment = async (
 };
 
 const preprocessLineForAlignment = (text: string): string[] => {
-    // Step 1: Remove stage directions/parentheticals (they won't be spoken)
-    let cleaned = text.replace(/\([^)]*\)/g, ' ');
-
-    // Step 2: Handle special punctuation
-    cleaned = cleaned
-        // Replace ellipses with space (represents pause, not a word)
-        .replace(/\.{2,}/g, ' ')
-        .replace(/…/g, ' ')
-
-        // Replace dashes with space (represents interruption/pause)
-        .replace(/--+/g, ' ')
-        .replace(/—/g, ' ')
-        .replace(/–/g, ' ')
-
+    let cleaned = text
         // Preserve contractions but separate other punctuation
         .replace(/([a-zA-Z])'([a-zA-Z])/g, '$1APOSTROPHE$2')  // Mark contractions
         .replace(/([a-zA-Z])([.,!?;:])/g, '$1 $2')            // Separate ending punctuation
@@ -135,7 +122,7 @@ const preprocessLineForAlignment = (text: string): string[] => {
         .trim()
         .toLowerCase();
 
-    // Step 3: Split and filter
+    // Split and filter
     const words = cleaned
         .split(' ')
         .filter(word => word.length > 0)
@@ -314,176 +301,6 @@ const mapAlignmentToLines = (
     return timingMap;
 };
 
-// // Split audio into segments using Web Audio API
-// // With silence detector
-// const splitAudioIntoSegments = async (
-//     audioBlob: Blob,
-//     timingMap: Map<number, { startTime: number; endTime: number }>
-// ): Promise<Map<number, Blob>> => {
-//     const sampleRate = 48000;
-//     const numberOfChannels = 1;
-//     const bytesPerSample = 2;
-//     const bytesPerSecond = sampleRate * numberOfChannels * bytesPerSample;
-
-//     const arrayBuffer = await audioBlob.arrayBuffer();
-//     const view = new DataView(arrayBuffer);
-//     let pcmData: Uint8Array;
-
-//     if (view.getUint32(0, false) === 0x52494646) {
-//         pcmData = new Uint8Array(arrayBuffer, 44);
-//         console.log('Found WAV header, skipping 44 bytes');
-//     } else {
-//         pcmData = new Uint8Array(arrayBuffer);
-//         console.log('Raw PCM data, no header to skip');
-//     }
-
-//     // Convert PCM bytes to samples for silence detection
-//     const pcmSamples = new Int16Array(pcmData.buffer, pcmData.byteOffset, pcmData.length / 2);
-
-//     // Silence detection function
-//     const findSilencePoint = (
-//         startSample: number,
-//         lineIndex: number,
-//         nextLineStartTime: number | undefined,
-//         maxSearchSamples: number = sampleRate * 0.05, // Search up to 50ms forward
-//         silenceThreshold: number = 0.02, // ~2% of max amplitude
-//         minSilenceDuration: number = sampleRate * 0.01 // 10ms of silence
-//     ): number => {
-//         const maxAmplitude = 32767; // Max for 16-bit audio
-//         const threshold = maxAmplitude * silenceThreshold;
-
-//         let silentSamples = 0;
-//         let lastSilenceStart = -1;
-
-//         // Limit search to not exceed next line's start
-//         let searchEnd = Math.min(startSample + maxSearchSamples, pcmSamples.length);
-//         if (nextLineStartTime !== undefined) {
-//             const nextLineStartSample = Math.floor(nextLineStartTime * sampleRate);
-//             searchEnd = Math.min(searchEnd, nextLineStartSample - 480); // Stop 10ms before next line
-//         }
-
-//         for (let i = startSample; i < searchEnd; i++) {
-//             if (Math.abs(pcmSamples[i]) < threshold) {
-//                 if (silentSamples === 0) {
-//                     lastSilenceStart = i; // Mark where this silence region starts
-//                 }
-//                 silentSamples++;
-
-//                 if (silentSamples >= minSilenceDuration) {
-//                     // Found sufficient silence, but keep scanning to check for non-silence
-//                     continue;
-//                 }
-//             } else {
-//                 // Hit non-silence
-//                 if (silentSamples >= minSilenceDuration) {
-//                     // We had found valid silence, but now hit non-silence (likely next line's audio)
-//                     // Include half the silence duration as buffer
-//                     const halfSilence = Math.floor(silentSamples / 2);
-//                     const trimPoint = lastSilenceStart + halfSilence;
-
-//                     // Trying full silence
-//                     // const trimPoint = lastSilenceStart + silentSamples;
-//                     // console.log(`  Line ${lineIndex}: Found ${silentSamples} samples of silence starting at ${lastSilenceStart}, trimming at ${trimPoint} (includes ${silentSamples} samples of buffer), before non-silence at ${i}`);
-
-//                     return trimPoint;
-//                 }
-//                 silentSamples = 0; // Reset counter
-//                 lastSilenceStart = -1;
-//             }
-//         }
-
-//         // If we ended the loop with valid silence (no non-silence after it)
-//         if (silentSamples >= minSilenceDuration && lastSilenceStart !== -1) {
-//             // Include half the silence as buffer here too
-//             // const halfSilence = Math.floor(silentSamples / 2);
-//             // const trimPoint = lastSilenceStart + halfSilence;
-
-//             // console.log(`  Line ${lineIndex}: Found ${silentSamples} samples of silence at end, trimming at ${trimPoint} (includes ${halfSilence} samples of buffer)`);
-//             // return trimPoint;
-
-//             // Include the full silence duration found
-//             const trimPoint = lastSilenceStart + silentSamples;
-
-//             console.log(`  Line ${lineIndex}: Found ${silentSamples} samples of silence at end, trimming at ${trimPoint} (includes full silence duration)`);
-//             return trimPoint;
-//         }
-
-//         // No valid silence found, return original position
-//         console.log(`No silence found at line ${lineIndex}`);
-//         return startSample;
-//     };
-
-//     const segmentMap = new Map<number, Blob>();
-//     const startPaddingSeconds = 0.05;
-//     const sortedEntries = Array.from(timingMap.entries()).sort((a, b) => a[0] - b[0]);
-
-//     for (let i = 0; i < sortedEntries.length; i++) {
-//         const [lineIndex, timing] = sortedEntries[i];
-//         const nextEntry = sortedEntries[i + 1];
-//         const nextLineStartTime = nextEntry ? nextEntry[1].startTime : undefined;
-//         const startTime = Math.max(0, timing.startTime - startPaddingSeconds);
-
-//         // Find the end point using silence detection
-//         const originalEndTime = timing.endTime;
-//         const initialEndSample = Math.floor(timing.endTime * sampleRate);
-//         const silenceStartSample = findSilencePoint(
-//             initialEndSample,
-//             lineIndex,
-//             nextLineStartTime
-//         );
-//         const adjustedEndTime = silenceStartSample / sampleRate;
-
-//         // Detailed comparison logging
-//         console.log(`Line ${lineIndex}:`);
-//         console.log(`  Original end: ${originalEndTime.toFixed(3)}s`);
-//         console.log(`  Adjusted end: ${adjustedEndTime.toFixed(3)}s`);
-//         console.log(`  Adjustment: ${(adjustedEndTime - originalEndTime).toFixed(3)}s (${adjustedEndTime > originalEndTime ? 'extended' : 'trimmed'})`);
-
-//         const startByte = Math.floor(startTime * bytesPerSecond);
-//         const endByte = Math.floor(adjustedEndTime * bytesPerSecond);
-
-//         const alignedStartByte = startByte - (startByte % bytesPerSample);
-//         const alignedEndByte = endByte - (endByte % bytesPerSample);
-
-//         const actualStartByte = Math.min(alignedStartByte, pcmData.length);
-//         const actualEndByte = Math.min(alignedEndByte, pcmData.length);
-//         const segmentLength = actualEndByte - actualStartByte;
-
-//         if (segmentLength <= 0) {
-//             console.warn(`⚠️ Line ${lineIndex} has invalid segment length: ${segmentLength} `);
-//             continue;
-//         }
-
-//         const segmentPCM = pcmData.slice(actualStartByte, actualEndByte);
-
-//         // Create WAV header
-//         const createWavHeader = (dataLength: number): ArrayBuffer => {
-//             const header = new ArrayBuffer(44);
-//             const view = new DataView(header);
-//             view.setUint32(0, 0x52494646, false);
-//             view.setUint32(4, dataLength + 36, true);
-//             view.setUint32(8, 0x57415645, false);
-//             view.setUint32(12, 0x666d7420, false);
-//             view.setUint32(16, 16, true);
-//             view.setUint16(20, 1, true);
-//             view.setUint16(22, numberOfChannels, true);
-//             view.setUint32(24, sampleRate, true);
-//             view.setUint32(28, sampleRate * numberOfChannels * bytesPerSample, true);
-//             view.setUint16(32, numberOfChannels * bytesPerSample, true);
-//             view.setUint16(34, 16, true);
-//             view.setUint32(36, 0x64617461, false);
-//             view.setUint32(40, dataLength, true);
-//             return header;
-//         };
-
-//         const wavHeader = createWavHeader(segmentPCM.length);
-//         const segmentBlob = new Blob([wavHeader, segmentPCM], { type: 'audio/wav' });
-//         segmentMap.set(lineIndex, segmentBlob);
-//     }
-
-//     return segmentMap;
-// };
-
 // Split audio into segments using Web Audio API
 // NO silence detector
 const splitAudioIntoSegments = async (
@@ -511,8 +328,8 @@ const splitAudioIntoSegments = async (
     const sortedEntries = Array.from(timingMap.entries()).sort((a, b) => a[0] - b[0]);
 
     // Padding
-    const startPaddingSeconds = 0.05;
-    const endPaddingSeconds = 0.05;
+    const startPaddingSeconds = 0.06;
+    const endPaddingSeconds = 0.04;
 
     for (let i = 0; i < sortedEntries.length; i++) {
         const [lineIndex, timing] = sortedEntries[i];
@@ -532,15 +349,32 @@ const splitAudioIntoSegments = async (
 
         const gap = nextEntry ? nextEntry[1].startTime - timing.endTime : 1.0;
 
-        // Account for the fact that both lines get padded
-        const effectiveGap = gap - startPaddingSeconds - endPaddingSeconds;
-
         // Determine actual end padding based on effective gap
         let actualEndPadding;
-        if (effectiveGap < 0.1) { // Less than 100ms effective gap after padding
-            actualEndPadding = 0; // No end padding to avoid overlap
+        let safetyMargin;
+
+        if (gap < 0.1) { // Less than 100ms gap
+            console.log('Less than 100ms gap detected! Setting end padding to zero!');
+            actualEndPadding = 0;
+            safetyMargin = gap * 0.5; // Use 50% of tiny gap as safety
         } else {
-            actualEndPadding = Math.min(endPaddingSeconds, gap * 0.5);
+            actualEndPadding = Math.min(endPaddingSeconds, gap * 0.3);
+
+            // Log which value was chosen
+            if (actualEndPadding === endPaddingSeconds) {
+                console.log(`  Using full padding: ${(endPaddingSeconds * 1000).toFixed(0)}ms (gap ${(gap * 1000).toFixed(0)}ms allows it)`);
+            } else {
+                console.log(`  Using proportional padding: ${(actualEndPadding * 1000).toFixed(0)}ms (30% of ${(gap * 1000).toFixed(0)}ms gap)`);
+            }
+
+            // Scale safety margin based on gap size
+            if (gap < 0.2) {
+                safetyMargin = gap * 0.4;  // 40% for small gaps (100-200ms)
+            } else if (gap < 0.5) {
+                safetyMargin = gap * 0.3;  // 30% for medium gaps (200-500ms)
+            } else {
+                safetyMargin = Math.min(0.15, gap * 0.2);  // 20% or max 150ms for large gaps
+            }
         }
 
         // Calculate times with padding
@@ -548,8 +382,13 @@ const splitAudioIntoSegments = async (
         let endTime = timing.endTime + actualEndPadding;
 
         if (nextLineStartTime !== undefined) {
-            const maxEndTime = nextLineStartTime - 0.01;
+            const maxEndTime = nextLineStartTime - safetyMargin;
             endTime = Math.min(endTime, maxEndTime);
+
+            // Log if maxEndTime constraint was applied
+            if (endTime === maxEndTime) {
+                console.log(`  ⚠️ End time capped by safety margin: ${endTime.toFixed(3)}s (${(safetyMargin * 1000).toFixed(0)}ms before next line)`);
+            }
         }
 
         const audioLengthSeconds = pcmData.length / bytesPerSecond;
@@ -745,17 +584,17 @@ export const hydrateScriptWithDialogue = async ({
 
     try {
         // Get all lines that need TTS
-        const linesNeedingHydration = script.filter(
-            (element: ScriptElement) =>
-                element.type === 'line' &&
-                (!element.ttsUrl || element.ttsUrl.length === 0)
-        );
-
-        // Quick regeneration of all lines for testing
         // const linesNeedingHydration = script.filter(
         //     (element: ScriptElement) =>
-        //         element.type === 'line'
+        //         element.type === 'line' &&
+        //         (!element.ttsUrl || element.ttsUrl.length === 0)
         // );
+
+        // Quick regeneration of all lines for testing
+        const linesNeedingHydration = script.filter(
+            (element: ScriptElement) =>
+                element.type === 'line'
+        );
 
         if (linesNeedingHydration.length === 0) {
             console.log('✅ All scene-partner lines already have audio');
@@ -793,7 +632,7 @@ export const hydrateScriptWithDialogue = async ({
         }
 
         const dialogueEntries: DialogueEntry[] = linesNeedingHydration.map(line => ({
-            text: sanitizeForTTS(line.text),
+            text: sanitizeForDialogueMode(line.text),
             voiceId: line.voiceId || VOICE_MAPPING.default,
             lineIndex: line.index
         }));
@@ -890,17 +729,23 @@ export const hydrateScriptWithDialogue = async ({
         // Step 2: Get forced alignment
         setLoadStage('🎯 Aligning audio with text...');
 
-        const fullTranscript = linesNeedingHydration
-            .map(line => sanitizeForTTS(line.text))
-            .join(' ');
-        const alignmentData = await getForcedAlignment(audioBlob, fullTranscript);
-        console.log('✅ Forced alignment complete');
-
-        // Step 3: Map timestamps to lines
+        // Sanitize once and reuse
         const sanitizedLines = linesNeedingHydration.map(line => ({
             ...line,
-            text: sanitizeForTTS(line.text)
+            originalText: line.text,  // Keep original for reference
+            text: sanitizeForAlignment(line.text)
         }));
+        console.log('Sanitized lines for forced alignment: ', sanitizedLines);
+
+        // Create transcript from already sanitized lines
+        const fullTranscript = sanitizedLines
+            .map(line => line.text)
+            .join(' ');
+
+        const alignmentData = await getForcedAlignment(audioBlob, fullTranscript);
+        console.log('✅ Forced alignment complete: ', alignmentData);
+
+        // Step 3: Map timestamps to lines
         const timingMap = mapAlignmentToLines(alignmentData, sanitizedLines);
 
         // Check if all lines got timestamps
