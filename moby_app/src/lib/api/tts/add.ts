@@ -5,6 +5,7 @@ import {
 // import { uploadTTSAudioBlob, fetchTTSAudioUrl } from '@/lib/api/dbFunctions/audio/tts';
 import { getAudioUrl, saveAudioBlob } from '@/lib/firebase/client/tts';
 import type { ScriptElement } from '@/types/script';
+import { sanitizeForTTS } from '@/lib/helpers/sanitizerTTS';
 
 // ElevenLabs TTS
 export async function addTTS(
@@ -45,36 +46,23 @@ export async function addTTS(
             console.log(`🔍 No existing TTS for line ${element.index}, generating...`);
         }
 
-        const sanitizeForTTS = (text: string): string => {
-            return text
-                // Remove parenthetical text (anything in parentheses)
-                .replace(/\([^)]*\)/g, '')
-
-                // Remove bracketed text WITHOUT "tag:" prefix
-                .replace(/\[(?!\s*tag:)[^\]]*\]/gi, '')
-
-                // Strip the "tag:" prefix from remaining audio tags
-                .replace(/\[\s*tag:\s*([^\]]+)\]/gi, '[$1]')
-
-                // Replace one or more underscores with pause
-                .replace(/_+/g, ' [pause] ')
-
-                // Replace two or more periods with [pause]
-                .replace(/\.{2,}/g, ' [pause] ')
-
-                // Collapse multiple spaces caused by removals
-                .replace(/\s+/g, ' ')
-                .trim();
-        };
-
         console.log('sanitized for tts: ', sanitizeForTTS(element.text));
 
+        const processedText = sanitizeForTTS(element.text);
+
+        // Add tone
+        // const finalText = element.tone
+        //     ? `[${element.tone}] ${processedText}`
+        //     : processedText;
+
+        // console.log('finalized for tts: ', finalText);
+
         const blob = await fetchElevenTTS({
-            text: sanitizeForTTS(element.text),
+            text: processedText,
             voiceId: element.voiceId ?? defaultVoiceId,
             voiceSettings: {
                 stability: 0,
-                similarityBoost: 0,
+                similarityBoost: 0.5,
                 style: 0,
                 useSpeakerBoost: false
             },
@@ -118,36 +106,23 @@ export async function addTTSRegenerate(
                 : 'kdmDKE6EkgrWrrykO9Qt';
 
     try {
-        const sanitizeForTTS = (text: string): string => {
-            return text
-                // Remove parenthetical text (anything in parentheses)
-                .replace(/\([^)]*\)/g, '')
-
-                // Remove bracketed text WITHOUT "tag:" prefix
-                .replace(/\[(?!\s*tag:)[^\]]*\]/gi, '')
-
-                // Strip the "tag:" prefix from remaining audio tags
-                .replace(/\[\s*tag:\s*([^\]]+)\]/gi, '[$1]')
-
-                // Replace one or more underscores with pause
-                .replace(/_+/g, ' [pause] ')
-
-                // Replace two or more periods with [pause]
-                .replace(/\.{2,}/g, ' [pause] ')
-
-                // Collapse multiple spaces caused by removals
-                .replace(/\s+/g, ' ')
-                .trim();
-        };
-
         console.log('sanitized for tts: ', sanitizeForTTS(element.text));
 
+        const processedText = sanitizeForTTS(element.text);
+
+        // Add tone
+        // const finalText = element.tone
+        //     ? `[${element.tone}] ${processedText}`
+        //     : processedText;
+
+        // console.log('finalized for tts: ', finalText);
+
         const blob = await fetchElevenTTS({
-            text: sanitizeForTTS(element.text),
+            text: processedText,
             voiceId: element.voiceId ?? defaultVoiceId,
             voiceSettings: {
                 stability: 0,
-                similarityBoost: 0,
+                similarityBoost: 0.5,
                 style: 0,
                 useSpeakerBoost: false
             },

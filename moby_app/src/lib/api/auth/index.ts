@@ -10,7 +10,7 @@ type AuthResult = { success: true } | { success: false; error: string };
 const errMsg = (err: unknown, fallback: string) =>
     err instanceof Error ? err.message : fallback;
 
-async function sendSessionLogin(idToken: string): Promise<AuthResult> {
+export async function sendSessionLogin(idToken: string): Promise<AuthResult> {
     try {
         const res = await fetch("/api/sessionLogin", {
             method: "POST",

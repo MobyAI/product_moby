@@ -19,6 +19,12 @@ interface UseGoogleSTTProps {
         /** When there is general inactivity, pause/cleanup the stream */
         inactivityPauseMs?: number;
     };
+    onError?: (error: {
+        type: 'websocket' | 'microphone' | 'audio-context' | 'network';
+        message1: string;
+        message2: string;
+        recoverable: boolean;
+    }) => void;
 }
 
 interface OptimizedMatchingState {
@@ -180,6 +186,7 @@ export function useGoogleSTT({
     // expectedEmbedding,
     onProgressUpdate,
     silenceTimers,
+    // onError,
 }: UseGoogleSTTProps) {
     // STT setup
     const wsRef = useRef<WebSocket | null>(null);

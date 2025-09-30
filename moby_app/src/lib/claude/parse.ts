@@ -10,16 +10,19 @@ export async function parseWithClaude(scriptText: string) {
 Parse the script into JSON. Each object must include:
 - "type": "scene", "line", or "direction"
 - "index": original order in script
-- For "line": include "character", "gender", inferred "tone", and "actingInstructions"
+- For "line": include "character", "gender", inferred "tone"
+- Parenthetical text within a character's dialogue (e.g., "(whispers)", "(shouts)") should be kept as part of the line's text, not separated as directions
+- Only treat text as "direction" type when it's a standalone stage direction between character lines (e.g., "She looks around nervously")
 
-Guidelines for "actingInstructions" (Must be ≤100 characters):
-- Focus on the context of the moment and who the character is speaking to and why.
-- Highlight audience dynamics (e.g., intimate, confrontational, persuasive, performative).
-- Include subtext or intent (e.g., revealing, accusing, persuading, resisting, deflecting).
-- Use emotion or tone sparingly, only when not obvious from the context or when crucial for delivery.
-- Avoid generic emotion labels (like "angry" or "sad"); prefer situational phrasing (e.g., “defending herself under pressure”).
-- Favor performative phrasing that helps the actor shape delivery (e.g., “trying to hold it together in front of an ex”).
-- If the line is humorous, sarcastic, or teasing, append “No laughter added.”, to the actingInstructions to ensure the TTS voice avoids inserting laughter.
+TONE INSTRUCTIONS:
+- Up to 2 words describing HOW to deliver the line (not what/where/who)
+- Keep tone CONSISTENT for a character throughout a scene unless emotion fundamentally shifts
+- Focus on delivery style: "anxious whisper", "cold anger", "gentle warmth", "barely controlled"
+- Same character in same scene = same tone (unless major emotional change occurs)
+- Prioritize scene-level consistency over line-by-line variation
+- Examples of good tones: "defensive edge", "weary resignation", "nervous energy", "quiet intensity"
+- BAD: changing tone every line just because words differ
+- GOOD: maintaining "playful teasing" for entire flirtatious scene
 
 Do not rewrite anything. Do not add commentary.
 
@@ -40,7 +43,7 @@ Your JSON must be parsable by JavaScript’s JSON.parse(). To ensure this:
 Example format:
 [
     { "index": 0, "type": "scene", "text": "INT. KITCHEN – DAY" },
-    { "index": 1, "type": "line", "character": "JANE", "gender": "female", "text": "What are you doing here?", "tone": "suspicious", "actingInstructions": "Suspicious and guarded, confronting someone unexpectedly." },
+    { "index": 1, "type": "line", "character": "JANE", "gender": "female", "text": "Hey. (whispers) What are you doing here?", "tone": "anxious whisper" },
     { "index": 2, "type": "direction", "text": "He steps back cautiously." }
 ]
 

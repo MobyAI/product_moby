@@ -2,6 +2,7 @@ import { useRef, useEffect, useCallback } from "react";
 import { fetchEmbedding, cosineSimilarity } from "@/lib/api/embeddings";
 import { embeddingModel } from "@/lib/embeddings/modelManager";
 import * as fuzz from "fuzzball";
+import * as Sentry from '@sentry/react';
 
 //
 // IMPORTANT: For openAI embedding: choose server near openAI's server for lower latency
@@ -18,6 +19,12 @@ interface UseDeepgramSTTProps {
         /** When there is general inactivity, pause/cleanup the stream */
         inactivityPauseMs?: number;
     };
+    onError?: (error: {
+        type: 'websocket' | 'microphone' | 'audio-context' | 'network';
+        message1: string;
+        message2: string;
+        recoverable: boolean;
+    }) => void;
 }
 
 interface OptimizedMatchingState {
@@ -184,19 +191,30 @@ export function useDeepgramSTT({
     onSilenceTimeout,
     onProgressUpdate,
     silenceTimers,
+    onError,
 }: UseDeepgramSTTProps) {
     // STT setup
     const wsRef = useRef<WebSocket | null>(null);
     const micStreamRef = useRef<MediaStream | null>(null);
     const isActiveRef = useRef(false);
+    const isStandbyRef = useRef(false);
     const isInitializingRef = useRef(false);
     const silenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const micCleanupRef = useRef<(() => void) | null>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
+    const connectionStatusRef = useRef<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
     const DEFAULT_TIMERS = useRef({ skipToNextMs: 4000, inactivityPauseMs: 15000 });
     const timersRef = useRef({
         ...DEFAULT_TIMERS.current,
         ...(silenceTimers ?? {}),
+    });
+    const sttControlRef = useRef({
+        processTranscripts: false
+    });
+    const connectionStateRef = useRef({
+        reconnectAttempts: 0,
+        maxReconnectAttempts: 3
     });
 
     // Cue detection
@@ -261,7 +279,7 @@ export function useDeepgramSTT({
             matcherRef.current.completeCurrentLine();
         }
 
-        pauseSTT();
+        pauseSTT(false, true);    // Not manual pause and enter standby mode
         onCueDetected(transcript);
         return true;
     };
@@ -275,15 +293,26 @@ export function useDeepgramSTT({
 
     const resetSilenceTimeout = () => {
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
+
+        // Don't start cleanup timer if we're in standby mode (scene partner talking)
+        if (isStandbyRef.current) {
+            console.log('⏸️ In standby mode - not starting inactivity timer');
+            return;
+        }
+
         silenceTimeoutRef.current = setTimeout(() => {
-            console.log('🛑 Silence timeout — stopping Deepgram STT to save usage.');
-            pauseSTT();
-            onSilenceTimeout?.();
-        }, timersRef.current.inactivityPauseMs);
+            // Double-check we're not in standby when timer fires
+            if (!isStandbyRef.current) {
+                console.log('🛑 Silence timeout — stopping Deepgram STT to save usage.');
+                cleanupSTT();
+                onSilenceTimeout?.();
+            }
+        }, timersRef.current.inactivityPauseMs);;
     };
 
     const resetSilenceTimer = (spokenLine: string) => {
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+
         silenceTimerRef.current = setTimeout(() => {
             if (hasTriggeredRef.current) return;
             console.log('⏳ Silence timer triggered. Skipping to next line.');
@@ -486,7 +515,252 @@ export function useDeepgramSTT({
         }
         isInitializingRef.current = true;
 
+        if (!sttControlRef.current) {
+            sttControlRef.current = {
+                processTranscripts: false
+            };
+        }
+
         try {
+            if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
+                console.log('🔌 Creating WebSocket connection...');
+                connectionStatusRef.current = 'connecting';
+
+                try {
+                    wsRef.current = new WebSocket('wss://deepgram-websocket-server.onrender.com');
+                } catch (err) {
+                    console.error('Failed to create WebSocket:', err);
+                    onError?.({
+                        type: 'websocket',
+                        message1: 'Unable to connect to voice recognition server',
+                        message2: 'Please check your connection',
+                        recoverable: true
+                    });
+                    Sentry.captureException(err);
+                    return;
+                }
+
+                wsRef.current.onmessage = async (event: MessageEvent) => {
+                    if (!sttControlRef.current.processTranscripts) {
+                        return; // Silently ignore when not user's turn
+                    }
+
+                    if (hasTriggeredRef.current) {
+                        console.log('⛔ Cue already triggered — skipping further STT events');
+                        return;
+                    }
+
+                    const raw = event.data;
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    let data: any;
+
+                    try {
+                        const text = raw instanceof Blob ? await raw.text() : raw;
+                        data = JSON.parse(text);
+                    } catch (err) {
+                        console.warn('❌ Could not parse WebSocket data:', err);
+                        return;
+                    }
+
+                    const transcript: string = data.channel?.alternatives?.[0]?.transcript || '';
+
+                    if (transcript) {
+                        console.log(`[🎙️] Transcript chunk at ${performance.now().toFixed(2)}ms:`, transcript);
+                        resetSilenceTimeout();
+                        resetSilenceTimer(transcript);
+
+                        // if (onProgressUpdate && transcript) {
+                        //     const scriptWords = expectedScriptWordsRef.current;
+
+                        //     if (scriptWords && !hasTriggeredRef.current) {
+                        //         const matchCount = progressiveWordMatch(scriptWords, transcript, matchedScriptIndices.current);
+
+                        //         if (matchCount > lastReportedCount.current) {
+                        //             lastReportedCount.current = matchCount;
+                        //             onProgressUpdate(matchCount);
+                        //         }
+                        //     }
+                        // }
+
+                        if (transcript === lastTranscriptRef.current) {
+                            repeatCountRef.current += 1;
+                            if (!repeatStartTimeRef.current) {
+                                repeatStartTimeRef.current = performance.now();
+                            }
+                        } else {
+                            repeatCountRef.current = 1;
+                            repeatStartTimeRef.current = performance.now();
+
+                            if (matcherRef.current && !hasTriggeredRef.current) {
+                                matcherRef.current.processTranscript(transcript);
+                            }
+                        }
+
+                        lastTranscriptRef.current = transcript;
+
+                        const now = performance.now();
+                        const repeatDuration = now - (repeatStartTimeRef.current ?? now);
+
+                        if (
+                            repeatCountRef.current >= 2 &&
+                            repeatDuration >= 400
+                        ) {
+                            console.log('🟡 Stable transcript detected — forcing early match');
+                            await handleKeywordMatch(transcript);
+                            repeatCountRef.current = 0;
+                            repeatStartTimeRef.current = null;
+                        }
+                    }
+
+                    if (data.channel && transcript) {
+                        // Only process is_final if speech_final is NOT true
+                        // (speech_final always includes is_final)
+                        if (data.is_final && !data.speech_final) {
+                            console.log(`🟡 [is_final only] detected @ ${performance.now().toFixed(2)}ms`);
+
+                            fullTranscript.current.push(transcript);
+                            const fullSpokenLine = fullTranscript.current.join(' ');
+
+                            console.log('Processing is: ', fullSpokenLine);
+                            if (shouldProcessTranscript(fullSpokenLine)) {
+                                await handleKeywordMatch(fullSpokenLine);
+                            }
+                        }
+
+                        // speech_final is the primary trigger
+                        if (data.speech_final) {
+                            console.log(`🟡 [speech_final] detected @ ${performance.now().toFixed(2)}ms`);
+
+                            // Mark that we got a speech_final
+                            processingState.current.lastSpeechFinalTime = Date.now();
+
+                            fullTranscript.current.push(transcript);
+                            const fullSpokenLine = fullTranscript.current.join(' ');
+
+                            // Clear any pending utteranceEnd timeout since speech_final handled it
+                            if (processingState.current.utteranceEndTimeout) {
+                                clearTimeout(processingState.current.utteranceEndTimeout);
+                                processingState.current.utteranceEndTimeout = null;
+                            }
+
+                            console.log('Processing speech_final: ', fullSpokenLine);
+                            if (shouldProcessTranscript(fullSpokenLine)) {
+                                await processTranscript(fullSpokenLine, 'speech_final');
+                            } else {
+                                console.log('❌ Should Process Transcript Failed');
+                            }
+                        }
+                    }
+
+                    // UtteranceEnd as fallback only
+                    if (data.type === "UtteranceEnd") {
+                        console.log(`🟣 [utterance_end] detected @ ${performance.now().toFixed(2)}ms`);
+
+                        // Check if speech_final just fired (within last 500ms)
+                        const timeSinceSpeechFinal = Date.now() - processingState.current.lastSpeechFinalTime;
+
+                        if (timeSinceSpeechFinal < 500) {
+                            console.log(`⏭️ Ignoring UtteranceEnd - speech_final just fired ${timeSinceSpeechFinal}ms ago`);
+                            return;
+                        }
+
+                        // Delay slightly to see if speech_final is coming
+                        processingState.current.utteranceEndTimeout = setTimeout(async () => {
+                            const fullSpokenLine = fullTranscript.current.join(' ');
+
+                            if (shouldProcessTranscript(fullSpokenLine)) {
+                                await processTranscript(fullSpokenLine, 'utterance_end');
+                            }
+                        }, 100); // Small delay to let speech_final win if it's coming
+                    }
+                };
+
+                wsRef.current.onopen = () => {
+                    console.log('✅ WebSocket connected to Deepgram');
+                    connectionStatusRef.current = 'connected';
+                    connectionStateRef.current.reconnectAttempts = 0;
+                };
+
+                wsRef.current.onerror = (e) => {
+                    console.warn('❌ WebSocket error:', e);
+                    connectionStatusRef.current = 'error';
+                    Sentry.captureMessage('WebSocket error in Deepgram STT', {
+                        level: 'warning',
+                        extra: { error: e }
+                    });
+                };
+
+                wsRef.current.onclose = (e) => {
+                    console.log('🔌 WebSocket closed:', e.code, e.reason);
+                    connectionStatusRef.current = 'disconnected';
+
+                    // Determine if we should reconnect based on close code
+                    let shouldReconnect = false;
+                    let reconnectDelay = 1000;
+
+                    switch (e.code) {
+                        case 1000: // Normal closure
+                            // Could be idle timeout - maybe reconnect
+                            shouldReconnect = isActiveRef.current; // Only if we're supposed to be active
+                            break;
+
+                        case 1001: // Going away (page closing)
+                            shouldReconnect = false;
+                            break;
+
+                        case 1006: // Abnormal closure (no close frame)
+                            // Almost always a network issue - definitely reconnect
+                            shouldReconnect = true;
+                            break;
+
+                        case 1011: // Server error
+                            shouldReconnect = true;
+                            reconnectDelay = 3000; // Wait longer for server issues
+                            break;
+
+                        case 1012: // Service restart
+                        case 1013: // Try again later
+                            shouldReconnect = true;
+                            reconnectDelay = 5000;
+                            break;
+
+                        default:
+                            if (e.code >= 3000 && e.code < 4000) {
+                                // Library/framework specific codes - usually don't reconnect
+                                shouldReconnect = false;
+                            } else if (e.code >= 4000 && e.code < 5000) {
+                                // Application errors - often temporary
+                                shouldReconnect = true;
+                            }
+                    }
+
+                    if (shouldReconnect && connectionStateRef.current.reconnectAttempts < connectionStateRef.current.maxReconnectAttempts) {
+                        const attemptNumber = connectionStateRef.current.reconnectAttempts + 1;
+                        console.log(`🔄 Will reconnect in ${reconnectDelay}ms (attempt ${attemptNumber}/${connectionStateRef.current.maxReconnectAttempts})`);
+
+                        setTimeout(() => {
+                            // Double-check we still should reconnect (component might have unmounted)
+                            if (audioCtxRef.current) {
+                                connectionStateRef.current.reconnectAttempts++;
+                                wsRef.current = null;
+                                initializeSTT();
+                            }
+                        }, reconnectDelay);
+                    } else if (shouldReconnect) {
+                        console.log('❌ Max reconnection attempts reached');
+
+                        onError?.({
+                            type: 'network',
+                            message1: 'Lost connection to voice server',
+                            message2: 'Please refresh the page',
+                            recoverable: false
+                        });
+                    }
+                };
+            } else {
+                console.log('🔌 Reusing existing WebSocket connection');
+            }
+
             // ✅ Clean up any existing worklet/mic routing
             if (micCleanupRef.current) {
                 console.log('♻️ Cleaning up existing mic/processor before reinitializing');
@@ -503,6 +777,9 @@ export function useDeepgramSTT({
                     console.log('✅ AudioWorklet module loaded!');
                 } catch (err) {
                     console.error('❌ Failed to load AudioWorklet module:', err);
+                    Sentry.captureException(err, {
+                        tags: { component: 'deepgram-stt', error_type: 'audioworklet_load' }
+                    });
                     return;
                 }
             } else {
@@ -517,6 +794,15 @@ export function useDeepgramSTT({
                     console.log('✅ Mic stream obtained');
                 } catch (err) {
                     console.error('❌ Failed to get mic stream:', err);
+                    Sentry.captureException(err, {
+                        tags: { component: 'deepgram-stt', error_type: 'mic_access' }
+                    });
+                    onError?.({
+                        type: 'microphone',
+                        message1: 'Unable to access microphone',
+                        message2: 'Please check device settings',
+                        recoverable: true
+                    });
                     return;
                 }
             } else {
@@ -539,7 +825,17 @@ export function useDeepgramSTT({
 
                 if (message.type === 'audio') {
                     if (wsRef.current?.readyState === WebSocket.OPEN) {
-                        wsRef.current.send(message.data);
+                        try {
+                            wsRef.current.send(message.data);
+                        } catch (err) {
+                            console.error('Failed to send audio data:', err);
+                            Sentry.captureException(err);
+                            // Optionally trigger reconnection
+                            if (isActiveRef.current) {
+                                wsRef.current = null;
+                                initializeSTT();
+                            }
+                        }
                     }
                 }
             };
@@ -549,6 +845,15 @@ export function useDeepgramSTT({
                 workletNode.connect(audioCtx.destination);
             } catch (err) {
                 console.error('⚠️ Failed to connect audio nodes:', err);
+                Sentry.captureException(err, {
+                    tags: { component: 'deepgram-stt', error_type: 'audio-nodes' }
+                });
+                onError?.({
+                    type: 'audio-context',
+                    message1: 'Audio processing failed',
+                    message2: 'Please refresh the page and try again',
+                    recoverable: false
+                });
             }
 
             micCleanupRef.current = () => {
@@ -571,225 +876,54 @@ export function useDeepgramSTT({
             }
         } catch (err) {
             console.warn('⚠️ Failed to resume AudioContext:', err);
+            Sentry.captureException(err, {
+                tags: { component: 'deepgram-stt', error_type: 'audio-context' }
+            });
         }
     };
 
     const startSTT = async () => {
         if (isActiveRef.current) return;
 
+        // Clear pause timeout since we're resuming
+        if (pauseTimeoutRef.current) {
+            clearTimeout(pauseTimeoutRef.current);
+            pauseTimeoutRef.current = null;
+        }
+
         isActiveRef.current = true;
+        sttControlRef.current.processTranscripts = true;
+        isStandbyRef.current = false;
         hasTriggeredRef.current = false;
         fullTranscript.current = [];
 
         await resumeAudioContext();
 
-        if (!audioCtxRef.current || !micStreamRef.current) {
+        if (!audioCtxRef.current || !micStreamRef.current || !wsRef.current) {
             console.warn('⚠️ STT not initialized — call initializeSTT() first');
             return;
         }
-
-        if (wsRef.current) {
-            console.log('🧹 Cleaning up existing WebSocket before creating new one');
-
-            // Clear all event handlers first
-            wsRef.current.onmessage = null;
-            wsRef.current.onopen = null;
-            wsRef.current.onerror = null;
-            wsRef.current.onclose = null;
-
-            // Close if not already closed/closing
-            if (wsRef.current.readyState === WebSocket.OPEN ||
-                wsRef.current.readyState === WebSocket.CONNECTING) {
-                wsRef.current.close(1000, 'Starting new STT session');
-            }
-
-            wsRef.current = null;
-        }
-
-        // if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
-        //     wsRef.current = new WebSocket('wss://deepgram-stt.fly.dev');
-        // } else {
-        //     console.warn('🔁 Reusing existing WebSocket');
-        // }
-
-        // Fly.io
-        // wsRef.current = new WebSocket('wss://deepgram-stt.fly.dev');
-
-        // Render
-        wsRef.current = new WebSocket('wss://deepgram-websocket-server.onrender.com');
-
-        // Localhost
-        // wsRef.current = new WebSocket('ws://localhost:3001');
-
-        wsRef.current.onmessage = async (event: MessageEvent) => {
-            if (hasTriggeredRef.current) {
-                console.log('⛔ Cue already triggered — skipping further STT events');
-                return;
-            }
-
-            const raw = event.data;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            let data: any;
-
-            try {
-                const text = raw instanceof Blob ? await raw.text() : raw;
-                data = JSON.parse(text);
-            } catch (err) {
-                console.warn('❌ Could not parse WebSocket data:', err);
-                return;
-            }
-
-            const transcript: string = data.channel?.alternatives?.[0]?.transcript || '';
-
-            if (transcript) {
-                console.log(`[🎙️] Transcript chunk at ${performance.now().toFixed(2)}ms:`, transcript);
-                resetSilenceTimeout();
-                resetSilenceTimer(transcript);
-
-                // if (onProgressUpdate && transcript) {
-                //     const scriptWords = expectedScriptWordsRef.current;
-
-                //     if (scriptWords && !hasTriggeredRef.current) {
-                //         const matchCount = progressiveWordMatch(scriptWords, transcript, matchedScriptIndices.current);
-
-                //         if (matchCount > lastReportedCount.current) {
-                //             lastReportedCount.current = matchCount;
-                //             onProgressUpdate(matchCount);
-                //         }
-                //     }
-                // }
-
-                if (transcript === lastTranscriptRef.current) {
-                    repeatCountRef.current += 1;
-                    if (!repeatStartTimeRef.current) {
-                        repeatStartTimeRef.current = performance.now();
-                    }
-                } else {
-                    repeatCountRef.current = 1;
-                    repeatStartTimeRef.current = performance.now();
-
-                    if (matcherRef.current && !hasTriggeredRef.current) {
-                        matcherRef.current.processTranscript(transcript);
-                    }
-                }
-
-                lastTranscriptRef.current = transcript;
-
-                const now = performance.now();
-                const repeatDuration = now - (repeatStartTimeRef.current ?? now);
-
-                if (
-                    repeatCountRef.current >= 2 &&
-                    repeatDuration >= 400
-                ) {
-                    console.log('🟡 Stable transcript detected — forcing early match');
-                    await handleKeywordMatch(transcript);
-                    repeatCountRef.current = 0;
-                    repeatStartTimeRef.current = null;
-                }
-            }
-
-            if (data.channel && transcript) {
-                // Only process is_final if speech_final is NOT true
-                // (speech_final always includes is_final)
-                if (data.is_final && !data.speech_final) {
-                    console.log(`🟡 [is_final only] detected @ ${performance.now().toFixed(2)}ms`);
-
-                    fullTranscript.current.push(transcript);
-                    const fullSpokenLine = fullTranscript.current.join(' ');
-
-                    console.log('Processing is: ', fullSpokenLine);
-                    if (shouldProcessTranscript(fullSpokenLine)) {
-                        await handleKeywordMatch(fullSpokenLine);
-                    }
-                }
-
-                // speech_final is the primary trigger
-                if (data.speech_final) {
-                    console.log(`🟡 [speech_final] detected @ ${performance.now().toFixed(2)}ms`);
-
-                    // Mark that we got a speech_final
-                    processingState.current.lastSpeechFinalTime = Date.now();
-
-                    fullTranscript.current.push(transcript);
-                    const fullSpokenLine = fullTranscript.current.join(' ');
-
-                    // Clear any pending utteranceEnd timeout since speech_final handled it
-                    if (processingState.current.utteranceEndTimeout) {
-                        clearTimeout(processingState.current.utteranceEndTimeout);
-                        processingState.current.utteranceEndTimeout = null;
-                    }
-
-                    console.log('Processing speech_final: ', fullSpokenLine);
-                    if (shouldProcessTranscript(fullSpokenLine)) {
-                        await processTranscript(fullSpokenLine, 'speech_final');
-                    } else {
-                        console.log('❌ Should Process Transcript Failed');
-                    }
-                }
-            }
-
-            // UtteranceEnd as fallback only
-            if (data.type === "UtteranceEnd") {
-                console.log(`🟣 [utterance_end] detected @ ${performance.now().toFixed(2)}ms`);
-
-                // Check if speech_final just fired (within last 500ms)
-                const timeSinceSpeechFinal = Date.now() - processingState.current.lastSpeechFinalTime;
-
-                if (timeSinceSpeechFinal < 500) {
-                    console.log(`⏭️ Ignoring UtteranceEnd - speech_final just fired ${timeSinceSpeechFinal}ms ago`);
-                    return;
-                }
-
-                // Delay slightly to see if speech_final is coming
-                processingState.current.utteranceEndTimeout = setTimeout(async () => {
-                    const fullSpokenLine = fullTranscript.current.join(' ');
-
-                    if (shouldProcessTranscript(fullSpokenLine)) {
-                        await processTranscript(fullSpokenLine, 'utterance_end');
-                    }
-                }, 100); // Small delay to let speech_final win if it's coming
-            }
-        };
-
-        wsRef.current.onopen = async () => {
-            if (!isActiveRef.current) return;
-            resetSilenceTimeout();
-        };
-
-        wsRef.current.onerror = (e) => {
-            console.warn('❌ WebSocket error:', e);
-        };
-
-        wsRef.current.onclose = (e) => {
-            console.log('🔌 WebSocket closed:', e.code, e.reason);
-        };
     };
 
-    const pauseSTT = () => {
+    const pauseSTT = (isManualPause = false, enterStandby = false) => {
         const end = performance.now();
         console.log(`⏸️ pauseSTT triggered @ ${end}`);
 
-        // 🧹 Stop WebSocket with proper cleanup
-        if (wsRef.current) {
+        // Disable transcript processing
+        sttControlRef.current.processTranscripts = false;
 
-            // Clear handlers BEFORE closing to prevent any final events
-            wsRef.current.onmessage = null;
-            wsRef.current.onopen = null;
-            wsRef.current.onerror = null;
-            wsRef.current.onclose = null;
+        // Set standby mode
+        isStandbyRef.current = enterStandby;
 
-            // Only close if not already closed/closing
-            if (wsRef.current.readyState === WebSocket.OPEN ||
-                wsRef.current.readyState === WebSocket.CONNECTING) {
-                try {
-                    wsRef.current.close(1000, 'Pausing STT');
-                } catch (err) {
-                    console.warn('⚠️ Error closing WebSocket:', err);
-                }
+        // Only start pause timeout for manual pauses
+        if (isManualPause) {
+            if (pauseTimeoutRef.current) {
+                clearTimeout(pauseTimeoutRef.current);
             }
-
-            wsRef.current = null;
+            pauseTimeoutRef.current = setTimeout(() => {
+                console.log('⏰ Pause timeout - cleaning up after extended pause');
+                cleanupSTT();
+            }, 60000);    // Cleanup and close websocket if paused for over 60 seconds
         }
 
         // ⏲️ Clear silence timeout
@@ -814,7 +948,39 @@ export function useDeepgramSTT({
     };
 
     const cleanupSTT = () => {
-        pauseSTT();
+        pauseSTT(false, false);
+
+        // Clear pause timeout if it exists
+        if (pauseTimeoutRef.current) {
+            clearTimeout(pauseTimeoutRef.current);
+            pauseTimeoutRef.current = null;
+        }
+
+        // Reset standby mode
+        isStandbyRef.current = false;
+
+        // 🔌 Close WebSocket connection
+        if (wsRef.current) {
+            console.log('🔌 Closing WebSocket connection...');
+
+            // Clear handlers BEFORE closing to prevent any final events
+            wsRef.current.onmessage = null;
+            wsRef.current.onopen = null;
+            wsRef.current.onerror = null;
+            wsRef.current.onclose = null;
+
+            // Only close if not already closed/closing
+            if (wsRef.current.readyState === WebSocket.OPEN ||
+                wsRef.current.readyState === WebSocket.CONNECTING) {
+                try {
+                    wsRef.current.close(1000, 'Cleaning up STT');
+                } catch (err) {
+                    console.warn('⚠️ Error closing WebSocket:', err);
+                }
+            }
+
+            wsRef.current = null;
+        }
 
         // 💥 Disconnect audio routing
         if (micCleanupRef.current) {
@@ -837,5 +1003,5 @@ export function useDeepgramSTT({
         }
     };
 
-    return { startSTT, pauseSTT, initializeSTT, cleanupSTT, setCurrentLineText };
+    return { startSTT, pauseSTT, initializeSTT, cleanupSTT, setCurrentLineText, connectionStatus: connectionStatusRef.current };
 }
