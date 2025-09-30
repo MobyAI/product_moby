@@ -374,7 +374,7 @@ function RehearsalRoomContent() {
         // Set loading states
         setHydrating(true);
         setLoadProgress(0);
-        setLoadStage("👤 Updating roles...");
+        setLoadStage("👤 Updating roles");
 
         try {
             // Mark all new user lines as ready immediately
@@ -487,7 +487,7 @@ function RehearsalRoomContent() {
         setEditingLineIndex(null);
         setIsUpdatingLine(true);
         setHydrating(true);
-        setLoadStage('♻️ Regenerating...');
+        setLoadStage('♻️ Regenerating audio');
 
         if (!script) {
             console.warn('❌ Tried to update line before script was loaded.');
@@ -632,7 +632,7 @@ function RehearsalRoomContent() {
     const onRefreshLine = async (updateLine: ScriptElement) => {
         setIsUpdatingLine(true);
         setHydrating(true);
-        setLoadStage('♻️ Regenerating...');
+        setLoadStage('♻️ Regenerating audio');
 
         if (!script) {
             console.warn('❌ Tried to update line before script was loaded.');

@@ -364,7 +364,7 @@ export const initializeEmbeddingModel = async ({
         // Subscribe to model state changes
         const unsubscribe = embeddingModel.onStateChange((state) => {
             if (state.status === 'downloading' && setLoadStage) {
-                setLoadStage(`🤖 Setting up for rehearsal (${state.progress}%)...`);
+                setLoadStage(`🤖 Setting up for rehearsal (${state.progress}%)`);
             }
             if (onProgressUpdate && state.status === 'downloading') {
                 onProgressUpdate(state.progress);
