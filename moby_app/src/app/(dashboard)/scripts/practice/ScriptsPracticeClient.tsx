@@ -13,6 +13,7 @@ import { RoleSelector } from "./roleSelector";
 import EditableLine from "./editableLine";
 import EditableDirection from "./editableDirection";
 import { OptimizedLineRenderer } from "./lineRenderer";
+import LoadingTips from "./rotatingTips";
 import { restoreSession, saveSession } from "./session";
 import { clear, set } from "idb-keyval";
 import { LoadingScreen } from "@/components/ui";
@@ -131,8 +132,6 @@ function RehearsalRoomContent() {
 
         (async () => {
             setLoading(true);
-            setHydrating(true);
-            setDownloading(true);
             setLoadProgress(0);
 
             try {
@@ -164,10 +163,11 @@ function RehearsalRoomContent() {
 
                 setScript(rawScript);
                 scriptRef.current = rawScript;
-                setLoading(false);
 
                 // 2) Initialize embeddings
                 setLoadProgress(0);
+                setDownloading(true);
+                setLoading(false);
                 try {
                     await initializeEmbeddingModel({
                         setLoadStage,
@@ -190,6 +190,7 @@ function RehearsalRoomContent() {
 
                 // 3) Hydrate script
                 setLoadProgress(0);
+                setHydrating(true);
                 try {
                     const wasHydrated = await hydrateScriptWithDialogue({
                         script: rawScript,
@@ -217,6 +218,8 @@ function RehearsalRoomContent() {
                 } catch (e) {
                     console.error("Hydration failed", e);
                     Sentry.captureException(e);
+                } finally {
+                    setHydrating(false);
                 }
 
                 if (!shouldContinueProcessing.current) {
@@ -963,7 +966,7 @@ function RehearsalRoomContent() {
         setShowCountdown(false);
         setCountdownDuration(0);
         setIsWaitingForUser(false);
-        pauseSTT(true);
+        pauseSTT(true, false);
 
         if (advanceTimeoutRef.current) {
             clearTimeout(advanceTimeoutRef.current);
@@ -1031,7 +1034,7 @@ function RehearsalRoomContent() {
         setCountdownDuration(0);
         setIsWaitingForUser(false);
         setIsFinished(false);
-        pauseSTT(true);
+        pauseSTT(true, false);
 
         if (advanceTimeoutRef.current) {
             clearTimeout(advanceTimeoutRef.current);
@@ -1115,6 +1118,7 @@ function RehearsalRoomContent() {
         onSilenceTimeout,
         onProgressUpdate,
         silenceTimers,
+        onError,
     }: {
         provider: "google" | "deepgram";
         lineEndKeywords: string[];
@@ -1125,6 +1129,12 @@ function RehearsalRoomContent() {
             skipToNextMs?: number;
             inactivityPauseMs?: number;
         };
+        onError?: (error: {
+            type: 'websocket' | 'microphone' | 'audio-context' | 'network';
+            message1: string;
+            message2: string;
+            recoverable: boolean;
+        }) => void;
     }) {
         const google = useGoogleSTT({
             lineEndKeywords,
@@ -1132,6 +1142,7 @@ function RehearsalRoomContent() {
             onSilenceTimeout,
             onProgressUpdate,
             silenceTimers,
+            onError,
         });
 
         const deepgram = useDeepgramSTT({
@@ -1140,6 +1151,7 @@ function RehearsalRoomContent() {
             onSilenceTimeout,
             onProgressUpdate,
             silenceTimers,
+            onError,
         });
 
         return provider === "google" ? google : deepgram;
@@ -1162,6 +1174,74 @@ function RehearsalRoomContent() {
         }
     }, [current?.index, current?.role, current?.type, current?.text]);
 
+    // Handle STT errors
+    const handleSTTError = useCallback((error: {
+        type: 'websocket' | 'microphone' | 'audio-context' | 'network';
+        message1: string;
+        message2: string;
+        recoverable: boolean
+    }) => {
+        console.error(`STT Error [${error.type}]:`, error.message1);
+
+        if (error.type === 'microphone') {
+            // Microphone errors need special handling
+            showToast({
+                header: "Microphone Access Required",
+                line1: error.message1,
+                line2: error.message2,
+                type: "danger",
+                // action: error.recoverable ? (
+                //     <Button
+                //         size="sm"
+                //         onClick={() => {
+                //             // Retry initialization
+                //             initializeSTT();
+                //         }}
+                //     >
+                //         Try Again
+                //     </Button>
+                // ) : undefined
+            });
+
+            // Pause the scene so user can fix the issue
+            handlePause();
+
+        } else if (error.type === 'websocket' || error.type === 'network') {
+            // Connection issues
+            showToast({
+                header: "Connection Issue",
+                line1: error.message1,
+                line2: error.message2,
+                type: "danger",
+                duration: error.recoverable ? 5000 : undefined,
+            });
+
+            if (!error.recoverable) {
+                // Critical failure - pause and show retry option
+                handlePause();
+            }
+            // If recoverable, the hook will auto-retry
+
+        } else if (error.type === 'audio-context') {
+            // Browser/technical issues
+            showToast({
+                header: "Audio Setup Failed",
+                line1: error.message1,
+                line2: error.message2,
+                type: "danger",
+                // action: (
+                //     <Button
+                //         size="sm"
+                //         onClick={() => window.location.reload()}
+                //     >
+                //         Refresh Page
+                //     </Button>
+                // )
+            });
+            handlePause();
+        }
+    }, [showToast, handlePause]);
+
     const { initializeSTT, startSTT, pauseSTT, cleanupSTT, setCurrentLineText } =
         useSTT({
             provider: sttProvider,
@@ -1176,6 +1256,7 @@ function RehearsalRoomContent() {
                 skipToNextMs: skipMs,
                 inactivityPauseMs: 15000,
             },
+            onError: handleSTTError,
         });
 
     // Clean up STT
@@ -1627,6 +1708,9 @@ function RehearsalRoomContent() {
                                                 )}
                                             </div>
                                         </div>
+
+                                        {/* Rotating Tips */}
+                                        <LoadingTips isLoading={hydrating} />
 
                                         {/* Ready Indicator */}
                                         {loadProgress === 100 && !isBusy && (

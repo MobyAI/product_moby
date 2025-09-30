@@ -19,6 +19,12 @@ interface UseDeepgramSTTProps {
         /** When there is general inactivity, pause/cleanup the stream */
         inactivityPauseMs?: number;
     };
+    onError?: (error: {
+        type: 'websocket' | 'microphone' | 'audio-context' | 'network';
+        message1: string;
+        message2: string;
+        recoverable: boolean;
+    }) => void;
 }
 
 interface OptimizedMatchingState {
@@ -185,16 +191,19 @@ export function useDeepgramSTT({
     onSilenceTimeout,
     onProgressUpdate,
     silenceTimers,
+    onError,
 }: UseDeepgramSTTProps) {
     // STT setup
     const wsRef = useRef<WebSocket | null>(null);
     const micStreamRef = useRef<MediaStream | null>(null);
     const isActiveRef = useRef(false);
+    const isStandbyRef = useRef(false);
     const isInitializingRef = useRef(false);
     const silenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const micCleanupRef = useRef<(() => void) | null>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
+    const connectionStatusRef = useRef<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
     const DEFAULT_TIMERS = useRef({ skipToNextMs: 4000, inactivityPauseMs: 15000 });
     const timersRef = useRef({
         ...DEFAULT_TIMERS.current,
@@ -270,7 +279,7 @@ export function useDeepgramSTT({
             matcherRef.current.completeCurrentLine();
         }
 
-        pauseSTT(false);
+        pauseSTT(false, true);    // Not manual pause and enter standby mode
         onCueDetected(transcript);
         return true;
     };
@@ -284,15 +293,26 @@ export function useDeepgramSTT({
 
     const resetSilenceTimeout = () => {
         if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
+
+        // Don't start cleanup timer if we're in standby mode (scene partner talking)
+        if (isStandbyRef.current) {
+            console.log('⏸️ In standby mode - not starting inactivity timer');
+            return;
+        }
+
         silenceTimeoutRef.current = setTimeout(() => {
-            console.log('🛑 Silence timeout — stopping Deepgram STT to save usage.');
-            cleanupSTT();
-            onSilenceTimeout?.();
-        }, timersRef.current.inactivityPauseMs);
+            // Double-check we're not in standby when timer fires
+            if (!isStandbyRef.current) {
+                console.log('🛑 Silence timeout — stopping Deepgram STT to save usage.');
+                cleanupSTT();
+                onSilenceTimeout?.();
+            }
+        }, timersRef.current.inactivityPauseMs);;
     };
 
     const resetSilenceTimer = (spokenLine: string) => {
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+
         silenceTimerRef.current = setTimeout(() => {
             if (hasTriggeredRef.current) return;
             console.log('⏳ Silence timer triggered. Skipping to next line.');
@@ -504,8 +524,21 @@ export function useDeepgramSTT({
         try {
             if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
                 console.log('🔌 Creating WebSocket connection...');
-                wsRef.current = new WebSocket('wss://deepgram-websocket-server.onrender.com');
+                connectionStatusRef.current = 'connecting';
 
+                try {
+                    wsRef.current = new WebSocket('wss://deepgram-websocket-server.onrender.com');
+                } catch (err) {
+                    console.error('Failed to create WebSocket:', err);
+                    onError?.({
+                        type: 'websocket',
+                        message1: 'Unable to connect to voice recognition server',
+                        message2: 'Please check your connection',
+                        recoverable: true
+                    });
+                    Sentry.captureException(err);
+                    return;
+                }
 
                 wsRef.current.onmessage = async (event: MessageEvent) => {
                     if (!sttControlRef.current.processTranscripts) {
@@ -644,12 +677,13 @@ export function useDeepgramSTT({
 
                 wsRef.current.onopen = () => {
                     console.log('✅ WebSocket connected to Deepgram');
-                    resetSilenceTimeout();
+                    connectionStatusRef.current = 'connected';
                     connectionStateRef.current.reconnectAttempts = 0;
                 };
 
                 wsRef.current.onerror = (e) => {
                     console.warn('❌ WebSocket error:', e);
+                    connectionStatusRef.current = 'error';
                     Sentry.captureMessage('WebSocket error in Deepgram STT', {
                         level: 'warning',
                         extra: { error: e }
@@ -658,6 +692,7 @@ export function useDeepgramSTT({
 
                 wsRef.current.onclose = (e) => {
                     console.log('🔌 WebSocket closed:', e.code, e.reason);
+                    connectionStatusRef.current = 'disconnected';
 
                     // Determine if we should reconnect based on close code
                     let shouldReconnect = false;
@@ -713,6 +748,13 @@ export function useDeepgramSTT({
                         }, reconnectDelay);
                     } else if (shouldReconnect) {
                         console.log('❌ Max reconnection attempts reached');
+
+                        onError?.({
+                            type: 'network',
+                            message1: 'Lost connection to voice server',
+                            message2: 'Please refresh the page',
+                            recoverable: false
+                        });
                     }
                 };
             } else {
@@ -755,6 +797,12 @@ export function useDeepgramSTT({
                     Sentry.captureException(err, {
                         tags: { component: 'deepgram-stt', error_type: 'mic_access' }
                     });
+                    onError?.({
+                        type: 'microphone',
+                        message1: 'Unable to access microphone',
+                        message2: 'Please check device settings',
+                        recoverable: true
+                    });
                     return;
                 }
             } else {
@@ -777,7 +825,17 @@ export function useDeepgramSTT({
 
                 if (message.type === 'audio') {
                     if (wsRef.current?.readyState === WebSocket.OPEN) {
-                        wsRef.current.send(message.data);
+                        try {
+                            wsRef.current.send(message.data);
+                        } catch (err) {
+                            console.error('Failed to send audio data:', err);
+                            Sentry.captureException(err);
+                            // Optionally trigger reconnection
+                            if (isActiveRef.current) {
+                                wsRef.current = null;
+                                initializeSTT();
+                            }
+                        }
                     }
                 }
             };
@@ -789,6 +847,12 @@ export function useDeepgramSTT({
                 console.error('⚠️ Failed to connect audio nodes:', err);
                 Sentry.captureException(err, {
                     tags: { component: 'deepgram-stt', error_type: 'audio-nodes' }
+                });
+                onError?.({
+                    type: 'audio-context',
+                    message1: 'Audio processing failed',
+                    message2: 'Please refresh the page and try again',
+                    recoverable: false
                 });
             }
 
@@ -829,6 +893,7 @@ export function useDeepgramSTT({
 
         isActiveRef.current = true;
         sttControlRef.current.processTranscripts = true;
+        isStandbyRef.current = false;
         hasTriggeredRef.current = false;
         fullTranscript.current = [];
 
@@ -840,12 +905,15 @@ export function useDeepgramSTT({
         }
     };
 
-    const pauseSTT = (isManualPause = false) => {
+    const pauseSTT = (isManualPause = false, enterStandby = false) => {
         const end = performance.now();
         console.log(`⏸️ pauseSTT triggered @ ${end}`);
 
         // Disable transcript processing
         sttControlRef.current.processTranscripts = false;
+
+        // Set standby mode
+        isStandbyRef.current = enterStandby;
 
         // Only start pause timeout for manual pauses
         if (isManualPause) {
@@ -880,13 +948,16 @@ export function useDeepgramSTT({
     };
 
     const cleanupSTT = () => {
-        pauseSTT(false);
+        pauseSTT(false, false);
 
         // Clear pause timeout if it exists
         if (pauseTimeoutRef.current) {
             clearTimeout(pauseTimeoutRef.current);
             pauseTimeoutRef.current = null;
         }
+
+        // Reset standby mode
+        isStandbyRef.current = false;
 
         // 🔌 Close WebSocket connection
         if (wsRef.current) {
@@ -932,5 +1003,5 @@ export function useDeepgramSTT({
         }
     };
 
-    return { startSTT, pauseSTT, initializeSTT, cleanupSTT, setCurrentLineText };
+    return { startSTT, pauseSTT, initializeSTT, cleanupSTT, setCurrentLineText, connectionStatus: connectionStatusRef.current };
 }

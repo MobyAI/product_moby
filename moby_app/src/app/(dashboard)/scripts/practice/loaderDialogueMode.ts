@@ -329,16 +329,28 @@ const splitAudioIntoSegments = async (
 
     // Padding
     const startPaddingSeconds = 0.06;
-    const endPaddingSeconds = 0.04;
+    const endPaddingSeconds = 0.05;
 
     for (let i = 0; i < sortedEntries.length; i++) {
         const [lineIndex, timing] = sortedEntries[i];
+        const prevEntry = sortedEntries[i - 1];
         const nextEntry = sortedEntries[i + 1];
         const nextLineStartTime = nextEntry ? nextEntry[1].startTime : undefined;
 
         // Log original timings and gap analysis
         console.log(`Line ${lineIndex}:`);
         console.log(`  Original timing: ${timing.startTime.toFixed(3)}s - ${timing.endTime.toFixed(3)}s`);
+
+        const gap = nextEntry ? nextEntry[1].startTime - timing.endTime : 1.0;
+        const gapFromPrev = prevEntry ? timing.startTime - prevEntry[1].endTime : 1.0;
+
+        if (prevEntry) {
+            console.log(`  Gap from previous line: ${(gapFromPrev * 1000).toFixed(1)}ms`);
+            if (gapFromPrev < 0) {
+                console.log(`  ⚠️ OVERLAP DETECTED: Lines ${prevEntry[0]} and ${lineIndex} overlap by ${Math.abs(gapFromPrev * 1000).toFixed(1)}ms`);
+            }
+        }
+
         if (nextEntry) {
             const gapToNext = nextEntry[1].startTime - timing.endTime;
             console.log(`  Gap to next line: ${(gapToNext * 1000).toFixed(1)}ms`);
@@ -347,9 +359,7 @@ const splitAudioIntoSegments = async (
             }
         }
 
-        const gap = nextEntry ? nextEntry[1].startTime - timing.endTime : 1.0;
-
-        // Determine actual end padding based on effective gap
+        // Calculate dynamic end padding
         let actualEndPadding;
         let safetyMargin;
 
@@ -377,8 +387,29 @@ const splitAudioIntoSegments = async (
             }
         }
 
+        // Calculate dynamic start padding
+        let actualStartPadding;
+
+        if (gapFromPrev < 0) {
+            // Overlap detected, no start padding
+            actualStartPadding = 0;
+            console.log(`  No start padding due to overlap`);
+        } else {
+            // Use maximum of startPaddingSeconds or 50% of available gap
+            actualStartPadding = Math.max(startPaddingSeconds, gapFromPrev * 0.5);
+
+            // Update the logging to be more accurate
+            if (actualStartPadding === startPaddingSeconds) {
+                console.log(`  Start padding: ${(actualStartPadding * 1000).toFixed(0)}ms (capped at max)`);
+            } else if (actualStartPadding === 0.05) {
+                console.log(`  Start padding: ${(actualStartPadding * 1000).toFixed(0)}ms (minimum padding, gap only ${(gapFromPrev * 1000).toFixed(0)}ms)`);
+            } else {
+                console.log(`  Start padding: ${(actualStartPadding * 1000).toFixed(0)}ms (50% of ${(gapFromPrev * 1000).toFixed(0)}ms gap)`);
+            }
+        }
+
         // Calculate times with padding
-        const startTime = Math.max(0, timing.startTime - startPaddingSeconds);
+        const startTime = Math.max(0, timing.startTime - actualStartPadding);
         let endTime = timing.endTime + actualEndPadding;
 
         if (nextLineStartTime !== undefined) {
@@ -584,17 +615,17 @@ export const hydrateScriptWithDialogue = async ({
 
     try {
         // Get all lines that need TTS
-        // const linesNeedingHydration = script.filter(
-        //     (element: ScriptElement) =>
-        //         element.type === 'line' &&
-        //         (!element.ttsUrl || element.ttsUrl.length === 0)
-        // );
-
-        // Quick regeneration of all lines for testing
         const linesNeedingHydration = script.filter(
             (element: ScriptElement) =>
-                element.type === 'line'
+                element.type === 'line' &&
+                (!element.ttsUrl || element.ttsUrl.length === 0)
         );
+
+        // Quick regeneration of all lines for testing
+        // const linesNeedingHydration = script.filter(
+        //     (element: ScriptElement) =>
+        //         element.type === 'line'
+        // );
 
         if (linesNeedingHydration.length === 0) {
             console.log('✅ All scene-partner lines already have audio');
@@ -609,9 +640,6 @@ export const hydrateScriptWithDialogue = async ({
             setLoadStage('✅ Script ready!');
             return false;
         }
-
-        const totalOperations = linesNeedingHydration.length;
-        let completedOperations = 0;
 
         // Update status to pending for all lines
         linesNeedingHydration.forEach(line => {
@@ -642,7 +670,16 @@ export const hydrateScriptWithDialogue = async ({
 
         // Split into batches (800 characters per batch)
         const batches = splitDialogueIntoBatches(dialogueEntries, 800);
+        const calculateWeightedProgress = createWeightedProgressCalculator(
+            batches.length,
+            linesNeedingHydration.length
+        );
+
+        // Load progress
         console.log(`📦 Split into ${batches.length} batches: `);
+        const totalOperations = batches.length + linesNeedingHydration.length + 2;
+        let completedOperations = 0;
+
         batches.forEach((batch, i) => {
             const charCount = batch.reduce((sum, e) => sum + e.text.length, 0);
             console.log(`  Batch ${i + 1}: ${batch.length} entries, ${charCount} characters`);
@@ -650,7 +687,7 @@ export const hydrateScriptWithDialogue = async ({
         });
 
         // Generate audio for each batch
-        setLoadStage(`🎤 Generating dialogue audio(${batches.length} batches)...`);
+        setLoadStage(`🎤 Generating dialogue audio...`);
         const audioBlobs: Blob[] = [];
 
         for (let i = 0; i < batches.length; i++) {
@@ -694,6 +731,9 @@ export const hydrateScriptWithDialogue = async ({
             audioBlobs.push(batchBlob);
             console.log(`✅ Batch ${i + 1} generated (${(batchBlob.size / 1024).toFixed(2)} KB)`);
 
+            completedOperations++;
+            onProgressUpdate?.(calculateWeightedProgress(completedOperations, totalOperations), 100);
+
             // Optional: Add a small delay between batches to avoid rate limiting
             if (i < batches.length - 1) {
                 await new Promise(resolve => setTimeout(resolve, 100));
@@ -705,29 +745,8 @@ export const hydrateScriptWithDialogue = async ({
         const audioBlob = await concatenateAudioBlobs(audioBlobs);
         console.log(`✅ Combined audio generated (${(audioBlob.size / 1024 / 1024).toFixed(2)} MB)`);
 
-        // Auto-play the combined audio
-        // const playAudio = async (blob: Blob) => {
-        //     const audioUrl = URL.createObjectURL(blob);
-        //     const audio = new Audio(audioUrl);
-
-        //     audio.addEventListener('ended', () => {
-        //         URL.revokeObjectURL(audioUrl); // Clean up
-        //         console.log('✅ Audio playback completed');
-        //     });
-
-        //     try {
-        //         await audio.play();
-        //         console.log('▶️ Playing combined audio...');
-        //     } catch (err) {
-        //         console.log('❌ Autoplay blocked. Audio element stored as window.debugAudio');
-        //         (window as any).debugAudio = audio; // Store for manual play
-        //     }
-        // };
-
-        // await playAudio(audioBlob);
-
         // Step 2: Get forced alignment
-        setLoadStage('🎯 Aligning audio with text...');
+        setLoadStage('🎯 Aligning audio with script...');
 
         // Sanitize once and reuse
         const sanitizedLines = linesNeedingHydration.map(line => ({
@@ -744,6 +763,8 @@ export const hydrateScriptWithDialogue = async ({
 
         const alignmentData = await getForcedAlignment(audioBlob, fullTranscript);
         console.log('✅ Forced alignment complete: ', alignmentData);
+        completedOperations++;
+        onProgressUpdate?.(calculateWeightedProgress(completedOperations, totalOperations), 100);
 
         // Step 3: Map timestamps to lines
         const timingMap = mapAlignmentToLines(alignmentData, sanitizedLines);
@@ -766,11 +787,13 @@ export const hydrateScriptWithDialogue = async ({
         setLoadStage('✂️ Splitting audio into segments...');
         const segmentMap = await splitAudioIntoSegments(audioBlob, timingMap);
         console.log(`✅ Split into ${segmentMap.size} segments`);
+        completedOperations++;
+        onProgressUpdate?.(calculateWeightedProgress(completedOperations, totalOperations), 100);
 
         // Step 5: Upload segments to Firebase and update script
         setLoadStage('☁️ Uploading audio segments...');
 
-        const uploadLimit = pLimit(3); // Limit concurrent uploads
+        const uploadLimit = pLimit(5); // Limit concurrent uploads
 
         // Use the extended type for the updated script
         const updatedScript: (ScriptElement | ScriptElementWithTiming)[] = await Promise.all(
@@ -792,9 +815,9 @@ export const hydrateScriptWithDialogue = async ({
                                 element.index
                             );
 
-                            completedOperations++;
-                            onProgressUpdate?.(completedOperations, totalOperations);
                             updateTTSHydrationStatus?.(element.index, 'ready');
+                            completedOperations++;
+                            onProgressUpdate?.(calculateWeightedProgress(completedOperations, totalOperations), 100);
 
                             // Return updated element with URL and timing (extended type)
                             const extendedElement: ScriptElementWithTiming = {
@@ -849,7 +872,7 @@ export const hydrateScriptWithDialogue = async ({
         const end = performance.now();
         console.log(`⏱️ Script hydrated with dialogue mode in ${(end - start).toFixed(2)} ms`);
 
-        setLoadStage('✅ Resources loaded!');
+        setLoadStage('✅ Ready for rehearsal!');
         setScript(updatedScript as ScriptElement[]);
 
         return failedLines.length === 0; // Return true only if all lines succeeded
@@ -860,4 +883,32 @@ export const hydrateScriptWithDialogue = async ({
         setTTSLoadError(true);
         return false;
     }
+};
+
+// Create a weighted progress calculator function
+const createWeightedProgressCalculator = (batchCount: number, lineCount: number) => {
+    return (completedOperations: number, totalOperations: number) => {
+        let weightedProgress = 0;
+
+        // First 50% - Audio generation (batches)
+        if (completedOperations <= batchCount) {
+            weightedProgress = (completedOperations / batchCount) * 50;
+        }
+        // Next 10% - Forced alignment (1 operation)
+        else if (completedOperations === batchCount + 1) {
+            weightedProgress = 60;
+        }
+        // Next 10% - Audio splitting (1 operation)
+        else if (completedOperations === batchCount + 2) {
+            weightedProgress = 70;
+        }
+        // Final 30% - Uploading segments (one per line)
+        else {
+            const uploadedCount = completedOperations - (batchCount + 2);
+            const uploadProgress = Math.min((uploadedCount / lineCount) * 30, 30);
+            weightedProgress = 70 + uploadProgress;
+        }
+
+        return Math.min(Math.round(weightedProgress), 100);
+    };
 };

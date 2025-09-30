@@ -110,7 +110,10 @@ export const sanitizeForDialogueMode = (text: string): string => {
         // Step 2: Convert curly braces to brackets
         .replace(/\{\s*([^}]+?)\s*\}/g, (match, content) => `[${content.trim()}]`)
 
-        // Step 3: Filter bracketed text - keep ONLY if in approvedAudioTags
+        // Step 3: Remove "tag: " prefix from bracketed text
+        .replace(/\[\s*tag:\s*([^\]]+)\]/gi, (match, content) => `[${content.trim()}]`)
+
+        // Step 4: Filter bracketed text - keep ONLY if in approvedAudioTags
         .replace(/\[([^\]]+)\]/g, (match, content) => {
             const trimmedContent = content.trim().toLowerCase();
 
@@ -129,10 +132,10 @@ export const sanitizeForDialogueMode = (text: string): string => {
             return '';
         })
 
-        // Step 4: Replace underscores with pause
+        // Step 5: Replace underscores with pause
         .replace(/_+/g, ' [pause] ')
 
-        // Step 5: Clean up whitespace
+        // Step 6: Clean up whitespace
         .replace(/\s+/g, ' ')
         .trim();
 };
