@@ -577,6 +577,350 @@ const concatenateAudioBlobs = async (blobs: Blob[]): Promise<Blob> => {
     return new Blob([wavHeader, combinedPCM], { type: 'audio/wav' });
 };
 
+const addWavHeader = async (pcmBlob: Blob): Promise<Blob> => {
+    // PCM parameters for 48000 Hz (matching your dialogue API settings)
+    const sampleRate = 48000;
+    const numberOfChannels = 1; // ElevenLabs returns mono PCM
+    const bytesPerSample = 2; // 16-bit audio
+
+    // Get the PCM data
+    const pcmBuffer = await pcmBlob.arrayBuffer();
+    const pcmData = new Uint8Array(pcmBuffer);
+
+    // Create WAV header
+    const createWavHeader = (dataLength: number): ArrayBuffer => {
+        const header = new ArrayBuffer(44);
+        const view = new DataView(header);
+
+        view.setUint32(0, 0x52494646, false); // "RIFF"
+        view.setUint32(4, dataLength + 36, true);
+        view.setUint32(8, 0x57415645, false); // "WAVE"
+        view.setUint32(12, 0x666d7420, false); // "fmt "
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, numberOfChannels, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * numberOfChannels * bytesPerSample, true);
+        view.setUint16(32, numberOfChannels * bytesPerSample, true);
+        view.setUint16(34, 16, true);
+        view.setUint32(36, 0x64617461, false); // "data"
+        view.setUint32(40, dataLength, true);
+
+        return header;
+    };
+
+    const wavHeader = createWavHeader(pcmData.byteLength);
+
+    // Return WAV file (header + PCM data)
+    return new Blob([wavHeader, pcmData], { type: 'audio/wav' });
+};
+
+// Hydration function using dialogue mode
+// export const hydrateScriptWithDialogue = async ({
+//     script,
+//     userID,
+//     scriptID,
+//     setLoadStage,
+//     setScript,
+//     setStorageError,
+//     setTTSLoadError,
+//     setTTSFailedLines,
+//     updateTTSHydrationStatus,
+//     onProgressUpdate,
+//     showToast,
+// }: {
+//     script: ScriptElement[];
+//     userID: string;
+//     scriptID: string;
+//     setLoadStage: (stage: string) => void;
+//     setScript: (script: ScriptElement[]) => void;
+//     setStorageError: (val: boolean) => void;
+//     setTTSLoadError: (val: boolean) => void;
+//     setTTSFailedLines: (lines: number[]) => void;
+//     updateTTSHydrationStatus?: (index: number, status: 'pending' | 'ready' | 'failed') => void;
+//     onProgressUpdate?: (hydratedCount: number, totalCount: number) => void;
+//     showToast: (props: { header: string; line1?: string; type: 'success' | 'danger' | 'warning' | 'neutral' }) => void;
+// }): Promise<boolean> => {
+//     if (!userID || !scriptID) return false;
+
+//     const start = performance.now();
+//     const scriptCacheKey = `script-cache:${userID}:${scriptID}`;
+
+//     // Reset error states
+//     setStorageError(false);
+//     setTTSLoadError(false);
+//     setTTSFailedLines([]);
+
+//     try {
+//         // Get all lines that need TTS
+//         const linesNeedingHydration = script.filter(
+//             (element: ScriptElement) =>
+//                 element.type === 'line' &&
+//                 (!element.ttsUrl || element.ttsUrl.length === 0)
+//         );
+
+//         if (linesNeedingHydration.length === 0) {
+//             console.log('✅ All scene-partner lines already have audio');
+
+//             // Still update TTS status for UI
+//             script.forEach(element => {
+//                 if (element.type === 'line') {
+//                     updateTTSHydrationStatus?.(element.index, 'ready');
+//                 }
+//             });
+
+//             setLoadStage('✅ Script ready!');
+//             return false;
+//         }
+
+//         // Update status to pending for all lines
+//         linesNeedingHydration.forEach(line => {
+//             updateTTSHydrationStatus?.(line.index, 'pending');
+//         });
+
+//         // Step 1: Generate dialogue audio for all scene-partner lines
+//         setLoadStage('🎤 Generating dialogue audio...');
+
+//         // Check if any lines are missing voiceId
+//         const linesWithoutVoice = linesNeedingHydration.filter(line => !line.voiceId);
+//         if (linesWithoutVoice.length > 0 && showToast) {
+//             showToast({
+//                 header: "Missing voice selection",
+//                 line1: "Using default voice",
+//                 type: "warning"
+//             });
+//         }
+
+//         const dialogueEntries: DialogueEntry[] = linesNeedingHydration.map(line => ({
+//             text: sanitizeForDialogueMode(line.text),
+//             voiceId: line.voiceId || VOICE_MAPPING.default,
+//             lineIndex: line.index
+//         }));
+
+//         // Log to verify pauses were added
+//         console.log('📝 Dialogue entries with pauses:', dialogueEntries);
+
+//         // Split into batches (800 characters per batch)
+//         const batches = splitDialogueIntoBatches(dialogueEntries, 800);
+//         const calculateWeightedProgress = createWeightedProgressCalculator(
+//             batches.length,
+//             linesNeedingHydration.length
+//         );
+
+//         // Combined final data
+//         const allSegmentMaps: Map<number, Blob>[] = [];
+//         const allTimingMaps: Map<number, { startTime: number; endTime: number }>[] = [];
+
+//         // Load progress
+//         console.log(`📦 Split into ${batches.length} batches: `);
+//         const totalOperations = batches.length + linesNeedingHydration.length + 2;
+//         let completedOperations = 0;
+
+//         batches.forEach((batch, i) => {
+//             const charCount = batch.reduce((sum, e) => sum + e.text.length, 0);
+//             console.log(`  Batch ${i + 1}: ${batch.length} entries, ${charCount} characters`);
+//             console.log(`    Lines ${batch[0].lineIndex} to ${batch[batch.length - 1].lineIndex} `);
+//         });
+
+//         // Generate audio for each batch
+//         setLoadStage(`🎤 Generating dialogue audio...`);
+//         const audioBlobs: Blob[] = [];
+
+//         for (let i = 0; i < batches.length; i++) {
+//             const batch = batches[i];
+//             console.log(`📤 Generating batch ${i + 1}/${batches.length}...`, batch);
+
+//             const response = await fetch('/api/tts/dialogue', {
+//                 method: 'POST',
+//                 headers: {
+//                     'Content-Type': 'application/json',
+//                 },
+//                 body: JSON.stringify({
+//                     dialogue: batch,
+//                     modelId: 'eleven_v3',
+//                     outputFormat: 'pcm_48000',
+//                     applyTextNormalization: 'auto'
+//                 }),
+//             });
+
+//             if (!response.ok) {
+//                 const errorMessage = await response.text().catch(() => 'Unknown error');
+//                 console.error(`TTS API failed for batch ${i + 1}: ${response.status}: ${errorMessage}`);
+
+//                 showToast({
+//                     header: `Audio generation failed (batch ${i + 1})`,
+//                     line1: response.status === 429
+//                         ? "Rate limit exceeded. Please try again later"
+//                         : "Unable to generate scene partner audio",
+//                     type: "danger"
+//                 });
+
+//                 throw new Error(`Failed to generate dialogue audio for batch ${i + 1}`);
+//             }
+
+//             const batchBlob = await response.blob();
+//             console.log(`Batch ${i + 1} MIME type: ${batchBlob.type}`);
+
+//             const firstBytes = new Uint8Array(await batchBlob.slice(0, 20).arrayBuffer());
+//             console.log(`First bytes:`, firstBytes);
+
+//             audioBlobs.push(batchBlob);
+//             console.log(`✅ Batch ${i + 1} generated (${(batchBlob.size / 1024).toFixed(2)} KB)`);
+
+//             completedOperations++;
+//             onProgressUpdate?.(calculateWeightedProgress(completedOperations, totalOperations), 100);
+
+//             // Optional: Add a small delay between batches to avoid rate limiting
+//             if (i < batches.length - 1) {
+//                 await new Promise(resolve => setTimeout(resolve, 100));
+//             }
+//         }
+
+//         // Concatenate all audio blobs
+//         console.log('🔗 Concatenating audio batches...');
+//         const audioBlob = await concatenateAudioBlobs(audioBlobs);
+//         console.log(`✅ Combined audio generated (${(audioBlob.size / 1024 / 1024).toFixed(2)} MB)`);
+
+//         // Step 2: Get forced alignment
+//         setLoadStage('🎯 Aligning audio with script...');
+
+//         // Sanitize once and reuse
+//         const sanitizedLines = linesNeedingHydration.map(line => ({
+//             ...line,
+//             originalText: line.text,  // Keep original for reference
+//             text: sanitizeForAlignment(line.text)
+//         }));
+//         console.log('Sanitized lines for forced alignment: ', sanitizedLines);
+
+//         // Create transcript from already sanitized lines
+//         const fullTranscript = sanitizedLines
+//             .map(line => line.text)
+//             .join(' ');
+
+//         const alignmentData = await getForcedAlignment(audioBlob, fullTranscript);
+//         console.log('✅ Forced alignment complete: ', alignmentData);
+//         completedOperations++;
+//         onProgressUpdate?.(calculateWeightedProgress(completedOperations, totalOperations), 100);
+
+//         // Step 3: Map timestamps to lines
+//         const timingMap = mapAlignmentToLines(alignmentData, sanitizedLines);
+
+//         // Check if all lines got timestamps
+//         const failedLines: number[] = [];
+//         linesNeedingHydration.forEach(line => {
+//             if (!timingMap.has(line.index)) {
+//                 failedLines.push(line.index);
+//                 console.warn(`❌ No timing found for line ${line.index}`);
+//             }
+//         });
+
+//         if (failedLines.length > 0) {
+//             console.warn('⚠️ Some lines could not be aligned:', failedLines);
+//             // Continue with the lines that were successfully aligned
+//         }
+
+//         // Step 4: Split audio into segments
+//         setLoadStage('✂️ Splitting audio into segments...');
+//         const segmentMap = await splitAudioIntoSegments(audioBlob, timingMap);
+//         console.log(`✅ Split into ${segmentMap.size} segments`);
+//         completedOperations++;
+//         onProgressUpdate?.(calculateWeightedProgress(completedOperations, totalOperations), 100);
+
+//         // Step 5: Upload segments to Firebase and update script
+//         setLoadStage('☁️ Uploading audio segments...');
+
+//         const uploadLimit = pLimit(5); // Limit concurrent uploads
+
+//         // Use the extended type for the updated script
+//         const updatedScript: (ScriptElement | ScriptElementWithTiming)[] = await Promise.all(
+//             script.map(element =>
+//                 uploadLimit(async () => {
+//                     if (
+//                         element.type === 'line' &&
+//                         segmentMap.has(element.index)
+//                     ) {
+//                         try {
+//                             const audioBlob = segmentMap.get(element.index)!;
+//                             const timing = timingMap.get(element.index)!;
+
+//                             // Upload to Firebase
+//                             const firebaseUrl = await uploadAudioToFirebase(
+//                                 audioBlob,
+//                                 userID,
+//                                 scriptID,
+//                                 element.index
+//                             );
+
+//                             updateTTSHydrationStatus?.(element.index, 'ready');
+//                             completedOperations++;
+//                             onProgressUpdate?.(calculateWeightedProgress(completedOperations, totalOperations), 100);
+
+//                             // Return updated element with URL and timing (extended type)
+//                             const extendedElement: ScriptElementWithTiming = {
+//                                 ...element,
+//                                 ttsUrl: firebaseUrl,
+//                                 startTime: timing.startTime,
+//                                 endTime: timing.endTime,
+//                                 duration: timing.endTime - timing.startTime
+//                             };
+
+//                             return extendedElement;
+//                         } catch (err) {
+//                             console.error(`❌ Failed to upload audio for line ${element.index}:`, err);
+//                             Sentry.captureException(err);
+//                             failedLines.push(element.index);
+//                             updateTTSHydrationStatus?.(element.index, 'failed');
+//                             return element;
+//                         }
+//                     }
+//                     return element;
+//                 })
+//             )
+//         );
+
+//         if (failedLines.length > 0) {
+//             setTTSLoadError(true);
+//             setTTSFailedLines(failedLines);
+//             // Continue with partial success
+//         }
+
+//         // Step 6: Cache the updated script
+//         setLoadStage('💾 Saving...');
+
+//         try {
+//             // The timing data preserved in the cached object
+//             await set(scriptCacheKey, updatedScript as ScriptElement[]);
+//             console.log('💾 Script cached successfully');
+//         } catch (err) {
+//             console.warn('⚠️ Failed to cache script:', err);
+//             Sentry.captureException(err);
+//         }
+
+//         // Step 7: Save to database
+//         try {
+//             await updateScript(scriptID, updatedScript as ScriptElement[]);
+//             console.log('✅ Script saved to database');
+//         } catch (err) {
+//             console.warn('⚠️ Failed to save to database:', err);
+//             Sentry.captureException(err);
+//         }
+
+//         const end = performance.now();
+//         console.log(`⏱️ Script hydrated with dialogue mode in ${(end - start).toFixed(2)} ms`);
+
+//         setLoadStage('✅ Ready for rehearsal!');
+//         setScript(updatedScript as ScriptElement[]);
+
+//         return failedLines.length === 0; // Return true only if all lines succeeded
+//     } catch (err) {
+//         console.error('❌ Error hydrating script with dialogue:', err);
+//         Sentry.captureException(err);
+//         setLoadStage('❌ Failed to load audio');
+//         setTTSLoadError(true);
+//         return false;
+//     }
+// };
+
 // Hydration function using dialogue mode
 export const hydrateScriptWithDialogue = async ({
     script,
@@ -606,7 +950,7 @@ export const hydrateScriptWithDialogue = async ({
     if (!userID || !scriptID) return false;
 
     const start = performance.now();
-    const scriptCacheKey = `script - cache:${userID}:${scriptID} `;
+    const scriptCacheKey = `script-cache:${userID}:${scriptID}`;
 
     // Reset error states
     setStorageError(false);
@@ -615,17 +959,16 @@ export const hydrateScriptWithDialogue = async ({
 
     try {
         // Get all lines that need TTS
+        // const linesNeedingHydration = script.filter(
+        //     (element: ScriptElement) =>
+        //         element.type === 'line'
+        // );
+
         const linesNeedingHydration = script.filter(
             (element: ScriptElement) =>
                 element.type === 'line' &&
                 (!element.ttsUrl || element.ttsUrl.length === 0)
         );
-
-        // Quick regeneration of all lines for testing
-        // const linesNeedingHydration = script.filter(
-        //     (element: ScriptElement) =>
-        //         element.type === 'line'
-        // );
 
         if (linesNeedingHydration.length === 0) {
             console.log('✅ All scene-partner lines already have audio');
@@ -647,7 +990,7 @@ export const hydrateScriptWithDialogue = async ({
         });
 
         // Step 1: Generate dialogue audio for all scene-partner lines
-        setLoadStage('🎤 Generating dialogue audio...');
+        setLoadStage('🎤 Beginning audio generation');
 
         // Check if any lines are missing voiceId
         const linesWithoutVoice = linesNeedingHydration.filter(line => !line.voiceId);
@@ -675,9 +1018,12 @@ export const hydrateScriptWithDialogue = async ({
             linesNeedingHydration.length
         );
 
+        // Combined final data
+        const allSegmentMaps: Map<number, Blob>[] = [];
+        const allTimingMaps: Map<number, { startTime: number; endTime: number }>[] = [];
+
         // Load progress
         console.log(`📦 Split into ${batches.length} batches: `);
-        const totalOperations = batches.length + linesNeedingHydration.length + 2;
         let completedOperations = 0;
 
         batches.forEach((batch, i) => {
@@ -686,13 +1032,18 @@ export const hydrateScriptWithDialogue = async ({
             console.log(`    Lines ${batch[0].lineIndex} to ${batch[batch.length - 1].lineIndex} `);
         });
 
-        // Generate audio for each batch
-        setLoadStage(`🎤 Generating dialogue audio...`);
-        const audioBlobs: Blob[] = [];
+        // Sanitize once and reuse
+        const sanitizedLines = linesNeedingHydration.map(line => ({
+            ...line,
+            originalText: line.text,  // Keep original for reference
+            text: sanitizeForAlignment(line.text)
+        }));
+        console.log('Sanitized lines for forced alignment: ', sanitizedLines);
 
         for (let i = 0; i < batches.length; i++) {
             const batch = batches[i];
-            console.log(`📤 Generating batch ${i + 1}/${batches.length}...`);
+            setLoadStage(`🎤 Generating dialogue audio ${i + 1}/${batches.length}...`);
+            console.log(`📤 Generating batch ${i + 1}/${batches.length}...`, batch);
 
             const response = await fetch('/api/tts/dialogue', {
                 method: 'POST',
@@ -727,47 +1078,81 @@ export const hydrateScriptWithDialogue = async ({
 
             const firstBytes = new Uint8Array(await batchBlob.slice(0, 20).arrayBuffer());
             console.log(`First bytes:`, firstBytes);
-
-            audioBlobs.push(batchBlob);
             console.log(`✅ Batch ${i + 1} generated (${(batchBlob.size / 1024).toFixed(2)} KB)`);
 
             completedOperations++;
-            onProgressUpdate?.(calculateWeightedProgress(completedOperations, totalOperations), 100);
+            onProgressUpdate?.(calculateWeightedProgress(completedOperations), 100);
 
-            // Optional: Add a small delay between batches to avoid rate limiting
+            // Step 2: Get forced alignment
+            setLoadStage('📝 Aligning audio with script');
+
+            // Prepare audio blob with WAV headers
+            const audioBlob = await addWavHeader(batchBlob);
+
+            // Create transcript for just this batch
+            const batchTranscript = batch
+                .map(entry => {
+                    const line = sanitizedLines.find(l => l.index === entry.lineIndex);
+                    return line ? line.text : '';
+                })
+                .filter(text => text)
+                .join(' ');
+
+            const batchAlignmentData = await getForcedAlignment(audioBlob, batchTranscript);
+
+            console.log('✅ Forced alignment complete: ', batchAlignmentData);
+            completedOperations++;
+            onProgressUpdate?.(calculateWeightedProgress(completedOperations), 100);
+
+            // Step 3: Map timestamps to lines
+            setLoadStage('🗺️ Creating audio map');
+
+            // Get the actual line elements for this batch
+            const batchLines = batch
+                .map(entry => sanitizedLines.find(line => line.index === entry.lineIndex))
+                .filter((line): line is NonNullable<typeof line> => line !== undefined);
+
+            const batchTimingMap = mapAlignmentToLines(batchAlignmentData, batchLines);
+
+            completedOperations++;
+            onProgressUpdate?.(calculateWeightedProgress(completedOperations), 100);
+
+            // Step 4: Split audio into segments
+            setLoadStage('🎶 Finalizing line audio');
+
+            const batchSegmentMap = await splitAudioIntoSegments(audioBlob, batchTimingMap);
+
+            console.log(`✅ Split into ${batchSegmentMap.size} segments`);
+            completedOperations++;
+            onProgressUpdate?.(calculateWeightedProgress(completedOperations), 100);
+
+            // Store both maps
+            allSegmentMaps.push(batchSegmentMap);
+            allTimingMaps.push(batchTimingMap);
+
+            // Optional: Small delay between batches to avoid rate limiting
             if (i < batches.length - 1) {
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
         }
 
-        // Concatenate all audio blobs
-        console.log('🔗 Concatenating audio batches...');
-        const audioBlob = await concatenateAudioBlobs(audioBlobs);
-        console.log(`✅ Combined audio generated (${(audioBlob.size / 1024 / 1024).toFixed(2)} MB)`);
+        // Combine all segment maps into one final map
+        const segmentMap = new Map<number, Blob>();
+        allSegmentMaps.forEach(batchMap => {
+            batchMap.forEach((blob, lineIndex) => {
+                segmentMap.set(lineIndex, blob);
+            });
+        });
 
-        // Step 2: Get forced alignment
-        setLoadStage('🎯 Aligning audio with script...');
+        // Combine all timing maps (needed for the updatedScript)
+        const timingMap = new Map<number, { startTime: number; endTime: number }>();
+        allTimingMaps.forEach(batchMap => {
+            batchMap.forEach((timing, lineIndex) => {
+                timingMap.set(lineIndex, timing);
+            });
+        });
 
-        // Sanitize once and reuse
-        const sanitizedLines = linesNeedingHydration.map(line => ({
-            ...line,
-            originalText: line.text,  // Keep original for reference
-            text: sanitizeForAlignment(line.text)
-        }));
-        console.log('Sanitized lines for forced alignment: ', sanitizedLines);
-
-        // Create transcript from already sanitized lines
-        const fullTranscript = sanitizedLines
-            .map(line => line.text)
-            .join(' ');
-
-        const alignmentData = await getForcedAlignment(audioBlob, fullTranscript);
-        console.log('✅ Forced alignment complete: ', alignmentData);
-        completedOperations++;
-        onProgressUpdate?.(calculateWeightedProgress(completedOperations, totalOperations), 100);
-
-        // Step 3: Map timestamps to lines
-        const timingMap = mapAlignmentToLines(alignmentData, sanitizedLines);
+        console.log(`✅ Combined ${segmentMap.size} segments from ${allSegmentMaps.length} batches`);
 
         // Check if all lines got timestamps
         const failedLines: number[] = [];
@@ -782,13 +1167,6 @@ export const hydrateScriptWithDialogue = async ({
             console.warn('⚠️ Some lines could not be aligned:', failedLines);
             // Continue with the lines that were successfully aligned
         }
-
-        // Step 4: Split audio into segments
-        setLoadStage('✂️ Splitting audio into segments...');
-        const segmentMap = await splitAudioIntoSegments(audioBlob, timingMap);
-        console.log(`✅ Split into ${segmentMap.size} segments`);
-        completedOperations++;
-        onProgressUpdate?.(calculateWeightedProgress(completedOperations, totalOperations), 100);
 
         // Step 5: Upload segments to Firebase and update script
         setLoadStage('☁️ Uploading audio segments...');
@@ -817,7 +1195,7 @@ export const hydrateScriptWithDialogue = async ({
 
                             updateTTSHydrationStatus?.(element.index, 'ready');
                             completedOperations++;
-                            onProgressUpdate?.(calculateWeightedProgress(completedOperations, totalOperations), 100);
+                            onProgressUpdate?.(calculateWeightedProgress(completedOperations), 100);
 
                             // Return updated element with URL and timing (extended type)
                             const extendedElement: ScriptElementWithTiming = {
@@ -887,26 +1265,48 @@ export const hydrateScriptWithDialogue = async ({
 
 // Create a weighted progress calculator function
 const createWeightedProgressCalculator = (batchCount: number, lineCount: number) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    return (completedOperations: number, totalOperations: number) => {
+    const operationsPerBatch = 4;
+    const totalBatchOperations = batchCount * operationsPerBatch;
+
+    return (completedOperations: number) => {
         let weightedProgress = 0;
 
-        // First 50% - Audio generation (batches)
-        if (completedOperations <= batchCount) {
-            weightedProgress = (completedOperations / batchCount) * 50;
+        // First 70% for batch processing (all 4 steps per batch)
+        if (completedOperations <= totalBatchOperations) {
+            // Which operation within current batch?
+            const operationInBatch = ((completedOperations - 1) % operationsPerBatch) + 1;
+
+            // Each batch contributes equally to the first 70%
+            const progressPerBatch = 70 / batchCount;
+            const completedBatches = Math.floor((completedOperations - 1) / operationsPerBatch);
+
+            // Weight within each batch:
+            // Generate: 50% of batch progress
+            // Align: 20% of batch progress  
+            // Map: 15% of batch progress
+            // Split: 15% of batch progress
+            let batchProgress = 0;
+            switch (operationInBatch) {
+                case 1: // Generate audio
+                    batchProgress = 0.5;
+                    break;
+                case 2: // Align
+                    batchProgress = 0.7;
+                    break;
+                case 3: // Map
+                    batchProgress = 0.85;
+                    break;
+                case 4: // Split
+                    batchProgress = 1.0;
+                    break;
+            }
+
+            weightedProgress = (completedBatches * progressPerBatch) + (batchProgress * progressPerBatch);
         }
-        // Next 10% - Forced alignment (1 operation)
-        else if (completedOperations === batchCount + 1) {
-            weightedProgress = 60;
-        }
-        // Next 10% - Audio splitting (1 operation)
-        else if (completedOperations === batchCount + 2) {
-            weightedProgress = 70;
-        }
-        // Final 30% - Uploading segments (one per line)
+        // Final 30% for uploading (scales with number of lines)
         else {
-            const uploadedCount = completedOperations - (batchCount + 2);
-            const uploadProgress = Math.min((uploadedCount / lineCount) * 30, 30);
+            const uploadedCount = completedOperations - totalBatchOperations;
+            const uploadProgress = (uploadedCount / lineCount) * 30;
             weightedProgress = 70 + uploadProgress;
         }
 
