@@ -494,7 +494,7 @@ const splitAudioIntoSegments = async (
 // Function to split dialogue entries into batches
 const splitDialogueIntoBatches = (
     entries: DialogueEntry[],
-    maxChars: number = 800
+    maxChars: number = 500
 ): DialogueEntry[][] => {
     const batches: DialogueEntry[][] = [];
     let currentBatch: DialogueEntry[] = [];
@@ -1007,7 +1007,7 @@ export const hydrateScriptWithDialogue = async ({
         console.log('📝 Dialogue entries with pauses:', dialogueEntries);
 
         // Split into batches (800 characters per batch)
-        const batches = splitDialogueIntoBatches(dialogueEntries, 800);
+        const batches = splitDialogueIntoBatches(dialogueEntries, 500);
         const calculateWeightedProgress = createWeightedProgressCalculator(
             batches.length,
             linesNeedingHydration.length
@@ -1092,6 +1092,16 @@ export const hydrateScriptWithDialogue = async ({
                 })
                 .filter(text => text)
                 .join(' ');
+
+            // Logging request details
+            console.log('📊 Alignment Request Details:');
+            console.log(`  Audio blob size: ${(batchBlob.size / 1024 / 1024).toFixed(2)}MB (${batchBlob.size} bytes)`);
+            console.log(`  Transcript length: ${batchTranscript.length} characters`);
+            console.log(`  Transcript preview: "${batchTranscript.substring(0, 100)}..."`);
+
+            // Estimate audio duration (if it's WAV at 48kHz, 16-bit, mono)
+            const estimatedDuration = (batchBlob.size - 44) / (48000 * 2); // bytes / (sampleRate * bytesPerSample)
+            console.log(`  Estimated audio duration: ${estimatedDuration.toFixed(2)} seconds`);
 
             const batchAlignmentData = await getForcedAlignment(audioBlob, batchTranscript);
 
