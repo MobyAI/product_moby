@@ -196,6 +196,8 @@ export function useGoogleSTT({
     const silenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const micCleanupRef = useRef<(() => void) | null>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
+    const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+    const connectionStatusRef = useRef<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
     const DEFAULT_TIMERS = useRef({ skipToNextMs: 4000, inactivityPauseMs: 15000 });
     const timersRef = useRef({
         ...DEFAULT_TIMERS.current,
@@ -855,7 +857,17 @@ export function useGoogleSTT({
         }
     };
 
-    return { startSTT, pauseSTT, initializeSTT, cleanupSTT, setCurrentLineText };
+    return {
+        startSTT,
+        pauseSTT,
+        initializeSTT,
+        cleanupSTT,
+        setCurrentLineText,
+        connectionStatus: connectionStatusRef.current,
+        audioContext: audioCtxRef.current,
+        audioSource: audioSourceRef.current,
+        isRecording: isActiveRef.current
+    };
 }
 
 // Not used anymore - Saving just in case

@@ -14,6 +14,7 @@ import EditableLine from "./editableLine";
 import EditableDirection from "./editableDirection";
 import { OptimizedLineRenderer } from "./lineRenderer";
 import LoadingTips from "./rotatingTips";
+import AudioVisualizer from "./visualizer";
 import { restoreSession, saveSession } from "./session";
 import { clear, set } from "idb-keyval";
 import { LoadingScreen } from "@/components/ui";
@@ -1243,7 +1244,7 @@ function RehearsalRoomContent() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [showToast]);
 
-    const { initializeSTT, startSTT, pauseSTT, cleanupSTT, setCurrentLineText } =
+    const { initializeSTT, startSTT, pauseSTT, cleanupSTT, setCurrentLineText, audioContext, audioSource, isRecording } =
         useSTT({
             provider: sttProvider,
             lineEndKeywords: current?.lineEndKeywords ?? [],
@@ -1750,6 +1751,21 @@ function RehearsalRoomContent() {
                                         {isWaitingForUser && (
                                             <div className="text-xs text-yellow-400 animate-pulse">
                                                 🎤 Listening for your line...
+                                            </div>
+                                        )}
+                                        {/* Audio Visualizer - shows when mic is active */}
+                                        {audioContext && audioSource && (
+                                            <div className="audio-visualizer-container">
+                                                <AudioVisualizer
+                                                    audioContext={audioContext}
+                                                    sourceNode={audioSource}
+                                                    isActive={isRecording}
+                                                    visualizationType="dots"  // "bars" or "dots"
+                                                    width={200}
+                                                    height={60}
+                                                    backgroundColor="rgba(0, 0, 0, 0.2)"
+                                                    className="my-audio-visualizer"
+                                                />
                                             </div>
                                         )}
                                     </div>
