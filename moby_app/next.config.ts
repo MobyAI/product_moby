@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     ...(process.env.NODE_ENV === 'production'
       ? {
         removeConsole: {
-          exclude: ['error', 'warn'],
+          exclude: ['log', 'error', 'warn'],
         },
       }
       : {}),

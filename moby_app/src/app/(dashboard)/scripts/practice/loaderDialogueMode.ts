@@ -525,57 +525,57 @@ const splitDialogueIntoBatches = (
 };
 
 // Function to concatenate audio blobs
-const concatenateAudioBlobs = async (blobs: Blob[]): Promise<Blob> => {
-    // PCM parameters for 48000 Hz
-    const sampleRate = 48000;
-    const numberOfChannels = 1; // ElevenLabs returns mono PCM
-    const bytesPerSample = 2; // 16-bit audio
+// const concatenateAudioBlobs = async (blobs: Blob[]): Promise<Blob> => {
+//     // PCM parameters for 48000 Hz
+//     const sampleRate = 48000;
+//     const numberOfChannels = 1; // ElevenLabs returns mono PCM
+//     const bytesPerSample = 2; // 16-bit audio
 
-    // Convert all blobs to ArrayBuffers (raw PCM data - NO HEADERS)
-    const pcmBuffers = await Promise.all(
-        blobs.map(blob => blob.arrayBuffer())
-    );
+//     // Convert all blobs to ArrayBuffers (raw PCM data - NO HEADERS)
+//     const pcmBuffers = await Promise.all(
+//         blobs.map(blob => blob.arrayBuffer())
+//     );
 
-    // Calculate total size in bytes
-    const totalBytes = pcmBuffers.reduce((sum, buffer) => sum + buffer.byteLength, 0);
+//     // Calculate total size in bytes
+//     const totalBytes = pcmBuffers.reduce((sum, buffer) => sum + buffer.byteLength, 0);
 
-    // Create a single buffer for all PCM data
-    const combinedPCM = new Uint8Array(totalBytes);
+//     // Create a single buffer for all PCM data
+//     const combinedPCM = new Uint8Array(totalBytes);
 
-    // Copy all PCM data into the combined buffer
-    let offset = 0;
-    for (const buffer of pcmBuffers) {
-        combinedPCM.set(new Uint8Array(buffer), offset);
-        offset += buffer.byteLength;
-    }
+//     // Copy all PCM data into the combined buffer
+//     let offset = 0;
+//     for (const buffer of pcmBuffers) {
+//         combinedPCM.set(new Uint8Array(buffer), offset);
+//         offset += buffer.byteLength;
+//     }
 
-    // Create WAV header for the combined PCM data
-    const createWavHeader = (dataLength: number): ArrayBuffer => {
-        const header = new ArrayBuffer(44);
-        const view = new DataView(header);
+//     // Create WAV header for the combined PCM data
+//     const createWavHeader = (dataLength: number): ArrayBuffer => {
+//         const header = new ArrayBuffer(44);
+//         const view = new DataView(header);
 
-        view.setUint32(0, 0x52494646, false); // "RIFF"
-        view.setUint32(4, dataLength + 36, true);
-        view.setUint32(8, 0x57415645, false); // "WAVE"
-        view.setUint32(12, 0x666d7420, false); // "fmt "
-        view.setUint32(16, 16, true);
-        view.setUint16(20, 1, true);
-        view.setUint16(22, numberOfChannels, true);
-        view.setUint32(24, sampleRate, true);
-        view.setUint32(28, sampleRate * numberOfChannels * bytesPerSample, true);
-        view.setUint16(32, numberOfChannels * bytesPerSample, true);
-        view.setUint16(34, 16, true);
-        view.setUint32(36, 0x64617461, false); // "data"
-        view.setUint32(40, dataLength, true);
+//         view.setUint32(0, 0x52494646, false); // "RIFF"
+//         view.setUint32(4, dataLength + 36, true);
+//         view.setUint32(8, 0x57415645, false); // "WAVE"
+//         view.setUint32(12, 0x666d7420, false); // "fmt "
+//         view.setUint32(16, 16, true);
+//         view.setUint16(20, 1, true);
+//         view.setUint16(22, numberOfChannels, true);
+//         view.setUint32(24, sampleRate, true);
+//         view.setUint32(28, sampleRate * numberOfChannels * bytesPerSample, true);
+//         view.setUint16(32, numberOfChannels * bytesPerSample, true);
+//         view.setUint16(34, 16, true);
+//         view.setUint32(36, 0x64617461, false); // "data"
+//         view.setUint32(40, dataLength, true);
 
-        return header;
-    };
+//         return header;
+//     };
 
-    const wavHeader = createWavHeader(totalBytes);
+//     const wavHeader = createWavHeader(totalBytes);
 
-    // Return with header for forced alignment API
-    return new Blob([wavHeader, combinedPCM], { type: 'audio/wav' });
-};
+//     // Return with header for forced alignment API
+//     return new Blob([wavHeader, combinedPCM], { type: 'audio/wav' });
+// };
 
 const addWavHeader = async (pcmBlob: Blob): Promise<Blob> => {
     // PCM parameters for 48000 Hz (matching your dialogue API settings)
@@ -959,11 +959,6 @@ export const hydrateScriptWithDialogue = async ({
 
     try {
         // Get all lines that need TTS
-        // const linesNeedingHydration = script.filter(
-        //     (element: ScriptElement) =>
-        //         element.type === 'line'
-        // );
-
         const linesNeedingHydration = script.filter(
             (element: ScriptElement) =>
                 element.type === 'line' &&
