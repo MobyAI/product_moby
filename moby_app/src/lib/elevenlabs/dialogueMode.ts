@@ -53,6 +53,7 @@ export async function fetchDialogueTTSBlob(options: DialogueOptions): Promise<Bl
     const stream = await elevenlabs.textToDialogue.convert({
         modelId: modelId,
         inputs: formattedInputs,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         outputFormat: outputFormat as any,
         applyTextNormalization: applyTextNormalization,
     });

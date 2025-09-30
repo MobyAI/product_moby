@@ -186,7 +186,7 @@ export function useGoogleSTT({
     // expectedEmbedding,
     onProgressUpdate,
     silenceTimers,
-    onError,
+    // onError,
 }: UseGoogleSTTProps) {
     // STT setup
     const wsRef = useRef<WebSocket | null>(null);

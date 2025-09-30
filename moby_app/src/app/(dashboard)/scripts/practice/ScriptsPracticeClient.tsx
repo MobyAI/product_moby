@@ -1240,7 +1240,8 @@ function RehearsalRoomContent() {
             });
             handlePause();
         }
-    }, [showToast, handlePause]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showToast]);
 
     const { initializeSTT, startSTT, pauseSTT, cleanupSTT, setCurrentLineText } =
         useSTT({

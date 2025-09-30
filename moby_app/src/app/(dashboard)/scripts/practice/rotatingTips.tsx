@@ -105,6 +105,7 @@ const LoadingTips: React.FC<LoadingTipsProps> = ({ isLoading = true }) => {
             if (intervalRef.current) clearTimeout(intervalRef.current);
             if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentTipIndex, isLoading]);
 
     const currentTip = tips[currentTipIndex];
@@ -146,8 +147,8 @@ const LoadingTips: React.FC<LoadingTipsProps> = ({ isLoading = true }) => {
                 <div className="min-h-[80px] sm:min-h-[35px] mb-4">
                     <div
                         className={`transition-all duration-300 ease-out ${isAnimating
-                                ? '-translate-x-full opacity-0'
-                                : 'translate-x-0 opacity-100'
+                            ? '-translate-x-full opacity-0'
+                            : 'translate-x-0 opacity-100'
                             }`}
                     >
                         <p className="text-sm text-gray-300 leading-relaxed">
