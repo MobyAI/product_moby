@@ -1,7 +1,5 @@
 import React, { useRef, useEffect } from 'react';
 
-type VisualizationType = 'bars' | 'dots';
-
 interface AudioVisualizerProps {
     /** The AudioContext from your STT setup */
     audioContext: AudioContext | null;
@@ -9,14 +7,10 @@ interface AudioVisualizerProps {
     sourceNode: MediaStreamAudioSourceNode | null;
     /** Whether recording/STT is active */
     isActive: boolean;
-    /** Type of visualization */
-    visualizationType?: VisualizationType;
-    /** Canvas width in pixels */
-    width?: number;
-    /** Canvas height in pixels */
-    height?: number;
-    /** Primary color for the visualization */
-    color?: string;
+    /** Diameter of the circular canvas in pixels */
+    size?: number;
+    /** Maximum extension of bars as percentage of radius (0.0 to 1.0) */
+    maxBarExtension?: number;
     /** Background color of the canvas */
     backgroundColor?: string;
     /** Optional className for styling */
@@ -27,10 +21,8 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
     audioContext,
     sourceNode,
     isActive = false,
-    visualizationType = 'dots',
-    width = 120,
-    height = 100,
-    color = 'rgba(255, 255, 255, 0.8)',
+    size = 120, // ADJUSTABLE: Circle diameter in pixels
+    maxBarExtension = 1.0, // ADJUSTABLE: Max bar height as percentage of radius
     backgroundColor = 'rgba(0, 0, 0, 0.3)',
     className = ''
 }) => {
@@ -95,37 +87,23 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
         if (!ctx) return;
 
         // Set canvas size
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width = size;
+        canvas.height = size;
 
-        const drawFrequencyBars = (ctx: CanvasRenderingContext2D): void => {
-            if (!analyserRef.current || bufferLengthRef.current === 0) return;
+        // Calculate scaling factors based on circle size
+        const radius = size / 2;
+        const centerX = radius;
+        const centerY = radius;
 
-            // Create a fresh array each time
-            const dataArray = new Uint8Array(bufferLengthRef.current);
-            analyserRef.current.getByteFrequencyData(dataArray);
+        // ADJUSTABLE: Scale factors that control dot and bar sizing relative to circle
+        const dotRadiusScale = 0.06; // Dot radius as percentage of circle diameter
+        const barWidthScale = 0.1; // Bar width as percentage of circle diameter  
+        const dotGapScale = 0.167; // Gap between dots as percentage of circle diameter
 
-            ctx.fillStyle = backgroundColor;
-            ctx.fillRect(0, 0, width, height);
-
-            const barWidth = (width / dataArray.length) * 2.5;
-            let x = 0;
-
-            for (let i = 0; i < dataArray.length; i++) {
-                const barHeight = (dataArray[i] / 255) * height * 0.8;
-
-                // Create gradient
-                const gradient = ctx.createLinearGradient(0, height, 0, height - barHeight);
-                gradient.addColorStop(0, 'rgba(76, 175, 80, 0.3)');
-                gradient.addColorStop(0.5, 'rgba(76, 175, 80, 0.6)');
-                gradient.addColorStop(1, 'rgba(76, 175, 80, 0.9)');
-
-                ctx.fillStyle = gradient;
-                ctx.fillRect(x, height - barHeight, barWidth - 2, barHeight);
-
-                x += barWidth;
-            }
-        };
+        // Calculate actual sizes based on circle size
+        const minDotRadius = size * dotRadiusScale; // Scales with circle size
+        const barWidth = size * barWidthScale; // Scales with circle size
+        const fixedGap = size * dotGapScale; // Scales with circle size
 
         const drawDots = (ctx: CanvasRenderingContext2D): void => {
             if (!analyserRef.current || bufferLengthRef.current === 0) return;
@@ -134,33 +112,27 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
             const dataArray = new Uint8Array(bufferLengthRef.current);
             analyserRef.current.getByteFrequencyData(dataArray);
 
-            // Clear canvas
-            ctx.fillStyle = backgroundColor;
-            ctx.fillRect(0, 0, width, height);
+            // Clear canvas and draw circular background
+            ctx.clearRect(0, 0, size, size);
 
-            // Calculate positions for 3 dots with FIXED spacing
+            // Draw circular background
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fillStyle = backgroundColor;
+            ctx.fill();
+
+            // Calculate positions for 3 dots - centered in the circle
             const dotCount = 3;
-            const fixedGap = 20; // Fixed gap between dots in pixels
-            const totalWidth = (dotCount - 1) * fixedGap; // Total width of the dot group
-            const startX = (width - totalWidth) / 2; // Center the group horizontally
-            const centerY = height / 2;
-            const minDotRadius = 5; // Minimum dot size
-            const maxBarHeight = height * 0.7; // Maximum bar height (70% of canvas)
-            const barWidth = 12; // Width of the expanded bars
+            const totalWidth = (dotCount - 1) * fixedGap;
+            const startX = centerX - totalWidth / 2; // Center horizontally in circle
 
             // With 16kHz sample rate and FFT size of 256:
             // Each bin = 16000 / 256 = 62.5 Hz
-            // Voice range (0-4kHz) = first 64 bins (4000 / 62.5)
-            // Total bins = 128 (bufferLength)
-            const voiceBins = Math.min(64, bufferLengthRef.current);
-
-            // Three different sampling strategies for visual variety
             const dotValues = [
-
                 // Dot 1: Mid frequencies (300-1500 Hz) - main voice energy
                 (() => {
-                    const startBin = Math.floor(300 / 62.5);  // ~300Hz
-                    const endBin = Math.floor(1500 / 62.5);   // ~1500Hz
+                    const startBin = Math.floor(300 / 62.5);
+                    const endBin = Math.floor(1500 / 62.5);
                     let sum = 0;
                     let peakValue = 0;
                     for (let j = startBin; j < endBin && j < dataArray.length; j++) {
@@ -172,43 +144,30 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
 
                 // Dot 2: Low frequencies (100-500 Hz) - fundamental frequency
                 (() => {
-                    const startBin = Math.floor(100 / 62.5); // ~100Hz
-                    const endBin = Math.floor(500 / 62.5);   // ~500Hz
+                    const startBin = Math.floor(100 / 62.5);
+                    const endBin = Math.floor(500 / 62.5);
                     let sum = 0;
                     let peakValue = 0;
                     for (let j = startBin; j < endBin && j < dataArray.length; j++) {
                         sum += dataArray[j];
                         peakValue = Math.max(peakValue, dataArray[j]);
                     }
-                    // Mix average and peak for responsiveness
                     return (sum / (endBin - startBin)) * 0.7 + peakValue * 0.3;
                 })(),
 
                 // Dot 3: High frequencies (1000-3000 Hz) - consonants and clarity
                 (() => {
-                    const startBin = Math.floor(1000 / 62.5); // ~1000Hz
-                    const endBin = Math.floor(3000 / 62.5);   // ~3000Hz
+                    const startBin = Math.floor(1000 / 62.5);
+                    const endBin = Math.floor(3000 / 62.5);
                     let sum = 0;
                     let peakValue = 0;
                     for (let j = startBin; j < endBin && j < dataArray.length; j++) {
                         sum += dataArray[j];
                         peakValue = Math.max(peakValue, dataArray[j]);
                     }
-                    // Use more peak detection for high frequencies
                     return (sum / (endBin - startBin)) * 0.5 + peakValue * 0.5;
                 })()
             ];
-
-            // Debug logging to see what values we're getting
-            if (Math.random() < 0.01) { // Log occasionally
-                console.log('Frequency bin values:', {
-                    dot1_low: Math.round(dotValues[0]),
-                    dot2_mid: Math.round(dotValues[1]),
-                    dot3_high: Math.round(dotValues[2]),
-                    totalBins: bufferLengthRef.current,
-                    first10bins: Array.from(dataArray.slice(0, 10)).map(v => Math.round(v))
-                });
-            }
 
             for (let i = 0; i < dotCount; i++) {
                 const x = startX + (fixedGap * i);
@@ -217,7 +176,7 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
                 const normalizedValue = average / 255;
 
                 // More aggressive boosting for voice frequencies
-                const boostFactors = [2.5, 2.2, 2.8]; // Higher boosts for voice
+                const boostFactors = [2.5, 2.2, 2.8];
                 const boostedValue = Math.min(1, normalizedValue * boostFactors[i]);
 
                 // Less smoothing for more responsive animation
@@ -225,33 +184,22 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
                 smoothedValuesRef.current[i] = smoothedValuesRef.current[i] * (1 - smoothingFactor) + boostedValue * smoothingFactor;
                 const smoothedValue = smoothedValuesRef.current[i];
 
-                // Lower threshold for movement
-                const adjustedValue = smoothedValue;
+                // ADJUSTABLE: Maximum bar height controlled by maxBarExtension prop
+                // Edge dots (positions 0 and 2) use 50% of max height, middle dot uses full height
+                const edgeDotScale = 0.7; // Edge dots extend to 50% of max height
+                const dotMaxHeight = i === 1 ?
+                    radius * maxBarExtension :  // Middle dot: full extension
+                    radius * maxBarExtension * edgeDotScale; // Edge dots: 50% of max extension
 
                 // Calculate the bar height based on audio level
-                const barHeight = Math.max(minDotRadius * 2, adjustedValue * maxBarHeight);
+                const barHeight = Math.max(minDotRadius * 2, smoothedValue * dotMaxHeight);
                 const cornerRadius = barWidth / 2; // Fully rounded ends
 
-                // Create gradient for the bar - different color tints for each dot
+                // Create gradient for the bar
                 const gradient = ctx.createLinearGradient(x, centerY - barHeight / 2, x, centerY + barHeight / 2);
-
-                // Vary colors slightly for each dot
-                if (i === 0) {
-                    // Left dot - slightly blue tinted
-                    gradient.addColorStop(0, 'rgba(70, 160, 200, 0.9)');
-                    gradient.addColorStop(0.5, 'rgba(70, 160, 200, 0.7)');
-                    gradient.addColorStop(1, 'rgba(70, 160, 200, 0.5)');
-                } else if (i === 1) {
-                    // Middle dot - green
-                    gradient.addColorStop(0, 'rgba(76, 175, 80, 0.9)');
-                    gradient.addColorStop(0.5, 'rgba(76, 175, 80, 0.7)');
-                    gradient.addColorStop(1, 'rgba(76, 175, 80, 0.5)');
-                } else {
-                    // Right dot - slightly purple tinted
-                    gradient.addColorStop(0, 'rgba(150, 100, 200, 0.9)');
-                    gradient.addColorStop(0.5, 'rgba(150, 100, 200, 0.7)');
-                    gradient.addColorStop(1, 'rgba(150, 100, 200, 0.5)');
-                }
+                gradient.addColorStop(0, 'rgba(70, 160, 200, 0.9)');
+                gradient.addColorStop(0.5, 'rgba(70, 160, 200, 0.7)');
+                gradient.addColorStop(1, 'rgba(70, 160, 200, 0.5)');
 
                 ctx.fillStyle = gradient;
 
@@ -279,86 +227,57 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
                 }
 
                 ctx.fill();
-
-                // Add a subtle glow effect when active
-                if (adjustedValue > 0.03) {
-                    ctx.shadowBlur = 20 * adjustedValue;
-                    if (i === 0) {
-                        ctx.shadowColor = 'rgba(70, 160, 200, 0.6)';
-                    } else if (i === 1) {
-                        ctx.shadowColor = 'rgba(76, 175, 80, 0.6)';
-                    } else {
-                        ctx.shadowColor = 'rgba(150, 100, 200, 0.6)';
-                    }
-                    ctx.fill();
-                    ctx.shadowBlur = 0;
-                }
             }
+
+            // Optional: Draw circle border for visual clarity
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius - 1, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
         };
 
         const draw = (): void => {
             if (!isActive || !analyserRef.current || bufferLengthRef.current === 0) {
-                // Clear canvas when inactive
+                // Clear canvas and draw inactive state
+                ctx.clearRect(0, 0, size, size);
+
+                // Draw circular background
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
                 ctx.fillStyle = backgroundColor;
-                ctx.fillRect(0, 0, width, height);
+                ctx.fill();
 
-                if (visualizationType === 'dots') {
-                    // Draw static dots when inactive - centered with fixed spacing
-                    const dotCount = 3;
-                    const fixedGap = 20; // Fixed gap between dots
-                    const totalWidth = (dotCount - 1) * fixedGap;
-                    const startX = (width - totalWidth) / 2;
-                    const centerY = height / 2;
-                    const dotRadius = 5;
+                // Draw static dots when inactive
+                const dotCount = 3;
+                const totalWidth = (dotCount - 1) * fixedGap;
+                const startX = centerX - totalWidth / 2;
 
-                    for (let i = 0; i < dotCount; i++) {
-                        const x = startX + (fixedGap * i);
+                for (let i = 0; i < dotCount; i++) {
+                    const x = startX + (fixedGap * i);
 
-                        // Different subtle colors for each dot when inactive
-                        if (i === 0) {
-                            ctx.fillStyle = 'rgba(70, 160, 200, 0.3)';
-                        } else if (i === 1) {
-                            ctx.fillStyle = 'rgba(76, 175, 80, 0.3)';
-                        } else {
-                            ctx.fillStyle = 'rgba(150, 100, 200, 0.3)';
-                        }
-
-                        ctx.beginPath();
-                        ctx.arc(x, centerY, dotRadius, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-
-                    // Reset smoothed values when inactive
-                    smoothedValuesRef.current = [0, 0, 0];
-                } else {
-                    // Draw inactive state indicator for bars mode
-                    const centerX = width / 2;
-                    const centerY = height / 2;
-                    const time = Date.now() / 1000;
-                    const pulseRadius = 3 + Math.sin(time * 2) * 1;
-
+                    ctx.fillStyle = 'rgba(70, 160, 200, 0.3)';
                     ctx.beginPath();
-                    ctx.arc(centerX, centerY, pulseRadius, 0, Math.PI * 2);
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.arc(x, centerY, minDotRadius, 0, Math.PI * 2);
                     ctx.fill();
                 }
+
+                // Optional: Draw circle border
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius - 1, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Reset smoothed values when inactive
+                smoothedValuesRef.current = [0, 0, 0];
 
                 animationIdRef.current = requestAnimationFrame(draw);
                 return;
             }
 
             animationIdRef.current = requestAnimationFrame(draw);
-
-            switch (visualizationType) {
-                case 'bars':
-                    drawFrequencyBars(ctx);
-                    break;
-                case 'dots':
-                    drawDots(ctx);
-                    break;
-                default:
-                    drawDots(ctx);
-            }
+            drawDots(ctx);
         };
 
         // Start drawing
@@ -369,18 +288,17 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
                 cancelAnimationFrame(animationIdRef.current);
             }
         };
-    }, [isActive, visualizationType, width, height, color, backgroundColor]);
+    }, [isActive, size, maxBarExtension, backgroundColor]);
 
     return (
         <canvas
             ref={canvasRef}
             className={className}
             style={{
-                borderRadius: '8px',
-                backgroundColor,
+                borderRadius: '50%',
                 display: 'block',
-                width: `${width}px`,
-                height: `${height}px`
+                width: `${size}px`,
+                height: `${size}px`
             }}
             aria-label={isActive ? "Audio input visualizer showing active recording" : "Audio input visualizer inactive"}
         />

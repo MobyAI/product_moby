@@ -1489,15 +1489,35 @@ function RehearsalRoomContent() {
                                 {element.character ||
                                     (element.role === "user" ? "YOU" : "SCENE PARTNER")}
                             </h3>
-                            {isCurrent && isPlaying && (
-                                <span className="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full animate-pulse font-medium">
-                                    ACTIVE
-                                </span>
-                            )}
                             {isCompleted && (
                                 <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">
                                     ✓ COMPLETE
                                 </span>
+                            )}
+                            {isCurrent && isPlaying && (
+                                <>
+                                    {element.role === 'user' ? (
+                                        // User role: show visualizer or error
+                                        audioContext && audioSource ? (
+                                            <div className="audio-visualizer-container">
+                                                <AudioVisualizer
+                                                    audioContext={audioContext}
+                                                    sourceNode={audioSource}
+                                                    isActive={isRecording}
+                                                    size={25}
+                                                    backgroundColor="rgba(255, 255, 255, 0.7)"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <AlertCircle className="w-5 h-5" />
+                                        )
+                                    ) : (
+                                        // Non-user role: show ACTIVE span
+                                        <span className="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full animate-pulse font-medium">
+                                            ACTIVE
+                                        </span>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>
@@ -1751,21 +1771,6 @@ function RehearsalRoomContent() {
                                         {isWaitingForUser && (
                                             <div className="text-xs text-yellow-400 animate-pulse">
                                                 🎤 Listening for your line...
-                                            </div>
-                                        )}
-                                        {/* Audio Visualizer - shows when mic is active */}
-                                        {audioContext && audioSource && (
-                                            <div className="audio-visualizer-container">
-                                                <AudioVisualizer
-                                                    audioContext={audioContext}
-                                                    sourceNode={audioSource}
-                                                    isActive={isRecording}
-                                                    visualizationType="dots"  // "bars" or "dots"
-                                                    width={200}
-                                                    height={60}
-                                                    backgroundColor="rgba(0, 0, 0, 0.2)"
-                                                    className="my-audio-visualizer"
-                                                />
                                             </div>
                                         )}
                                     </div>
