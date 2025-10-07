@@ -203,6 +203,7 @@ export function useDeepgramSTT({
     const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const micCleanupRef = useRef<(() => void) | null>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
+    const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
     const connectionStatusRef = useRef<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
     const DEFAULT_TIMERS = useRef({ skipToNextMs: 4000, inactivityPauseMs: 15000 });
     const timersRef = useRef({
@@ -813,6 +814,7 @@ export function useDeepgramSTT({
             const audioCtx = audioCtxRef.current!;
             const micStream = micStreamRef.current!;
             const source = audioCtx.createMediaStreamSource(micStream);
+            audioSourceRef.current = source;
 
             const workletNode = new AudioWorkletNode(audioCtx, 'linear-pcm-processor', {
                 numberOfInputs: 1,
@@ -1003,5 +1005,15 @@ export function useDeepgramSTT({
         }
     };
 
-    return { startSTT, pauseSTT, initializeSTT, cleanupSTT, setCurrentLineText, connectionStatus: connectionStatusRef.current };
+    return {
+        startSTT,
+        pauseSTT,
+        initializeSTT,
+        cleanupSTT,
+        setCurrentLineText,
+        connectionStatus: connectionStatusRef.current,
+        audioContext: audioCtxRef.current,
+        audioSource: audioSourceRef.current,
+        isRecording: isActiveRef.current && sttControlRef.current.processTranscripts
+    };
 }

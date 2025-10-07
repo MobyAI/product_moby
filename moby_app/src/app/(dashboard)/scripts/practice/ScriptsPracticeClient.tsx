@@ -14,6 +14,7 @@ import EditableLine from "./editableLine";
 import EditableDirection from "./editableDirection";
 import { OptimizedLineRenderer } from "./lineRenderer";
 import LoadingTips from "./rotatingTips";
+import AudioVisualizer from "./visualizer";
 import { restoreSession, saveSession } from "./session";
 import { clear, set } from "idb-keyval";
 import { LoadingScreen } from "@/components/ui";
@@ -1243,7 +1244,7 @@ function RehearsalRoomContent() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [showToast]);
 
-    const { initializeSTT, startSTT, pauseSTT, cleanupSTT, setCurrentLineText } =
+    const { initializeSTT, startSTT, pauseSTT, cleanupSTT, setCurrentLineText, audioContext, audioSource, isRecording } =
         useSTT({
             provider: sttProvider,
             lineEndKeywords: current?.lineEndKeywords ?? [],
@@ -1488,15 +1489,35 @@ function RehearsalRoomContent() {
                                 {element.character ||
                                     (element.role === "user" ? "YOU" : "SCENE PARTNER")}
                             </h3>
-                            {isCurrent && isPlaying && (
-                                <span className="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full animate-pulse font-medium">
-                                    ACTIVE
-                                </span>
-                            )}
                             {isCompleted && (
                                 <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">
                                     ✓ COMPLETE
                                 </span>
+                            )}
+                            {isCurrent && isPlaying && (
+                                <>
+                                    {element.role === 'user' ? (
+                                        // User role: show visualizer or error
+                                        audioContext && audioSource ? (
+                                            <div className="audio-visualizer-container">
+                                                <AudioVisualizer
+                                                    audioContext={audioContext}
+                                                    sourceNode={audioSource}
+                                                    isActive={isRecording}
+                                                    size={25}
+                                                    backgroundColor="rgba(255, 255, 255, 0.7)"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <AlertCircle className="w-5 h-5" />
+                                        )
+                                    ) : (
+                                        // Non-user role: show ACTIVE span
+                                        <span className="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full animate-pulse font-medium">
+                                            ACTIVE
+                                        </span>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>
