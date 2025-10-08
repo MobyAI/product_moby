@@ -38,6 +38,9 @@ import {
     ChevronDown,
     RefreshCw,
     AlertCircle,
+    Bot,
+    Clapperboard,
+    UserRound,
 } from "lucide-react";
 import * as Sentry from "@sentry/nextjs";
 import { useQueryClient } from "@tanstack/react-query";
@@ -88,6 +91,7 @@ function RehearsalRoomContent() {
     const [sttProvider, setSttProvider] = useState<"google" | "deepgram">(
         "deepgram"
     );
+    const [isDarkMode, setIsDarkMode] = useState(false);
 
     // Mic Check
     const [showMicCheck, setShowMicCheck] = useState<boolean>(false);
@@ -234,6 +238,19 @@ function RehearsalRoomContent() {
                 if (restored) {
                     setCurrentIndex(restored.index ?? 0);
                 }
+
+                // 5) Set theme
+                const savedTheme = localStorage.getItem('rehearsal-theme');
+                if (savedTheme !== null) {
+                    // User global preference
+                    setIsDarkMode(savedTheme === 'dark');
+                } else if (restored?.isDarkMode !== undefined) {
+                    // No global preference, use session value if available
+                    setIsDarkMode(restored.isDarkMode);
+                } else {
+                    // No preference anywhere, default to light
+                    setIsDarkMode(false);
+                }
             } finally {
                 hydrationInProgress.current = false;
                 setHydrating(false);
@@ -309,11 +326,28 @@ function RehearsalRoomContent() {
         if (!scriptID) return;
 
         const timeout = setTimeout(() => {
-            saveSession(scriptID, { index: currentIndex });
+            saveSession(scriptID, {
+                index: currentIndex,
+                isDarkMode: isDarkMode
+            });
         }, 1000);
 
         return () => clearTimeout(timeout);
-    }, [currentIndex, scriptID]);
+    }, [currentIndex, scriptID, isDarkMode]);
+
+    // Toggle light and dark mode
+    const toggleTheme = () => {
+        setIsDarkMode(prev => {
+            const newTheme = !prev;
+            localStorage.setItem('rehearsal-theme', newTheme ? 'dark' : 'light');
+            return newTheme;
+        });
+    };
+
+    const getThemeClass = (lightClass: string, darkClass: string) => {
+        console.log('is dark mode? ', isDarkMode);
+        return isDarkMode ? darkClass : lightClass;
+    };
 
     const retryLoadScript = async () => {
         if (!userID || !scriptID || !script) return;
@@ -1484,8 +1518,7 @@ function RehearsalRoomContent() {
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
                             <h3
-                                className={`font-bold uppercase tracking-wide text-sm ${element.role === "user" ? "text-blue-700" : "text-purple-700"
-                                    }`}
+                                className={`font-bold uppercase tracking-wide text-sm ${element.role === "user" && "text-blue-700"}`}
                             >
                                 {element.character ||
                                     (element.role === "user" ? "YOU" : "SCENE PARTNER")}
@@ -1634,7 +1667,18 @@ function RehearsalRoomContent() {
 
     // Main render
     return (
-        <ControlPanel>
+        <ControlPanel
+            script={script}
+            userID={userID}
+            scriptID={scriptID}
+            skipMs={skipMs}
+            onSkipMsChange={setSkipMs}
+            onRolesUpdated={handleRoleChange}
+            onGoBack={goBackHome}
+            isDarkMode={isDarkMode}
+            onToggleTheme={toggleTheme}
+            isBusy={isBusy}
+        >
             {/* Mic Check Modal */}
             <MicCheckModal
                 isOpen={showMicCheck}
@@ -1652,75 +1696,51 @@ function RehearsalRoomContent() {
                     mode="dark"
                 />
             ) : (
-                <div className="h-[100%] flex relative bg-card-dark p-2">
+                <div className={getThemeClass(
+                    'h-[100%] flex relative bg-primary-light p-2',
+                    'h-[100%] flex relative bg-primary-dark p-2'
+                )}>
 
-                    {/* Left Control Panel - Dark Theme */}
-                    <div className="w-[20%] mr-6 text-white flex flex-col">
-                        <div className="flex-1 overflow-y-auto hide-scrollbar">
+                    {/* Left Control Panel - Floating/Absolute */}
+                    <div className="absolute top-4 left-4 z-50">
+                        {/* Only show one at a time */}
+                        {(isBusy || isUpdatingLine) ? (
+                            <div className="bg-primary-dark/80 rounded-[10px] p-4 w-full max-w-[400px]">
+                                <div className="absolute inset-0 bg-gradient-radial from-white/5 via-transparent to-transparent pointer-events-none" />
 
-                            {/* Header */}
-                            <div className="mb-6">
-                                <h1 className="text-header-2 text-white font-bold mb-2">Practice Room</h1>
-                                <p className="text-gray-400 text-sm">Follow along and practice your lines</p>
-                            </div>
-
-                            {/* Progress Section */}
-                            <div className="mb-6">
-                                <div className="text-sm text-gray-400 mb-2">
-                                    {!isBusy ? "Progress" : isUpdatingLine ? "Updating Line" : "Loading Practice Room"}
+                                <div className="text-sm text-gray-200 mb-2">
+                                    {isUpdatingLine ? "Updating Line" : "Setting Up Your Practice Room"}
                                 </div>
 
-                                {!isBusy && !isUpdatingLine ? (
-                                    <div className="bg-gray-800 rounded-lg p-4">
-                                        <div className="text-xl font-bold mb-2">
-                                            {currentIndex + 1} / {script?.length || 0}
-                                        </div>
-                                        <div className="w-full bg-gray-700 rounded-full h-3 mb-2">
-                                            <div
-                                                className="bg-blue-500 h-3 rounded-full transition-all duration-500"
-                                                style={{
-                                                    width: `${((currentIndex + 1) / (script?.length || 1)) * 100}%`,
-                                                }}
-                                            />
-                                        </div>
-                                        <div className="text-xs text-gray-400">
-                                            {Math.round(((currentIndex + 1) / (script?.length || 1)) * 100)}% complete
-                                        </div>
-                                    </div>
-                                ) : isUpdatingLine ? (
-                                    <div className="bg-gray-800 rounded-lg p-4">
+                                {isUpdatingLine ? (
+                                    <>
                                         {/* Line Update Loading State */}
                                         <div className="flex items-center justify-between mb-3">
-                                            <div className="text-lg font-bold">
+                                            <div className="text-lg font-bold text-white">
                                                 {loadStage || 'Updating line...'}
                                             </div>
                                         </div>
 
                                         {/* Progress Bar */}
                                         <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
-                                            <div className="w-full h-3 bg-blue-600 rounded-full animate-pulse" />
+                                            <div className="w-full h-3 bg-blue-400 rounded-full animate-pulse" />
                                         </div>
-
-                                        <div className="text-xs text-gray-400 mt-2">
-                                            Regenerating audio for the updated line...
-                                        </div>
-                                    </div>
+                                    </>
                                 ) : (
-                                    <div className="bg-gray-800 rounded-lg p-4">
+                                    <>
                                         {/* Status Header */}
                                         <div className="flex items-center justify-between mb-3">
-                                            <div className="text-lg font-bold">
+                                            <div className="text-lg font-bold text-white">
                                                 {loadStage || 'Initializing...'}
                                             </div>
                                         </div>
 
                                         {/* Progress Bar */}
-                                        <div className="space-y-2 mb-3">
-                                            <div className="flex justify-between text-xs text-gray-400">
-                                                <span>Preparing resources</span>
+                                        <div className="space-y-2 mb-4">
+                                            <div className="flex justify-end text-xs text-gray-300">
                                                 <span>{Math.round(loadProgress)}%</span>
                                             </div>
-                                            <div className="w-full bg-gray-700 rounded-full h-3 relative overflow-hidden">
+                                            <div className="w-full bg-gray-100 rounded-full h-3 relative overflow-hidden">
                                                 <div
                                                     className="bg-gradient-to-r from-blue-600 to-blue-400 h-3 rounded-full transition-all duration-300 ease-out"
                                                     style={{ width: `${loadProgress}%` }}
@@ -1733,7 +1753,7 @@ function RehearsalRoomContent() {
                                         </div>
 
                                         {/* Rotating Tips */}
-                                        <LoadingTips isLoading={hydrating} />
+                                        <LoadingTips isLoading={isBusy} />
 
                                         {/* Ready Indicator */}
                                         {loadProgress === 100 && !isBusy && (
@@ -1742,153 +1762,54 @@ function RehearsalRoomContent() {
                                                 Scene ready to rehearse!
                                             </div>
                                         )}
-                                    </div>
+                                    </>
                                 )}
                             </div>
-
-                            {/* Current Status */}
-                            {current && (
-                                <div className="mb-6">
-                                    <div className="text-sm text-gray-400 mb-2">Current Line</div>
-                                    <div className="bg-gray-800 rounded-lg p-4">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span
-                                                className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${current.type === "line"
-                                                    ? current.role === "user"
-                                                        ? "bg-blue-600 text-white"
-                                                        : "bg-purple-600 text-white"
-                                                    : current.type === "scene"
-                                                        ? "bg-yellow-600 text-white"
-                                                        : "bg-gray-600 text-white"
-                                                    }`}
-                                            >
-                                                {current.type === "line"
-                                                    ? current.role === "user"
-                                                        ? "YOU"
-                                                        : "SCENE PARTNER"
-                                                    : current.type.toUpperCase()}
-                                            </span>
-                                        </div>
-                                        {isWaitingForUser && (
-                                            <div className="text-xs text-yellow-400 animate-pulse">
-                                                🎤 Listening for your line...
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Advanced Settings Section - Collapsible */}
-                            <div
-                                className={`
-                					overflow-hidden transition-all duration-300 ease-out
-                					${showAdvanced
-                                        ? 'max-h-[600px] opacity-100 mb-0'
-                                        : 'max-h-0 opacity-0 mb-0'
-                                    }`}
-                            >
-                                <div className="text-sm text-gray-400 mb-2">Advanced Settings</div>
-
-                                {/* Role Selector */}
-                                {script && (
-                                    <div className="mb-2">
-                                        <div className="bg-gray-800 rounded-lg p-4">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <RoleSelector
-                                                    script={script}
-                                                    userID={userID!}
-                                                    scriptID={scriptID!}
-                                                    disabled={isBusy}
-                                                    onRolesUpdated={handleRoleChange}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Silence Skip Selector */}
-                                <div className="mb-4">
-                                    <div className="bg-gray-800 rounded-lg p-4">
-                                        <label htmlFor="skipMs" className="sr-only">Skip to next line delay</label>
-                                        <div className="text-sm text-gray-200 flex items-center flex-wrap gap-2">
-                                            <span className="font-semibold">Silence Detection:</span>
-                                            <span className="text-gray-400 font-medium">
-                                                Auto advance to next line after
-                                            </span>
-                                            <select
-                                                id="skipMs"
-                                                value={skipMs}
-                                                onChange={(e) => setSkipMs(Number(e.target.value))}
-                                                className="appearance-none bg-gray-900 border border-gray-700 rounded-md px-2 py-1 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                title="Silence before auto-advancing"
-                                            >
-                                                <option value={2000}>2s</option>
-                                                <option value={4000}>4s</option>
-                                                <option value={6000}>6s</option>
-                                                <option value={8000}>8s</option>
-                                                <option value={10000}>10s</option>
-                                            </select>
-                                            <span className="text-gray-400 font-medium">of silence.</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Error Handling */}
-                            {storageError && (
-                                <div className="mb-6 p-4 bg-red-900 border border-red-700 rounded-lg">
-                                    <p className="text-red-200 text-sm mb-3">
-                                        🚫 Storage limit reached. Clear data to continue.
-                                    </p>
-                                    <button
-                                        onClick={async () => {
-                                            await clear();
-                                            setStorageError(false);
-                                            await retryLoadScript();
-                                        }}
-                                        className="w-full px-3 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+                        ) : (
+                            /* Current Status - Only shown when not busy/updating */
+                            current && (
+                                <div className="flex items-center justify-center">
+                                    <span
+                                        className={`inline-flex items-center justify-center gap-2 px-6 py-3 rounded-[10px] text-md font-semibold ${current.type === "line"
+                                            ? current.role === "user"
+                                                ? "bg-accent-blue text-white"
+                                                : "bg-gray-500 text-white"
+                                            : "bg-gray-500 text-white"
+                                            }`}
                                     >
-                                        Clear & Retry
-                                    </button>
-                                </div>
-                            )}
+                                        {/* Icon */}
+                                        {current.type === "line" ? (
+                                            current.role === "user" ? (
+                                                <UserRound className="w-6 h-6" />
+                                            ) : (
+                                                <Bot className="w-6 h-6" />
+                                            )
+                                        ) : (
+                                            <Clapperboard className="w-5 h-5" />
+                                        )}
 
-                            {/* Additional Buttons */}
-                            <div className="flex flex-col gap-2 ml-2">
-                                <Button
-                                    onClick={() => setShowAdvanced(!showAdvanced)}
-                                    size="sm"
-                                    variant="secondary"
-                                    className="w-[90%] mx-auto flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed"
-                                    disabled={hydrating}
-                                >
-                                    <ChevronDown className={`w-4 h-4 chevron ${showAdvanced ? 'rotated' : ''}`} />
-                                    <span className="flex items-center gap-2">
-                                        {showAdvanced ? 'Advanced Settings' : 'Advanced Settings'}
+                                        {/* Text */}
+                                        {current.type === "line"
+                                            ? current.role === "user"
+                                                ? "YOUR LINE"
+                                                : "SCENE PARTNER LINE"
+                                            : current.type.toUpperCase()}
                                     </span>
-                                </Button>
-
-                                <Button
-                                    icon={Undo2}
-                                    onClick={goBackHome}
-                                    size="sm"
-                                    variant="primary"
-                                    className="w-[90%] mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
-                                    disabled={hydrating}
-                                >
-                                    Go Back
-                                </Button>
-                            </div>
-                        </div>
+                                </div>
+                            )
+                        )}
                     </div>
 
-                    {/* Right Content Area - Light Theme */}
-                    <div className="relative flex-1 bg-card-light flex flex-col overflow-hidden rounded-[25px] mr-4">
+                    {/* Right Content Area */}
+                    <div className="relative flex-1 flex flex-col overflow-hidden rounded-[25px] mr-4">
                         <div className="max-w-4xl mx-auto h-full flex flex-col">
 
                             {/* Script Header */}
                             <div className="text-center py-8 px-8 border-b border-gray-200 shrink-0">
-                                <h1 className="text-header-2 font-bold text-gray-900">
+                                <h1 className={getThemeClass(
+                                    'text-header-2 font-bold text-gray-900',
+                                    'text-header-2 font-bold text-gray-100'
+                                )}>
                                     {scriptName ? scriptName : "Your Script"}
                                 </h1>
                                 {/* <p className="text-gray-600">Follow along and practice your lines</p> */}
@@ -1931,68 +1852,112 @@ function RehearsalRoomContent() {
 
                         {/* Floating Control Panel */}
                         <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-[200]">
-                            <div className="bg-[rgba(44,47,61,0.85)] rounded-full px-9 py-3 flex items-center gap-9 shadow-xl">
-
-                                {/* Previous Button */}
-                                <button
-                                    onClick={handlePrev}
-                                    disabled={isBusy}
-                                    className="p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                                    aria-label="Previous"
-                                    title="Previous"
-                                >
-                                    <SkipBack className="h-6 w-6" />
-                                </button>
-
-                                {/* Play/Pause Button */}
-                                {isPlaying ? (
+                            <div className={getThemeClass(
+                                'bg-primary-dark/80 rounded-[10px] px-6 py-3 flex flex-col gap-3 shadow-xl w-[600px]',
+                                'bg-primary-light rounded-[10px] px-6 py-3 flex flex-col gap-3 shadow-xl w-[600px]'
+                            )}>
+                                {/* Control Buttons Container - Fixed height and centering */}
+                                <div className="flex items-center justify-center gap-15 h-[56px]">
+                                    {/* Previous Button */}
                                     <button
-                                        onClick={handlePause}
+                                        onClick={handlePrev}
                                         disabled={isBusy}
-                                        className="p-3 rounded-full bg-white hover:bg-white/20 hover:text-white transition-all duration-200 text-black shadow-lg scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        aria-label="Pause"
-                                        title="Pause"
+                                        className={getThemeClass(
+                                            'p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0',
+                                            'p-3 rounded-full hover:bg-gray-200 transition-all duration-200 text-black disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0'
+                                        )}
+                                        aria-label="Previous"
+                                        title="Previous"
                                     >
-                                        <Pause className="h-6 w-6" />
+                                        <SkipBack className="h-6 w-6" />
                                     </button>
-                                ) : (
-                                    <button
-                                        onClick={handlePlay}
-                                        disabled={isBusy}
-                                        className="p-3 rounded-full bg-white hover:bg-white/20 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-black shadow-lg scale-110"
-                                        aria-label="Play"
-                                        title={isBusy ? "Preparing..." : "Start Rehearsal"}
-                                    >
-                                        <Play className="h-6 w-6" />
-                                    </button>
-                                )}
 
-                                {/* Next Button */}
-                                <button
-                                    onClick={handleNext}
-                                    disabled={isBusy}
-                                    className="p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                                    aria-label="Next"
-                                    title="Next"
-                                >
-                                    <SkipForward className="h-6 w-6" />
-                                </button>
-
-                                {/* Restart Button (only show if not at beginning) */}
-                                {currentIndex !== 0 && (
-                                    <>
-                                        <div className="w-px h-8 bg-white/20 mx-1" /> {/* Divider */}
+                                    {/* Play/Pause Button */}
+                                    {isPlaying ? (
                                         <button
-                                            onClick={handleRestart}
+                                            onClick={handlePause}
                                             disabled={isBusy}
-                                            className="p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                                            aria-label="Restart from Beginning"
-                                            title="Restart from Beginning"
+                                            className={getThemeClass(
+                                                'p-3 rounded-full hover:bg-white/20 hover:text-white transition-all duration-200 text-black shadow-lg scale-110 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0',
+                                                'p-3 rounded-full hover:bg-gray-300 transition-all duration-200 text-black shadow-lg scale-110 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0'
+                                            )}
+                                            aria-label="Pause"
+                                            title="Pause"
                                         >
-                                            <RotateCcw className="h-6 w-6" />
+                                            <Pause className="h-6 w-6" />
                                         </button>
-                                    </>
-                                )}
+                                    ) : (
+                                        <button
+                                            onClick={handlePlay}
+                                            disabled={isBusy}
+                                            className={getThemeClass(
+                                                'p-3 rounded-full hover:bg-white/20 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-white scale-110 flex-shrink-0',
+                                                'p-3 rounded-full hover:bg-gray-300 transition-all duration-200 text-black scale-110 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0'
+                                            )}
+                                            aria-label="Play"
+                                            title={isBusy ? "Preparing..." : "Start Rehearsal"}
+                                        >
+                                            <Play className="h-6 w-6" />
+                                        </button>
+                                    )}
+
+                                    {/* Next Button */}
+                                    <button
+                                        onClick={handleNext}
+                                        disabled={isBusy}
+                                        className={getThemeClass(
+                                            'p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0',
+                                            'p-3 rounded-full hover:bg-gray-200 transition-all duration-200 text-black disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0'
+                                        )}
+                                        aria-label="Next"
+                                        title="Next"
+                                    >
+                                        <SkipForward className="h-6 w-6" />
+                                    </button>
+
+                                    {/* Restart Button (only show if not at beginning) */}
+                                    {currentIndex !== 0 && (
+                                        <>
+                                            {/* Divider */}
+                                            <div
+                                                className={getThemeClass(
+                                                    'w-px h-8 bg-white/20 mx-1 flex-shrink-0',
+                                                    'w-px h-8 bg-gray-300 mx-1 flex-shrink-0'
+                                                )}
+                                            />
+                                            <button
+                                                onClick={handleRestart}
+                                                disabled={isBusy}
+                                                className={getThemeClass(
+                                                    'p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0',
+                                                    'p-3 rounded-full hover:bg-gray-200 transition-all duration-200 text-black disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0'
+                                                )}
+                                                aria-label="Restart from Beginning"
+                                                title="Restart from Beginning"
+                                            >
+                                                <RotateCcw className="h-6 w-6" />
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+
+                                {/* Progress Bar - Segmented with max segments */}
+                                <div className="w-full flex gap-0.5 h-2 overflow-hidden">
+                                    {script?.slice(0, 50).map((_, index) => (
+                                        <div
+                                            key={index}
+                                            className={`flex-1 transition-all duration-300 min-w-[2px] ${index < currentIndex
+                                                    ? 'bg-green-500'  // Completed segments
+                                                    : index === currentIndex
+                                                        ? 'bg-green-500'  // Current segment
+                                                        : getThemeClass(
+                                                            'bg-white',  // Future segments - light mode
+                                                            'bg-gray-300'      // Future segments - dark mode
+                                                        )
+                                                }`}
+                                        />
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>

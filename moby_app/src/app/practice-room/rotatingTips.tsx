@@ -12,42 +12,88 @@ const LoadingTips: React.FC<LoadingTipsProps> = ({ isLoading = true }) => {
     const progressIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
     const tips: Array<{
-        text: string;
+        content: React.ReactNode;
         duration: number;
         icon: string;
     }> = [
             {
-                text: "This may take up to a few minutes. We appreciate your patience!",
+                content: (
+                    <>
+                        This may take up to a few minutes.
+                        <br />
+                        <span className="text-gray-300">We appreciate your patience!</span>
+                    </>
+                ),
                 duration: 5000,
                 icon: "⏳"
             },
             {
-                text: "While you wait, here are some things you can do to prepare.",
+                content: (
+                    <>
+                        While you wait, here are some things you can do to prepare!
+                    </>
+                ),
                 duration: 5000,
                 icon: "💡"
             },
             {
-                text: "Did you know, you can add audio tags to change how your lines are read? Simply click on the line you want to edit, and insert the tag anywhere within the line by pressing the open bracket ( [ ) key. Press save and the audio will regenerate!",
+                content: (
+                    <>
+                        <span className="font-semibold">Did you know?</span>
+                        <br />
+                        You can add <span className="text-yellow-400 font-semibold">audio tags</span> to change how your lines are read!
+                        <br />
+                        <span className="text-gray-200">
+                            {"Click on a line to edit → Press [ to auto-insert tag anywhere → Save"}
+                        </span>
+                    </>
+                ),
                 duration: 10000,
                 icon: "🎭"
             },
             {
-                text: "Audio tags can be simple, one word descriptors like: excited, curious, sarcastic. Or even things like: laughs, sighs, giggles, gasps. This gives you control over how each line is read by your scene partner.",
+                content: (
+                    <>
+                        Audio tags can be simple descriptors:
+                        <br />
+                        <span className="text-yellow-400">excited</span>, <span className="text-yellow-400">curious</span>, <span className="text-yellow-400">sarcastic</span>
+                        <br />
+                        Or actions: <span className="text-yellow-400">laughs</span>, <span className="text-yellow-400">sighs</span>, <span className="text-yellow-400">gasps</span>
+                    </>
+                ),
                 duration: 10000,
                 icon: "🎯"
             },
             {
-                text: "You can also add delays after each scene header, direction, or line by clicking on the scene element and choosing a value (in seconds). This gives you control over the speed of the dialogue and overall flow of the scene.",
+                content: (
+                    <>
+                        <span className="font-semibold">Control the pace!</span>
+                        <br />
+                        Add <span className="text-yellow-400 font-semibold">delays</span> after any line or scene direction.
+                        <br />
+                        <span className="text-gray-200">Click element → Choose delay in seconds</span>
+                    </>
+                ),
                 duration: 10000,
                 icon: "⏱️"
             },
             {
-                text: "There are also advanced settings that you can use to further customize the flow of your rehearsal and change the character that you're reading for. You can even read for multiple characters if you want!",
+                content: (
+                    <>
+                        <span className="text-yellow-400 font-semibold">Pro tip:</span> Check the advanced settings in the control panel to the left.
+                        <br />
+                        You can further customize your practice room and even <span className="underline">read multiple characters</span> if you want!
+                    </>
+                ),
                 duration: 10000,
                 icon: "⚙️"
             },
             {
-                text: "Hang tight, we're almost done setting up your scene for you!",
+                content: (
+                    <span>
+                        Hang tight, we're almost done!
+                    </span>
+                ),
                 duration: Infinity,
                 icon: "🚀"
             }
@@ -113,7 +159,7 @@ const LoadingTips: React.FC<LoadingTipsProps> = ({ isLoading = true }) => {
     const strokeDashoffset = circumference - (progress / 100) * circumference;
 
     return (
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-4 border border-gray-700/50 relative overflow-hidden">
+        <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4 relative overflow-hidden">
             {/* Circular Progress Indicator - Top Right */}
             <div className="absolute top-3 right-3 z-10">
                 <svg width="20" height="20" className="transform -rotate-90">
@@ -151,8 +197,8 @@ const LoadingTips: React.FC<LoadingTipsProps> = ({ isLoading = true }) => {
                             : 'translate-x-0 opacity-100'
                             }`}
                     >
-                        <p className="text-sm text-gray-300 leading-relaxed">
-                            {currentTip.text}
+                        <p className="text-sm text-white leading-relaxed">
+                            {currentTip.content}
                         </p>
                     </div>
                 </div>

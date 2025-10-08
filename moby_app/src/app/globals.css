@@ -1,6 +1,70 @@
 @import "tailwindcss";
 
 @font-face {
+  font-family: "Crimson Pro";
+  src: url("/fonts/CrimsonPro-ExtraLight.ttf") format("truetype");
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Crimson Pro";
+  src: url("/fonts/CrimsonPro-Light.ttf") format("truetype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Crimson Pro";
+  src: url("/fonts/CrimsonPro-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Crimson Pro";
+  src: url("/fonts/CrimsonPro-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Crimson Pro";
+  src: url("/fonts/CrimsonPro-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Crimson Pro";
+  src: url("/fonts/CrimsonPro-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Crimson Pro";
+  src: url("/fonts/CrimsonPro-ExtraBold.ttf") format("truetype");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Crimson Pro";
+  src: url("/fonts/CrimsonPro-Black.ttf") format("truetype");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "Poppins";
   src: url("/fonts/Poppins-ExtraLight.ttf") format("truetype");
   font-weight: 200;
@@ -57,77 +121,27 @@
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Base colors */
+  --background: #fdfdfd;
+  --foreground: #2e2e2e;
 
-  /* ===== CORE BRAND COLORS ===== */
+  /* Main colors */
+  --primary-light: #fdfdfd;
+  --primary-light-alt: #F4F5FC;
+  --primary-dark: #2e2e2e;
+  --primary-dark-alt: #363c54;
 
-  --color-primary-light: rgba(178, 181, 224, 1);
+  /* Accent colors */
+  --accent-purple: #9369ff;
+  --accent-pink: #ef86c1;
+  --accent-orange: #ffab39;
+  --accent-blue: #5170ff;
 
-  --color-primary-dark: rgba(197, 173, 197, 1);
-
-  /* ===== BUTTON COLORS ===== */
-  --color-btn-primary: rgba(75, 63, 114, 1);
-
-  --color-btn-primary-hover: rgb(40, 33, 63);
-
-  --color-btn-secondary: rgba(45, 100, 130, 1);
-
-  --color-btn-secondary-hover: rgba(35, 80, 110, 1);
-
-  --color-btn-accent: rgba(242, 174, 104, 1);
-
-  --color-btn-accent-hover: rgba(220, 145, 70, 1);
-
-  --color-btn-danger: rgba(239, 68, 68, 1);
-
-  --color-btn-danger-hover: rgba(220, 38, 38, 1);
-
-  --color-btn-success: rgba(34, 197, 94, 1);
-
-  --color-btn-success-hover: rgba(22, 163, 74, 1);
-
-  --color-btn-ghost: rgba(255, 255, 255, 0.1);
-
-  --color-btn-ghost-hover: rgba(255, 255, 255, 0.2);
-
-
-  /* ===== CARDS ===== */
-  --color-card-light: rgba(246, 247, 252, 1);
-
-  --color-card-dark: rgba(44, 47, 61, 1);
-
-  /* ===== MODALS ===== */
-  --color-modal-light: rgba(230, 230, 240, 1);
-
-  --color-modal-dark: rgba(43, 45, 66, 1);
-
-  /* ===== MODAL BACKDROP ===== */
-  --color-modal-backdrop: rgba(0, 0, 0, 0.5);
-
-
-  /* ===== TEXT COLORS ===== */
-  --color-text-primary: rgba(46, 46, 46, 1);
-
-  --color-text-secondary: rgba(115, 115, 115, 1);
-
-  --color-text-muted: rgba(163, 163, 163, 1);
-
-  --color-text-accent: rgba(242, 204, 143, 1);
-
-  --color-text-link: rgba(178, 181, 224, 1);
-
-  --color-text-link-hover: rgba(158, 162, 214, 1);
-
-  --color-text-danger: rgba(239, 68, 68, 1);
-
-  --color-text-success: rgba(34, 197, 94, 1);
-
-  --color-text-warning: rgba(245, 158, 11, 1);
-
-  --color-text-inverse: rgba(255, 255, 255, 1);
-
-  --color-text-on-primary: rgba(255, 255, 255, 1);
+  /* Fonts */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-poppins: "Poppins", sans-serif;
+  --font-crimson: "Crimson Pro", serif;
 }
 
 @theme inline {
@@ -136,6 +150,7 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-poppins: "Poppins", sans-serif;
+  --font-crimson: "Crimson Pro", serif;
 }
 
 /* @media (prefers-color-scheme: dark) {
@@ -150,7 +165,7 @@ html {
 }
 
 body {
-  background: linear-gradient(to top right, #B2B5E0, #C5ADC5);
+  background: var(--primary-light-alt);
   background-attachment: fixed;
   height: 100vh;
   overflow: hidden;
@@ -161,231 +176,173 @@ body {
 /* ===== UTILITY CLASSES ===== */
 @layer utilities {
 
-  /* Button Backgrounds */
-  .bg-btn-primary {
-    background-color: var(--color-btn-primary);
+  /* Background Colors */
+  .bg-background {
+    background-color: var(--background);
   }
 
-  .bg-btn-primary-hover {
-    background-color: var(--color-btn-primary-hover);
+  .bg-foreground {
+    background-color: var(--foreground);
   }
 
-  .bg-btn-secondary {
-    background-color: var(--color-btn-secondary);
-  }
-
-  .bg-btn-secondary-hover {
-    background-color: var(--color-btn-secondary-hover);
-  }
-
-  .bg-btn-accent {
-    background-color: var(--color-btn-accent);
-  }
-
-  .bg-btn-accent-hover {
-    background-color: var(--color-btn-accent-hover);
-  }
-
-  .bg-btn-danger {
-    background-color: var(--color-btn-danger);
-  }
-
-  .bg-btn-danger-hover {
-    background-color: var(--color-btn-danger-hover);
-  }
-
-  .bg-btn-success {
-    background-color: var(--color-btn-success);
-  }
-
-  .bg-btn-success-hover {
-    background-color: var(--color-btn-success-hover);
-  }
-
-  .bg-btn-ghost {
-    background-color: var(--color-btn-ghost);
-  }
-
-  .bg-btn-ghost-hover {
-    background-color: var(--color-btn-ghost-hover);
-  }
-
-  /* Card Backgrounds */
-  .bg-card-light {
-    background-color: var(--color-card-light);
-  }
-
-  .bg-card-dark {
-    background-color: var(--color-card-dark);
-  }
-
-  /* Modal Backgrounds */
-  .bg-modal-light {
-    background-color: var(--color-modal-light);
-  }
-
-  .bg-modal-dark {
-    background-color: var(--color-modal-dark);
-  }
-
-  .bg-modal-backdrop {
-    background-color: var(--color-modal-backdrop);
-  }
-
-  /* Primary Colors */
   .bg-primary-light {
-    background-color: var(--color-primary-light);
+    background-color: var(--primary-light);
+  }
+
+  .bg-primary-light-alt {
+    background-color: var(--primary-light-alt);
   }
 
   .bg-primary-dark {
-    background-color: var(--color-primary-dark);
+    background-color: var(--primary-dark);
   }
 
-  .text-primary-light {
-    color: var(--color-primary-light);
+  .bg-primary-dark-alt {
+    background-color: var(--primary-dark-alt);
   }
 
-  .text-primary-dark {
-    color: var(--color-primary-dark);
+  /* Accent Backgrounds */
+  .bg-accent-purple {
+    background-color: var(--accent-purple);
   }
 
-  .border-primary-light {
-    border-color: var(--color-primary-light);
+  .bg-accent-pink {
+    background-color: var(--accent-pink);
   }
 
-  .border-primary-dark {
-    border-color: var(--color-primary-dark);
+  .bg-accent-orange {
+    background-color: var(--accent-orange);
+  }
+
+  .bg-accent-blue {
+    background-color: var(--accent-blue);
   }
 
   /* Text Colors */
-  .text-primary {
-    color: var(--color-text-primary);
+  .text-background {
+    color: var(--background);
   }
 
-  .text-secondary {
-    color: var(--color-text-secondary);
+  .text-foreground {
+    color: var(--foreground);
   }
 
-  .text-muted {
-    color: var(--color-text-muted);
+  .text-primary-light {
+    color: var(--primary-light);
   }
 
-  .text-accent {
-    color: var(--color-text-accent);
+  .text-primary-light-alt {
+    color: var(--primary-light-alt);
   }
 
-  .text-link {
-    color: var(--color-text-link);
+  .text-primary-dark {
+    color: var(--primary-dark);
   }
 
-  .text-link-hover {
-    color: var(--color-text-link-hover);
+  .text-primary-dark-alt {
+    color: var(--primary-dark-alt);
   }
 
-  .text-danger {
-    color: var(--color-text-danger);
+  /* Accent Text */
+  .text-accent-purple {
+    color: var(--accent-purple);
   }
 
-  .text-success {
-    color: var(--color-text-success);
+  .text-accent-pink {
+    color: var(--accent-pink);
   }
 
-  .text-warning {
-    color: var(--color-text-warning);
+  .text-accent-orange {
+    color: var(--accent-orange);
   }
 
-  .text-inverse {
-    color: var(--color-text-inverse);
+  .text-accent-blue {
+    color: var(--accent-blue);
   }
 
-  .text-on-primary {
-    color: var(--color-text-on-primary);
+  /* Border Colors */
+  .border-primary-light {
+    border-color: var(--primary-light);
   }
 
-  /* Hover States - using RGBA for easy opacity changes */
-  .hover\:bg-btn-primary:hover {
-    background-color: var(--color-btn-primary-hover);
+  .border-primary-light-alt {
+    border-color: var(--primary-light-alt);
   }
 
-  .hover\:bg-btn-secondary:hover {
-    background-color: var(--color-btn-secondary-hover);
+  .border-primary-dark {
+    border-color: var(--primary-dark);
   }
 
-  .hover\:bg-btn-accent:hover {
-    background-color: var(--color-btn-accent-hover);
+  .border-primary-dark-alt {
+    border-color: var(--primary-dark-alt);
   }
 
-  .hover\:bg-btn-danger:hover {
-    background-color: var(--color-btn-danger-hover);
+  .border-accent-purple {
+    border-color: var(--accent-purple);
   }
 
-  .hover\:bg-btn-success:hover {
-    background-color: var(--color-btn-success-hover);
+  .border-accent-pink {
+    border-color: var(--accent-pink);
   }
 
-  .hover\:bg-btn-ghost:hover {
-    background-color: var(--color-btn-ghost-hover);
+  .border-accent-orange {
+    border-color: var(--accent-orange);
   }
 
-  .hover\:text-link:hover {
-    color: var(--color-text-link-hover);
+  .border-accent-blue {
+    border-color: var(--accent-blue);
   }
 
-  /* Opacity Variants */
-  .bg-primary-light\/10 {
-    background-color: rgba(178, 181, 224, 0.1);
-  }
-
-  .bg-primary-light\/20 {
-    background-color: rgba(178, 181, 224, 0.2);
-  }
-
-  .bg-primary-light\/50 {
-    background-color: rgba(178, 181, 224, 0.5);
-  }
-
+  /* Opacity Variants (example for primary-dark) */
   .bg-primary-dark\/10 {
-    background-color: rgba(197, 173, 197, 0.1);
+    background-color: rgba(46, 46, 46, 0.1);
   }
 
   .bg-primary-dark\/20 {
-    background-color: rgba(197, 173, 197, 0.2);
+    background-color: rgba(46, 46, 46, 0.2);
   }
 
   .bg-primary-dark\/50 {
-    background-color: rgba(197, 173, 197, 0.5);
+    background-color: rgba(46, 46, 46, 0.5);
   }
 
-  /* Typography - keeping your existing styles */
+  .bg-primary-dark\/80 {
+    background-color: rgba(46, 46, 46, 0.8);
+  }
+
+  /* Typography - keeping your existing structure */
+  .text-logo {
+    font-size: 2rem;
+    line-height: 2.5rem;
+    font-weight: 600;
+    font-family: var(--font-crimson);
+  }
+
   .text-header-1 {
     font-size: 2.5rem;
     line-height: 3rem;
     font-weight: 700;
+    font-family: var(--font-poppins);
   }
 
   .text-header-2 {
     font-size: 2rem;
     line-height: 2.5rem;
     font-weight: 600;
+    font-family: var(--font-poppins);
   }
 
   .text-header-3 {
     font-size: 1.5rem;
     line-height: 2rem;
     font-weight: 600;
+    font-family: var(--font-poppins);
   }
 
   .text-header-4 {
     font-size: 1.25rem;
     line-height: 1.75rem;
     font-weight: 500;
-  }
-
-  /* Header Font */
-  .text-header-1,
-  .text-header-2,
-  .text-header-3,
-  .text-header-4 {
     font-family: var(--font-poppins);
   }
 
@@ -402,11 +359,6 @@ body {
   .text-body-small {
     font-size: 0.875rem;
     line-height: 1.25rem;
-  }
-
-  .text-caption {
-    font-size: 0.75rem;
-    line-height: 1rem;
   }
 }
 
