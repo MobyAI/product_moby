@@ -25,6 +25,7 @@ interface ControlPanelProps {
     isBusy?: boolean;
     isDarkMode?: boolean;
     onToggleTheme?: () => void;
+    onToggleFullscreen?: () => void;
 }
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -39,6 +40,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     isBusy = false,
     isDarkMode = false,
     onToggleTheme,
+    onToggleFullscreen,
 }) => {
     const [activePanel, setActivePanel] = useState<PanelType>(null);
 
@@ -47,9 +49,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     };
 
     return (
-        <div className="flex h-screen bg-[#f5f7fb]">
-            {/* Left Navigation Bar */}
-            <div className="w-16 bg-[#f5f7fb] border-r border-gray-200 flex flex-col items-center py-4 space-y-6">
+        <div className="flex h-screen bg-[#f5f7fb] relative">
+            {/* Left Navigation Bar - Always visible */}
+            <div className="w-16 bg-[#f5f7fb] border-r border-gray-200 flex flex-col items-center py-4 space-y-6 z-20">
                 <div className="text-2xl font-bold text-[#363c54] cursor-default">tr</div>
 
                 <button
@@ -87,7 +89,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 </button>
 
                 <button
-                    onClick={() => handleNavClick('fullscreen')}
+                    onClick={onToggleFullscreen}
                     className="p-2 rounded-lg hover:bg-gray-200 transition-colors group relative"
                 >
                     <Expand className="w-5 h-5 text-gray-600 group-hover:text-gray-800" />
@@ -107,68 +109,77 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 </button>
             </div>
 
-            {/* Settings Panel (slides out when a button is clicked) */}
-            {activePanel && (
-                <div className="w-56 bg-[#f5f7fb] border-r border-gray-200 p-4 animate-in slide-in-from-left duration-200">
-                    <div className="flex items-center justify-between border-b border-gray-200 pb-4 mb-4">
-                        <h3 className="text-sm font-medium text-gray-700">
-                            {activePanel === 'auto' && 'Auto Advance'}
-                            {activePanel === 'roles' && 'Role Selector'}
-                            {activePanel === 'mode' && 'Toggle Mode'}
-                            {activePanel === 'fullscreen' && 'Fullscreen Mode'}
-                        </h3>
-                        <button
-                            onClick={() => setActivePanel(null)}
-                            className="p-1 hover:bg-gray-100 rounded"
-                        >
-                            <X className="w-4 h-4 text-gray-500" />
-                        </button>
-                    </div>
-
-                    {/* Role Selection Panel Content */}
-                    {activePanel === 'roles' && script && (
-                        <div className="space-y-2">
-                            <RoleSelector
-                                script={script}
-                                userID={userID!}
-                                scriptID={scriptID!}
-                                disabled={isBusy}
-                                onRolesUpdated={onRolesUpdated}
-                            />
+            {/* Settings Panel - Absolutely positioned */}
+            <div
+                className={`
+                    absolute left-16 top-0 h-full w-56 bg-[#f5f7fb] border-r border-gray-200 p-4 z-10
+                    transform transition-transform duration-200 ease-in-out
+                    ${activePanel ? 'translate-x-0' : '-translate-x-full'}
+                `}
+            >
+                {activePanel && (
+                    <>
+                        <div className="flex items-center justify-between border-b border-gray-200 pb-4 mb-4">
+                            <h3 className="text-sm font-medium text-gray-700">
+                                {activePanel === 'auto' && 'Auto Advance'}
+                                {activePanel === 'roles' && 'Role Selector'}
+                            </h3>
+                            <button
+                                onClick={() => setActivePanel(null)}
+                                className="p-1 hover:bg-gray-100 rounded"
+                            >
+                                <X className="w-4 h-4 text-gray-500" />
+                            </button>
                         </div>
-                    )}
 
-                    {/* Other Panel Contents */}
-                    {activePanel === 'auto' && (
-                        <div className="text-sm text-gray-600">
-                            <label htmlFor="skipMs" className="sr-only">Skip to next line delay</label>
-                            <div className="text-sm flex items-center flex-wrap gap-2">
-                                <span className="font-semibold">Silence Detection:</span>
-                                <span className="text-gray-500">
-                                    Auto advance after
-                                </span>
-                                <select
-                                    id="skipMs"
-                                    value={skipMs}
-                                    onChange={(e) => onSkipMsChange?.(Number(e.target.value))}
-                                    className="appearance-none bg-white border border-gray-300 rounded-md px-2 py-1 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        {/* Role Selection Panel Content */}
+                        {activePanel === 'roles' && script && (
+                            <div className="space-y-2">
+                                <RoleSelector
+                                    script={script}
+                                    userID={userID!}
+                                    scriptID={scriptID!}
                                     disabled={isBusy}
-                                >
-                                    <option value={2000}>2s</option>
-                                    <option value={4000}>4s</option>
-                                    <option value={6000}>6s</option>
-                                    <option value={8000}>8s</option>
-                                    <option value={10000}>10s</option>
-                                </select>
-                                <span className="text-gray-500">of silence.</span>
+                                    onRolesUpdated={onRolesUpdated}
+                                />
                             </div>
-                        </div>
-                    )}
-                </div>
-            )}
+                        )}
 
-            {/* Main Content Area with Children */}
-            <div className="flex-1 overflow-auto">
+                        {/* Auto Advance Panel Content */}
+                        {activePanel === 'auto' && (
+                            <div className="text-sm text-gray-600">
+                                <label htmlFor="skipMs" className="sr-only">Skip to next line delay</label>
+                                <div className="text-sm flex items-center flex-wrap gap-2">
+                                    <span className="font-semibold">Silence Detection:</span>
+                                    <span className="text-gray-500">
+                                        Auto advance after
+                                    </span>
+                                    <select
+                                        id="skipMs"
+                                        value={skipMs}
+                                        onChange={(e) => onSkipMsChange?.(Number(e.target.value))}
+                                        className="appearance-none bg-white border border-gray-300 rounded-md px-2 py-1 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        disabled={isBusy}
+                                    >
+                                        <option value={2000}>2s</option>
+                                        <option value={4000}>4s</option>
+                                        <option value={6000}>6s</option>
+                                        <option value={8000}>8s</option>
+                                        <option value={10000}>10s</option>
+                                    </select>
+                                    <span className="text-gray-500">of silence.</span>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+
+            {/* Main Content Area - adjusts margin when panel is open */}
+            <div className={`
+                flex-1 overflow-auto transition-all duration-200
+                ${activePanel ? 'ml-56' : 'ml-0'}
+            `}>
                 {children}
             </div>
         </div>

@@ -469,13 +469,6 @@ body {
 }
 
 /* STT line highlighting */
-.waiting .word:not(.matched) {
-  color: rgb(30 58 138);
-  /* Tailwind blue-900 */
-  font-weight: 500;
-  /* Tailwind font-medium */
-}
-
 .word {
   display: inline-block;
   padding-top: 5px;
@@ -484,8 +477,40 @@ body {
   padding-right: 2px;
 }
 
+/* Light mode waiting state */
+.waiting-light .word:not(.matched-light) {
+  color: #2e2e2e;
+  font-weight: 500;
+}
+
+/* Dark mode waiting state */
+.waiting-dark .word:not(.matched-dark) {
+  color: #fdfdfd;
+  font-weight: 500;
+}
+
 .word.matched {
   color: rgb(17 24 39);
+  background-color: rgb(254, 245, 179);
+  border-radius: 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: background-color 0.2s ease;
+}
+
+/* Light mode matched state */
+.word.matched-light {
+  color: #2e2e2e;
+  background-color: rgb(254, 245, 179);
+  border-radius: 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: background-color 0.2s ease;
+}
+
+/* Dark mode matched state */
+.word.matched-dark {
+  color: #fdfdfd;
   background-color: rgb(254, 245, 179);
   border-radius: 2px;
   box-decoration-break: clone;

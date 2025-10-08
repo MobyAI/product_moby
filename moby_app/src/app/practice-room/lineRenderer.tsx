@@ -30,8 +30,8 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
 
     // Style classnames
     const BASE = `word transition-all duration-100${isDarkMode ? 'text-primary-light' : 'text-primary-dark' }`;
-    const MATCHED = "matched";
-    const WAITING = "waiting";
+    const MATCHED = isDarkMode ? 'matched-dark' : 'matched-light';
+    const WAITING = isDarkMode ? 'waiting-dark' : 'waiting-light';
 
     // Parse text to separate words and audio tags
     const segments = React.useMemo(() => {
