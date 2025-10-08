@@ -1374,10 +1374,22 @@ function RehearsalRoomContent() {
                     key={element.index}
                     ref={isCurrent ? currentLineRef : null}
                     onClick={() => handleLineClick(element.index)}
-                    className={`relative text-center mb-8 cursor-pointer transition-all duration-200 hover:bg-gray-50 rounded-lg p-6 ${isCurrent ? "bg-blue-50 shadow-md border border-blue-200" : ""
+                    className={`relative text-center mb-8 cursor-pointer transition-all duration-200 rounded-lg p-6 ${getThemeClass(
+                        "hover:bg-gray-100 hover:border-transparent",
+                        "hover:bg-[#3b3b3b] hover:border-transparent"
+                    )
+                        } ${isCurrent
+                            ? getThemeClass(
+                                "bg-blue-50 border border-blue-200",
+                                "bg-[#363c54]/60 border border-[#363c54]"
+                            )
+                            : ""
                         }`}
                 >
-                    <h2 className="text-xl font-bold uppercase tracking-wider text-gray-800">
+                    <h2 className={getThemeClass(
+                        "text-xl font-bold uppercase tracking-wider text-primary-light",
+                        "text-xl font-bold uppercase tracking-wider text-primary-dark"
+                    )}>
                         {element.text}
                     </h2>
 
@@ -1402,6 +1414,7 @@ function RehearsalRoomContent() {
                                     setScript={setScript}
                                     updateScript={updateScript}
                                     updatingState={[updating, setUpdating]}
+                                    isDarkMode={isDarkMode}
                                 />
                             </div>
                         )
@@ -1413,6 +1426,7 @@ function RehearsalRoomContent() {
                             <CountdownTimer
                                 duration={countdownDuration}
                                 onComplete={() => setShowCountdown(false)}
+                                isDarkMode={isDarkMode}
                             />
                         </div>
                     )}
@@ -1427,10 +1441,18 @@ function RehearsalRoomContent() {
                     key={element.index}
                     ref={isCurrent ? currentLineRef : null}
                     onClick={() => handleLineClick(element.index)}
-                    className={`relative text-center mb-6 cursor-pointer transition-all duration-200 hover:bg-gray-50 rounded-lg p-4 ${isCurrent ? "bg-blue-50 shadow-md border border-blue-200" : ""
+                    className={`relative text-center mb-6 cursor-pointer transition-all duration-200 rounded-lg p-4 ${getThemeClass(
+                        "hover:bg-gray-100 hover:border-transparent",
+                        "hover:bg-[#3b3b3b] hover:border-transparent"
+                    )
+                        } ${isCurrent
+                            ? getThemeClass(
+                                "bg-blue-50 border border-blue-200",
+                                "bg-[#363c54]/60 border border-[#363c54]"
+                            )
+                            : ""
                         }`}
                 >
-
                     {/* Editable Direction */}
                     {editingDirectionIndex === element.index ? (
                         <EditableDirection
@@ -1439,7 +1461,10 @@ function RehearsalRoomContent() {
                             onClose={() => setEditingDirectionIndex(null)}
                         />
                     ) : (
-                        <p className="italic text-gray-600 text-sm">
+                        <p className={getThemeClass(
+                            "italic text-gray-600 text-sm",
+                            "italic text-gray-300 text-sm"
+                        )}>
                             {element.text}
                         </p>
                     )}
@@ -1461,7 +1486,10 @@ function RehearsalRoomContent() {
                                         e.stopPropagation();
                                         setEditingDirectionIndex(element.index);
                                     }}
-                                    className="cursor-pointer text-sm text-white bg-gray-900 px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all"
+                                    className={getThemeClass(
+                                        "cursor-pointer text-sm bg-primary-dark-alt text-primary-light px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all",
+                                        "cursor-pointer text-sm text-primary-dark-alt bg-primary-light px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all"
+                                    )}
                                     title="Edit Line"
                                 >
                                     <Pencil
@@ -1479,6 +1507,7 @@ function RehearsalRoomContent() {
                                     setScript={setScript}
                                     updateScript={updateScript}
                                     updatingState={[updating, setUpdating]}
+                                    isDarkMode={isDarkMode}
                                 />
                             </div>
                         )
@@ -1490,6 +1519,7 @@ function RehearsalRoomContent() {
                             <CountdownTimer
                                 duration={countdownDuration}
                                 onComplete={() => setShowCountdown(false)}
+                                isDarkMode={isDarkMode}
                             />
                         </div>
                     )}
@@ -1504,12 +1534,21 @@ function RehearsalRoomContent() {
                     key={element.index}
                     ref={isCurrent ? currentLineRef : null}
                     onClick={() => handleLineClick(element.index)}
-                    className={`mb-6 cursor-pointer transition-all duration-200 rounded-lg p-6 relative 
-						${isCurrent
-                            ? "bg-blue-50 shadow-md border-blue-200"
-                            : "hover:bg-gray-50 border-gray-200 hover:shadow-sm"
-                        }
-						${['pending', 'updating'].includes(ttsHydrationStatus[element.index])
+                    className={`mb-6 cursor-pointer transition-all duration-200 rounded-lg p-6 relative ${editingLineIndex === element.index
+                            ? getThemeClass(
+                                "bg-gray-100 border-transparent",
+                                "bg-[#3b3b3b] border-transparent"
+                            )
+                            : isCurrent
+                                ? getThemeClass(
+                                    "bg-blue-50 border border-blue-200",
+                                    "bg-[#363c54]/60 border border-[#464e6d]"
+                                )
+                                : getThemeClass(
+                                    "hover:bg-gray-100 hover:border-transparent",
+                                    "hover:bg-[#3b3b3b] hover:border-transparent"
+                                )
+                        } ${['pending', 'updating'].includes(ttsHydrationStatus[element.index])
                             ? "glow-pulse"
                             : ""
                         }`}
@@ -1518,7 +1557,10 @@ function RehearsalRoomContent() {
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
                             <h3
-                                className={`font-bold uppercase tracking-wide text-sm ${element.role === "user" && "text-blue-700"}`}
+                                className={`font-bold uppercase tracking-wide text-sm ${element.role === "user"
+                                    ? isDarkMode ? "text-blue-400" : "text-blue-700"
+                                    : isDarkMode ? "text-primary-light" : "text-primary-dark"
+                                    }`}
                             >
                                 {element.character ||
                                     (element.role === "user" ? "YOU" : "SCENE PARTNER")}
@@ -1539,7 +1581,7 @@ function RehearsalRoomContent() {
                                                     sourceNode={audioSource}
                                                     isActive={isRecording}
                                                     size={25}
-                                                    backgroundColor="rgba(255, 255, 255, 0.7)"
+                                                    backgroundColor="rgba(255, 255, 255, 1)"
                                                 />
                                             </div>
                                         ) : (
@@ -1565,7 +1607,10 @@ function RehearsalRoomContent() {
                             hydrationStatus={ttsHydrationStatus[element.index]}
                         />
                     ) : (
-                        <div className="text-gray-800 leading-relaxed">
+                        <div className={getThemeClass(
+                            "leading-relaxed text-primary-dark",
+                            "leading-relaxed text-primary-light"
+                        )}>
                             <OptimizedLineRenderer
                                 element={element}
                                 isCurrent={isCurrent}
@@ -1573,6 +1618,7 @@ function RehearsalRoomContent() {
                                 spanRefMap={wordRefs.current}
                                 matchedCount={lineStates.get(element.index)?.matched ?? 0}
                                 isCompleted={lineStates.get(element.index)?.completed ?? false}
+                                isDarkMode={isDarkMode}
                             />
                         </div>
                     )}
@@ -1613,7 +1659,10 @@ function RehearsalRoomContent() {
                                             e.stopPropagation();
                                             setEditingLineIndex(element.index);
                                         }}
-                                        className="cursor-pointer text-sm text-white bg-gray-900 px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all"
+                                        className={getThemeClass(
+                                            "cursor-pointer text-sm bg-primary-dark-alt text-primary-light px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all",
+                                            "cursor-pointer text-sm text-primary-dark-alt bg-primary-light px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all"
+                                        )}
                                         title="Edit Line"
                                     >
                                         <Pencil
@@ -1631,6 +1680,7 @@ function RehearsalRoomContent() {
                                         setScript={setScript}
                                         updateScript={updateScript}
                                         updatingState={[updating, setUpdating]}
+                                        isDarkMode={isDarkMode}
                                     />
                                 </>
                             )}
@@ -1643,6 +1693,7 @@ function RehearsalRoomContent() {
                             <CountdownTimer
                                 duration={countdownDuration}
                                 onComplete={() => setShowCountdown(false)}
+                                isDarkMode={isDarkMode}
                             />
                         </div>
                     )}
@@ -1853,7 +1904,7 @@ function RehearsalRoomContent() {
                         {/* Floating Control Panel */}
                         <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-[200]">
                             <div className={getThemeClass(
-                                'bg-primary-dark/80 rounded-[10px] px-6 py-3 flex flex-col gap-3 shadow-xl w-[600px]',
+                                'bg-primary-dark rounded-[10px] px-6 py-3 flex flex-col gap-3 shadow-xl w-[600px]',
                                 'bg-primary-light rounded-[10px] px-6 py-3 flex flex-col gap-3 shadow-xl w-[600px]'
                             )}>
                                 {/* Control Buttons Container - Fixed height and centering */}
@@ -1864,7 +1915,7 @@ function RehearsalRoomContent() {
                                         disabled={isBusy}
                                         className={getThemeClass(
                                             'p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0',
-                                            'p-3 rounded-full hover:bg-gray-200 transition-all duration-200 text-black disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0'
+                                            'p-3 rounded-full hover:bg-gray-200 transition-all duration-200 text-primary-dark disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0'
                                         )}
                                         aria-label="Previous"
                                         title="Previous"
@@ -1878,8 +1929,8 @@ function RehearsalRoomContent() {
                                             onClick={handlePause}
                                             disabled={isBusy}
                                             className={getThemeClass(
-                                                'p-3 rounded-full hover:bg-white/20 hover:text-white transition-all duration-200 text-black shadow-lg scale-110 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0',
-                                                'p-3 rounded-full hover:bg-gray-300 transition-all duration-200 text-black shadow-lg scale-110 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0'
+                                                'p-3 rounded-full hover:bg-white/20 hover:text-white transition-all duration-200 text-white scale-110 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0',
+                                                'p-3 rounded-full hover:bg-gray-300 transition-all duration-200 text-text-primary-dark scale-110 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0'
                                             )}
                                             aria-label="Pause"
                                             title="Pause"
@@ -1892,7 +1943,7 @@ function RehearsalRoomContent() {
                                             disabled={isBusy}
                                             className={getThemeClass(
                                                 'p-3 rounded-full hover:bg-white/20 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-white scale-110 flex-shrink-0',
-                                                'p-3 rounded-full hover:bg-gray-300 transition-all duration-200 text-black scale-110 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0'
+                                                'p-3 rounded-full hover:bg-gray-300 transition-all duration-200 text-text-primary-dark scale-110 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0'
                                             )}
                                             aria-label="Play"
                                             title={isBusy ? "Preparing..." : "Start Rehearsal"}
@@ -1907,7 +1958,7 @@ function RehearsalRoomContent() {
                                         disabled={isBusy}
                                         className={getThemeClass(
                                             'p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0',
-                                            'p-3 rounded-full hover:bg-gray-200 transition-all duration-200 text-black disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0'
+                                            'p-3 rounded-full hover:bg-gray-200 transition-all duration-200 text-text-primary-dark disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0'
                                         )}
                                         aria-label="Next"
                                         title="Next"
@@ -1930,7 +1981,7 @@ function RehearsalRoomContent() {
                                                 disabled={isBusy}
                                                 className={getThemeClass(
                                                     'p-3 rounded-full hover:bg-white/20 transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0',
-                                                    'p-3 rounded-full hover:bg-gray-200 transition-all duration-200 text-black disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0'
+                                                    'p-3 rounded-full hover:bg-gray-200 transition-all duration-200 text-text-primary-dark disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0'
                                                 )}
                                                 aria-label="Restart from Beginning"
                                                 title="Restart from Beginning"
@@ -1947,13 +1998,13 @@ function RehearsalRoomContent() {
                                         <div
                                             key={index}
                                             className={`flex-1 transition-all duration-300 min-w-[2px] ${index < currentIndex
-                                                    ? 'bg-green-500'  // Completed segments
-                                                    : index === currentIndex
-                                                        ? 'bg-green-500'  // Current segment
-                                                        : getThemeClass(
-                                                            'bg-white',  // Future segments - light mode
-                                                            'bg-gray-300'      // Future segments - dark mode
-                                                        )
+                                                ? 'bg-green-500'  // Completed segments
+                                                : index === currentIndex
+                                                    ? 'bg-green-500'  // Current segment
+                                                    : getThemeClass(
+                                                        'bg-white',  // Future segments - light mode
+                                                        'bg-gray-300'      // Future segments - dark mode
+                                                    )
                                                 }`}
                                         />
                                     ))}

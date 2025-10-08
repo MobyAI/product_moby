@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 interface CountdownTimerProps {
     duration: number; // in milliseconds
     onComplete?: () => void;
+    isDarkMode: boolean;
 }
 
-export const CountdownTimer: React.FC<CountdownTimerProps> = ({ duration, onComplete }) => {
+export const CountdownTimer: React.FC<CountdownTimerProps> = ({ duration, onComplete, isDarkMode }) => {
     const [timeLeft, setTimeLeft] = useState(duration);
 
     useEffect(() => {
@@ -32,7 +33,10 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({ duration, onComp
     };
 
     return (
-        <div className="flex items-center text-sm text-white bg-gray-900 px-3 py-1.5 rounded shadow-md">
+        <div className={`flex items-center text-sm px-3 py-1.5 rounded shadow-md ${isDarkMode
+                ? "text-primary-dark-alt bg-primary-light"
+                : "bg-primary-dark-alt text-primary-light"
+            }`}>
             <span className="font-semibold">
                 {displayTime()}
             </span>

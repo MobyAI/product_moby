@@ -8,11 +8,8 @@ interface OptimizedLineRendererProps {
     spanRefMap: Map<number, HTMLSpanElement[]>;
     matchedCount: number;
     isCompleted: boolean;
+    isDarkMode: boolean;
 }
-
-const BASE = "word text-gray-700 transition-all duration-100";
-const MATCHED = "matched";
-const WAITING = "waiting";
 
 interface ParsedSegment {
     type: 'word' | 'other';
@@ -26,9 +23,15 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
     isWaitingForUser,
     spanRefMap,
     matchedCount,
-    isCompleted
+    isCompleted,
+    isDarkMode,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
+
+    // Style classnames
+    const BASE = `word transition-all duration-100${isDarkMode ? 'text-primary-light' : 'text-primary-dark' }`;
+    const MATCHED = "matched";
+    const WAITING = "waiting";
 
     // Parse text to separate words and audio tags
     const segments = React.useMemo(() => {
@@ -97,7 +100,8 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
     if (element.role !== "user") {
         return (
             <div className="pl-4 border-l-3 border-gray-300">
-                <p className="text-base leading-relaxed text-gray-700 px-[2px] py-[5px]">
+                <p className={`text-base leading-relaxed px-[2px] py-[5px] ${isDarkMode ? 'text-primary-light' : 'text-primary-dark'
+                    }`}>
                     {parseNonUserText.map((segment, i) => {
                         if (segment.type === 'other') {
                             // Strip outer [ ]
@@ -116,7 +120,8 @@ export const OptimizedLineRenderer = React.memo<OptimizedLineRendererProps>(({
                             } else {
                                 // ✅ Normal bracketed text, render as plain span with brackets or parenthesis
                                 return (
-                                    <span key={`other-${i}`} className="text-gray-400 italic mx-1">
+                                    <span key={`other-${i}`} className={`italic mx-1 ${isDarkMode ? 'text-gray-200' : 'text-gray-400'
+                                        }`}>
                                         {segment.content}
                                     </span>
                                 );

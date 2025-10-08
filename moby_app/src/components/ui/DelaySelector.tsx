@@ -13,6 +13,7 @@ interface DelaySelectorProps {
     setScript: React.Dispatch<React.SetStateAction<ScriptElement[] | null>>;
     updateScript: (scriptId: string, updatedScript: ScriptElement[]) => Promise<void>;
     updatingState: [boolean, React.Dispatch<React.SetStateAction<boolean>>];
+    isDarkMode: boolean;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -39,6 +40,7 @@ export const DelaySelector: React.FC<DelaySelectorProps> = ({
     setScript,
     updateScript,
     updatingState,
+    isDarkMode,
 }) => {
     const [showDelayDropdown, setShowDelayDropdown] = useState<boolean>(false);
     const [updating, setUpdating] = updatingState;
@@ -101,7 +103,7 @@ export const DelaySelector: React.FC<DelaySelectorProps> = ({
         <div className={`relative`}>
             {/* Delay Dropdown - shows on button click */}
             {showDelayDropdown && (
-                <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 z-[1000] bg-gray-200 rounded-md p-1 shadow-xl">
+                <div className="absolute left-full ml-2 top-5/6 transform -translate-y-1/2 z-[1000] bg-gray-200 rounded-md p-1 shadow-xl">
                     <div className="flex flex-col">
                         {[0, 500, 1000, 2000, 3000, 4000, 5000].map((value) => (
                             <button
@@ -137,7 +139,10 @@ export const DelaySelector: React.FC<DelaySelectorProps> = ({
                     setShowDelayDropdown(!showDelayDropdown);
                 }}
                 onBlur={() => setShowDelayDropdown(false)}
-                className="cursor-pointer flex items-center text-sm text-white bg-gray-900 px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all duration-200"
+                className={`cursor-pointer flex items-center text-sm px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all duration-200 ${isDarkMode
+                        ? "text-primary-dark-alt bg-primary-light"
+                        : "bg-primary-dark-alt text-primary-light"
+                    }`}
                 title="Add Delay"
                 disabled={updating}
                 type="button"
