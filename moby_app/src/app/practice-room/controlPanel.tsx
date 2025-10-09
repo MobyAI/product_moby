@@ -84,7 +84,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                         <Sun className="w-5 h-5 text-gray-600 group-hover:text-gray-800" />
                     )}
                     <span className="absolute left-14 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50">
-                        {isDarkMode ? 'Apply Light Mode' : 'Apply Dark Mode'}
+                        {isDarkMode ? 'Toggle Light Mode' : 'Toggle Dark Mode'}
                     </span>
                 </button>
 

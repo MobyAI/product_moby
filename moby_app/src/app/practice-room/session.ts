@@ -3,6 +3,8 @@ import { get, set } from 'idb-keyval';
 interface SessionState {
     index: number;
     isDarkMode?: boolean;
+    customStartIndex?: number;
+    customEndIndex?: number;
 }
 
 export const getSessionKey = (scriptID: string) => `rehearsal-room-cache:${scriptID}:session`;

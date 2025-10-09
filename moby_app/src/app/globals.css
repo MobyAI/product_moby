@@ -127,7 +127,7 @@
 
   /* Main colors */
   --primary-light: #fdfdfd;
-  --primary-light-alt: #F4F5FC;
+  --primary-light-alt: #f4f5fc;
   --primary-dark: #2e2e2e;
   --primary-dark-alt: #363c54;
 
@@ -175,7 +175,6 @@ body {
 
 /* ===== UTILITY CLASSES ===== */
 @layer utilities {
-
   /* Background Colors */
   .bg-background {
     background-color: var(--background);
@@ -363,7 +362,6 @@ body {
 }
 
 @layer components {
-
   /* Button styles */
   .btn {
     @apply inline-flex items-center justify-center font-medium transition-all duration-200 rounded-lg px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed;
@@ -500,9 +498,9 @@ body {
 
 /* Light mode matched state */
 .word.matched-light {
-  color: #2e2e2e;
-  background-color: rgb(254, 245, 179);
-  border-radius: 2px;
+  color: #065f46; /* Dark green text */
+  background-color: #d1fae5; /* Light green background */
+  padding: 0.25em 0.25em;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
   transition: background-color 0.2s ease;
@@ -510,9 +508,9 @@ body {
 
 /* Dark mode matched state */
 .word.matched-dark {
-  color: #fdfdfd;
-  background-color: rgb(254, 245, 179);
-  border-radius: 2px;
+  color: #065f46; /* Dark green text */
+  background-color: #d1fae5; /* Light green background */
+  padding: 0.25em 0.25em;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
   transition: background-color 0.2s ease;
@@ -529,7 +527,7 @@ body {
   box-sizing: border-box;
   color: #1f1f1f;
   cursor: pointer;
-  font-family: 'Roboto', arial, sans-serif;
+  font-family: "Roboto", arial, sans-serif;
   font-size: 14px;
   height: 40px;
   letter-spacing: 0.25px;
@@ -538,8 +536,9 @@ body {
   padding: 0 12px;
   position: relative;
   text-align: center;
-  -webkit-transition: background-color .218s, border-color .218s, box-shadow .218s;
-  transition: background-color .218s, border-color .218s, box-shadow .218s;
+  -webkit-transition: background-color 0.218s, border-color 0.218s,
+    box-shadow 0.218s;
+  transition: background-color 0.218s, border-color 0.218s, box-shadow 0.218s;
   vertical-align: middle;
   white-space: nowrap;
   width: auto;
@@ -571,7 +570,7 @@ body {
 .gsi-material-button .gsi-material-button-contents {
   -webkit-flex-grow: 1;
   flex-grow: 1;
-  font-family: 'Roboto', arial, sans-serif;
+  font-family: "Roboto", arial, sans-serif;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -579,8 +578,8 @@ body {
 }
 
 .gsi-material-button .gsi-material-button-state {
-  -webkit-transition: opacity .218s;
-  transition: opacity .218s;
+  -webkit-transition: opacity 0.218s;
+  transition: opacity 0.218s;
   bottom: 0;
   left: 0;
   opacity: 0;
@@ -610,8 +609,10 @@ body {
 }
 
 .gsi-material-button:not(:disabled):hover {
-  -webkit-box-shadow: 0 1px 2px 0 rgba(60, 64, 67, .30), 0 1px 3px 1px rgba(60, 64, 67, .15);
-  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, .30), 0 1px 3px 1px rgba(60, 64, 67, .15);
+  -webkit-box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3),
+    0 1px 3px 1px rgba(60, 64, 67, 0.15);
+  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3),
+    0 1px 3px 1px rgba(60, 64, 67, 0.15);
 }
 
 .gsi-material-button:not(:disabled):hover .gsi-material-button-state {
@@ -635,7 +636,6 @@ body {
 }
 
 @keyframes pulse-glow {
-
   0%,
   100% {
     opacity: 1;
@@ -690,7 +690,6 @@ body {
 
 /* Script line hydrating pulse */
 @keyframes glowPulse {
-
   0%,
   100% {
     box-shadow: none;
@@ -698,8 +697,7 @@ body {
 
   50% {
     box-shadow: 0 0 8px rgba(147, 197, 253, 0.4),
-      0 0 16px rgba(147, 197, 253, 0.3),
-      0 0 24px rgba(147, 197, 253, 0.15);
+      0 0 16px rgba(147, 197, 253, 0.3), 0 0 24px rgba(147, 197, 253, 0.15);
   }
 }
 
@@ -710,5 +708,9 @@ body {
 
 /* Dialog Box BG */
 .bg-gradient-radial {
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.2) 0%,
+    transparent 70%
+  );
 }

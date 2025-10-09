@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
-import ScriptsPracticeClient from './ScriptsPracticeClient';
+// import ScriptsPracticeClient from './ScriptsPracticeClient';
+import ScriptsPracticeClient from './ScriptPracticeClientWithDragAndDrop';
 
 export const metadata: Metadata = {
     title: "Scripts - Playr",

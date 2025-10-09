@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback, Suspense } from "react";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  Suspense,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGoogleSTT } from "@/lib/google/speechToText";
 import { useDeepgramSTT } from "@/lib/deepgram/speechToText";
@@ -46,11 +52,212 @@ import {
   Bot,
   Clapperboard,
   UserRound,
+  GripVertical,
 } from "lucide-react";
 import * as Sentry from "@sentry/nextjs";
 import { useQueryClient } from "@tanstack/react-query";
 
-// export default function RehearsalRoomPage() {
+interface DragState {
+  type: "start" | "end";
+  mouseX: number;
+  mouseY: number;
+}
+
+interface Position {
+  x: number;
+  y: number;
+}
+
+interface RangeMarkerProps {
+  type: "start" | "end";
+  position: number;
+  customStartIndex: number;
+  customEndIndex: number;
+  onDragStart: (type: "start" | "end", e: React.MouseEvent) => void;
+  isDragging: boolean;
+}
+
+interface DropZoneProps {
+  index: number;
+  isPlaying: boolean;
+  dragging: DragState | null;
+  hoveredDropZone: number | null;
+  customStartIndex: number;
+  customEndIndex: number;
+  onDragStart: (type: "start" | "end", e: React.MouseEvent) => void;
+  isDraggingMarker: (type: "start" | "end") => boolean;
+}
+
+interface DraggedMarkerProps {
+  dragging: DragState | null;
+  dragPosition: Position;
+}
+
+// Range Marker Component
+const RangeMarker: React.FC<RangeMarkerProps> = ({
+  type,
+  position,
+  customStartIndex,
+  customEndIndex,
+  onDragStart,
+  isDragging,
+}) => {
+  const isStart = type === "start";
+  const shouldRender =
+    (isStart && position === customStartIndex) ||
+    (!isStart && position === customEndIndex);
+
+  if (!shouldRender) return null;
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onDragStart(type, e);
+  };
+
+  return (
+    <div
+      className={`absolute z-50 ${
+        isStart
+          ? "top-1/2 -translate-y-1/2 -left-22" // START: top left
+          : "bottom-10 translate-y-full -right-20" // END: bottom right
+      }`}
+    >
+      <div
+        onMouseDown={handleMouseDown}
+        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold shadow-lg cursor-move select-none
+          ${
+            isStart
+              ? "bg-green-500 hover:bg-green-600 text-white"
+              : "bg-red-500 hover:bg-red-600 text-white"
+          } ${isDragging ? "opacity-50" : ""}`}
+      >
+        <GripVertical className="w-3 h-3" />
+        {type.toUpperCase()}
+      </div>
+    </div>
+  );
+};
+
+// Drop Zone Component
+const StartDropZone = React.forwardRef<HTMLDivElement, DropZoneProps>(
+  ({ index, isPlaying, dragging, hoveredDropZone, customEndIndex }, ref) => {
+    const isActive = !isPlaying;
+    const isDraggingStart = dragging && dragging.type === "start";
+    const isHovered = hoveredDropZone === index && isDraggingStart;
+    const isValidForStart = index < customEndIndex;
+
+    if (!isActive || !isDraggingStart || !isValidForStart) return null;
+
+    return (
+      <div
+        ref={ref}
+        className="absolute top-0 -left-25 z-[90]"
+        style={{ width: "100px", height: "40px" }}
+      >
+        {/* Drop indicator */}
+        <div
+          className={`absolute inset-0 flex items-center justify-center transition-all
+          ${
+            dragging && dragging.type === "start" && isValidForStart
+              ? "opacity-100"
+              : "opacity-0 pointer-events-none"
+          }`}
+        >
+          <div
+            className={`h-full w-full rounded flex items-center justify-center
+            ${
+              isHovered
+                ? "bg-blue-100 border-2 border-blue-400 border-dashed"
+                : ""
+            }`}
+          >
+            {isHovered && (
+              <span className="text-xs text-blue-600 font-medium">
+                Drop here
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+);
+
+const EndDropZone = React.forwardRef<HTMLDivElement, DropZoneProps>(
+  ({ index, isPlaying, dragging, hoveredDropZone, customStartIndex }, ref) => {
+    const isActive = !isPlaying;
+    const isDraggingEnd = dragging && dragging.type === "end";
+    const isHovered = hoveredDropZone === index && isDraggingEnd;
+    const isValidForEnd = index > customStartIndex;
+
+    // Only show when not playing and dragging end marker
+    if (!isActive || !isDraggingEnd || !isValidForEnd) return null;
+
+    return (
+      <div
+        ref={ref}
+        className="absolute bottom-0 -right-25 z-[90]"
+        style={{ width: "100px", height: "40px" }}
+      >
+        {/* Drop indicator */}
+        <div
+          className={`absolute inset-0 flex items-center justify-center transition-all
+          ${
+            dragging && dragging.type === "end" && isValidForEnd
+              ? "opacity-100"
+              : "opacity-0 pointer-events-none"
+          }`}
+        >
+          <div
+            className={`h-full w-full rounded flex items-center justify-center
+            ${
+              isHovered
+                ? "bg-blue-100 border-2 border-blue-400 border-dashed"
+                : ""
+            }`}
+          >
+            {isHovered && (
+              <span className="text-xs text-blue-600 font-medium">
+                Drop here
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+);
+
+// Floating dragged marker
+const DraggedMarker: React.FC<DraggedMarkerProps> = ({
+  dragging,
+  dragPosition,
+}) => {
+  if (!dragging) return null;
+
+  return (
+    <div
+      className="fixed pointer-events-none z-[100]"
+      style={{
+        left: dragPosition.x - 40,
+        top: dragPosition.y - 15,
+      }}
+    >
+      <div
+        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold shadow-xl
+        ${
+          dragging.type === "start"
+            ? "bg-green-500 text-white"
+            : "bg-red-500 text-white"
+        }`}
+      >
+        <GripVertical className="w-3 h-3" />
+        {dragging.type.toUpperCase()}
+      </div>
+    </div>
+  );
+};
+
 function RehearsalRoomContent() {
   const searchParams = useSearchParams();
   const scriptID = searchParams.get("scriptID");
@@ -133,6 +340,16 @@ function RehearsalRoomContent() {
   const [ttsLoadError, setTTSLoadError] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [ttsFailedLines, setTTSFailedLines] = useState<number[]>([]);
+
+  // Dragging state
+  const [dragging, setDragging] = useState<DragState | null>(null);
+  const [dragPosition, setDragPosition] = useState<Position>({ x: 0, y: 0 });
+  const [hoveredDropZone, setHoveredDropZone] = useState<number | null>(null);
+  const startDropZoneRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const endDropZoneRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [customStartIndex, setCustomStartIndex] = useState<number>(0);
+  const [customEndIndex, setCustomEndIndex] = useState<number>(0); // actual value + 1
+  console.log("custom range: ", customStartIndex, customEndIndex);
 
   // Load script and restore session
   useEffect(() => {
@@ -250,6 +467,23 @@ function RehearsalRoomContent() {
         const restored = await restoreSession(scriptID);
         if (restored) {
           setCurrentIndex(restored.index ?? 0);
+
+          // Restore custom indexes if they exist
+          if (restored.customStartIndex !== undefined) {
+            setCustomStartIndex(restored.customStartIndex);
+          }
+
+          // For customEndIndex: use restored value if exists, otherwise use script length
+          if (restored.customEndIndex !== undefined) {
+            setCustomEndIndex(restored.customEndIndex);
+          } else if (rawScript) {
+            setCustomEndIndex(rawScript.length);
+          }
+        } else {
+          // No session at all, set default end index
+          if (rawScript) {
+            setCustomEndIndex(rawScript.length);
+          }
         }
 
         // 5) Set theme
@@ -342,11 +576,13 @@ function RehearsalRoomContent() {
       saveSession(scriptID, {
         index: currentIndex,
         isDarkMode: isDarkMode,
+        customStartIndex: customStartIndex,
+        customEndIndex: customEndIndex,
       });
     }, 1000);
 
     return () => clearTimeout(timeout);
-  }, [currentIndex, scriptID, isDarkMode]);
+  }, [currentIndex, scriptID, isDarkMode, customStartIndex, customEndIndex]);
 
   // Light and dark mode toggle
   const toggleTheme = () => {
@@ -1414,6 +1650,92 @@ function RehearsalRoomContent() {
 
   const normalizeBracketSpaces = (s: string) => s.replace(/\](?!\s|$)/g, "] ");
 
+  // Drag and drop setup
+  // Handle drag start
+  const handleDragStart = (type: "start" | "end", e: React.MouseEvent) => {
+    if (isPlaying) return null;
+
+    setDragging({ type, mouseX: e.clientX, mouseY: e.clientY });
+    setDragPosition({ x: e.clientX, y: e.clientY });
+  };
+
+  // Check if a marker type is being dragged
+  const isDraggingMarker = (type: "start" | "end"): boolean => {
+    return dragging?.type === type;
+  };
+
+  // Handle mouse move for dragging
+  useEffect(() => {
+    if (!dragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      setDragPosition({ x: e.clientX, y: e.clientY });
+
+      // Check which drop zone we're over based on what's being dragged
+      let foundZone: number | null = null;
+
+      // Use the correct ref array based on what's being dragged
+      const refs =
+        dragging.type === "start" ? startDropZoneRefs : endDropZoneRefs;
+
+      refs.current.forEach((ref, index) => {
+        if (ref) {
+          const rect = ref.getBoundingClientRect();
+          if (
+            e.clientX >= rect.left &&
+            e.clientX <= rect.right &&
+            e.clientY >= rect.top &&
+            e.clientY <= rect.bottom
+          ) {
+            // Validate drop position
+            if (dragging.type === "start" && index < customEndIndex) {
+              foundZone = index;
+            } else if (dragging.type === "end" && index > customStartIndex) {
+              foundZone = index;
+            }
+          }
+        }
+      });
+      setHoveredDropZone(foundZone);
+    };
+
+    const handleMouseUp = () => {
+      if (hoveredDropZone !== null) {
+        if (dragging.type === "start") {
+          setCustomStartIndex(hoveredDropZone);
+          // Adjust current index if needed
+          if (currentIndex < hoveredDropZone) {
+            setCurrentIndex(hoveredDropZone);
+          }
+        } else if (dragging.type === "end") {
+          // For end marker, if dropping on an element, the end should be AFTER that element
+          // So we add 1 to include the element in the range
+          setCustomEndIndex(hoveredDropZone + 1);
+          // Adjust current index if needed
+          if (currentIndex > hoveredDropZone) {
+            setCurrentIndex(Math.max(hoveredDropZone, customStartIndex));
+          }
+        }
+      }
+      setDragging(null);
+      setHoveredDropZone(null);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [
+    dragging,
+    hoveredDropZone,
+    customStartIndex,
+    customEndIndex,
+    currentIndex,
+  ]);
+
   // // Helper function to parse text and convert [word] to button elements
   // const parseTextWithButtons = (text: string) => {
   //     // Ensure there's always a space after a closing bracket if missing
@@ -1461,277 +1783,381 @@ function RehearsalRoomContent() {
     const isCurrent = element.index === currentIndex;
     const isCompleted = element.index < currentIndex;
 
-    // Scene headers
-    if (element.type === "scene") {
-      return (
-        <div
-          key={element.index}
-          ref={isCurrent ? currentLineRef : null}
-          onClick={() => handleLineClick(element.index)}
-          className={`relative text-center mb-8 cursor-pointer transition-all duration-200 rounded-lg p-6 ${getThemeClass(
-            "hover:bg-gray-100 hover:border-transparent",
-            "hover:bg-[#3b3b3b] hover:border-transparent"
-          )} ${
-            isCurrent
-              ? getThemeClass(
-                  "bg-blue-50 border border-blue-200",
-                  "bg-[#363c54]/60 border border-[#363c54]"
-                )
-              : ""
-          }`}
-        >
-          <h2
-            className={getThemeClass(
-              "text-xl font-bold uppercase tracking-wider text-primary-light",
-              "text-xl font-bold uppercase tracking-wider text-primary-dark"
-            )}
+    // Allow drag and drop
+    const shouldShowDropZone = !isPlaying;
+
+    const elementContent = () => {
+      // Scene headers
+      if (element.type === "scene") {
+        return (
+          <div
+            key={element.index}
+            ref={isCurrent ? currentLineRef : null}
+            onClick={() => handleLineClick(element.index)}
+            className={`relative text-center mb-8 cursor-pointer transition-all duration-200 rounded-lg p-6 ${getThemeClass(
+              "hover:bg-gray-100 hover:border-transparent",
+              "hover:bg-[#3b3b3b] hover:border-transparent"
+            )} ${
+              isCurrent
+                ? getThemeClass(
+                    "bg-blue-50 border border-blue-200",
+                    "bg-[#363c54]/60 border border-[#363c54]"
+                  )
+                : ""
+            }`}
           >
-            {element.text}
-          </h2>
+            {/* DropZone positioned at top left corner */}
+            {shouldShowDropZone && (
+              <>
+                <StartDropZone
+                  ref={(el: any) => {
+                    startDropZoneRefs.current[element.index] = el;
+                  }}
+                  index={element.index}
+                  isPlaying={isPlaying}
+                  dragging={dragging}
+                  hoveredDropZone={hoveredDropZone}
+                  customStartIndex={customStartIndex}
+                  customEndIndex={customEndIndex}
+                  onDragStart={handleDragStart}
+                  isDraggingMarker={isDraggingMarker}
+                />
+                <EndDropZone
+                  ref={(el: any) => {
+                    endDropZoneRefs.current[element.index] = el;
+                  }}
+                  index={element.index}
+                  isPlaying={isPlaying}
+                  dragging={dragging}
+                  hoveredDropZone={hoveredDropZone}
+                  customStartIndex={customStartIndex}
+                  customEndIndex={customEndIndex}
+                  onDragStart={handleDragStart}
+                  isDraggingMarker={isDraggingMarker}
+                />
+              </>
+            )}
 
-          {isCurrent && isPlaying && (
-            <div className="text-xs text-blue-600 mt-2 animate-pulse font-medium">
-              ● ACTIVE SCENE
-            </div>
-          )}
-
-          {/* Edit button */}
-          {isCurrent && !isPlaying && (
-            <div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[100]">
-              <DelaySelector
-                lineIndex={element.index}
-                currentDelay={element.customDelay || 0}
-                onDelayChange={handleDelayChange}
-                scriptId={scriptID}
-                userId={userID}
-                script={script}
-                setScript={setScript}
-                updateScript={updateScript}
-                updatingState={[updating, setUpdating]}
-                isDarkMode={isDarkMode}
-              />
-            </div>
-          )}
-
-          {/* Delay countdown */}
-          {showCountdown && countdownDuration > 0 && isCurrent && (
-            <div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[999]">
-              <CountdownTimer
-                duration={countdownDuration}
-                onComplete={() => setShowCountdown(false)}
-                isDarkMode={isDarkMode}
-              />
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // Stage directions
-    if (element.type === "direction") {
-      return (
-        <div
-          key={element.index}
-          ref={isCurrent ? currentLineRef : null}
-          onClick={() => handleLineClick(element.index)}
-          className={`relative text-center mb-6 cursor-pointer transition-all duration-200 rounded-lg p-4 ${getThemeClass(
-            "hover:bg-gray-100 hover:border-transparent",
-            "hover:bg-[#3b3b3b] hover:border-transparent"
-          )} ${
-            isCurrent
-              ? getThemeClass(
-                  "bg-blue-50 border border-blue-200",
-                  "bg-[#363c54]/60 border border-[#363c54]"
-                )
-              : ""
-          }`}
-        >
-          {/* Editable Direction */}
-          {editingDirectionIndex === element.index ? (
-            <EditableDirection
-              item={element}
-              onUpdate={onUpdateDirection}
-              onClose={() => setEditingDirectionIndex(null)}
-            />
-          ) : (
-            <p
+            <h2
               className={getThemeClass(
-                "italic text-gray-600 text-sm",
-                "italic text-gray-300 text-sm"
+                "text-xl font-bold uppercase tracking-wider text-primary-light",
+                "text-xl font-bold uppercase tracking-wider text-primary-dark"
               )}
             >
               {element.text}
-            </p>
-          )}
+            </h2>
 
-          {isCurrent && isPlaying && (
-            <div className="text-xs text-blue-600 mt-1 animate-pulse font-medium">
-              ● ACTIVE DIRECTION
-            </div>
-          )}
+            {isCurrent && isPlaying && (
+              <div className="text-xs text-blue-600 mt-2 animate-pulse font-medium">
+                ● ACTIVE SCENE
+              </div>
+            )}
 
-          {/* Edit button */}
-          {isCurrent && !isPlaying && !editingDirectionIndex && (
-            <div className="absolute -bottom-5.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[100]">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setEditingDirectionIndex(element.index);
-                }}
-                className={getThemeClass(
-                  "cursor-pointer text-sm bg-primary-dark-alt text-primary-light px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all",
-                  "cursor-pointer text-sm text-primary-dark-alt bg-primary-light px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all"
-                )}
-                title="Edit Line"
-              >
-                <Pencil className="w-4 h-4" strokeWidth={2} />
-              </button>
-              <DelaySelector
-                lineIndex={element.index}
-                currentDelay={element.customDelay || 0}
-                onDelayChange={handleDelayChange}
-                scriptId={scriptID}
-                userId={userID}
-                script={script}
-                setScript={setScript}
-                updateScript={updateScript}
-                updatingState={[updating, setUpdating]}
-                isDarkMode={isDarkMode}
-              />
-            </div>
-          )}
+            {/* Edit button */}
+            {isCurrent && !isPlaying && (
+              <div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[100]">
+                <DelaySelector
+                  lineIndex={element.index}
+                  currentDelay={element.customDelay || 0}
+                  onDelayChange={handleDelayChange}
+                  scriptId={scriptID}
+                  userId={userID}
+                  script={script}
+                  setScript={setScript}
+                  updateScript={updateScript}
+                  updatingState={[updating, setUpdating]}
+                  isDarkMode={isDarkMode}
+                />
+              </div>
+            )}
 
-          {/* Delay countdown */}
-          {showCountdown && countdownDuration > 0 && isCurrent && (
-            <div className="absolute -bottom-5.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[999]">
-              <CountdownTimer
-                duration={countdownDuration}
-                onComplete={() => setShowCountdown(false)}
-                isDarkMode={isDarkMode}
-              />
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // Dialogue lines
-    if (element.type === "line") {
-      return (
-        <div
-          key={element.index}
-          ref={isCurrent ? currentLineRef : null}
-          onClick={() => handleLineClick(element.index)}
-          className={`mb-6 cursor-pointer transition-all duration-200 rounded-lg p-6 relative ${
-            editingLineIndex === element.index
-              ? getThemeClass(
-                  "bg-gray-100 border-transparent",
-                  "bg-[#3b3b3b] border-transparent"
-                )
-              : isCurrent
-              ? getThemeClass(
-                  "bg-blue-50 border border-blue-200",
-                  "bg-[#363c54]/60 border border-[#464e6d]"
-                )
-              : getThemeClass(
-                  "hover:bg-gray-100 hover:border-transparent",
-                  "hover:bg-[#3b3b3b] hover:border-transparent"
-                )
-          } ${
-            ["pending", "updating"].includes(ttsHydrationStatus[element.index])
-              ? "glow-pulse"
-              : ""
-          }`}
-        >
-          {/* Character name and status */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <h3
-                className={`font-bold uppercase tracking-wide text-sm ${
-                  element.role === "user"
-                    ? isDarkMode
-                      ? "text-blue-400"
-                      : "text-blue-700"
-                    : isDarkMode
-                    ? "text-primary-light"
-                    : "text-primary-dark"
-                }`}
-              >
-                {element.character ||
-                  (element.role === "user" ? "YOU" : "SCENE PARTNER")}
-              </h3>
-              {isCompleted && (
-                <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">
-                  ✓ COMPLETE
-                </span>
-              )}
-              {isCurrent && isPlaying && (
-                <>
-                  {element.role === "user" ? (
-                    // User role: show visualizer or error
-                    audioContext && audioSource ? (
-                      <div className="audio-visualizer-container">
-                        <AudioVisualizer
-                          audioContext={audioContext}
-                          sourceNode={audioSource}
-                          isActive={isRecording}
-                          size={25}
-                          backgroundColor="rgba(255, 255, 255, 1)"
-                        />
-                      </div>
-                    ) : (
-                      <AlertCircle className="w-5 h-5" />
-                    )
-                  ) : (
-                    // Non-user role: show ACTIVE span
-                    <span className="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full animate-pulse font-medium">
-                      ACTIVE
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
+            {/* Delay countdown */}
+            {showCountdown && countdownDuration > 0 && isCurrent && (
+              <div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[999]">
+                <CountdownTimer
+                  duration={countdownDuration}
+                  onComplete={() => setShowCountdown(false)}
+                  isDarkMode={isDarkMode}
+                />
+              </div>
+            )}
           </div>
+        );
+      }
 
-          {/* Dialogue text */}
-          {editingLineIndex === element.index ? (
-            <EditableLine
-              item={element}
-              onUpdate={onUpdateLine}
-              onClose={() => setEditingLineIndex(null)}
-              hydrationStatus={ttsHydrationStatus[element.index]}
-            />
-          ) : (
-            <div
-              className={getThemeClass(
-                "leading-relaxed text-primary-dark",
-                "leading-relaxed text-primary-light"
-              )}
-            >
-              <OptimizedLineRenderer
-                element={element}
-                isCurrent={isCurrent}
-                isWaitingForUser={isWaitingForUser}
-                spanRefMap={wordRefs.current}
-                matchedCount={lineStates.get(element.index)?.matched ?? 0}
-                isCompleted={lineStates.get(element.index)?.completed ?? false}
-                isDarkMode={isDarkMode}
-              />
-            </div>
-          )}
-
-          {/* Edit and Refresh buttons */}
-          {isCurrent && !isPlaying && !editingLineIndex && (
-            <div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[100]">
-              {/* Show refresh button if TTS failed */}
-              {ttsHydrationStatus[element.index] === "failed" && (
-                <button
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    await onRefreshLine(element);
+      // Stage directions
+      if (element.type === "direction") {
+        return (
+          <div
+            key={element.index}
+            ref={isCurrent ? currentLineRef : null}
+            onClick={() => handleLineClick(element.index)}
+            className={`relative text-center mb-6 cursor-pointer transition-all duration-200 rounded-lg p-4 ${getThemeClass(
+              "hover:bg-gray-100 hover:border-transparent",
+              "hover:bg-[#3b3b3b] hover:border-transparent"
+            )} ${
+              isCurrent
+                ? getThemeClass(
+                    "bg-blue-50 border border-blue-200",
+                    "bg-[#363c54]/60 border border-[#363c54]"
+                  )
+                : ""
+            }`}
+          >
+            {/* DropZone positioned at top left corner */}
+            {shouldShowDropZone && (
+              <>
+                <StartDropZone
+                  ref={(el: any) => {
+                    startDropZoneRefs.current[element.index] = el;
                   }}
-                  disabled={isUpdatingLine}
-                  className={`
+                  index={element.index}
+                  isPlaying={isPlaying}
+                  dragging={dragging}
+                  hoveredDropZone={hoveredDropZone}
+                  customStartIndex={customStartIndex}
+                  customEndIndex={customEndIndex}
+                  onDragStart={handleDragStart}
+                  isDraggingMarker={isDraggingMarker}
+                />
+                <EndDropZone
+                  ref={(el: any) => {
+                    endDropZoneRefs.current[element.index] = el;
+                  }}
+                  index={element.index}
+                  isPlaying={isPlaying}
+                  dragging={dragging}
+                  hoveredDropZone={hoveredDropZone}
+                  customStartIndex={customStartIndex}
+                  customEndIndex={customEndIndex}
+                  onDragStart={handleDragStart}
+                  isDraggingMarker={isDraggingMarker}
+                />
+              </>
+            )}
+
+            {/* Editable Direction */}
+            {editingDirectionIndex === element.index ? (
+              <EditableDirection
+                item={element}
+                onUpdate={onUpdateDirection}
+                onClose={() => setEditingDirectionIndex(null)}
+              />
+            ) : (
+              <p
+                className={getThemeClass(
+                  "italic text-gray-600 text-sm",
+                  "italic text-gray-300 text-sm"
+                )}
+              >
+                {element.text}
+              </p>
+            )}
+
+            {isCurrent && isPlaying && (
+              <div className="text-xs text-blue-600 mt-1 animate-pulse font-medium">
+                ● ACTIVE DIRECTION
+              </div>
+            )}
+
+            {/* Edit button */}
+            {isCurrent && !isPlaying && !editingDirectionIndex && (
+              <div className="absolute -bottom-5.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[100]">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingDirectionIndex(element.index);
+                  }}
+                  className={getThemeClass(
+                    "cursor-pointer text-sm bg-primary-dark-alt text-primary-light px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all",
+                    "cursor-pointer text-sm text-primary-dark-alt bg-primary-light px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all"
+                  )}
+                  title="Edit Line"
+                >
+                  <Pencil className="w-4 h-4" strokeWidth={2} />
+                </button>
+                <DelaySelector
+                  lineIndex={element.index}
+                  currentDelay={element.customDelay || 0}
+                  onDelayChange={handleDelayChange}
+                  scriptId={scriptID}
+                  userId={userID}
+                  script={script}
+                  setScript={setScript}
+                  updateScript={updateScript}
+                  updatingState={[updating, setUpdating]}
+                  isDarkMode={isDarkMode}
+                />
+              </div>
+            )}
+
+            {/* Delay countdown */}
+            {showCountdown && countdownDuration > 0 && isCurrent && (
+              <div className="absolute -bottom-5.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[999]">
+                <CountdownTimer
+                  duration={countdownDuration}
+                  onComplete={() => setShowCountdown(false)}
+                  isDarkMode={isDarkMode}
+                />
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      // Dialogue lines
+      if (element.type === "line") {
+        return (
+          <div
+            key={element.index}
+            ref={isCurrent ? currentLineRef : null}
+            onClick={() => handleLineClick(element.index)}
+            className={`relative mb-6 cursor-pointer transition-all duration-200 rounded-lg p-6 ${
+              editingLineIndex === element.index
+                ? getThemeClass(
+                    "bg-gray-100 border-transparent",
+                    "bg-[#3b3b3b] border-transparent"
+                  )
+                : isCurrent
+                ? getThemeClass(
+                    "bg-blue-50 border border-blue-200",
+                    "bg-[#363c54]/60 border border-[#464e6d]"
+                  )
+                : getThemeClass(
+                    "hover:bg-gray-100 hover:border-transparent",
+                    "hover:bg-[#3b3b3b] hover:border-transparent"
+                  )
+            } ${
+              ["pending", "updating"].includes(
+                ttsHydrationStatus[element.index]
+              )
+                ? "glow-pulse"
+                : ""
+            }`}
+          >
+            {/* DropZone positioned at top left corner */}
+            {shouldShowDropZone && (
+              <>
+                <StartDropZone
+                  ref={(el: any) => {
+                    startDropZoneRefs.current[element.index] = el;
+                  }}
+                  index={element.index}
+                  isPlaying={isPlaying}
+                  dragging={dragging}
+                  hoveredDropZone={hoveredDropZone}
+                  customStartIndex={customStartIndex}
+                  customEndIndex={customEndIndex}
+                  onDragStart={handleDragStart}
+                  isDraggingMarker={isDraggingMarker}
+                />
+                <EndDropZone
+                  ref={(el: any) => {
+                    endDropZoneRefs.current[element.index] = el;
+                  }}
+                  index={element.index}
+                  isPlaying={isPlaying}
+                  dragging={dragging}
+                  hoveredDropZone={hoveredDropZone}
+                  customStartIndex={customStartIndex}
+                  customEndIndex={customEndIndex}
+                  onDragStart={handleDragStart}
+                  isDraggingMarker={isDraggingMarker}
+                />
+              </>
+            )}
+
+            {/* Character name and status */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <h3
+                  className={`font-bold uppercase tracking-wide text-sm ${
+                    element.role === "user"
+                      ? isDarkMode
+                        ? "text-blue-400"
+                        : "text-blue-700"
+                      : isDarkMode
+                      ? "text-primary-light"
+                      : "text-primary-dark"
+                  }`}
+                >
+                  {element.character ||
+                    (element.role === "user" ? "YOU" : "SCENE PARTNER")}
+                </h3>
+                {isCompleted && (
+                  <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">
+                    ✓ COMPLETE
+                  </span>
+                )}
+                {isCurrent && isPlaying && (
+                  <>
+                    {element.role === "user" ? (
+                      // User role: show visualizer or error
+                      audioContext && audioSource ? (
+                        <div className="audio-visualizer-container">
+                          <AudioVisualizer
+                            audioContext={audioContext}
+                            sourceNode={audioSource}
+                            isActive={isRecording}
+                            size={25}
+                            backgroundColor="rgba(255, 255, 255, 1)"
+                          />
+                        </div>
+                      ) : (
+                        <AlertCircle className="w-5 h-5" />
+                      )
+                    ) : (
+                      // Non-user role: show ACTIVE span
+                      <span className="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full animate-pulse font-medium">
+                        ACTIVE
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Dialogue text */}
+            {editingLineIndex === element.index ? (
+              <EditableLine
+                item={element}
+                onUpdate={onUpdateLine}
+                onClose={() => setEditingLineIndex(null)}
+                hydrationStatus={ttsHydrationStatus[element.index]}
+              />
+            ) : (
+              <div
+                className={getThemeClass(
+                  "leading-relaxed text-primary-dark",
+                  "leading-relaxed text-primary-light"
+                )}
+              >
+                <OptimizedLineRenderer
+                  element={element}
+                  isCurrent={isCurrent}
+                  isWaitingForUser={isWaitingForUser}
+                  spanRefMap={wordRefs.current}
+                  matchedCount={lineStates.get(element.index)?.matched ?? 0}
+                  isCompleted={
+                    lineStates.get(element.index)?.completed ?? false
+                  }
+                  isDarkMode={isDarkMode}
+                />
+              </div>
+            )}
+
+            {/* Edit and Refresh buttons */}
+            {isCurrent && !isPlaying && !editingLineIndex && (
+              <div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[100]">
+                {/* Show refresh button if TTS failed */}
+                {ttsHydrationStatus[element.index] === "failed" && (
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      await onRefreshLine(element);
+                    }}
+                    disabled={isUpdatingLine}
+                    className={`
                                         cursor-pointer text-sm text-white px-3 py-1.5 rounded shadow-md 
                                         hover:shadow-lg transition-all
                                         ${
@@ -1740,79 +2166,111 @@ function RehearsalRoomContent() {
                                             : "bg-red-600 hover:bg-red-700"
                                         }
                                         `}
-                  title="Refresh Failed Audio"
-                >
-                  <RefreshCw
-                    className={`w-4 h-4 ${
-                      isUpdatingLine ? "animate-spin" : ""
-                    }`}
-                    strokeWidth={2}
-                  />
-                </button>
-              )}
-
-              {/* Show edit buttons only if TTS is ready */}
-              {ttsHydrationStatus[element.index] === "ready" && (
-                <>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingLineIndex(element.index);
-                    }}
-                    className={getThemeClass(
-                      "cursor-pointer text-sm bg-primary-dark-alt text-primary-light px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all",
-                      "cursor-pointer text-sm text-primary-dark-alt bg-primary-light px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all"
-                    )}
-                    title="Edit Line"
+                    title="Refresh Failed Audio"
                   >
-                    <Pencil className="w-4 h-4" strokeWidth={2} />
+                    <RefreshCw
+                      className={`w-4 h-4 ${
+                        isUpdatingLine ? "animate-spin" : ""
+                      }`}
+                      strokeWidth={2}
+                    />
                   </button>
-                  <DelaySelector
-                    lineIndex={element.index}
-                    currentDelay={element.customDelay || 0}
-                    onDelayChange={handleDelayChange}
-                    scriptId={scriptID}
-                    userId={userID}
-                    script={script}
-                    setScript={setScript}
-                    updateScript={updateScript}
-                    updatingState={[updating, setUpdating]}
-                    isDarkMode={isDarkMode}
-                  />
-                </>
-              )}
-            </div>
-          )}
+                )}
 
-          {/* Delay countdown */}
-          {showCountdown && countdownDuration > 0 && isCurrent && (
-            <div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[999]">
-              <CountdownTimer
-                duration={countdownDuration}
-                onComplete={() => setShowCountdown(false)}
-                isDarkMode={isDarkMode}
+                {/* Show edit buttons only if TTS is ready */}
+                {ttsHydrationStatus[element.index] === "ready" && (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingLineIndex(element.index);
+                      }}
+                      className={getThemeClass(
+                        "cursor-pointer text-sm bg-primary-dark-alt text-primary-light px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all",
+                        "cursor-pointer text-sm text-primary-dark-alt bg-primary-light px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all"
+                      )}
+                      title="Edit Line"
+                    >
+                      <Pencil className="w-4 h-4" strokeWidth={2} />
+                    </button>
+                    <DelaySelector
+                      lineIndex={element.index}
+                      currentDelay={element.customDelay || 0}
+                      onDelayChange={handleDelayChange}
+                      scriptId={scriptID}
+                      userId={userID}
+                      script={script}
+                      setScript={setScript}
+                      updateScript={updateScript}
+                      updatingState={[updating, setUpdating]}
+                      isDarkMode={isDarkMode}
+                    />
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Delay countdown */}
+            {showCountdown && countdownDuration > 0 && isCurrent && (
+              <div className="absolute -bottom-4.5 left-1/2 transform -translate-x-1/2 flex gap-2 z-[999]">
+                <CountdownTimer
+                  duration={countdownDuration}
+                  onComplete={() => setShowCountdown(false)}
+                  isDarkMode={isDarkMode}
+                />
+              </div>
+            )}
+
+            {/* Loading indicator */}
+            {["pending", "updating"].includes(
+              ttsHydrationStatus[element.index]
+            ) && (
+              <div className="absolute top-4 right-4 w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            )}
+
+            {/* Failed indicator */}
+            {ttsHydrationStatus[element.index] === "failed" && (
+              <div className="absolute top-4 right-4 text-sm text-red-500">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      return null;
+    };
+
+    // Return with RangeMarkers only (DropZone now inside element content)
+    return (
+      <React.Fragment key={element.index}>
+        {/* Always show markers at their positions */}
+        <div className="relative">
+          {!isBusy && (
+            <>
+              <RangeMarker
+                type="start"
+                position={element.index}
+                customStartIndex={customStartIndex}
+                customEndIndex={customEndIndex}
+                onDragStart={handleDragStart}
+                isDragging={isDraggingMarker("start")}
               />
-            </div>
-          )}
-
-          {/* Loading indicator */}
-          {["pending", "updating"].includes(
-            ttsHydrationStatus[element.index]
-          ) && (
-            <div className="absolute top-4 right-4 w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          )}
-
-          {/* Failed indicator */}
-          {ttsHydrationStatus[element.index] === "failed" && (
-            <div className="absolute top-4 right-4 text-sm text-red-500">
-              <AlertCircle className="w-5 h-5" />
-            </div>
+              <RangeMarker
+                type="end"
+                position={element.index}
+                customStartIndex={customStartIndex}
+                customEndIndex={customEndIndex}
+                onDragStart={handleDragStart}
+                isDragging={isDraggingMarker("end")}
+              />
+            </>
           )}
         </div>
-      );
-    }
 
-    return null;
+        {elementContent()}
+      </React.Fragment>
+    );
   };
 
   // Loading State
@@ -1841,6 +2299,9 @@ function RehearsalRoomContent() {
       isBusy={isBusy}
       onToggleFullscreen={toggleFullscreen}
     >
+      {/* Floating draggable marker */}
+      <DraggedMarker dragging={dragging} dragPosition={dragPosition} />
+
       {/* Mic Check Modal */}
       <MicCheckModal
         isOpen={showMicCheck}
@@ -1962,7 +2423,7 @@ function RehearsalRoomContent() {
         {/* Right Content Area */}
         <div
           ref={contentAreaRef}
-          className={`relative flex-1 flex flex-col overflow-hidden rounded-[25px] mr-4 ${getThemeClass(
+          className={`relative flex-1 flex flex-col overflow-hidden ${getThemeClass(
             "bg-primary-light",
             "bg-primary-dark"
           )}`}
@@ -1982,11 +2443,65 @@ function RehearsalRoomContent() {
             </div>
 
             {/* Scrollable Script Content */}
-            <div className="flex-1 px-8 py-8 overflow-y-auto hide-scrollbar">
+            <div className="flex-1 px-35 pt-8 pb-35 overflow-y-auto hide-scrollbar">
               {script && script.length > 0 ? (
                 <div className="space-y-4">
                   {script.map((element, index) =>
                     renderScriptElement(element, index)
+                  )}
+
+                  {/* Final drop zone */}
+                  <div className="relative">
+                    {!isBusy && (
+                      <>
+                        <RangeMarker
+                          type="start"
+                          position={script.length}
+                          customStartIndex={customStartIndex}
+                          customEndIndex={customEndIndex}
+                          onDragStart={handleDragStart}
+                          isDragging={isDraggingMarker("start")}
+                        />
+                        <RangeMarker
+                          type="end"
+                          position={script.length}
+                          customStartIndex={customStartIndex}
+                          customEndIndex={customEndIndex}
+                          onDragStart={handleDragStart}
+                          isDragging={isDraggingMarker("end")}
+                        />
+                      </>
+                    )}
+                  </div>
+                  {!isPlaying && (
+                    <>
+                      <StartDropZone
+                        ref={(el: any) => {
+                          startDropZoneRefs.current[script.length] = el;
+                        }}
+                        index={script.length}
+                        isPlaying={isPlaying}
+                        dragging={dragging}
+                        hoveredDropZone={hoveredDropZone}
+                        customStartIndex={customStartIndex}
+                        customEndIndex={customEndIndex}
+                        onDragStart={handleDragStart}
+                        isDraggingMarker={isDraggingMarker}
+                      />
+                      <EndDropZone
+                        ref={(el: any) => {
+                          endDropZoneRefs.current[script.length] = el;
+                        }}
+                        index={script.length}
+                        isPlaying={isPlaying}
+                        dragging={dragging}
+                        hoveredDropZone={hoveredDropZone}
+                        customStartIndex={customStartIndex}
+                        customEndIndex={customEndIndex}
+                        onDragStart={handleDragStart}
+                        isDraggingMarker={isDraggingMarker}
+                      />
+                    </>
                   )}
                 </div>
               ) : (
