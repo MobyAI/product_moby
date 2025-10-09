@@ -118,8 +118,8 @@ const RangeMarker: React.FC<RangeMarkerProps> = ({
     <div
       className={`absolute z-50 ${
         isStart
-          ? "top-1/2 -translate-y-1/2 -left-22" // START: top left
-          : "bottom-10 translate-y-full -right-20" // END: bottom right
+          ? "top-5 -translate-y-1/2 -left-24" // START: top left
+          : "bottom-14 translate-y-full -right-22" // END: bottom right
       }`}
     >
       <div
@@ -129,7 +129,7 @@ const RangeMarker: React.FC<RangeMarkerProps> = ({
             isStart
               ? "bg-green-500 hover:bg-green-600 text-white"
               : "bg-red-500 hover:bg-red-600 text-white"
-          } ${isDragging ? "opacity-50" : ""}`}
+          } ${isDragging ? "opacity-30" : ""}`}
       >
         <GripVertical className="w-3 h-3" />
         {type.toUpperCase()}
@@ -140,18 +140,19 @@ const RangeMarker: React.FC<RangeMarkerProps> = ({
 
 // Drop Zone Component
 const StartDropZone = React.forwardRef<HTMLDivElement, DropZoneProps>(
-  ({ index, isPlaying, dragging, hoveredDropZone, customEndIndex }, ref) => {
+  ({ index, isPlaying, dragging, hoveredDropZone, customEndIndex, customStartIndex }, ref) => {
     const isActive = !isPlaying;
     const isDraggingStart = dragging && dragging.type === "start";
     const isHovered = hoveredDropZone === index && isDraggingStart;
     const isValidForStart = index < customEndIndex;
+    const isCurrentPosition = index === customStartIndex;
 
-    if (!isActive || !isDraggingStart || !isValidForStart) return null;
+    if (!isActive || !isDraggingStart || !isValidForStart || isCurrentPosition) return null;
 
     return (
       <div
         ref={ref}
-        className="absolute top-0 -left-25 z-[90]"
+        className="absolute top-0 -left-27 z-[90]"
         style={{ width: "100px", height: "40px" }}
       >
         {/* Drop indicator */}
@@ -167,12 +168,12 @@ const StartDropZone = React.forwardRef<HTMLDivElement, DropZoneProps>(
             className={`h-full w-full rounded flex items-center justify-center
             ${
               isHovered
-                ? "bg-blue-100 border-2 border-blue-400 border-dashed"
+                ? "bg-green-100 border-2 border-green-400 border-dashed"
                 : ""
             }`}
           >
             {isHovered && (
-              <span className="text-xs text-blue-600 font-medium">
+              <span className="text-xs text-green-600 font-medium">
                 Drop here
               </span>
             )}
@@ -184,19 +185,20 @@ const StartDropZone = React.forwardRef<HTMLDivElement, DropZoneProps>(
 );
 
 const EndDropZone = React.forwardRef<HTMLDivElement, DropZoneProps>(
-  ({ index, isPlaying, dragging, hoveredDropZone, customStartIndex }, ref) => {
+  ({ index, isPlaying, dragging, hoveredDropZone, customStartIndex, customEndIndex }, ref) => {
     const isActive = !isPlaying;
     const isDraggingEnd = dragging && dragging.type === "end";
     const isHovered = hoveredDropZone === index && isDraggingEnd;
     const isValidForEnd = index > customStartIndex;
+    const isCurrentPosition = index === customEndIndex - 1;
 
     // Only show when not playing and dragging end marker
-    if (!isActive || !isDraggingEnd || !isValidForEnd) return null;
+    if (!isActive || !isDraggingEnd || !isValidForEnd || isCurrentPosition) return null;
 
     return (
       <div
         ref={ref}
-        className="absolute bottom-0 -right-25 z-[90]"
+        className="absolute bottom-0 -right-27 z-[90]"
         style={{ width: "100px", height: "40px" }}
       >
         {/* Drop indicator */}
@@ -212,12 +214,12 @@ const EndDropZone = React.forwardRef<HTMLDivElement, DropZoneProps>(
             className={`h-full w-full rounded flex items-center justify-center
             ${
               isHovered
-                ? "bg-blue-100 border-2 border-blue-400 border-dashed"
+                ? "bg-red-100 border-2 border-red-400 border-dashed"
                 : ""
             }`}
           >
             {isHovered && (
-              <span className="text-xs text-blue-600 font-medium">
+              <span className="text-xs text-red-600 font-medium">
                 Drop here
               </span>
             )}
@@ -348,8 +350,7 @@ function RehearsalRoomContent() {
   const startDropZoneRefs = useRef<(HTMLDivElement | null)[]>([]);
   const endDropZoneRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [customStartIndex, setCustomStartIndex] = useState<number>(0);
-  const [customEndIndex, setCustomEndIndex] = useState<number>(0); // actual value + 1
-  console.log("custom range: ", customStartIndex, customEndIndex);
+  const [customEndIndex, setCustomEndIndex] = useState<number>(0);
 
   // Load script and restore session
   useEffect(() => {
@@ -382,6 +383,9 @@ function RehearsalRoomContent() {
         if (!rawScript) {
           return;
         }
+
+        // Set end of script
+        setCustomEndIndex(rawScript.length);
 
         // Check if we should continue
         if (!shouldContinueProcessing.current) {
@@ -473,16 +477,8 @@ function RehearsalRoomContent() {
             setCustomStartIndex(restored.customStartIndex);
           }
 
-          // For customEndIndex: use restored value if exists, otherwise use script length
           if (restored.customEndIndex !== undefined) {
             setCustomEndIndex(restored.customEndIndex);
-          } else if (rawScript) {
-            setCustomEndIndex(rawScript.length);
-          }
-        } else {
-          // No session at all, set default end index
-          if (rawScript) {
-            setCustomEndIndex(rawScript.length);
           }
         }
 
@@ -1262,7 +1258,7 @@ function RehearsalRoomContent() {
       setCountdownDuration(0);
 
       const nextIndex = currentIndex + 1;
-      const endOfScript = nextIndex >= (script?.length ?? 0);
+      const endOfScript = nextIndex >= customEndIndex;
 
       if (endOfScript) {
         console.log("🎬 Rehearsal complete — cleaning up STT");
@@ -1371,13 +1367,13 @@ function RehearsalRoomContent() {
     setIsWaitingForUser(false);
     setIsFinished(false);
     cleanupSTT();
-    setCurrentIndex(0);
+    setCurrentIndex(customStartIndex);
 
     // Clear all line states
     setLineStates(new Map());
     wordRefs.current.clear();
 
-    const firstLine = script?.find((el) => el.index === 0);
+    const firstLine = script?.find((el) => el.index === customStartIndex);
     prepareUserLine(firstLine);
   };
 
@@ -1435,7 +1431,7 @@ function RehearsalRoomContent() {
 
       setCurrentIndex((i) => {
         const nextIndex = i + 1;
-        const endOfScript = nextIndex >= (script?.length ?? 0);
+        const endOfScript = nextIndex >= customEndIndex;
 
         if (endOfScript) {
           console.log("🎬 User finished final line — cleaning up STT");
@@ -2506,7 +2502,9 @@ function RehearsalRoomContent() {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <div className="text-gray-400 text-lg">No script loaded</div>
+                  <div className="text-gray-400 text-lg">
+                    Script failed to load
+                  </div>
                 </div>
               )}
 
