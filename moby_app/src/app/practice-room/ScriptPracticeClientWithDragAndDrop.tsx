@@ -148,6 +148,7 @@ function RehearsalRoomContent() {
   // Dragging state
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [dragPosition, setDragPosition] = useState<Position>({ x: 0, y: 0 });
+  const draggedMarkerRef = useRef<HTMLDivElement | null>(null);
   const [hoveredDropZone, setHoveredDropZone] = useState<number | null>(null);
   const startDropZoneRefs = useRef<(HTMLDivElement | null)[]>([]);
   const endDropZoneRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -1054,7 +1055,7 @@ function RehearsalRoomContent() {
 
       // Allow continuation if the user has moved beyond the customEndIndex
       const effectiveEndIndex =
-        currentIndex > (customEndIndex - 1) ? scriptEndIndex : customEndIndex;
+        currentIndex > customEndIndex - 1 ? scriptEndIndex : customEndIndex;
 
       const endOfScript = nextIndex >= effectiveEndIndex;
 
@@ -1233,7 +1234,7 @@ function RehearsalRoomContent() {
 
         // Allow continuation if the user has moved beyond the customEndIndex
         const effectiveEndIndex =
-          currentIndex > (customEndIndex - 1) ? scriptEndIndex : customEndIndex;
+          currentIndex > customEndIndex - 1 ? scriptEndIndex : customEndIndex;
 
         const endOfScript = nextIndex >= effectiveEndIndex;
 
@@ -1451,6 +1452,13 @@ function RehearsalRoomContent() {
   const normalizeBracketSpaces = (s: string) => s.replace(/\](?!\s|$)/g, "] ");
 
   // -------- Drag and drop -------- //
+  const resetDrag = () => {
+    if (!script) return null;
+
+    setCustomStartIndex(0);
+    setCustomEndIndex(script.length);
+  };
+
   const handleDragStart = (
     type: "start" | "end",
     e: React.MouseEvent<Element>
@@ -1542,23 +1550,31 @@ function RehearsalRoomContent() {
       const refs =
         dragging.type === "start" ? startDropZoneRefs : endDropZoneRefs;
 
-      refs.current.forEach((ref, index) => {
-        if (ref) {
-          const rect = ref.getBoundingClientRect();
-          if (
-            e.clientX >= rect.left &&
-            e.clientX <= rect.right &&
-            e.clientY >= rect.top &&
-            e.clientY <= rect.bottom
-          ) {
-            if (dragging.type === "start" && index < customEndIndex) {
-              foundZone = index;
-            } else if (dragging.type === "end" && index > customStartIndex) {
-              foundZone = index;
+      const markerEl = draggedMarkerRef.current;
+      if (markerEl) {
+        const markerRect = markerEl.getBoundingClientRect();
+
+        refs.current.forEach((ref, index) => {
+          if (ref) {
+            const rect = ref.getBoundingClientRect();
+
+            const overlaps =
+              markerRect.bottom >= rect.top &&
+              markerRect.top <= rect.bottom &&
+              markerRect.right >= rect.left &&
+              markerRect.left <= rect.right;
+
+            if (overlaps) {
+              if (dragging.type === "start" && index < customEndIndex) {
+                foundZone = index;
+              } else if (dragging.type === "end" && index > customStartIndex) {
+                foundZone = index;
+              }
             }
           }
-        }
-      });
+        });
+      }
+
       setHoveredDropZone(foundZone);
     };
 
@@ -2123,9 +2139,14 @@ function RehearsalRoomContent() {
       onToggleTheme={toggleTheme}
       isBusy={isBusy}
       onToggleFullscreen={toggleFullscreen}
+      onResetDrag={resetDrag}
     >
       {/* Floating draggable marker */}
-      <DraggedMarker dragging={dragging} dragPosition={dragPosition} />
+      <DraggedMarker
+        dragging={dragging}
+        dragPosition={dragPosition}
+        ref={draggedMarkerRef}
+      />
 
       {/* Mic Check Modal */}
       <MicCheckModal
@@ -2214,13 +2235,20 @@ function RehearsalRoomContent() {
             current && (
               <div className="flex items-center justify-center">
                 <span
-                  className={`inline-flex items-center justify-center gap-2 px-6 py-3 rounded-[10px] text-md font-semibold ${
-                    current.type === "line"
-                      ? current.role === "user"
-                        ? "bg-accent-blue text-white"
-                        : "bg-primary-dark text-white"
-                      : "bg-primary-dark text-white"
-                  }`}
+                  className={`inline-flex items-center justify-center gap-2 px-6 py-3 rounded-[10px] text-md font-semibold
+                    ${
+                      current.type === "line"
+                        ? current.role === "user"
+                          ? "bg-accent-blue text-primary-light"
+                          : getThemeClass(
+                              "bg-primary-dark text-primary-light", // light mode
+                              "bg-primary-light text-primary-dark" // dark mode
+                            )
+                        : getThemeClass(
+                            "bg-primary-dark text-primary-light", // light mode
+                            "bg-primary-light text-primary-dark" // dark mode
+                          )
+                    }`}
                 >
                   {/* Icon */}
                   {current.type === "line" ? (
@@ -2268,7 +2296,7 @@ function RehearsalRoomContent() {
             </div>
 
             {/* Scrollable Script Content */}
-            <div className="flex-1 px-35 pt-8 pb-35 overflow-y-auto hide-scrollbar">
+            <div className="flex-1 px-35 pt-4 pb-35 overflow-y-auto hide-scrollbar">
               {script && script.length > 0 ? (
                 <div className="space-y-4">
                   {script.map((element, index) =>

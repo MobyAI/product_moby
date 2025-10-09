@@ -27,17 +27,6 @@ export const RangeMarker: React.FC<RangeMarkerProps> = ({
     onDragStart(type, e);
   };
 
-  const sharedClasses = `
-    inline-flex items-center gap-1 px-3 py-1 rounded-full
-    text-xs font-bold shadow-lg cursor-move select-none
-    ${
-      isStart
-        ? "bg-green-500 hover:bg-green-600"
-        : "bg-red-500 hover:bg-red-600"
-    } 
-    text-white ${isDragging ? "opacity-30" : ""}
-  `;
-
   return (
     <div
       className={`absolute z-50 ${
@@ -46,7 +35,17 @@ export const RangeMarker: React.FC<RangeMarkerProps> = ({
           : "bottom-14 translate-y-full -right-22"
       }`}
     >
-      <div onMouseDown={handleMouseDown} className={sharedClasses}>
+      <div
+        onMouseDown={handleMouseDown}
+        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold shadow-lg select-none cursor-move z-[50]
+          ${
+            isStart
+              ? "bg-green-500 hover:bg-green-600"
+              : "bg-red-500 hover:bg-red-600"
+          }
+          text-white ${isDragging ? "opacity-30" : ""}
+        `}
+      >
         {isStart ? (
           <>
             {type.toUpperCase()}
@@ -143,10 +142,10 @@ export const EndDropZone = React.forwardRef<HTMLDivElement, DropZoneProps>(
 );
 
 // --- Floating Drag Marker ---
-export const DraggedMarker: React.FC<DraggedMarkerProps> = ({
-  dragging,
-  dragPosition,
-}) => {
+export const DraggedMarker = React.forwardRef<
+  HTMLDivElement,
+  DraggedMarkerProps
+>(({ dragging, dragPosition }, ref) => {
   if (!dragging) return null;
 
   const width = 80;
@@ -154,13 +153,17 @@ export const DraggedMarker: React.FC<DraggedMarkerProps> = ({
   const centerX = width / 2;
   const centerY = height / 2;
 
-  const style = {
-    left: dragPosition.x - centerX - dragging.offsetX,
-    top: dragPosition.y - centerY - dragging.offsetY,
-  };
-
   return (
-    <div className="fixed pointer-events-none z-[100]" style={style}>
+    <div
+      ref={ref}
+      className="fixed pointer-events-none z-[100]"
+      style={{
+        left: dragPosition.x - centerX - dragging.offsetX,
+        top: dragPosition.y - centerY - dragging.offsetY,
+        width,
+        height,
+      }}
+    >
       <div
         className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold shadow-xl ${
           dragging.type === "start"
@@ -182,4 +185,4 @@ export const DraggedMarker: React.FC<DraggedMarkerProps> = ({
       </div>
     </div>
   );
-};
+});
