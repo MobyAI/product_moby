@@ -20,13 +20,19 @@ import {
   initializeEmbeddingModel,
 } from "./loader";
 import { hydrateScriptWithDialogue } from "./loaderDialogueMode";
-import { RoleSelector } from "./roleSelector";
 import EditableLine from "./editableLine";
 import EditableDirection from "./editableDirection";
 import { OptimizedLineRenderer } from "./lineRenderer";
 import LoadingTips from "./rotatingTips";
 import AudioVisualizer from "./visualizer";
 import { ControlPanel } from "./controlPanel";
+import {
+  RangeMarker,
+  StartDropZone,
+  EndDropZone,
+  DraggedMarker,
+} from "./dragAndDrop";
+import { DragState, Position } from "@/types/dragAndDrop";
 import { restoreSession, saveSession } from "./session";
 import { clear, set } from "idb-keyval";
 import { LoadingScreen } from "@/components/ui";
@@ -52,289 +58,9 @@ import {
   Bot,
   Clapperboard,
   UserRound,
-  GripVertical,
-  ArrowBigRight,
-  ArrowBigLeft,
 } from "lucide-react";
 import * as Sentry from "@sentry/nextjs";
 import { useQueryClient } from "@tanstack/react-query";
-
-interface DragState {
-  type: "start" | "end";
-  mouseX: number;
-  mouseY: number;
-  offsetX: number;
-  offsetY: number;
-}
-
-interface Position {
-  x: number;
-  y: number;
-}
-
-interface RangeMarkerProps {
-  type: "start" | "end";
-  position: number;
-  customStartIndex: number;
-  customEndIndex: number;
-  onDragStart: (type: "start" | "end", e: React.MouseEvent) => void;
-  isDragging: boolean;
-}
-
-interface DropZoneProps {
-  index: number;
-  isPlaying: boolean;
-  dragging: DragState | null;
-  hoveredDropZone: number | null;
-  customStartIndex: number;
-  customEndIndex: number;
-  onDragStart: (type: "start" | "end", e: React.MouseEvent) => void;
-  isDraggingMarker: (type: "start" | "end") => boolean;
-}
-
-interface DraggedMarkerProps {
-  dragging: DragState | null;
-  dragPosition: Position;
-}
-
-// Range Marker Component
-const RangeMarker: React.FC<RangeMarkerProps> = ({
-  type,
-  position,
-  customStartIndex,
-  customEndIndex,
-  onDragStart,
-  isDragging,
-}) => {
-  const isStart = type === "start";
-  const shouldRender =
-    (isStart && position === customStartIndex) ||
-    (!isStart && position === customEndIndex);
-
-  if (!shouldRender) return null;
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    onDragStart(type, e);
-  };
-
-  if (type === "start")
-    return (
-      <div
-        className={`absolute z-50 ${
-          isStart
-            ? "top-5 -translate-y-1/2 -left-24" // START: top left
-            : "bottom-14 translate-y-full -right-22" // END: bottom right
-        }`}
-      >
-        <div
-          onMouseDown={handleMouseDown}
-          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold shadow-lg cursor-move select-none
-          ${
-            isStart
-              ? "bg-green-500 hover:bg-green-600 text-white"
-              : "bg-red-500 hover:bg-red-600 text-white"
-          } ${isDragging ? "opacity-30" : ""}`}
-        >
-          {type.toUpperCase()}
-          <ArrowBigRight className="w-4 h-4" />
-        </div>
-      </div>
-    );
-
-  if (type === "end")
-    return (
-      <div
-        className={`absolute z-50 ${
-          isStart
-            ? "top-5 -translate-y-1/2 -left-24" // START: top left
-            : "bottom-14 translate-y-full -right-22" // END: bottom right
-        }`}
-      >
-        <div
-          onMouseDown={handleMouseDown}
-          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold shadow-lg cursor-move select-none
-          ${
-            isStart
-              ? "bg-green-500 hover:bg-green-600 text-white"
-              : "bg-red-500 hover:bg-red-600 text-white"
-          } ${isDragging ? "opacity-30" : ""}`}
-        >
-          <ArrowBigLeft className="w-4 h-4" />
-          {type.toUpperCase()}
-        </div>
-      </div>
-    );
-};
-
-// Drop Zone Component
-const StartDropZone = React.forwardRef<HTMLDivElement, DropZoneProps>(
-  (
-    {
-      index,
-      isPlaying,
-      dragging,
-      hoveredDropZone,
-      customEndIndex,
-      customStartIndex,
-    },
-    ref
-  ) => {
-    const isActive = !isPlaying;
-    const isDraggingStart = dragging && dragging.type === "start";
-    const isHovered = hoveredDropZone === index && isDraggingStart;
-    const isValidForStart = index < customEndIndex;
-    const isCurrentPosition = index === customStartIndex;
-
-    if (!isActive || !isDraggingStart || !isValidForStart || isCurrentPosition)
-      return null;
-
-    return (
-      <div
-        ref={ref}
-        className="absolute top-0 -left-27 z-[90]"
-        style={{ width: "100px", height: "40px" }}
-      >
-        {/* Drop indicator */}
-        <div
-          className={`absolute inset-0 flex items-center justify-center transition-all
-          ${
-            dragging && dragging.type === "start" && isValidForStart
-              ? "opacity-100"
-              : "opacity-0 pointer-events-none"
-          }`}
-        >
-          <div
-            className={`h-full w-full rounded flex items-center justify-center
-            ${
-              isHovered
-                ? "bg-green-100 border-2 border-green-400 border-dashed"
-                : ""
-            }`}
-          >
-            {isHovered && (
-              <span className="text-xs text-green-600 font-medium">
-                Drop here
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-);
-
-const EndDropZone = React.forwardRef<HTMLDivElement, DropZoneProps>(
-  (
-    {
-      index,
-      isPlaying,
-      dragging,
-      hoveredDropZone,
-      customStartIndex,
-      customEndIndex,
-    },
-    ref
-  ) => {
-    const isActive = !isPlaying;
-    const isDraggingEnd = dragging && dragging.type === "end";
-    const isHovered = hoveredDropZone === index && isDraggingEnd;
-    const isValidForEnd = index > customStartIndex;
-    const isCurrentPosition = index === customEndIndex - 1;
-
-    // Only show when not playing and dragging end marker
-    if (!isActive || !isDraggingEnd || !isValidForEnd || isCurrentPosition)
-      return null;
-
-    return (
-      <div
-        ref={ref}
-        className="absolute bottom-0 -right-27 z-[90]"
-        style={{ width: "100px", height: "40px" }}
-      >
-        {/* Drop indicator */}
-        <div
-          className={`absolute inset-0 flex items-center justify-center transition-all
-          ${
-            dragging && dragging.type === "end" && isValidForEnd
-              ? "opacity-100"
-              : "opacity-0 pointer-events-none"
-          }`}
-        >
-          <div
-            className={`h-full w-full rounded flex items-center justify-center
-            ${
-              isHovered
-                ? "bg-red-100 border-2 border-red-400 border-dashed"
-                : ""
-            }`}
-          >
-            {isHovered && (
-              <span className="text-xs text-red-600 font-medium">
-                Drop here
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-);
-
-// Floating dragged marker
-const DraggedMarker: React.FC<DraggedMarkerProps> = ({
-  dragging,
-  dragPosition,
-}) => {
-  if (!dragging) return null;
-
-  const width = 80; // your pill width (px)
-  const height = 30; // approximate height (px)
-  const centerX = width / 2;
-  const centerY = height / 2;
-
-  if (dragging.type === "start")
-    return (
-      <div
-        className="fixed pointer-events-none z-[100]"
-        style={{
-          // Subtract both the fixed visual center AND the mouse offset
-          left: dragPosition.x - centerX - dragging.offsetX - 1,
-          top: dragPosition.y - centerY - dragging.offsetY - 5,
-        }}
-      >
-        <div
-          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold shadow-xl ${
-            dragging.type === "start"
-              ? "bg-green-500 text-white"
-              : "bg-red-500 text-white"
-          }`}
-        >
-          {dragging.type.toUpperCase()}
-          <ArrowBigRight className="w-4 h-4" />
-        </div>
-      </div>
-    );
-
-  if (dragging.type === "end")
-    return (
-      <div
-        className="fixed pointer-events-none z-[100]"
-        style={{
-          // Subtract both the fixed visual center AND the mouse offset
-          left: dragPosition.x - centerX - dragging.offsetX + 5,
-          top: dragPosition.y - centerY - dragging.offsetY - 2,
-        }}
-      >
-        <div
-          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold shadow-xl bg-red-500 text-white`}
-        >
-          <ArrowBigLeft className="w-4 h-4" />
-          {dragging.type.toUpperCase()}
-        </div>
-      </div>
-    );
-};
 
 function RehearsalRoomContent() {
   const searchParams = useSearchParams();
@@ -656,46 +382,6 @@ function RehearsalRoomContent() {
     return () => clearTimeout(timeout);
   }, [currentIndex, scriptID, isDarkMode, customStartIndex, customEndIndex]);
 
-  // Light and dark mode toggle
-  const toggleTheme = () => {
-    setIsDarkMode((prev) => {
-      const newTheme = !prev;
-      localStorage.setItem("rehearsal-theme", newTheme ? "dark" : "light");
-      return newTheme;
-    });
-  };
-
-  // Helper for classnames
-  const getThemeClass = (lightClass: string, darkClass: string) => {
-    return isDarkMode ? darkClass : lightClass;
-  };
-
-  // Fullscreen mode
-  const toggleFullscreen = async () => {
-    if (!document.fullscreenElement) {
-      // Enter fullscreen with just the content area
-      try {
-        if (contentAreaRef.current) {
-          await contentAreaRef.current.requestFullscreen();
-        }
-      } catch (err) {
-        console.error("Error entering fullscreen:", err);
-        showToast({
-          header: "Fullscreen not available",
-          line1: "Your browser doesn't support fullscreen mode",
-          type: "warning",
-        });
-      }
-    } else {
-      // Exit fullscreen
-      try {
-        await document.exitFullscreen();
-      } catch (err) {
-        console.error("Error exiting fullscreen:", err);
-      }
-    }
-  };
-
   const retryLoadScript = async () => {
     if (!userID || !scriptID || !script) return;
 
@@ -745,6 +431,47 @@ function RehearsalRoomContent() {
       ...prev,
       [index]: status,
     }));
+  };
+
+  // -------- Control Panel -------- //
+  // Light and dark mode toggle
+  const toggleTheme = () => {
+    setIsDarkMode((prev) => {
+      const newTheme = !prev;
+      localStorage.setItem("rehearsal-theme", newTheme ? "dark" : "light");
+      return newTheme;
+    });
+  };
+
+  // Helper for classnames
+  const getThemeClass = (lightClass: string, darkClass: string) => {
+    return isDarkMode ? darkClass : lightClass;
+  };
+
+  // Fullscreen mode
+  const toggleFullscreen = async () => {
+    if (!document.fullscreenElement) {
+      // Enter fullscreen with just the content area
+      try {
+        if (contentAreaRef.current) {
+          await contentAreaRef.current.requestFullscreen();
+        }
+      } catch (err) {
+        console.error("Error entering fullscreen:", err);
+        showToast({
+          header: "Fullscreen not available",
+          line1: "Your browser doesn't support fullscreen mode",
+          type: "warning",
+        });
+      }
+    } else {
+      // Exit fullscreen
+      try {
+        await document.exitFullscreen();
+      } catch (err) {
+        console.error("Error exiting fullscreen:", err);
+      }
+    }
   };
 
   // Update role selections
@@ -818,6 +545,7 @@ function RehearsalRoomContent() {
     }
   };
 
+  // -------- Script Handling -------- //
   // Update script line
   const COMMON_WORDS = new Set([
     "the",
@@ -1122,19 +850,7 @@ function RehearsalRoomContent() {
   // Handle script flow
   const current = script?.find((el) => el.index === currentIndex) ?? null;
 
-  // May not be needed anymore
-  // const isScriptFullyHydrated = useMemo(() => {
-  // 	return script?.every((el) => {
-  // 		if (el.type !== 'line') return true;
-
-  // 		const hydratedEmbedding = Array.isArray(el.expectedEmbedding) && el.expectedEmbedding.length > 0;
-  // 		const hydratedTTS = typeof el.ttsUrl === 'string' && el.ttsUrl.length > 0;
-  // 		const ttsReady = (ttsHydrationStatus[el.index] ?? 'pending') === 'ready';
-
-  // 		return hydratedEmbedding && hydratedTTS && ttsReady;
-  // 	}) ?? false;
-  // }, [script, ttsHydrationStatus]);
-
+  // Prepare user line for Matcher in useSTT hook for line highlighting
   const prepareUserLine = (line: ScriptElement | undefined | null) => {
     if (
       line?.type === "line" &&
@@ -1334,7 +1050,13 @@ function RehearsalRoomContent() {
       setCountdownDuration(0);
 
       const nextIndex = currentIndex + 1;
-      const endOfScript = nextIndex >= customEndIndex;
+      const scriptEndIndex = script?.length ?? 0;
+
+      // Allow continuation if the user has moved beyond the customEndIndex
+      const effectiveEndIndex =
+        currentIndex > (customEndIndex - 1) ? scriptEndIndex : customEndIndex;
+
+      const endOfScript = nextIndex >= effectiveEndIndex;
 
       if (endOfScript) {
         console.log("🎬 Rehearsal complete — cleaning up STT");
@@ -1507,7 +1229,13 @@ function RehearsalRoomContent() {
 
       setCurrentIndex((i) => {
         const nextIndex = i + 1;
-        const endOfScript = nextIndex >= customEndIndex;
+        const scriptEndIndex = script?.length ?? 0;
+
+        // Allow continuation if the user has moved beyond the customEndIndex
+        const effectiveEndIndex =
+          currentIndex > (customEndIndex - 1) ? scriptEndIndex : customEndIndex;
+
+        const endOfScript = nextIndex >= effectiveEndIndex;
 
         if (endOfScript) {
           console.log("🎬 User finished final line — cleaning up STT");
@@ -1722,8 +1450,7 @@ function RehearsalRoomContent() {
 
   const normalizeBracketSpaces = (s: string) => s.replace(/\](?!\s|$)/g, "] ");
 
-  // Drag and drop setup
-  // Handle drag start
+  // -------- Drag and drop -------- //
   const handleDragStart = (
     type: "start" | "end",
     e: React.MouseEvent<Element>
@@ -1875,48 +1602,7 @@ function RehearsalRoomContent() {
     currentIndex,
   ]);
 
-  // // Helper function to parse text and convert [word] to button elements
-  // const parseTextWithButtons = (text: string) => {
-  //     // Ensure there's always a space after a closing bracket if missing
-  //     // text = text.replace(/\](?!\s)/g, "] ");
-
-  //     const parts = [];
-  //     const regex = /\[([^\]]+)\]/g;
-  //     let lastIndex = 0;
-  //     let match;
-
-  //     while ((match = regex.exec(text)) !== null) {
-  //         // Add text before the match
-  //         if (match.index > lastIndex) {
-  //             parts.push(text.slice(lastIndex, match.index));
-  //         }
-
-  //         // Add the button for the bracketed word
-  //         const buttonText = match[1];
-  //         parts.push(
-  //             <button
-  //                 key={`btn-${match.index}-${buttonText}`}
-  //                 onClick={(e) => {
-  //                     e.stopPropagation();
-  //                 }}
-  //                 className="inline-flex items-center px-2 py-0 mx-0 rounded-sm"
-  //                 style={{ background: '#b8b3d7', color: '#333333', fontWeight: '500' }}
-  //             >
-  //                 {buttonText}
-  //             </button>
-  //         );
-
-  //         lastIndex = regex.lastIndex;
-  //     }
-
-  //     // Add remaining text
-  //     if (lastIndex < text.length) {
-  //         parts.push(text.slice(lastIndex));
-  //     }
-
-  //     return parts.length > 0 ? parts : [text];
-  // };
-
+  // -------- Script Display -------- //
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const renderScriptElement = (element: ScriptElement, index: number) => {
     const isCurrent = element.index === currentIndex;
