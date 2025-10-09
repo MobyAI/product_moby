@@ -53,6 +53,8 @@ import {
   Clapperboard,
   UserRound,
   GripVertical,
+  ArrowBigRight,
+  ArrowBigLeft,
 } from "lucide-react";
 import * as Sentry from "@sentry/nextjs";
 import { useQueryClient } from "@tanstack/react-query";
@@ -61,6 +63,8 @@ interface DragState {
   type: "start" | "end";
   mouseX: number;
   mouseY: number;
+  offsetX: number;
+  offsetY: number;
 }
 
 interface Position {
@@ -114,40 +118,76 @@ const RangeMarker: React.FC<RangeMarkerProps> = ({
     onDragStart(type, e);
   };
 
-  return (
-    <div
-      className={`absolute z-50 ${
-        isStart
-          ? "top-5 -translate-y-1/2 -left-24" // START: top left
-          : "bottom-14 translate-y-full -right-22" // END: bottom right
-      }`}
-    >
+  if (type === "start")
+    return (
       <div
-        onMouseDown={handleMouseDown}
-        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold shadow-lg cursor-move select-none
+        className={`absolute z-50 ${
+          isStart
+            ? "top-5 -translate-y-1/2 -left-24" // START: top left
+            : "bottom-14 translate-y-full -right-22" // END: bottom right
+        }`}
+      >
+        <div
+          onMouseDown={handleMouseDown}
+          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold shadow-lg cursor-move select-none
           ${
             isStart
               ? "bg-green-500 hover:bg-green-600 text-white"
               : "bg-red-500 hover:bg-red-600 text-white"
           } ${isDragging ? "opacity-30" : ""}`}
-      >
-        <GripVertical className="w-3 h-3" />
-        {type.toUpperCase()}
+        >
+          {type.toUpperCase()}
+          <ArrowBigRight className="w-4 h-4" />
+        </div>
       </div>
-    </div>
-  );
+    );
+
+  if (type === "end")
+    return (
+      <div
+        className={`absolute z-50 ${
+          isStart
+            ? "top-5 -translate-y-1/2 -left-24" // START: top left
+            : "bottom-14 translate-y-full -right-22" // END: bottom right
+        }`}
+      >
+        <div
+          onMouseDown={handleMouseDown}
+          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold shadow-lg cursor-move select-none
+          ${
+            isStart
+              ? "bg-green-500 hover:bg-green-600 text-white"
+              : "bg-red-500 hover:bg-red-600 text-white"
+          } ${isDragging ? "opacity-30" : ""}`}
+        >
+          <ArrowBigLeft className="w-4 h-4" />
+          {type.toUpperCase()}
+        </div>
+      </div>
+    );
 };
 
 // Drop Zone Component
 const StartDropZone = React.forwardRef<HTMLDivElement, DropZoneProps>(
-  ({ index, isPlaying, dragging, hoveredDropZone, customEndIndex, customStartIndex }, ref) => {
+  (
+    {
+      index,
+      isPlaying,
+      dragging,
+      hoveredDropZone,
+      customEndIndex,
+      customStartIndex,
+    },
+    ref
+  ) => {
     const isActive = !isPlaying;
     const isDraggingStart = dragging && dragging.type === "start";
     const isHovered = hoveredDropZone === index && isDraggingStart;
     const isValidForStart = index < customEndIndex;
     const isCurrentPosition = index === customStartIndex;
 
-    if (!isActive || !isDraggingStart || !isValidForStart || isCurrentPosition) return null;
+    if (!isActive || !isDraggingStart || !isValidForStart || isCurrentPosition)
+      return null;
 
     return (
       <div
@@ -185,7 +225,17 @@ const StartDropZone = React.forwardRef<HTMLDivElement, DropZoneProps>(
 );
 
 const EndDropZone = React.forwardRef<HTMLDivElement, DropZoneProps>(
-  ({ index, isPlaying, dragging, hoveredDropZone, customStartIndex, customEndIndex }, ref) => {
+  (
+    {
+      index,
+      isPlaying,
+      dragging,
+      hoveredDropZone,
+      customStartIndex,
+      customEndIndex,
+    },
+    ref
+  ) => {
     const isActive = !isPlaying;
     const isDraggingEnd = dragging && dragging.type === "end";
     const isHovered = hoveredDropZone === index && isDraggingEnd;
@@ -193,7 +243,8 @@ const EndDropZone = React.forwardRef<HTMLDivElement, DropZoneProps>(
     const isCurrentPosition = index === customEndIndex - 1;
 
     // Only show when not playing and dragging end marker
-    if (!isActive || !isDraggingEnd || !isValidForEnd || isCurrentPosition) return null;
+    if (!isActive || !isDraggingEnd || !isValidForEnd || isCurrentPosition)
+      return null;
 
     return (
       <div
@@ -237,27 +288,52 @@ const DraggedMarker: React.FC<DraggedMarkerProps> = ({
 }) => {
   if (!dragging) return null;
 
-  return (
-    <div
-      className="fixed pointer-events-none z-[100]"
-      style={{
-        left: dragPosition.x - 40,
-        top: dragPosition.y - 15,
-      }}
-    >
+  const width = 80; // your pill width (px)
+  const height = 30; // approximate height (px)
+  const centerX = width / 2;
+  const centerY = height / 2;
+
+  if (dragging.type === "start")
+    return (
       <div
-        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold shadow-xl
-        ${
-          dragging.type === "start"
-            ? "bg-green-500 text-white"
-            : "bg-red-500 text-white"
-        }`}
+        className="fixed pointer-events-none z-[100]"
+        style={{
+          // Subtract both the fixed visual center AND the mouse offset
+          left: dragPosition.x - centerX - dragging.offsetX - 1,
+          top: dragPosition.y - centerY - dragging.offsetY - 5,
+        }}
       >
-        <GripVertical className="w-3 h-3" />
-        {dragging.type.toUpperCase()}
+        <div
+          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold shadow-xl ${
+            dragging.type === "start"
+              ? "bg-green-500 text-white"
+              : "bg-red-500 text-white"
+          }`}
+        >
+          {dragging.type.toUpperCase()}
+          <ArrowBigRight className="w-4 h-4" />
+        </div>
       </div>
-    </div>
-  );
+    );
+
+  if (dragging.type === "end")
+    return (
+      <div
+        className="fixed pointer-events-none z-[100]"
+        style={{
+          // Subtract both the fixed visual center AND the mouse offset
+          left: dragPosition.x - centerX - dragging.offsetX + 5,
+          top: dragPosition.y - centerY - dragging.offsetY - 2,
+        }}
+      >
+        <div
+          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold shadow-xl bg-red-500 text-white`}
+        >
+          <ArrowBigLeft className="w-4 h-4" />
+          {dragging.type.toUpperCase()}
+        </div>
+      </div>
+    );
 };
 
 function RehearsalRoomContent() {
@@ -1648,10 +1724,25 @@ function RehearsalRoomContent() {
 
   // Drag and drop setup
   // Handle drag start
-  const handleDragStart = (type: "start" | "end", e: React.MouseEvent) => {
-    if (isPlaying) return null;
+  const handleDragStart = (
+    type: "start" | "end",
+    e: React.MouseEvent<Element>
+  ) => {
+    if (isPlaying) return;
 
-    setDragging({ type, mouseX: e.clientX, mouseY: e.clientY });
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const offsetX = e.clientX - (rect.left + rect.width / 2);
+    const offsetY = e.clientY - (rect.top + rect.height / 2);
+
+    setDragging({
+      type,
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      offsetX,
+      offsetY,
+    });
+
     setDragPosition({ x: e.clientX, y: e.clientY });
   };
 
@@ -1664,13 +1755,63 @@ function RehearsalRoomContent() {
   useEffect(() => {
     if (!dragging) return;
 
+    const SCROLL_EDGE_THRESHOLD = 100; // px from top/bottom edges
+    const SCROLL_SPEED = 20; // px per tick
+    let scrollInterval: number | null = null;
+
     const handleMouseMove = (e: MouseEvent) => {
-      setDragPosition({ x: e.clientX, y: e.clientY });
+      setDragPosition((prev) => ({
+        x: prev.x, // keep original horizontal position fixed
+        y: e.clientY, // allow vertical motion only
+      }));
 
-      // Check which drop zone we're over based on what's being dragged
+      // ---- Auto-scroll within scrollable div ----
+      const scrollContainer = document.querySelector(
+        ".overflow-y-auto.hide-scrollbar"
+      ) as HTMLElement | null;
+
+      if (scrollContainer) {
+        const rect = scrollContainer.getBoundingClientRect();
+        const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+
+        const distanceFromTop = e.clientY - rect.top;
+        const distanceFromBottom = rect.bottom - e.clientY;
+
+        // Start scrolling up
+        if (distanceFromTop < SCROLL_EDGE_THRESHOLD && scrollTop > 0) {
+          if (!scrollInterval) {
+            scrollInterval = window.setInterval(() => {
+              scrollContainer.scrollTop = Math.max(
+                0,
+                scrollContainer.scrollTop - SCROLL_SPEED
+              );
+            }, 16); // roughly 60fps
+          }
+        }
+        // Start scrolling down
+        else if (
+          distanceFromBottom < SCROLL_EDGE_THRESHOLD &&
+          scrollTop + clientHeight < scrollHeight
+        ) {
+          if (!scrollInterval) {
+            scrollInterval = window.setInterval(() => {
+              scrollContainer.scrollTop = Math.min(
+                scrollHeight - clientHeight,
+                scrollContainer.scrollTop + SCROLL_SPEED
+              );
+            }, 16);
+          }
+        } else {
+          // Stop scrolling if not near edges
+          if (scrollInterval) {
+            clearInterval(scrollInterval);
+            scrollInterval = null;
+          }
+        }
+      }
+
+      // ---- Drop zone detection logic ----
       let foundZone: number | null = null;
-
-      // Use the correct ref array based on what's being dragged
       const refs =
         dragging.type === "start" ? startDropZoneRefs : endDropZoneRefs;
 
@@ -1683,7 +1824,6 @@ function RehearsalRoomContent() {
             e.clientY >= rect.top &&
             e.clientY <= rect.bottom
           ) {
-            // Validate drop position
             if (dragging.type === "start" && index < customEndIndex) {
               foundZone = index;
             } else if (dragging.type === "end" && index > customStartIndex) {
@@ -1696,23 +1836,25 @@ function RehearsalRoomContent() {
     };
 
     const handleMouseUp = () => {
+      if (scrollInterval) {
+        clearInterval(scrollInterval);
+        scrollInterval = null;
+      }
+
       if (hoveredDropZone !== null) {
         if (dragging.type === "start") {
           setCustomStartIndex(hoveredDropZone);
-          // Adjust current index if needed
           if (currentIndex < hoveredDropZone) {
             setCurrentIndex(hoveredDropZone);
           }
         } else if (dragging.type === "end") {
-          // For end marker, if dropping on an element, the end should be AFTER that element
-          // So we add 1 to include the element in the range
           setCustomEndIndex(hoveredDropZone + 1);
-          // Adjust current index if needed
           if (currentIndex > hoveredDropZone) {
             setCurrentIndex(Math.max(hoveredDropZone, customStartIndex));
           }
         }
       }
+
       setDragging(null);
       setHoveredDropZone(null);
     };
@@ -1721,6 +1863,7 @@ function RehearsalRoomContent() {
     document.addEventListener("mouseup", handleMouseUp);
 
     return () => {
+      if (scrollInterval) clearInterval(scrollInterval);
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
