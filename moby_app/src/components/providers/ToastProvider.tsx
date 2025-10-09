@@ -45,7 +45,7 @@ function toneClasses(type: ToastType) {
                 bg: "bg-green-500/20",
                 border: "border-green-500/50",
                 icon: "bg-green-500 text-white",
-                text: "text-white",
+                text: "text-green-600",
                 aria: "polite" as const,
             };
         case "danger":
@@ -53,7 +53,7 @@ function toneClasses(type: ToastType) {
                 bg: "bg-red-500/20",
                 border: "border-red-500/50",
                 icon: "bg-red-500 text-white",
-                text: "text-white",
+                text: "text-red-600",
                 aria: "assertive" as const,
             };
         case "warning":
@@ -61,7 +61,7 @@ function toneClasses(type: ToastType) {
                 bg: "bg-yellow-500/20",
                 border: "border-yellow-500/50",
                 icon: "bg-yellow-500 text-white",
-                text: "text-white",
+                text: "text-yellow-600",
                 aria: "assertive" as const,
             };
         default:
@@ -69,7 +69,7 @@ function toneClasses(type: ToastType) {
                 bg: "bg-zinc-500/20",
                 border: "border-zinc-500/50",
                 icon: "bg-zinc-500 text-white",
-                text: "text-white",
+                text: "text-zinc-600",
                 aria: "polite" as const,
             };
     }
@@ -181,12 +181,12 @@ function ToastViewport({
 
                 {/* Content */}
                 <div className="flex-1 px-4 py-4 mr-10">
-                    <div className="text-lg text-white font-bold tracking-tight whitespace-nowrap">{toast.header}</div>
+                    <div className={`text-lg ${tone.text} font-bold tracking-tight whitespace-nowrap`}>{toast.header}</div>
                     {toast.line1 && (
-                        <div className="mt-0.5 text-sm text-gray-50 font-medium whitespace-nowrap">{toast.line1}</div>
+                        <div className={`mt-0.5 text-sm ${tone.text} font-medium whitespace-nowrap`}>{toast.line1}</div>
                     )}
                     {toast.line2 && (
-                        <div className="mt-0.5 text-sm text-gray-50 font-medium whitespace-nowrap">{toast.line2}</div>
+                        <div className={`mt-0.5 text-sm ${tone.text} font-medium whitespace-nowrap`}>{toast.line2}</div>
                     )}
                 </div>
 
