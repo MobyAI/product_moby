@@ -42,7 +42,7 @@ export default function NavBar() {
 
     // State to control when to show expanded content
     const [showExpandedContent, setShowExpandedContent] = useState(!isCollapsed);
-    const [logoText, setLogoText] = useState(isCollapsed ? "" : "playr");
+    const [logoText, setLogoText] = useState(isCollapsed ? "" : "tableread");
 
     useEffect(() => {
         if (isCollapsed) {
@@ -55,7 +55,7 @@ export default function NavBar() {
                 setShowExpandedContent(true);
 
                 // Typewriter effect for logo
-                const text = "playr";
+                const text = "tableread";
                 let currentIndex = 0;
 
                 const typeTimer = setInterval(() => {
@@ -95,7 +95,7 @@ export default function NavBar() {
             <aside
                 className={[
                     "fixed left-4 top-1/2 -translate-y-1/2 z-50",
-                    `h-[95vh] text-white`,
+                    `h-[100vh] text-white`,
                     "flex flex-col justify-between py-4",
                     "transition-all duration-300 ease-in-out",
                 ].join(" ")}
@@ -108,12 +108,9 @@ export default function NavBar() {
                 <div>
                     {/* Logo with typewriter effect */}
                     {!isCollapsed ? (
-                        <h1 className="text-4xl pb-[25px] ml-2 font-poppins font-bold">
-                            <span className="text-white">
-                                {logoText.slice(0, 4)}
-                            </span>
-                            <span className="text-accent">
-                                {logoText.slice(4)}
+                        <h1 className="text-logo text-black pb-[100px] ml-4 mt-0">
+                            <span>
+                                {logoText}
                             </span>
                             {/* Blinking cursor during typing */}
                             {logoText.length < 5 && (
@@ -122,7 +119,7 @@ export default function NavBar() {
                         </h1>
                     ) : (
                         <h1 className="text-4xl text-center border-b border-white/40 pb-[25px]">
-                            <span className="font-poppins font-bold text-white">p.</span>
+                            <span className="text-logo text-black">tr</span>
                         </h1>
                     )}
 
@@ -142,20 +139,20 @@ export default function NavBar() {
                                         "group relative flex items-center gap-3 rounded-xl transition-colors",
                                         "w-full",
                                         isCollapsed ? "justify-center px-2 py-3" : "px-2 py-3",
-                                        active ? "bg-btn-primary" : "hover:bg-white/10"
+                                        active ? "bg-primary-dark-alt" : "hover:bg-black/10"
                                     ].join(" ")}
                                 >
                                     {/* Icon */}
                                     <Icon className={[
                                         "h-6 w-6 flex-shrink-0",
-                                        active ? "text-white" : "text-white/80 group-hover:text-white"
+                                        active ? "text-primary-light" : "text-black/80 group-hover:text-black"
                                     ].join(" ")} />
 
                                     {/* Label - only show when expanded */}
                                     {!isCollapsed && (
                                         <span className={[
                                             "font-medium text-lg transition-opacity duration-150",
-                                            active ? "text-white" : "text-white",
+                                            active ? "text-primary-light" : "text-black",
                                             showExpandedContent ? "opacity-100" : "opacity-0"
                                         ].join(" ")}>
                                             {label}
@@ -170,25 +167,25 @@ export default function NavBar() {
                 {/* Bottom */}
                 <div>
                     {/* Profile */}
-                    <div className="border-t border-white/40 py-3">
+                    <div className="py-0">
                         <Link
                             href="/profile"
                             className={[
-                                "flex items-center gap-3 w-full",
-                                isCollapsed ? "justify-center my-3" : "my-6 pr-2"
+                                "flex items-center bg-white/90 p-2 rounded-[10px]",
+                                isCollapsed ? "justify-center my-3" : "justify-start"
                             ].join(" ")}
                             title="Profile"
                             aria-label="Profile"
                         >
                             {/* Avatar */}
-                            <div className="h-11 w-11 overflow-hidden rounded-full ring-1 ring-white/20 flex-shrink-0">
+                            <div className="mr-4 h-15 w-15 overflow-hidden rounded-[10px] ring-1 ring-white/20 flex-shrink-0">
                                 {profileSrc ? (
                                     <Image
                                         src={profileSrc}
                                         alt="Profile"
                                         priority
-                                        width={44}
-                                        height={44}
+                                        width={50}
+                                        height={50}
                                         className="h-full w-full object-cover"
                                     />
                                 ) : (
@@ -202,18 +199,15 @@ export default function NavBar() {
                                     "flex flex-col min-w-0 transition-opacity duration-150",
                                     showExpandedContent ? "opacity-100" : "opacity-0"
                                 ].join(" ")}>
-                                    <span className="font-medium text-white truncate">
+                                    <span className="font-semibold text-black truncate">
                                         {profileDisplayName}
-                                    </span>
-                                    <span className="text-sm text-white/70 truncate">
-                                        {profileEmail}
                                     </span>
                                 </div>
                             )}
                         </Link>
 
                         {/* Logout */}
-                        <button
+                        {false && <button
                             type="button"
                             onClick={onLogout}
                             className={[
@@ -240,7 +234,7 @@ export default function NavBar() {
                                     Logout
                                 </span>
                             )}
-                        </button>
+                        </button>}
                     </div>
                 </div>
             </aside>
@@ -251,7 +245,7 @@ export default function NavBar() {
                 className={[
                     "fixed top-1/2 -translate-y-1/2 z-50",
                     "h-10 w-10 rounded-full",
-                    "bg-btn-primary",
+                    "bg-primary-dark-alt",
                     "border border-white/10 shadow-lg",
                     "flex items-center justify-center",
                     "transition-all duration-300 ease-in-out",
@@ -265,7 +259,7 @@ export default function NavBar() {
             >
                 <ChevronRight
                     className={[
-                        "h-5 w-5 text-white",
+                        "h-5 w-5 text-primary-light",
                         "transition-transform duration-300",
                         "group-hover:scale-110",
                         isCollapsed ? "rotate-0" : "rotate-180"

@@ -6,18 +6,10 @@ import AuthShell from "@/components/layouts/AuthShell";
 import NavBarShell from "@/components/layouts/NavBarShell";
 import { ToastProvider } from "@/components/providers/ToastProvider";
 
-export default function DashboardLayout({
-    children
-}: {
-    children: ReactNode
-}) {
-    return (
-        <AuthShell>
-            <NavBarShell>
-                <ToastProvider>
-                    {children}
-                </ToastProvider>
-            </NavBarShell>
-        </AuthShell>
-    );
+export default function DashboardLayout({ children }: { children: ReactNode }) {
+  return (
+    <AuthShell>
+      <ToastProvider>{children}</ToastProvider>
+    </AuthShell>
+  );
 }

@@ -28,7 +28,7 @@ export function Button({
 	}[size];
 
 	// Base styles with 3D effect
-	const baseStyles = "font-medium rounded-full transition-all inline-flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden transform hover:scale-105 active:scale-95";
+	const baseStyles = "font-medium rounded-[10px] transition-all inline-flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden transform hover:scale-105 active:scale-95";
 
 	// 3D shadow styles
 	const shadowStyles = "shadow-lg hover:shadow-xl";
@@ -41,7 +41,7 @@ export function Button({
 				shadowStyles,
 				{
 					// Primary with gradient overlay
-					"bg-btn-primary text-white before:absolute before:inset-0 before:bg-gradient-to-t before:from-white/20 before:to-transparent before:pointer-events-none hover:bg-btn-primary-hover": variant === "primary",
+					"bg-primary-dark-alt text-primary-light before:absolute before:inset-0 before:bg-gradient-to-t before:from-white/20 before:to-transparent before:pointer-events-none hover:bg-btn-primary-hover": variant === "primary",
 
 					// Secondary with gradient overlay
 					"bg-btn-secondary text-white before:absolute before:inset-0 before:bg-gradient-to-t before:from-white/20 before:to-transparent before:pointer-events-none hover:bg-btn-secondary-hover": variant === "secondary",
@@ -53,7 +53,7 @@ export function Button({
 					"bg-red-600 text-white before:absolute before:inset-0 before:bg-gradient-to-t before:from-white/20 before:to-transparent before:pointer-events-none hover:bg-red-700": variant === "danger",
 
 					// Ghost (no 3D effect)
-					"bg-transparent hover:bg-red-500/20 text-white/80 hover:text-white shadow-none": variant === "ghost",
+					"bg-gray-300/60 hover:bg-gray-300 text-white/80 hover:text-white shadow-none": variant === "ghost",
 
 					// Size styles
 					"px-4 py-2 text-sm": size === "sm" && !iconOnly,
@@ -75,7 +75,7 @@ export function Button({
 			}}
 			{...props}
 		>
-			<span className="relative z-10 flex items-center gap-2">
+			<span className="relative z-10 flex items-center gap-2 font-semibold">
 				{Icon && iconPosition === "left" && (
 					<Icon className={iconSize} aria-hidden="true" />
 				)}

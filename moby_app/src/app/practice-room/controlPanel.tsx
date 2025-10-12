@@ -55,7 +55,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     <div className="flex h-screen bg-[#f5f7fb] relative">
       {/* Left Navigation Bar - Always visible */}
       <div className="w-20 bg-[#f5f7fb] border-r border-gray-200 flex flex-col items-center py-4 space-y-6 z-20">
-        <div className="text-2xl font-bold text-[#363c54] cursor-default">
+        <div className="text-logo text-[#363c54] cursor-default">
           tr
         </div>
 

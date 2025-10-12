@@ -1,15 +1,11 @@
-import { Metadata } from 'next';
-import AuditionHistory from '@/components/auditions/AuditionHistory';
+import { Metadata } from "next";
+import TrackerClient from "./TrackerClient";
 
 export const metadata: Metadata = {
-    title: "Audition Tracker - Playr",
-    description: "Track and manage your audition history",
+  title: "Audition Tracker - Playr",
+  description: "Track and manage your audition history",
 };
 
 export default function TrackerPage() {
-    return (
-        <>
-            <AuditionHistory />
-        </>
-    )
+  return <TrackerClient />;
 }
