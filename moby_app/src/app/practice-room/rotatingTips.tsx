@@ -91,7 +91,7 @@ const LoadingTips: React.FC<LoadingTipsProps> = ({ isLoading = true }) => {
             {
                 content: (
                     <span>
-                        Hang tight, we're almost done!
+                        {"Hang tight, we're almost done!"}
                     </span>
                 ),
                 duration: Infinity,

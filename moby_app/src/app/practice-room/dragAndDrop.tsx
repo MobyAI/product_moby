@@ -101,6 +101,7 @@ export const StartDropZone = React.forwardRef<HTMLDivElement, DropZoneProps>(
     );
   }
 );
+StartDropZone.displayName = "StartDropZone";
 
 export const EndDropZone = React.forwardRef<HTMLDivElement, DropZoneProps>(
   ({ index, isPlaying, dragging, hoveredDropZone, customStartIndex }, ref) => {
@@ -140,6 +141,7 @@ export const EndDropZone = React.forwardRef<HTMLDivElement, DropZoneProps>(
     );
   }
 );
+EndDropZone.displayName = "EndDropZone";
 
 // --- Floating Drag Marker ---
 export const DraggedMarker = React.forwardRef<
@@ -186,3 +188,4 @@ export const DraggedMarker = React.forwardRef<
     </div>
   );
 });
+DraggedMarker.displayName = "DraggedMarker";

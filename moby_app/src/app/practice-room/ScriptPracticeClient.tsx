@@ -34,14 +34,9 @@ import {
 } from "./dragAndDrop";
 import { DragState, Position } from "@/types/dragAndDrop";
 import { restoreSession, saveSession } from "./session";
-import { clear, set } from "idb-keyval";
+import { set } from "idb-keyval";
 import { LoadingScreen } from "@/components/ui";
-import {
-  Button,
-  MicCheckModal,
-  DelaySelector,
-  CountdownTimer,
-} from "@/components/ui";
+import { MicCheckModal, DelaySelector, CountdownTimer } from "@/components/ui";
 import { useAuthUser } from "@/components/providers/UserProvider";
 import { useToast } from "@/components/providers/ToastProvider";
 import {
@@ -50,9 +45,7 @@ import {
   SkipBack,
   SkipForward,
   RotateCcw,
-  Undo2,
   Pencil,
-  ChevronDown,
   RefreshCw,
   AlertCircle,
   Bot,
@@ -106,7 +99,6 @@ function RehearsalRoomContent() {
     number | null
   >(null);
   const [isUpdatingLine, setIsUpdatingLine] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [sttProvider, setSttProvider] = useState<"google" | "deepgram">(
     "deepgram"
@@ -133,6 +125,7 @@ function RehearsalRoomContent() {
   const [isFinished, setIsFinished] = useState(false);
 
   // Error handling
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [storageError, setStorageError] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [embeddingError, setEmbeddingError] = useState(false);
@@ -383,6 +376,7 @@ function RehearsalRoomContent() {
     return () => clearTimeout(timeout);
   }, [currentIndex, scriptID, isDarkMode, customStartIndex, customEndIndex]);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const retryLoadScript = async () => {
     if (!userID || !scriptID || !script) return;
 
@@ -1397,8 +1391,8 @@ function RehearsalRoomContent() {
         });
         handlePause();
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [showToast]
   );
 
@@ -1651,6 +1645,7 @@ function RehearsalRoomContent() {
             {shouldShowDropZone && (
               <>
                 <StartDropZone
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   ref={(el: any) => {
                     startDropZoneRefs.current[element.index] = el;
                   }}
@@ -1664,6 +1659,7 @@ function RehearsalRoomContent() {
                   isDraggingMarker={isDraggingMarker}
                 />
                 <EndDropZone
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   ref={(el: any) => {
                     endDropZoneRefs.current[element.index] = el;
                   }}
@@ -1749,6 +1745,7 @@ function RehearsalRoomContent() {
             {shouldShowDropZone && (
               <>
                 <StartDropZone
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   ref={(el: any) => {
                     startDropZoneRefs.current[element.index] = el;
                   }}
@@ -1762,6 +1759,7 @@ function RehearsalRoomContent() {
                   isDraggingMarker={isDraggingMarker}
                 />
                 <EndDropZone
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   ref={(el: any) => {
                     endDropZoneRefs.current[element.index] = el;
                   }}
@@ -1880,6 +1878,7 @@ function RehearsalRoomContent() {
             {shouldShowDropZone && (
               <>
                 <StartDropZone
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   ref={(el: any) => {
                     startDropZoneRefs.current[element.index] = el;
                   }}
@@ -1893,6 +1892,7 @@ function RehearsalRoomContent() {
                   isDraggingMarker={isDraggingMarker}
                 />
                 <EndDropZone
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   ref={(el: any) => {
                     endDropZoneRefs.current[element.index] = el;
                   }}
@@ -2329,6 +2329,7 @@ function RehearsalRoomContent() {
                   {!isPlaying && (
                     <>
                       <StartDropZone
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         ref={(el: any) => {
                           startDropZoneRefs.current[script.length] = el;
                         }}
@@ -2342,6 +2343,7 @@ function RehearsalRoomContent() {
                         isDraggingMarker={isDraggingMarker}
                       />
                       <EndDropZone
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         ref={(el: any) => {
                           endDropZoneRefs.current[script.length] = el;
                         }}

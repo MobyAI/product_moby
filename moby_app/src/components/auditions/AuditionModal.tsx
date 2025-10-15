@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, JSX } from "react";
+import React, { useEffect, useState, JSX } from "react";
 import { X } from "lucide-react";
 
 interface AuditionModalProps {

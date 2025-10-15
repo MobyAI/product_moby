@@ -53,9 +53,6 @@ function ScriptsListContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Search results
-  const [filteredScripts, setFilteredScripts] = useState<ScriptData[]>([]);
-
   // TanStack Query for fetching scripts
   const queryClient = useQueryClient();
   const {

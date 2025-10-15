@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
     // Exclude STT servers from webpack processing
     config.watchOptions = {
       ...config.watchOptions,
-      ignored: ['**/google-server/**', '**/deepgram-server/**'],
+      ignored: ['**/google-server/**', '**/deepgram-server/**', '**/deprecated/**'],
     };
 
     return config;

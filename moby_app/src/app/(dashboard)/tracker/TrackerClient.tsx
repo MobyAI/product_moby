@@ -40,7 +40,6 @@ import {
   LoadingScreen,
   Button,
   DashboardLayout,
-  Header,
 } from "@/components/ui";
 import AuditionModal from "@/components/auditions/AuditionModal";
 import { flushSync } from "react-dom";

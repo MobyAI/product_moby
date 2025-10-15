@@ -194,6 +194,7 @@ export default function ScriptUploadModal({
   } | null>(null);
 
   // Processing State
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [processingStage, setProcessingStage] = useState<{
     message: string;
     isComplete: boolean;
@@ -699,6 +700,7 @@ export default function ScriptUploadModal({
           it?.type === "line" &&
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (!Array.isArray((it as any).lineEndKeywords) ||
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (it as any).lineEndKeywords.length === 0)
       );
 
