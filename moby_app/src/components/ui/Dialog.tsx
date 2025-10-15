@@ -158,14 +158,14 @@ export default function Dialog({
     >
       {/* Overlay */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-xl transition-opacity"
+        className="fixed inset-0 bg-black/50 transition-opacity"
         onClick={onClose}
       />
 
       {/* Dialog panel */}
       <div
         ref={dialogRef}
-        className="relative z-10 transform overflow-hidden rounded-xl bg-[#e1ddcf] py-2 px-4 text-left transition-all animate-fadeIn"
+        className="relative z-10 transform overflow-hidden rounded-xl bg-[#e1ddcf] py-4 px-4 text-left max-w-md transition-all animate-fadeIn"
       >
         {/* Close button */}
         {showCloseButton && (
@@ -183,7 +183,7 @@ export default function Dialog({
         )}
 
         {/* Content */}
-        <div className="relative px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+        <div className="relative px-4 pb-4 pt-5">
           <div className="sm:flex sm:items-start">
             <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
               <h3
@@ -205,11 +205,11 @@ export default function Dialog({
         </div>
 
         {/* Buttons */}
-        <div className="relative py-4 sm:flex sm:px-6 space-x-2">
+        <div className="relative flex items-center justify-end gap-2">
           <button
             type="button"
             disabled={isLoading}
-            className={`inline-flex w-full justify-center rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm ${config.confirmBtnClass} sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`inline-flex justify-center rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm ${config.confirmBtnClass} sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed`}
             onClick={handlePrimaryAction}
           >
             {isLoading ? (
@@ -245,7 +245,7 @@ export default function Dialog({
             <button
               type="button"
               disabled={isLoading}
-              className="mt-3 inline-flex w-full justify-center rounded-lg bg-white/50 px-4 py-2.5 text-sm font-medium text-primary-dark shadow-sm hover:bg-white/20 hover:text-gray-400 sm:mt-0 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none transition-colors"
+              className="inline-flex justify-center rounded-lg bg-white/50 px-4 py-2.5 text-sm font-medium text-primary-dark shadow-sm hover:bg-white/20 hover:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none transition-colors"
               onClick={onClose}
             >
               {cancelText}

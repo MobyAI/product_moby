@@ -10,6 +10,7 @@ import {
   User,
   ArrowRightToLine,
   LayoutDashboard,
+  CircleQuestionMark,
 } from "lucide-react";
 import { handleLogout } from "@/lib/api/auth";
 import { auth } from "@/lib/firebase/client/config/app";
@@ -185,6 +186,70 @@ export default function NavBar() {
 
         {/* Bottom Section - Profile Pill */}
         <div className={[isCollapsed ? "px-2" : "px-3", "w-full"].join(" ")}>
+          {/* Docs Button */}
+          <button
+            type="button"
+            onClick={() => console.log("Go to documentation")}
+            className={[
+              "group relative flex items-center gap-3 rounded-xl transition-colors",
+              "w-full mb-0",
+              isCollapsed ? "justify-center px-2 py-2" : "px-3 py-2",
+              "hover:bg-black/5 hover:cursor-pointer",
+            ].join(" ")}
+            title="Log out"
+            aria-label="Log out"
+          >
+            <CircleQuestionMark
+              className={[
+                "h-5 w-5 flex-shrink-0",
+                "text-black/60",
+              ].join(" ")}
+            />
+            {/* Label - only show when expanded */}
+            {!isCollapsed && (
+              <span
+                className={[
+                  "font-medium text-sm text-black/80 transition-opacity duration-150",
+                  showExpandedContent ? "opacity-100" : "opacity-0",
+                ].join(" ")}
+              >
+                Docs
+              </span>
+            )}
+          </button>
+
+          {/* Logout Button - Hidden by default as per your code */}
+          <button
+            type="button"
+            onClick={onLogout}
+            className={[
+              "group relative flex items-center gap-3 rounded-xl transition-colors",
+              "w-full mb-3",
+              isCollapsed ? "justify-center px-2 py-2" : "px-3 py-2",
+              "hover:bg-black/5 hover:cursor-pointer",
+            ].join(" ")}
+            title="Log out"
+            aria-label="Log out"
+          >
+            <LogOut
+              className={[
+                "h-5 w-5 flex-shrink-0",
+                "text-black/60",
+              ].join(" ")}
+            />
+            {/* Label - only show when expanded */}
+            {!isCollapsed && (
+              <span
+                className={[
+                  "font-medium text-sm text-black/80 transition-opacity duration-150",
+                  showExpandedContent ? "opacity-100" : "opacity-0",
+                ].join(" ")}
+              >
+                Logout
+              </span>
+            )}
+          </button>
+
           <Link
             href="/profile"
             className={[
@@ -231,40 +296,6 @@ export default function NavBar() {
               </div>
             )}
           </Link>
-
-          {/* Logout Button - Hidden by default as per your code */}
-          {false && (
-            <button
-              type="button"
-              onClick={onLogout}
-              className={[
-                "group relative flex items-center gap-3 rounded-xl transition-colors",
-                "w-full mt-2",
-                isCollapsed ? "justify-center px-2 py-2" : "px-3 py-2",
-                "hover:bg-red-50",
-              ].join(" ")}
-              title="Log out"
-              aria-label="Log out"
-            >
-              <LogOut
-                className={[
-                  "h-5 w-5 flex-shrink-0",
-                  "text-black/60 group-hover:text-red-600",
-                ].join(" ")}
-              />
-              {/* Label - only show when expanded */}
-              {!isCollapsed && (
-                <span
-                  className={[
-                    "font-medium text-sm text-black/80 group-hover:text-red-600 transition-opacity duration-150",
-                    showExpandedContent ? "opacity-100" : "opacity-0",
-                  ].join(" ")}
-                >
-                  Logout
-                </span>
-              )}
-            </button>
-          )}
         </div>
       </aside>
 
