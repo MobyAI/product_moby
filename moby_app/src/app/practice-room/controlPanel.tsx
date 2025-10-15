@@ -52,9 +52,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   };
 
   return (
-    <div className="flex h-screen bg-[#f5f7fb] relative">
+    <div className="flex h-screen bg-transparent relative">
       {/* Left Navigation Bar - Always visible */}
-      <div className="w-20 bg-[#f5f7fb] border-r border-gray-200 flex flex-col items-center py-4 space-y-6 z-20">
+      <div className="w-20 bg-[#e1ddcf] border-r border-gray-200 flex flex-col items-center py-4 space-y-6 z-20">
         <div className="text-logo text-[#363c54] cursor-default">
           tr
         </div>
@@ -145,7 +145,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       {/* Settings Panel - Absolutely positioned */}
       <div
         className={`
-                    absolute left-20 top-0 h-full w-56 bg-[#f5f7fb] border-r border-gray-200 p-4 z-10
+                    absolute left-20 top-0 h-full w-56 bg-[#eeede4] border-r border-gray-200 p-4 z-10
                     transform transition-transform duration-300 ease-in-out
                     ${activePanel ? "translate-x-0" : "-translate-x-full"}
                 `}

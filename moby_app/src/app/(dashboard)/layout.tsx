@@ -9,7 +9,9 @@ import { ToastProvider } from "@/components/providers/ToastProvider";
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <AuthShell>
-      <ToastProvider>{children}</ToastProvider>
+      <NavBarShell>
+        <ToastProvider>{children}</ToastProvider>
+      </NavBarShell>
     </AuthShell>
   );
 }

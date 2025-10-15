@@ -172,7 +172,7 @@ function ScriptsListContent() {
   }
 
   return (
-    <DashboardLayout maxWidth={100}>
+    <DashboardLayout maxWidth={90}>
       {/* Empty State - Upload Form */}
       {isFetched && allScripts.length === 0 && (
         <div className="flex-1 flex items-center justify-center">
@@ -182,80 +182,80 @@ function ScriptsListContent() {
 
       {/* Scripts List */}
       {allScripts.length > 0 && (
-        <div className="flex flex-col mx-[15%] min-h-0 flex-1">
-          {/* Header with Search + Add */}
-          <div className="relative flex items-center justify-center mt-20 mb-2">
-            {/* Centered title */}
-            <h2 className="text-header text-center absolute left-1/2 bottom-2 transform -translate-x-1/2">
-              Your Scripts
-            </h2>
-
-            {/* Right-side controls (search + add) */}
-            <div className="absolute right-0 flex items-center gap-3">
-              {/* Search input with expand/collapse */}
-              <div className="flex items-center">
-                <div
-                  className={`flex items-center transition-all duration-300 ease-in-out ${
-                    showSearch
-                      ? "w-64 bg-white border border-gray-300 rounded-md mr-1"
-                      : "w-0"
-                  } overflow-hidden`}
-                  style={{ height: "44px" }}
-                >
-                  <div className="relative w-full">
-                    <input
-                      ref={searchInputRef}
-                      type="text"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Search scripts..."
-                      className="w-full h-9 px-3 pr-0 text-sm bg-transparent focus:outline-none focus:ring-0"
-                      onKeyDown={(e) => {
-                        if (e.key === "Escape") {
-                          setShowSearch(false);
-                          setSearchTerm("");
-                        }
-                      }}
-                    />
-                    {searchTerm && (
-                      <button
-                        onClick={() => setSearchTerm("")}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
+        <div className="flex flex-col mx-[0%] min-h-0 flex-1">
+          {/* Right-side controls (search + add) - Positioned at top right */}
+          <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
+            {/* Search input with expand/collapse */}
+            <div className="flex items-center">
+              <div
+                className={`flex items-center transition-all duration-300 ease-in-out border rounded-md mr-1 overflow-hidden ${
+                  showSearch
+                    ? "w-80 border-gray-300 bg-white"
+                    : "w-0 border-transparent bg-transparent"
+                }`}
+                style={{ height: "44px" }}
+              >
+                <div className="relative w-full">
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search scripts..."
+                    className="w-full h-9 px-3 pr-0 text-sm bg-transparent focus:outline-none focus:ring-0"
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setShowSearch(false);
+                        setSearchTerm("");
+                      }
+                    }}
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
-
-                {/* Toggle search visibility */}
-                <Button
-                  onClick={() => {
-                    setShowSearch(!showSearch);
-                    if (showSearch) setSearchTerm("");
-                    else setTimeout(() => searchInputRef.current?.focus(), 100);
-                  }}
-                  variant="primary"
-                  size="md"
-                  icon={Search}
-                  iconOnly={true}
-                />
               </div>
 
-              {/* Add Script Button */}
+              {/* Toggle search visibility */}
               <Button
-                onClick={handleFileSelect}
+                onClick={() => {
+                  setShowSearch(!showSearch);
+                  if (showSearch) setSearchTerm("");
+                  else setTimeout(() => searchInputRef.current?.focus(), 100);
+                }}
                 variant="primary"
                 size="md"
-                icon={Plus}
+                icon={Search}
                 iconOnly={true}
+                className="h-10"
               />
             </div>
+
+            {/* Add Script Button */}
+            <Button
+              onClick={handleFileSelect}
+              variant="primary"
+              size="md"
+              icon={Plus}
+              className="h-10"
+            >
+              New Script
+            </Button>
+          </div>
+
+          {/* Centered Header */}
+          <div className="flex items-center justify-center mt-15 mb-4">
+            <h2 className="text-header text-center">Scripts</h2>
           </div>
 
           {/* Scrollable Scripts List */}
-          <div className="flex-1 overflow-y-auto mx-auto hide-scrollbar mt-6 max-w-6xl min-w-[1000px]">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
+          <div className="flex-1 overflow-y-auto hide-scrollbar mt-6 flex justify-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-fit mx-auto px-4">
               {visibleScripts.map((s, index) => {
                 const colorClass = bgColors[index % bgColors.length];
                 return (
@@ -266,7 +266,7 @@ function ScriptsListContent() {
                       lastPracticed={s.lastPracticed}
                       handleDelete={() => handleDeleteClick(s.id)}
                       handlePractice={() =>
-                        router.push(`/scripts/practice?scriptID=${s.id}`)
+                        router.push(`/practice-room?scriptID=${s.id}`)
                       }
                       bgColor={colorClass}
                     />

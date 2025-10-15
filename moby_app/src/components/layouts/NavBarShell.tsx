@@ -86,7 +86,7 @@ export default function NavBarShell({
                 <aside
                     className={`
                         relative flex-shrink-0 transition-all duration-300 ease-in-out
-                        ${isCollapsed ? 'w-[5rem]' : 'w-[13rem]'}
+                        ${isCollapsed ? 'w-[5rem]' : 'w-[15rem]'}
                     `}
                 >
                     <NavBar/>
@@ -96,7 +96,7 @@ export default function NavBarShell({
                 <div className="flex-1 h-full w-full overflow-hidden">
                     <main
                         className={`
-                            h-full rounded-3xl shadow-xl
+                            h-full
                             [scrollbar-width:none] [-ms-overflow-style:none]
                             ${shouldDarken ? "bg-transparent" : "bg-transparent"}
                             p-4 overflow-auto ${contentClassName ?? ""}
