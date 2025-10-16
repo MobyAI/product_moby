@@ -1,10 +1,17 @@
 "use client";
 
-import { useMemo, useState, useRef, Suspense } from "react";
+import { useMemo, useEffect, useState, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { getAllScripts, deleteScript } from "@/lib/firebase/client/scripts";
+import {
+  getAllScripts,
+  deleteScript,
+  toggleScriptStarred,
+  updateScriptName,
+} from "@/lib/firebase/client/scripts";
 import { useAuthUser } from "@/components/providers/UserProvider";
 import ScriptUploadModal from "./uploadModal";
+import { CardCarousel } from "./carousel";
+import { AnimatedList } from "./animatedList";
 import {
   DashboardLayout,
   ScriptCard,
@@ -13,7 +20,7 @@ import {
 } from "@/components/ui";
 import Dialog, { useDialog } from "@/components/ui/Dialog";
 import UploadForm from "../upload/uploadFile";
-import { Plus, RotateCcw, Search, X } from "lucide-react";
+import { Pencil, Plus, RotateCcw, Search, X, Play } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Sentry from "@sentry/nextjs";
 import { useToast } from "@/components/providers/ToastProvider";
@@ -53,6 +60,17 @@ function ScriptsListContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // Selected script for left panel display
+  const [selectedScript, setSelectedScript] = useState<ScriptData | null>(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState("");
+  const editInputRef = useRef<HTMLInputElement>(null);
+
+  // Loading states
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
+  const [starringItemId, setStarringItemId] = useState<string | null>(null);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+
   // TanStack Query for fetching scripts
   const queryClient = useQueryClient();
   const {
@@ -89,6 +107,8 @@ function ScriptsListContent() {
       "Delete Script",
       "Are you sure you want to delete this script? This action cannot be undone.",
       async () => {
+        setDeletingItemId(id);
+
         try {
           await deleteScript(id);
 
@@ -109,10 +129,86 @@ function ScriptsListContent() {
             line1: "Please try again",
             type: "danger",
           });
+        } finally {
+          setDeletingItemId(null);
         }
       },
       { type: "delete" }
     );
+  };
+
+  const handleEditName = () => {
+    if (selectedScript) {
+      setEditedName(selectedScript.name);
+      setIsEditingName(true);
+      setTimeout(() => editInputRef.current?.focus(), 0);
+    }
+  };
+
+  const handleSaveName = async () => {
+    if (!selectedScript || !editedName.trim()) return;
+
+    setIsUpdatingName(true);
+
+    try {
+      await updateScriptName(selectedScript.id, editedName.trim());
+
+      showToast({
+        header: "Script name updated!",
+        type: "success",
+      });
+
+      setIsEditingName(false);
+
+      // Update the selected script with the new name
+      setSelectedScript({
+        ...selectedScript,
+        name: editedName.trim(),
+      });
+
+      // Invalidate cache to refetch updated list
+      await queryClient.invalidateQueries({
+        queryKey: ["scripts", userID],
+      });
+    } catch (err) {
+      console.error("Failed to update script name:", err);
+      Sentry.captureException(err);
+      showToast({
+        header: "Failed to update script name",
+        line1: "Please try again",
+        type: "danger",
+      });
+    } finally {
+      setIsUpdatingName(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingName(false);
+    setEditedName("");
+  };
+
+  const handleToggleStarred = async (id: string) => {
+    setStarringItemId(id);
+
+    try {
+      await toggleScriptStarred(id);
+
+      // Invalidate cache to refetch updated list
+      await queryClient.invalidateQueries({
+        queryKey: ["scripts", userID],
+      });
+    } catch (err) {
+      console.error("Failed to toggle starred:", err);
+      Sentry.captureException(err);
+      showToast({
+        header: "Failed to update script",
+        line1: "Please try again",
+        type: "danger",
+      });
+    } finally {
+      setStarringItemId(null);
+    }
   };
 
   const handleUploadSuccess = async () => {
@@ -137,6 +233,33 @@ function ScriptsListContent() {
     const lower = searchTerm.toLowerCase();
     return allScripts.filter((s) => s.name.toLowerCase().includes(lower));
   }, [allScripts, searchTerm]);
+
+  // Auto-select first item when visibleScripts changes
+  useEffect(() => {
+    if (visibleScripts.length > 0 && !selectedScript) {
+      setSelectedScript(visibleScripts[0]);
+    }
+  }, [visibleScripts, selectedScript]);
+
+  const starredScriptCards = allScripts
+    .filter((s) => s.starred === true)
+    .map((s, index) => {
+      const colorClass = bgColors[index % bgColors.length];
+      return (
+        <ScriptCard
+          key={s.id}
+          name={s.name}
+          createdAt={s.createdAt}
+          lastPracticed={s.lastPracticed}
+          starred={s.starred}
+          starringItemId={starringItemId}
+          handleDelete={() => handleDeleteClick(s.id)}
+          handlePractice={() => router.push(`/practice-room?scriptID=${s.id}`)}
+          handleToggleStarred={() => handleToggleStarred(s.id)}
+          bgColor={colorClass}
+        />
+      );
+    });
 
   // Loading state
   if (loading) {
@@ -169,7 +292,7 @@ function ScriptsListContent() {
   }
 
   return (
-    <DashboardLayout maxWidth={90}>
+    <DashboardLayout maxWidth={95}>
       {/* Empty State - Upload Form */}
       {isFetched && allScripts.length === 0 && (
         <div className="flex-1 flex items-center justify-center">
@@ -179,7 +302,7 @@ function ScriptsListContent() {
 
       {/* Scripts List */}
       {allScripts.length > 0 && (
-        <div className="flex flex-col mx-[0%] min-h-0 flex-1">
+        <div className="flex flex-col mx-[0%] h-full flex-1">
           {/* Right-side controls (search + add) - Positioned at top right */}
           <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
             {/* Search input with expand/collapse */}
@@ -246,12 +369,210 @@ function ScriptsListContent() {
           </div>
 
           {/* Centered Header */}
-          <div className="flex items-center justify-center mt-15 mb-4">
-            <h2 className="text-header text-center">Scripts</h2>
+          <div className="flex items-center justify-center mt-10 mb-8">
+            <h2 className="text-header text-primary-dark text-center">
+              Scripts
+            </h2>
           </div>
 
-          {/* Scrollable Scripts List */}
-          <div className="flex-1 overflow-y-auto hide-scrollbar mt-6 flex justify-center">
+          {/* Starred Scripts */}
+          <div className="flex items-center justify-center mb-8">
+            <CardCarousel
+              cards={starredScriptCards}
+              cardsPerPage={3}
+              showArrows={true}
+              showDots={true}
+            />
+          </div>
+
+          {/* Two-column section that fills remaining space */}
+          <div className="flex-1 flex gap-4 min-h-0">
+            {/* Left Section - Selected Script Details */}
+            <div className="flex-1 flex flex-col gap-4 min-h-0">
+              {/* Selected Script */}
+              <div className="flex-1 bg-white/50 rounded-lg p-10 flex items-center justify-center">
+                {selectedScript ? (
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex-1">
+                      <h3 className="text-header-3 text-primary-dark">
+                        Selected Script
+                      </h3>
+                      {isEditingName ? (
+                        <div className="mb-4">
+                          <input
+                            ref={editInputRef}
+                            type="text"
+                            value={editedName}
+                            onChange={(e) => setEditedName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                handleSaveName();
+                              } else if (e.key === "Escape") {
+                                handleCancelEdit();
+                              }
+                            }}
+                            className="text-2xl font-bold text-black focus:outline-none bg-white p-4 my-2 rounded-[10px] w-[90%]"
+                          />
+                          <div className="flex gap-2 mt-2">
+                            <Button
+                              onClick={handleSaveName}
+                              variant="primary"
+                              size="sm"
+                              disabled={isUpdatingName}
+                            >
+                              {isUpdatingName ? "Saving" : "Save"}
+                            </Button>
+                            <Button
+                              onClick={handleCancelEdit}
+                              variant="primary"
+                              size="sm"
+                              disabled={isUpdatingName}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3 mb-4">
+                          <h3 className="text-2xl font-bold text-primary-dark-alt">
+                            {selectedScript.name}
+                          </h3>
+                          <Button
+                            onClick={handleEditName}
+                            variant="primary"
+                            size="sm"
+                            icon={Pencil}
+                            iconOnly={true}
+                          />
+                        </div>
+                      )}
+                      <div className="text-gray-400">
+                        <p>
+                          <span className="font-semibold text-primary-dark-alt">
+                            Created:
+                          </span>{" "}
+                          {selectedScript.createdAt
+                            ?.toDate()
+                            .toLocaleDateString()}
+                        </p>
+                        <p>
+                          <span className="font-semibold text-primary-dark-alt">
+                            Last Practiced:
+                          </span>{" "}
+                          {selectedScript.lastPracticed
+                            ? selectedScript.lastPracticed
+                                .toDate()
+                                .toLocaleDateString()
+                            : "Never"}
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <Button
+                        onClick={() =>
+                          router.push(
+                            `/practice-room?scriptID=${selectedScript.id}`
+                          )
+                        }
+                        variant="primary"
+                        size="md"
+                        icon={Play}
+                      >
+                        Practice
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-500">
+                    Select a script to view details
+                  </p>
+                )}
+              </div>
+
+              {/* Most Recently Practiced Script */}
+              <div className="flex-1 bg-white/50 rounded-lg p-10 flex items-center justify-center">
+                {(() => {
+                  const recentlyPracticed = allScripts
+                    .filter(
+                      (s) =>
+                        s.lastPracticed !== null &&
+                        s.lastPracticed !== undefined
+                    )
+                    .sort(
+                      (a, b) =>
+                        b.lastPracticed!.toDate().getTime() -
+                        a.lastPracticed!.toDate().getTime()
+                    )[0];
+
+                  return recentlyPracticed ? (
+                    <div className="flex items-center justify-between w-full">
+                      <div>
+                        <h3 className="text-header-3 text-primary-dark">
+                          Most Recently Practiced
+                        </h3>
+                        <h3 className="text-2xl font-bold text-primary-dark-alt mb-4">
+                          {recentlyPracticed.name}
+                        </h3>
+                        <div className="text-gray-400">
+                          <p>
+                            <span className="font-semibold text-primary-dark-alt">
+                              Created:
+                            </span>{" "}
+                            {recentlyPracticed.createdAt
+                              ?.toDate()
+                              .toLocaleDateString()}
+                          </p>
+                          <p>
+                            <span className="font-semibold text-primary-dark-alt">
+                              Last Practiced:
+                            </span>{" "}
+                            {recentlyPracticed
+                              .lastPracticed!.toDate()
+                              .toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div>
+                        <Button
+                          onClick={() =>
+                            router.push(
+                              `/practice-room?scriptID=${recentlyPracticed.id}`
+                            )
+                          }
+                          variant="primary"
+                          size="md"
+                          icon={Play}
+                        >
+                          Again
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-header-3 text-primary-dark">
+                      No recently practiced scripts
+                    </p>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Right Section - AnimatedList */}
+            <div className="flex-1 min-h-0">
+              <AnimatedList
+                items={visibleScripts}
+                onItemSelect={(item) => setSelectedScript(item)}
+                handleDelete={handleDeleteClick}
+                toggleStarred={handleToggleStarred}
+                showGradients={true}
+                enableArrowNavigation={true}
+                displayScrollbar={true}
+                savingItemId={starringItemId}
+                deletingItemId={deletingItemId}
+              />
+            </div>
+          </div>
+
+          {/* <div className="flex-1 overflow-y-auto hide-scrollbar mt-6 flex justify-center">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-fit mx-auto px-4">
               {visibleScripts.map((s, index) => {
                 const colorClass = bgColors[index % bgColors.length];
@@ -271,7 +592,7 @@ function ScriptsListContent() {
                 );
               })}
             </div>
-          </div>
+          </div> */}
         </div>
       )}
 

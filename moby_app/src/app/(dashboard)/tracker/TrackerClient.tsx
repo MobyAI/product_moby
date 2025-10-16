@@ -487,7 +487,7 @@ function TrackerPageContent() {
         </div>
 
         {/* Centered Header */}
-        <div className="flex items-center justify-center mt-15 mb-4">
+        <div className="flex items-center justify-center mt-10 mb-4">
           <h2 className="text-header text-center">Audition Tracker</h2>
         </div>
 

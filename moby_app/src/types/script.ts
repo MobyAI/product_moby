@@ -9,6 +9,7 @@ export type ScriptDoc = {
     createdAt: Timestamp | null;
     updatedAt: Timestamp | null;
     lastPracticed: Timestamp | null;
+    starred: boolean;
 };
 
 export type WithId<T> = T & { id: string };

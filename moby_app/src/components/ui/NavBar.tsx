@@ -115,7 +115,7 @@ export default function NavBar() {
             )}
           >
             {!isCollapsed ? (
-              <h1 className="text-logo text-black">
+              <h1 className="text-logo text-primary-dark">
                 <span>{logoText}</span>
                 {/* Blinking cursor during typing */}
                 {logoText.length < 9 && (
@@ -124,7 +124,7 @@ export default function NavBar() {
               </h1>
             ) : (
               <h1 className="text-4xl text-center">
-                <span className="text-logo text-black">tr</span>
+                <span className="text-logo text-primary-dark">tr</span>
               </h1>
             )}
           </div>
