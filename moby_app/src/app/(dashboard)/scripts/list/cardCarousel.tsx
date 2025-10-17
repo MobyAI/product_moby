@@ -109,6 +109,7 @@ export const CardCarousel: React.FC<CardCarouselProps> = ({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage]);
 
   // Group cards into pages

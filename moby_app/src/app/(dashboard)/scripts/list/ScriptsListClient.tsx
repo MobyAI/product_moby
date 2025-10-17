@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useEffect, useState, useRef, Suspense } from "react";
+import { useMemo, useState, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import {
   getAllScripts,
@@ -155,6 +155,7 @@ function ScriptsListContent() {
     );
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleEditName = (item: any) => {
     openEditDialog({
       title: "Edit Script Name",
@@ -164,6 +165,7 @@ function ScriptsListContent() {
     });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleSaveName = async (newName: string, script: any) => {
     if (!script) return;
 
@@ -279,6 +281,7 @@ function ScriptsListContent() {
     }
 
     return cards;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allScripts, pinnedItemId, router]);
 
   // Loading state

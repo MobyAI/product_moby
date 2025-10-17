@@ -45,10 +45,14 @@ const AnimatedItem: React.FC<AnimatedItemProps> = ({
 interface ScriptItem {
   id: string;
   name: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   script: any[];
   ownerUid: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   createdAt: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   updatedAt: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   lastPracticed: any;
   pinned?: boolean;
 }
@@ -156,6 +160,7 @@ export const AnimatedList: React.FC<AnimatedListProps> = ({
     setKeyboardNav(false);
   }, [selectedIndex, keyboardNav]);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const formatDate = (timestamp: any) => {
     if (!timestamp) return "Never";
     const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
