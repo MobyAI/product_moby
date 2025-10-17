@@ -1,13 +1,13 @@
-import { Metadata } from 'next';
-import ScriptsPracticeClient from './ScriptsPracticeClient';
+import { Metadata } from "next";
+import ScriptsPracticeClient from "./ScriptPracticeClient";
 
 export const metadata: Metadata = {
-    title: "Scripts - Playr",
-    description: "Practice your acting scripts with a scene partner",
+  title: "Scripts - Playr",
+  description: "Practice your acting scripts with a scene partner",
 };
 
 export default function PracticePage() {
-    return <ScriptsPracticeClient />;
+  return <ScriptsPracticeClient />;
 }
 
 // "use client";
@@ -1032,7 +1032,6 @@ export default function PracticePage() {
 // 		return parts.length > 0 ? parts : [text];
 // 	};
 
-
 // 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 // 	const renderScriptElement = (element: ScriptElement, index: number) => {
 // 		const isCurrent = element.index === currentIndex;
@@ -1150,7 +1149,7 @@ export default function PracticePage() {
 // 					key={element.index}
 // 					ref={isCurrent ? currentLineRef : null}
 // 					onClick={() => handleLineClick(element.index)}
-// 					className={`mb-6 cursor-pointer transition-all duration-200 rounded-lg p-6 relative 
+// 					className={`mb-6 cursor-pointer transition-all duration-200 rounded-lg p-6 relative
 // 						${isCurrent
 // 							? "bg-blue-50 shadow-md border-blue-200"
 // 							: "hover:bg-gray-50 border-gray-200 hover:shadow-sm"

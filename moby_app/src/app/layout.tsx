@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Playr",
-  description: "Tool for actors",
+  description: "AI powered, all-in-one tool for actors",
 };
 
 export default function RootLayout({

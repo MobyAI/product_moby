@@ -86,20 +86,20 @@ export default function NavBarShell({
                 <aside
                     className={`
                         relative flex-shrink-0 transition-all duration-300 ease-in-out
-                        ${isCollapsed ? 'w-[5rem]' : 'w-[13rem]'}
+                        ${isCollapsed ? 'w-[5rem]' : 'w-[15rem]'}
                     `}
                 >
                     <NavBar/>
                 </aside>
 
                 {/* Main content area with card-like appearance */}
-                <div className="flex-1 p-4 overflow-hidden">
+                <div className="flex-1 h-full w-full overflow-hidden">
                     <main
                         className={`
-                            h-full rounded-3xl shadow-xl
+                            h-full
                             [scrollbar-width:none] [-ms-overflow-style:none]
-                            ${shouldDarken ? "bg-card-dark" : "bg-gray-50/75"}
-                            p-8 overflow-auto ${contentClassName ?? ""}
+                            ${shouldDarken ? "bg-transparent" : "bg-transparent"}
+                            p-4 overflow-auto ${contentClassName ?? ""}
                         `}
                     >
                         {children}

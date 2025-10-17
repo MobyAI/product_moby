@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import type { ScriptElement } from '@/types/script';
+import {
+    Check
+} from "lucide-react";
 
 type EditableLineProps = {
     item: ScriptElement;
@@ -467,7 +470,7 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
                 <div
                     ref={editableRef}
                     contentEditable
-                    className="cursor-text w-full border rounded p-2 text-base leading-relaxed text-gray-700 min-h-[2.5rem] focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    className="cursor-text w-full border border-gray-300 bg-primary-light rounded-[5px] p-2 text-base leading-relaxed text-gray-700 min-h-[2.5rem] focus:outline-none"
                     onInput={handleInput}
                     onKeyDown={handleKeyDown}
                     onPaste={handlePaste}
@@ -484,18 +487,22 @@ export default function EditableLine({ item, onUpdate, onClose, hydrationStatus 
                 />
                 <div className="mt-2 flex items-center gap-3">
                     <button
-                        className="px-3 py-1 text-sm bg-yellow-400 text-white rounded"
+                        className="px-4 py-1 text-sm bg-green-500 text-black rounded-[5px] flex flex-row items-center justify-space-around gap-2 cursor-pointer"
                         onMouseDown={handleSave}
                         disabled={hydrationStatus === 'updating'}
                     >
+                        <Check
+                            className={`w-4 h-4`}
+                            strokeWidth={2}
+                        />
                         {hydrationStatus === 'updating' ? 'Updating...' : 'Save'}
                     </button>
 
                     {/* Audio tag tip */}
-                    <div className="flex items-center gap-1 text-sm text-gray-500">
+                    <div className="flex items-center gap-1 text-sm text-gray-400">
                         <div className="relative group inline-flex">
                             <svg
-                                className="w-5 h-5 text-gray-400 cursor-help"
+                                className="w-5 h-5 text-yellow-400 cursor-help"
                                 fill="currentColor"
                                 viewBox="0 0 20 20"
                             >
