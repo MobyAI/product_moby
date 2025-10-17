@@ -1677,8 +1677,8 @@ function RehearsalRoomContent() {
 
             <h2
               className={getThemeClass(
-                "text-xl font-bold uppercase tracking-wider text-primary-light",
-                "text-xl font-bold uppercase tracking-wider text-primary-dark"
+                "text-xl font-bold uppercase tracking-wider text-primary-dark",
+                "text-xl font-bold uppercase tracking-wider text-primary-light"
               )}
             >
               {element.text}

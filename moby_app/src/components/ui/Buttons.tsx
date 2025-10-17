@@ -53,7 +53,7 @@ export function Button({
 					"bg-red-600 text-white before:absolute before:inset-0 before:bg-gradient-to-t before:from-white/20 before:to-transparent before:pointer-events-none hover:bg-red-700": variant === "danger",
 
 					// Ghost (no 3D effect)
-					"bg-gray-300/60 hover:bg-gray-300 text-white/80 hover:text-white shadow-none": variant === "ghost",
+					"bg-gray-300/60 hover:bg-gray-400 text-white/80 hover:text-white shadow-none": variant === "ghost",
 
 					// Size styles
 					"px-3 py-2 text-sm": size === "sm" && !iconOnly,

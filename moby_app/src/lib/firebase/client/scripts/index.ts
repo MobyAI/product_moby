@@ -40,7 +40,7 @@ export async function addScript(name: string, script: ScriptElement[]) {
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     lastPracticed: null,
-    starred: false,
+    pinned: false,
   });
   return ref.id;
 }
@@ -79,7 +79,7 @@ export async function updateScriptName(scriptID: string, newName: string) {
   });
 }
 
-export async function toggleScriptStarred(scriptID: string) {
+export async function toggleScriptPinned(scriptID: string) {
   const { doc } = userScriptsRefs();
   const docRef = doc(scriptID);
 
@@ -90,11 +90,11 @@ export async function toggleScriptStarred(scriptID: string) {
     throw new Error(`Script with ID ${scriptID} not found`);
   }
 
-  const currentStarred = docSnap.data().starred ?? false;
+  const currentPinned = docSnap.data().pinned ?? false;
 
   await updateDoc(docRef, {
-    starred: !currentStarred,
-    starredAt: serverTimestamp(),
+    pinned: !currentPinned,
+    pinnedAt: serverTimestamp(),
   });
 }
 

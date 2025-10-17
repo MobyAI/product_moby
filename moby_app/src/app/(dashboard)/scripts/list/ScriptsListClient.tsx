@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import {
   getAllScripts,
   deleteScript,
-  toggleScriptStarred,
+  toggleScriptPinned,
   updateScriptName,
 } from "@/lib/firebase/client/scripts";
 import { useAuthUser } from "@/components/providers/UserProvider";
 import ScriptUploadModal from "./uploadModal";
-import { CardCarousel } from "./carousel";
+import { CardCarousel } from "./cardCarousel";
 import { AnimatedList } from "./animatedList";
+import { ScriptSelectorModal } from "./scriptSelectorModal";
 import {
   DashboardLayout,
   ScriptCard,
@@ -19,8 +20,9 @@ import {
   LoadingScreen,
 } from "@/components/ui";
 import Dialog, { useDialog } from "@/components/ui/Dialog";
+import EditDialog, { useEditDialog } from "./editDialog";
 import UploadForm from "../upload/uploadFile";
-import { Pencil, Plus, RotateCcw, Search, X, Play } from "lucide-react";
+import { Plus, RotateCcw, Search, X, Play } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Sentry from "@sentry/nextjs";
 import { useToast } from "@/components/providers/ToastProvider";
@@ -44,31 +46,47 @@ const bgColors = [
   "bg-accent-blue",
 ];
 
+interface PlaceholderCardProps {
+  onClick: () => void;
+  disabled?: boolean;
+}
+
+function PlaceholderCard({ onClick, disabled }: PlaceholderCardProps) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="bg-white/40 rounded-[10px] p-8 w-90 h-60 flex items-center justify-center hover:cursor-pointer hover:bg-white/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+      aria-label="Add pinned script"
+    >
+      <Plus className="w-12 h-12 text-primary-dark" />
+    </button>
+  );
+}
+
 function ScriptsListContent() {
   const { uid } = useAuthUser();
   const userID = uid;
   const router = useRouter();
   const { showToast } = useToast();
   const { dialogProps, openConfirm } = useDialog();
+  const { editDialogProps, openEditDialog } = useEditDialog();
 
   // Script upload modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Script selector modal
+  const [isSelectorModalOpen, setIsSelectorModalOpen] = useState(false);
 
   // Search
   const [showSearch, setShowSearch] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Selected script for left panel display
-  const [selectedScript, setSelectedScript] = useState<ScriptData | null>(null);
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editedName, setEditedName] = useState("");
-  const editInputRef = useRef<HTMLInputElement>(null);
-
   // Loading states
-  const [isUpdatingName, setIsUpdatingName] = useState(false);
-  const [starringItemId, setStarringItemId] = useState<string | null>(null);
+  const [isPinning, setIsPinning] = useState(false);
+  const [pinnedItemId, setPinnedItemId] = useState<string | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
 
   // TanStack Query for fetching scripts
@@ -137,36 +155,26 @@ function ScriptsListContent() {
     );
   };
 
-  const handleEditName = () => {
-    if (selectedScript) {
-      setEditedName(selectedScript.name);
-      setIsEditingName(true);
-      setTimeout(() => editInputRef.current?.focus(), 0);
-    }
+  const handleEditName = (item: any) => {
+    openEditDialog({
+      title: "Edit Script Name",
+      initialValue: item?.name || "",
+      placeholder: "Enter script name...",
+      onSave: (newName: string) => handleSaveName(newName, item),
+    });
   };
 
-  const handleSaveName = async () => {
-    if (!selectedScript || !editedName.trim()) return;
-
-    setIsUpdatingName(true);
+  const handleSaveName = async (newName: string, script: any) => {
+    if (!script) return;
 
     try {
-      await updateScriptName(selectedScript.id, editedName.trim());
+      await updateScriptName(script.id, newName);
 
       showToast({
         header: "Script name updated!",
         type: "success",
       });
 
-      setIsEditingName(false);
-
-      // Update the selected script with the new name
-      setSelectedScript({
-        ...selectedScript,
-        name: editedName.trim(),
-      });
-
-      // Invalidate cache to refetch updated list
       await queryClient.invalidateQueries({
         queryKey: ["scripts", userID],
       });
@@ -178,21 +186,16 @@ function ScriptsListContent() {
         line1: "Please try again",
         type: "danger",
       });
-    } finally {
-      setIsUpdatingName(false);
+      throw err;
     }
   };
 
-  const handleCancelEdit = () => {
-    setIsEditingName(false);
-    setEditedName("");
-  };
-
-  const handleToggleStarred = async (id: string) => {
-    setStarringItemId(id);
+  const handleTogglePinned = async (id: string) => {
+    setIsPinning(true);
+    setPinnedItemId(id);
 
     try {
-      await toggleScriptStarred(id);
+      await toggleScriptPinned(id);
 
       // Invalidate cache to refetch updated list
       await queryClient.invalidateQueries({
@@ -207,7 +210,8 @@ function ScriptsListContent() {
         type: "danger",
       });
     } finally {
-      setStarringItemId(null);
+      setIsPinning(false);
+      setPinnedItemId(null);
     }
   };
 
@@ -234,16 +238,15 @@ function ScriptsListContent() {
     return allScripts.filter((s) => s.name.toLowerCase().includes(lower));
   }, [allScripts, searchTerm]);
 
-  // Auto-select first item when visibleScripts changes
-  useEffect(() => {
-    if (visibleScripts.length > 0 && !selectedScript) {
-      setSelectedScript(visibleScripts[0]);
-    }
-  }, [visibleScripts, selectedScript]);
+  const unpinnedScripts = useMemo(
+    () => allScripts.filter((s) => s.pinned != true),
+    [allScripts]
+  );
 
-  const starredScriptCards = allScripts
-    .filter((s) => s.starred === true)
-    .map((s, index) => {
+  const pinnedScriptCards = useMemo(() => {
+    const pinnedScripts = allScripts.filter((s) => s.pinned === true);
+
+    const cards = pinnedScripts.map((s, index) => {
       const colorClass = bgColors[index % bgColors.length];
       return (
         <ScriptCard
@@ -251,15 +254,32 @@ function ScriptsListContent() {
           name={s.name}
           createdAt={s.createdAt}
           lastPracticed={s.lastPracticed}
-          starred={s.starred}
-          starringItemId={starringItemId}
+          pinned={s.pinned}
+          pinnedItemId={pinnedItemId}
           handleDelete={() => handleDeleteClick(s.id)}
           handlePractice={() => router.push(`/practice-room?scriptID=${s.id}`)}
-          handleToggleStarred={() => handleToggleStarred(s.id)}
+          handleTogglePinned={() => handleTogglePinned(s.id)}
+          handleEdit={() => handleEditName(s)}
           bgColor={colorClass}
         />
       );
     });
+
+    // Add placeholder cards if we have fewer than 3 pinned scripts
+    const placeholdersNeeded = Math.max(0, 3 - pinnedScripts.length);
+
+    for (let i = 0; i < placeholdersNeeded; i++) {
+      cards.push(
+        <PlaceholderCard
+          key={`placeholder-${i}`}
+          onClick={() => setIsSelectorModalOpen(true)}
+          disabled={pinnedItemId !== null}
+        />
+      );
+    }
+
+    return cards;
+  }, [allScripts, pinnedItemId, router]);
 
   // Loading state
   if (loading) {
@@ -375,10 +395,10 @@ function ScriptsListContent() {
             </h2>
           </div>
 
-          {/* Starred Scripts */}
+          {/* Pinned Scripts Carousel */}
           <div className="flex items-center justify-center mb-8">
             <CardCarousel
-              cards={starredScriptCards}
+              cards={pinnedScriptCards}
               cardsPerPage={3}
               showArrows={true}
               showDots={true}
@@ -388,109 +408,35 @@ function ScriptsListContent() {
           {/* Two-column section that fills remaining space */}
           <div className="flex-1 flex gap-4 min-h-0">
             {/* Left Section - Selected Script Details */}
-            <div className="flex-1 flex flex-col gap-4 min-h-0">
-              {/* Selected Script */}
-              <div className="flex-1 bg-white/50 rounded-lg p-10 flex items-center justify-center">
-                {selectedScript ? (
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex-1">
-                      <h3 className="text-header-3 text-primary-dark">
-                        Selected Script
-                      </h3>
-                      {isEditingName ? (
-                        <div className="mb-4">
-                          <input
-                            ref={editInputRef}
-                            type="text"
-                            value={editedName}
-                            onChange={(e) => setEditedName(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                handleSaveName();
-                              } else if (e.key === "Escape") {
-                                handleCancelEdit();
-                              }
-                            }}
-                            className="text-2xl font-bold text-black focus:outline-none bg-white p-4 my-2 rounded-[10px] w-[90%]"
-                          />
-                          <div className="flex gap-2 mt-2">
-                            <Button
-                              onClick={handleSaveName}
-                              variant="primary"
-                              size="sm"
-                              disabled={isUpdatingName}
-                            >
-                              {isUpdatingName ? "Saving" : "Save"}
-                            </Button>
-                            <Button
-                              onClick={handleCancelEdit}
-                              variant="primary"
-                              size="sm"
-                              disabled={isUpdatingName}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-3 mb-4">
-                          <h3 className="text-2xl font-bold text-primary-dark-alt">
-                            {selectedScript.name}
-                          </h3>
-                          <Button
-                            onClick={handleEditName}
-                            variant="primary"
-                            size="sm"
-                            icon={Pencil}
-                            iconOnly={true}
-                          />
-                        </div>
-                      )}
-                      <div className="text-gray-400">
-                        <p>
-                          <span className="font-semibold text-primary-dark-alt">
-                            Created:
-                          </span>{" "}
-                          {selectedScript.createdAt
-                            ?.toDate()
-                            .toLocaleDateString()}
-                        </p>
-                        <p>
-                          <span className="font-semibold text-primary-dark-alt">
-                            Last Practiced:
-                          </span>{" "}
-                          {selectedScript.lastPracticed
-                            ? selectedScript.lastPracticed
-                                .toDate()
-                                .toLocaleDateString()
-                            : "Never"}
-                        </p>
-                      </div>
-                    </div>
-                    <div>
-                      <Button
-                        onClick={() =>
-                          router.push(
-                            `/practice-room?scriptID=${selectedScript.id}`
-                          )
-                        }
-                        variant="primary"
-                        size="md"
-                        icon={Play}
-                      >
-                        Practice
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-gray-500">
-                    Select a script to view details
-                  </p>
-                )}
-              </div>
 
-              {/* Most Recently Practiced Script */}
-              <div className="flex-1 bg-white/50 rounded-lg p-10 flex items-center justify-center">
+            <div className="flex-[0_0_50%] flex flex-col gap-4 min-h-0">
+              <div className="flex-1 bg-white/40 rounded-lg p-5 flex flex-col min-h-0">
+                <h3 className="text-header-3 text-primary-dark mb-2">
+                  Your Collection
+                </h3>
+                <div className="flex-1 min-h-0">
+                  <AnimatedList
+                    items={visibleScripts}
+                    handleDelete={handleDeleteClick}
+                    togglePinned={handleTogglePinned}
+                    handleEdit={handleEditName}
+                    showGradients={false}
+                    enableArrowNavigation={true}
+                    displayScrollbar={true}
+                    savingItemId={pinnedItemId}
+                    deletingItemId={deletingItemId}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Right Section - Collection */}
+            <div className="flex-[0_0_50%] flex flex-col gap-4 min-h-0">
+              {/* Most Recently Practiced Scripts */}
+              <div className="flex-1 bg-white/40 rounded-lg p-5 flex flex-col gap-4 overflow-y-auto">
+                <h3 className="text-header-3 text-primary-dark">
+                  Recently Practiced
+                </h3>
                 {(() => {
                   const recentlyPracticed = allScripts
                     .filter(
@@ -502,73 +448,61 @@ function ScriptsListContent() {
                       (a, b) =>
                         b.lastPracticed!.toDate().getTime() -
                         a.lastPracticed!.toDate().getTime()
-                    )[0];
+                    )
+                    .slice(0, 3);
 
-                  return recentlyPracticed ? (
-                    <div className="flex items-center justify-between w-full">
-                      <div>
-                        <h3 className="text-header-3 text-primary-dark">
-                          Most Recently Practiced
-                        </h3>
-                        <h3 className="text-2xl font-bold text-primary-dark-alt mb-4">
-                          {recentlyPracticed.name}
-                        </h3>
-                        <div className="text-gray-400">
-                          <p>
-                            <span className="font-semibold text-primary-dark-alt">
-                              Created:
-                            </span>{" "}
-                            {recentlyPracticed.createdAt
-                              ?.toDate()
-                              .toLocaleDateString()}
-                          </p>
-                          <p>
-                            <span className="font-semibold text-primary-dark-alt">
-                              Last Practiced:
-                            </span>{" "}
-                            {recentlyPracticed
-                              .lastPracticed!.toDate()
-                              .toLocaleDateString()}
-                          </p>
+                  return recentlyPracticed.length > 0 ? (
+                    recentlyPracticed.map((script) => (
+                      <div
+                        key={script.id}
+                        className="bg-primary-light-alt rounded-lg p-6 flex items-center justify-between"
+                      >
+                        <div>
+                          <h4 className="text-xl font-bold text-primary-dark-alt mb-2">
+                            {script.name}
+                          </h4>
+                          <div className="text-gray-400 text-sm">
+                            <p>
+                              <span className="font-semibold text-primary-dark-alt">
+                                Uploaded:
+                              </span>{" "}
+                              {script.createdAt?.toDate().toLocaleDateString()}
+                            </p>
+                            <p>
+                              <span className="font-semibold text-primary-dark-alt">
+                                Last Practiced:
+                              </span>{" "}
+                              {script
+                                .lastPracticed!.toDate()
+                                .toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div>
+                          <Button
+                            onClick={() =>
+                              router.push(
+                                `/practice-room?scriptID=${script.id}`
+                              )
+                            }
+                            variant="primary"
+                            size="md"
+                            icon={Play}
+                          >
+                            Practice
+                          </Button>
                         </div>
                       </div>
-                      <div>
-                        <Button
-                          onClick={() =>
-                            router.push(
-                              `/practice-room?scriptID=${recentlyPracticed.id}`
-                            )
-                          }
-                          variant="primary"
-                          size="md"
-                          icon={Play}
-                        >
-                          Again
-                        </Button>
-                      </div>
-                    </div>
+                    ))
                   ) : (
-                    <p className="text-header-3 text-primary-dark">
-                      No recently practiced scripts
-                    </p>
+                    <div className="flex-1 flex items-center justify-center">
+                      <h3 className="text-header-3 text-primary-dark">
+                        No recently practiced scripts
+                      </h3>
+                    </div>
                   );
                 })()}
               </div>
-            </div>
-
-            {/* Right Section - AnimatedList */}
-            <div className="flex-1 min-h-0">
-              <AnimatedList
-                items={visibleScripts}
-                onItemSelect={(item) => setSelectedScript(item)}
-                handleDelete={handleDeleteClick}
-                toggleStarred={handleToggleStarred}
-                showGradients={true}
-                enableArrowNavigation={true}
-                displayScrollbar={true}
-                savingItemId={starringItemId}
-                deletingItemId={deletingItemId}
-              />
             </div>
           </div>
 
@@ -599,12 +533,24 @@ function ScriptsListContent() {
       {/* Delete Confirmation Modal */}
       <Dialog {...dialogProps} />
 
+      {/* Edit Modal */}
+      <EditDialog {...editDialogProps} />
+
       {/* Upload Modal */}
       <ScriptUploadModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         file={selectedFile}
         onComplete={handleUploadSuccess}
+      />
+
+      {/* Script Selector Modal */}
+      <ScriptSelectorModal
+        isOpen={isSelectorModalOpen}
+        onClose={() => setIsSelectorModalOpen(false)}
+        unpinnedScripts={unpinnedScripts}
+        onSelect={handleTogglePinned}
+        isPinning={isPinning}
       />
     </DashboardLayout>
   );

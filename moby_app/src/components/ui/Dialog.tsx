@@ -165,11 +165,11 @@ export default function Dialog({
       {/* Dialog panel */}
       <div
         ref={dialogRef}
-        className="relative z-10 transform overflow-hidden rounded-xl bg-[#e1ddcf] py-4 px-4 text-left max-w-md transition-all animate-fadeIn"
+        className="relative z-10 transform overflow-hidden rounded-xl bg-primary-light-alt py-4 px-4 text-left max-w-md transition-all animate-fadeIn"
       >
         {/* Close button */}
         {showCloseButton && (
-          <div className="absolute right-0 top-0 pr-4 pt-4 z-10">
+          <div className="absolute right-5 top-5 z-10">
             <button
               type="button"
               className="rounded-md bg-transparent text-gray-500 hover:text-gray-400 hover:cursor-pointer focus:outline-none transition-colors"
@@ -177,7 +177,7 @@ export default function Dialog({
               disabled={isLoading}
             >
               <span className="sr-only">Close</span>
-              <X className="h-4 w-4" aria-hidden="true" />
+              <X className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
         )}
