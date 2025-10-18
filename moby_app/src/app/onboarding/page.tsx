@@ -559,7 +559,11 @@ function ChatOnboardingContent() {
       </h3>
 
       {/* Progress Bar */}
-      <ProgressBar currentStep={currentStep} questions={questions} />
+      <ProgressBar
+        currentStep={currentStep}
+        questions={questions}
+        completed={isCompleted}
+      />
 
       {/* Gradient overlay at top - creates fade effect on scrolled content */}
       <div className="fixed top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#eeede4] via-[#eeede4]/80 to-transparent z-10 pointer-events-none" />
@@ -656,307 +660,318 @@ function ChatOnboardingContent() {
                       )}
 
                       {/* Current Input Area - only show for current question */}
-                      {!isCompleted && isCurrentQuestion && showInput && currentQuestion && (
-                        <div className="animate-fadeIn">
-                          {error && (
-                            <div className="mb-3 p-3 bg-red-50 text-red-600 text-sm rounded-lg">
-                              {error}
-                            </div>
-                          )}
+                      {!isCompleted &&
+                        isCurrentQuestion &&
+                        showInput &&
+                        currentQuestion && (
+                          <div className="animate-fadeIn">
+                            {error && (
+                              <div className="mb-3 p-3 bg-red-50 text-red-600 text-sm rounded-lg">
+                                {error}
+                              </div>
+                            )}
 
-                          {currentQuestion.type === "name" ? (
-                            <div>
-                              <div className="flex gap-3 mb-2">
-                                <input
-                                  type="text"
-                                  value={firstNameValue}
-                                  onChange={(e) =>
-                                    setFirstNameValue(e.target.value)
-                                  }
-                                  onKeyUp={(e) => {
-                                    if (
-                                      e.key === "Enter" &&
-                                      lastNameValue.trim()
-                                    )
-                                      handleNameSubmit();
-                                    if (e.key === "Escape" && currentStep > 0)
-                                      handleBack();
-                                  }}
-                                  placeholder="First name"
-                                  className="w-[35%] px-4 py-3 rounded-lg focus:outline-none bg-white text-primary-dark"
-                                  autoFocus
-                                />
-                                <input
-                                  type="text"
-                                  value={lastNameValue}
-                                  onChange={(e) =>
-                                    setLastNameValue(e.target.value)
-                                  }
-                                  onKeyUp={(e) => {
-                                    if (
-                                      e.key === "Enter" &&
-                                      firstNameValue.trim()
-                                    )
-                                      handleNameSubmit();
-                                    if (e.key === "Escape" && currentStep > 0)
-                                      handleBack();
-                                  }}
-                                  placeholder="Last name"
-                                  className="w-[35%] px-4 py-3 rounded-lg focus:outline-none bg-white text-primary-dark"
-                                />
-                                <button
-                                  onClick={handleNameSubmit}
-                                  disabled={
-                                    !firstNameValue.trim() ||
-                                    !lastNameValue.trim()
-                                  }
-                                  className="px-6 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                  <ArrowRight className="w-5 h-5" />
-                                </button>
-                              </div>
-                              {currentStep > 0 && (
-                                <div className="mt-3 text-xs text-primary-dark opacity-50">
-                                  ESC to go back • ENTER to continue
-                                </div>
-                              )}
-                            </div>
-                          ) : currentQuestion.type === "text" ? (
-                            <div>
-                              <div className="flex gap-2">
-                                <input
-                                  type="text"
-                                  value={inputValue}
-                                  onChange={(e) =>
-                                    setInputValue(e.target.value)
-                                  }
-                                  onKeyUp={(e) => {
-                                    if (e.key === "Enter") handleSubmit();
-                                    if (e.key === "Escape" && currentStep > 0)
-                                      handleBack();
-                                  }}
-                                  placeholder={`Enter here`}
-                                  className="w-1/2 px-4 py-3 rounded-lg focus:outline-none bg-white text-primary-dark"
-                                  autoFocus
-                                />
-                                <button
-                                  onClick={handleSubmit}
-                                  disabled={!inputValue.trim()}
-                                  className="px-6 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                  <ArrowRight className="w-5 h-5" />
-                                </button>
-                              </div>
-                              {currentStep > 0 && (
-                                <div className="mt-3 text-xs text-primary-dark opacity-50">
-                                  ESC to go back • ENTER to continue
-                                </div>
-                              )}
-                            </div>
-                          ) : currentQuestion.type === "number" ? (
-                            <div>
-                              <div className="flex gap-2">
-                                <input
-                                  type="number"
-                                  value={inputValue}
-                                  onChange={(e) =>
-                                    setInputValue(e.target.value)
-                                  }
-                                  onKeyUp={(e) => {
-                                    if (e.key === "Enter") handleSubmit();
-                                    if (e.key === "Escape" && currentStep > 0)
-                                      handleBack();
-                                  }}
-                                  placeholder="0"
-                                  className="w-20 px-4 py-3 rounded-lg focus:outline-none bg-white text-primary-dark"
-                                  autoFocus
-                                />
-                                <button
-                                  onClick={handleSubmit}
-                                  disabled={!inputValue.trim()}
-                                  className="px-6 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                  <ArrowRight className="w-5 h-5" />
-                                </button>
-                              </div>
-                              {currentStep > 0 && (
-                                <div className="mt-3 text-xs text-primary-dark opacity-50">
-                                  ESC to go back • ENTER to continue
-                                </div>
-                              )}
-                            </div>
-                          ) : currentQuestion.type === "height" ? (
-                            <div>
-                              <div className="flex gap-2">
-                                <div className="flex items-center gap-2">
+                            {currentQuestion.type === "name" ? (
+                              <div>
+                                <div className="flex gap-3 mb-2">
                                   <input
-                                    type="number"
-                                    value={heightFeet}
+                                    type="text"
+                                    value={firstNameValue}
                                     onChange={(e) =>
-                                      setHeightFeet(e.target.value)
+                                      setFirstNameValue(e.target.value)
                                     }
                                     onKeyUp={(e) => {
-                                      if (e.key === "Enter" && heightInches)
-                                        handleHeightSubmit();
+                                      if (
+                                        e.key === "Enter" &&
+                                        lastNameValue.trim()
+                                      )
+                                        handleNameSubmit();
                                       if (e.key === "Escape" && currentStep > 0)
                                         handleBack();
                                     }}
-                                    placeholder="0"
-                                    min="1"
-                                    max="8"
-                                    className="w-18 px-4 py-3 rounded-lg focus:outline-none bg-white text-primary-dark"
+                                    placeholder="First name"
+                                    className="w-[35%] px-4 py-3 rounded-lg focus:outline-none bg-white text-primary-dark"
                                     autoFocus
                                   />
-                                  <span className="text-primary-dark font-medium">
-                                    feet
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2">
                                   <input
-                                    type="number"
-                                    value={heightInches}
+                                    type="text"
+                                    value={lastNameValue}
                                     onChange={(e) =>
-                                      setHeightInches(e.target.value)
+                                      setLastNameValue(e.target.value)
                                     }
                                     onKeyUp={(e) => {
-                                      if (e.key === "Enter" && heightFeet)
-                                        handleHeightSubmit();
+                                      if (
+                                        e.key === "Enter" &&
+                                        firstNameValue.trim()
+                                      )
+                                        handleNameSubmit();
+                                      if (e.key === "Escape" && currentStep > 0)
+                                        handleBack();
+                                    }}
+                                    placeholder="Last name"
+                                    className="w-[35%] px-4 py-3 rounded-lg focus:outline-none bg-white text-primary-dark"
+                                  />
+                                  <button
+                                    onClick={handleNameSubmit}
+                                    disabled={
+                                      !firstNameValue.trim() ||
+                                      !lastNameValue.trim()
+                                    }
+                                    className="px-6 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                  >
+                                    <ArrowRight className="w-5 h-5" />
+                                  </button>
+                                </div>
+                                {currentStep > 0 && (
+                                  <div className="mt-3 text-xs text-primary-dark opacity-50">
+                                    ESC to go back • ENTER to continue
+                                  </div>
+                                )}
+                              </div>
+                            ) : currentQuestion.type === "text" ? (
+                              <div>
+                                <div className="flex gap-2">
+                                  <input
+                                    type="text"
+                                    value={inputValue}
+                                    onChange={(e) =>
+                                      setInputValue(e.target.value)
+                                    }
+                                    onKeyUp={(e) => {
+                                      if (e.key === "Enter") handleSubmit();
+                                      if (e.key === "Escape" && currentStep > 0)
+                                        handleBack();
+                                    }}
+                                    placeholder={`Enter here`}
+                                    className="w-1/2 px-4 py-3 rounded-lg focus:outline-none bg-white text-primary-dark"
+                                    autoFocus
+                                  />
+                                  <button
+                                    onClick={handleSubmit}
+                                    disabled={!inputValue.trim()}
+                                    className="px-6 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                  >
+                                    <ArrowRight className="w-5 h-5" />
+                                  </button>
+                                </div>
+                                {currentStep > 0 && (
+                                  <div className="mt-3 text-xs text-primary-dark opacity-50">
+                                    ESC to go back • ENTER to continue
+                                  </div>
+                                )}
+                              </div>
+                            ) : currentQuestion.type === "number" ? (
+                              <div>
+                                <div className="flex gap-2">
+                                  <input
+                                    type="number"
+                                    value={inputValue}
+                                    onChange={(e) =>
+                                      setInputValue(e.target.value)
+                                    }
+                                    onKeyUp={(e) => {
+                                      if (e.key === "Enter") handleSubmit();
                                       if (e.key === "Escape" && currentStep > 0)
                                         handleBack();
                                     }}
                                     placeholder="0"
-                                    min="0"
-                                    max="11"
-                                    className="w-18 px-4 py-3 rounded-lg focus:outline-none bg-white text-primary-dark"
+                                    className="w-20 px-4 py-3 rounded-lg focus:outline-none bg-white text-primary-dark"
+                                    autoFocus
                                   />
-                                  <span className="text-primary-dark font-medium">
-                                    inches
-                                  </span>
-                                </div>
-                                <button
-                                  onClick={handleHeightSubmit}
-                                  disabled={
-                                    !heightFeet ||
-                                    parseInt(heightFeet) <= 0 ||
-                                    parseInt(heightInches) < 0 ||
-                                    parseInt(heightInches) >= 12
-                                  }
-                                  className="px-6 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                  <ArrowRight className="w-5 h-5" />
-                                </button>
-                              </div>
-                              {currentStep > 0 && (
-                                <div className="mt-3 text-xs text-primary-dark opacity-50">
-                                  ESC to go back • ENTER to continue
-                                </div>
-                              )}
-                            </div>
-                          ) : currentQuestion.type === "ethnicity" ? (
-                            <div>
-                              <div className="grid grid-cols-3 gap-2 mb-4">
-                                {ethnicities.map((eth) => (
                                   <button
-                                    key={eth.value}
-                                    onClick={() => {
-                                      setSelectedEthnicities((prev) =>
-                                        prev.includes(eth.value)
-                                          ? prev.filter((e) => e !== eth.value)
-                                          : [...prev, eth.value]
-                                      );
-                                    }}
-                                    className={`p-3 rounded-lg border-1 text-sm transition-all ${
-                                      selectedEthnicities.includes(eth.value)
-                                        ? "border-blue-500 bg-blue-50"
-                                        : "border-gray-200 hover:border-gray-500 bg-white"
-                                    }`}
+                                    onClick={handleSubmit}
+                                    disabled={!inputValue.trim()}
+                                    className="px-6 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                   >
-                                    <div className="text-sm text-primary-dark font-semibold">
-                                      {eth.label}
-                                    </div>
+                                    <ArrowRight className="w-5 h-5" />
                                   </button>
-                                ))}
-                              </div>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={handleEthnicitySubmit}
-                                  disabled={selectedEthnicities.length === 0}
-                                  className="flex-1 flex items-center justify-center px-6 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                  <ArrowRight className="w-5 h-5" />
-                                </button>
-                              </div>
-                              {currentStep > 0 && (
-                                <div className="mt-3 text-xs text-gray-500">
-                                  Press ESC to go back
                                 </div>
-                              )}
-                            </div>
-                          ) : currentQuestion.type === "file" ? (
-                            <div>
-                              {loading === currentQuestion.field ? (
-                                <div className="flex items-center py-4">
-                                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-3"></div>
-                                  <span className="text-primary-dark font-semibold">
-                                    Uploading...
-                                  </span>
-                                </div>
-                              ) : (
-                                <div className="space-y-3">
-                                  <label className="block">
-                                    <div className="flex items-center justify-center w-full py-8 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 bg-white/50">
-                                      <Upload className="w-8 h-8 text-gray-400 mr-3" />
-                                      <span className="text-primary-dark font-semibold">
-                                        Click to upload or drag and drop
-                                      </span>
-                                    </div>
+                                {currentStep > 0 && (
+                                  <div className="mt-3 text-xs text-primary-dark opacity-50">
+                                    ESC to go back • ENTER to continue
+                                  </div>
+                                )}
+                              </div>
+                            ) : currentQuestion.type === "height" ? (
+                              <div>
+                                <div className="flex gap-2">
+                                  <div className="flex items-center gap-2">
                                     <input
-                                      type="file"
-                                      className="hidden"
-                                      accept={
-                                        currentQuestion.field === "headshot"
-                                          ? "image/*"
-                                          : ".pdf,.docx"
+                                      type="number"
+                                      value={heightFeet}
+                                      onChange={(e) =>
+                                        setHeightFeet(e.target.value)
                                       }
-                                      onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) {
-                                          handleFileUpload(
-                                            file,
-                                            currentQuestion.field as
-                                              | "headshot"
-                                              | "resume"
-                                          );
-                                        }
-                                      }}
-                                    />
-                                  </label>
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={handleSkip}
                                       onKeyUp={(e) => {
+                                        if (e.key === "Enter" && heightInches)
+                                          handleHeightSubmit();
                                         if (
                                           e.key === "Escape" &&
                                           currentStep > 0
                                         )
                                           handleBack();
                                       }}
-                                      className="flex-1 px-6 py-3 bg-primary-dark-alt text-white font-semibold rounded-lg hover:opacity-80 transition-colors"
-                                    >
-                                      Skip for now
-                                    </button>
+                                      placeholder="0"
+                                      min="1"
+                                      max="8"
+                                      className="w-18 px-4 py-3 rounded-lg focus:outline-none bg-white text-primary-dark"
+                                      autoFocus
+                                    />
+                                    <span className="text-primary-dark font-medium">
+                                      feet
+                                    </span>
                                   </div>
-                                  {currentStep > 0 && (
-                                    <div className="mt-3 text-xs text-gray-500">
-                                      Press ESC to go back
-                                    </div>
-                                  )}
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="number"
+                                      value={heightInches}
+                                      onChange={(e) =>
+                                        setHeightInches(e.target.value)
+                                      }
+                                      onKeyUp={(e) => {
+                                        if (e.key === "Enter" && heightFeet)
+                                          handleHeightSubmit();
+                                        if (
+                                          e.key === "Escape" &&
+                                          currentStep > 0
+                                        )
+                                          handleBack();
+                                      }}
+                                      placeholder="0"
+                                      min="0"
+                                      max="11"
+                                      className="w-18 px-4 py-3 rounded-lg focus:outline-none bg-white text-primary-dark"
+                                    />
+                                    <span className="text-primary-dark font-medium">
+                                      inches
+                                    </span>
+                                  </div>
+                                  <button
+                                    onClick={handleHeightSubmit}
+                                    disabled={
+                                      !heightFeet ||
+                                      parseInt(heightFeet) <= 0 ||
+                                      parseInt(heightInches) < 0 ||
+                                      parseInt(heightInches) >= 12
+                                    }
+                                    className="px-6 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                  >
+                                    <ArrowRight className="w-5 h-5" />
+                                  </button>
                                 </div>
-                              )}
-                            </div>
-                          ) : null}
-                        </div>
-                      )}
+                                {currentStep > 0 && (
+                                  <div className="mt-3 text-xs text-primary-dark opacity-50">
+                                    ESC to go back • ENTER to continue
+                                  </div>
+                                )}
+                              </div>
+                            ) : currentQuestion.type === "ethnicity" ? (
+                              <div>
+                                <div className="grid grid-cols-3 gap-2 mb-4">
+                                  {ethnicities.map((eth) => (
+                                    <button
+                                      key={eth.value}
+                                      onClick={() => {
+                                        setSelectedEthnicities((prev) =>
+                                          prev.includes(eth.value)
+                                            ? prev.filter(
+                                                (e) => e !== eth.value
+                                              )
+                                            : [...prev, eth.value]
+                                        );
+                                      }}
+                                      className={`p-3 rounded-lg border-1 text-sm transition-all ${
+                                        selectedEthnicities.includes(eth.value)
+                                          ? "border-blue-500 bg-blue-50"
+                                          : "border-gray-200 hover:border-gray-500 bg-white"
+                                      }`}
+                                    >
+                                      <div className="text-sm text-primary-dark font-semibold">
+                                        {eth.label}
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={handleEthnicitySubmit}
+                                    disabled={selectedEthnicities.length === 0}
+                                    className="flex-1 flex items-center justify-center px-6 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                  >
+                                    <ArrowRight className="w-5 h-5" />
+                                  </button>
+                                </div>
+                                {currentStep > 0 && (
+                                  <div className="mt-3 text-xs text-gray-500">
+                                    Press ESC to go back
+                                  </div>
+                                )}
+                              </div>
+                            ) : currentQuestion.type === "file" ? (
+                              <div>
+                                {loading === currentQuestion.field ? (
+                                  <div className="flex items-center py-4">
+                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-3"></div>
+                                    <span className="text-primary-dark font-semibold">
+                                      Uploading...
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-3">
+                                    <label className="block">
+                                      <div className="flex items-center justify-center w-full py-8 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 bg-white/50">
+                                        <Upload className="w-8 h-8 text-gray-400 mr-3" />
+                                        <span className="text-primary-dark font-semibold">
+                                          Click to upload or drag and drop
+                                        </span>
+                                      </div>
+                                      <input
+                                        type="file"
+                                        className="hidden"
+                                        accept={
+                                          currentQuestion.field === "headshot"
+                                            ? "image/*"
+                                            : ".pdf,.docx"
+                                        }
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) {
+                                            handleFileUpload(
+                                              file,
+                                              currentQuestion.field as
+                                                | "headshot"
+                                                | "resume"
+                                            );
+                                          }
+                                        }}
+                                      />
+                                    </label>
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={handleSkip}
+                                        onKeyUp={(e) => {
+                                          if (
+                                            e.key === "Escape" &&
+                                            currentStep > 0
+                                          )
+                                            handleBack();
+                                        }}
+                                        className="flex-1 px-6 py-3 bg-primary-dark-alt text-white font-semibold rounded-lg hover:opacity-80 transition-colors"
+                                      >
+                                        Skip for now
+                                      </button>
+                                    </div>
+                                    {currentStep > 0 && (
+                                      <div className="mt-3 text-xs text-gray-500">
+                                        Press ESC to go back
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ) : null}
+                          </div>
+                        )}
                     </div>
                   );
                 })}

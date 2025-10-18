@@ -13,11 +13,13 @@ interface Question {
 interface ProgressBarProps {
   currentStep: number;
   questions: Question[];
+  completed?: boolean;
 }
 
 export default function ProgressBar({
   currentStep,
   questions,
+  completed,
 }: ProgressBarProps) {
   const totalSteps = questions.length;
   const [highestStep, setHighestStep] = useState(currentStep);
@@ -36,7 +38,8 @@ export default function ProgressBar({
             {questions.map((_, index) => {
               const isCompleted = index < currentStep;
               const isCurrent = index === currentStep;
-              const isPast = index < currentStep;
+              const isPast =
+                index < currentStep || (completed && index === totalSteps - 1);
               const hasBeenAnimated = index < highestStep - 1;
               const shouldAnimateLine =
                 index === currentStep - 1 && currentStep > highestStep - 1;
@@ -60,7 +63,7 @@ export default function ProgressBar({
                   >
                     {/* Outer ring for current step */}
                     <AnimatePresence>
-                      {isCurrent && (
+                      {isCurrent && !completed && (
                         <motion.div
                           key={`ring-${index}`}
                           className="absolute w-3 h-3 rounded-full border-[3px] border-primary-dark-alt z-100"
