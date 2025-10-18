@@ -9,6 +9,7 @@ import { auth } from "@/lib/firebase/client/config/app";
 import { UserProfile, ethnicities } from "@/types/profile";
 import Image from "next/image";
 import ProgressBar from "./progressBar";
+import { motion } from "framer-motion";
 
 type LoadingState = "idle" | "headshot" | "resume" | "profile";
 
@@ -508,7 +509,7 @@ function ChatOnboardingContent() {
       {
         id: "complete",
         type: "question",
-        content: "Perfect! Setting up your profile now 🎉",
+        content: "Perfect! Setting up your profile now! 🎉",
       },
     ]);
 
@@ -604,7 +605,7 @@ function ChatOnboardingContent() {
                         !isCurrentQuestion && !isLatestAnswer ? "" : ""
                       }
                     >
-                      {!isCompleted && item.type === "question" ? (
+                      {item.type === "question" ? (
                         <div className="relative">
                           {/* Add the profile image for current question only */}
                           {isCurrentQuestion && (
@@ -646,9 +647,17 @@ function ChatOnboardingContent() {
                           </div>
                         </div>
                       ) : (
-                        <div className="text-primary-dark font-semibold mb-8">
+                        <motion.div
+                          initial={{ opacity: 0.5, y: 40 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{
+                            duration: 0.3,
+                            ease: "easeOut",
+                          }}
+                          className="text-primary-dark font-semibold mb-8"
+                        >
                           {item.content}
-                        </div>
+                        </motion.div>
                       )}
 
                       {/* Show uploading message after the previous question when it's a file upload */}
@@ -717,7 +726,7 @@ function ChatOnboardingContent() {
                                       !firstNameValue.trim() ||
                                       !lastNameValue.trim()
                                     }
-                                    className="px-6 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="px-5 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                   >
                                     <ArrowRight className="w-5 h-5" />
                                   </button>
@@ -749,7 +758,7 @@ function ChatOnboardingContent() {
                                   <button
                                     onClick={handleSubmit}
                                     disabled={!inputValue.trim()}
-                                    className="px-6 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="px-5 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                   >
                                     <ArrowRight className="w-5 h-5" />
                                   </button>
@@ -781,7 +790,7 @@ function ChatOnboardingContent() {
                                   <button
                                     onClick={handleSubmit}
                                     disabled={!inputValue.trim()}
-                                    className="px-6 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="px-5 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                   >
                                     <ArrowRight className="w-5 h-5" />
                                   </button>
@@ -854,7 +863,7 @@ function ChatOnboardingContent() {
                                       parseInt(heightInches) < 0 ||
                                       parseInt(heightInches) >= 12
                                     }
-                                    className="px-6 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="px-5 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                   >
                                     <ArrowRight className="w-5 h-5" />
                                   </button>
@@ -896,7 +905,7 @@ function ChatOnboardingContent() {
                                   <button
                                     onClick={handleEthnicitySubmit}
                                     disabled={selectedEthnicities.length === 0}
-                                    className="flex-1 flex items-center justify-center px-6 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="flex-1 flex items-center justify-center px-5 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                   >
                                     <ArrowRight className="w-5 h-5" />
                                   </button>
@@ -975,15 +984,6 @@ function ChatOnboardingContent() {
                     </div>
                   );
                 })}
-
-                {loading === "profile" && (
-                  <div className="flex items-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-3"></div>
-                    <span className="text-primary-dark font-semibold">
-                      Creating your profile...
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
           </div>

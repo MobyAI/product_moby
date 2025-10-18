@@ -483,8 +483,7 @@ const AuditionModal: React.FC<AuditionModalProps> = ({
             ) : (
               <>
                 <button
-                  type="button"
-                  onClick={handleClose}
+                  type="submit"
                   className="flex-1 w-[30%] px-6 py-3 border border-bg-primary-dark-alt text-primary-dark-alt rounded-lg font-medium hover:cursor-pointer"
                 >
                   Skip
