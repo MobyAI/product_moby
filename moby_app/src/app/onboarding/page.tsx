@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ChevronLeft, Upload, ArrowRight } from "lucide-react";
+import { Upload, ArrowRight } from "lucide-react";
 import { uploadHeadshot, uploadResume } from "@/lib/firebase/client/media";
 import { addUser } from "@/lib/firebase/client/user";
 import { auth } from "@/lib/firebase/client/config/app";
 import { UserProfile, ethnicities } from "@/types/profile";
 import Image from "next/image";
+import ProgressBar from "./progressBar";
 
 type LoadingState = "idle" | "headshot" | "resume" | "profile";
 
@@ -149,6 +150,9 @@ function ChatOnboardingContent() {
   });
   const [firstNameValue, setFirstNameValue] = useState("");
   const [lastNameValue, setLastNameValue] = useState("");
+  const [heightFeet, setHeightFeet] = useState("");
+  const [heightInches, setHeightInches] = useState("");
+  const [isCompleted, setIsCompleted] = useState(false);
 
   const questions = [
     {
@@ -164,14 +168,14 @@ function ChatOnboardingContent() {
         `Nice to meet you ${firstNameValue}! How old are you?`,
     },
     {
+      text: "How tall are you?",
+      field: "height",
+      type: "height",
+    },
+    {
       text: "What's your ethnic background? (Select all that apply)",
       field: "ethnicity",
       type: "ethnicity",
-    },
-    {
-      text: "How tall are you? (in inches, e.g., 66 for 5'6\")",
-      field: "height",
-      type: "number",
     },
     {
       text: "Would you like to upload a professional headshot?",
@@ -179,7 +183,7 @@ function ChatOnboardingContent() {
       type: "file",
     },
     {
-      text: "Last step! Upload your resume (PDF or DOCX)",
+      text: "Last step! Would you like to upload your resume?",
       field: "resume",
       type: "file",
     },
@@ -227,7 +231,7 @@ function ChatOnboardingContent() {
     );
 
     // Remove everything after that answer
-    const newConversation = conversation.slice(0, lastAnswerIndex + 1);
+    const newConversation = conversation.slice(0, lastAnswerIndex);
     setConversation(newConversation);
 
     // Go back one step
@@ -239,24 +243,35 @@ function ChatOnboardingContent() {
     const prevQuestion = questions[prevStep];
 
     if (prevQuestion.type === "text" || prevQuestion.type === "number") {
-      setInputValue(prevAnswer?.value || "");
+      setInputValue(String(prevAnswer?.value || ""));
     } else if (prevQuestion.type === "name") {
       const names = prevAnswer?.value || { firstName: "", lastName: "" };
       setFirstNameValue(names.firstName);
       setLastNameValue(names.lastName);
     } else if (prevQuestion.type === "ethnicity") {
       setSelectedEthnicities(prevAnswer?.value || []);
+    } else if (prevQuestion.type === "height") {
+      const totalInches = prevAnswer?.value || 66;
+      setHeightFeet(String(Math.floor(totalInches / 12)));
+      setHeightInches(String(totalInches % 12));
     }
 
-    // Add the question back and show input
+    // Clear any existing questions with the same step number to avoid duplicate keys
+    const filteredConversation = newConversation.filter(
+      (item) => !item.id.startsWith(`q-${prevStep}`)
+    );
+
+    // Add the question back with a unique identifier
     setTimeout(() => {
       setConversation([
-        ...newConversation,
+        ...filteredConversation,
         {
-          id: `q-${prevStep}`,
+          id: `q-${prevStep}-${Date.now()}`, // Add timestamp to ensure uniqueness
           type: "question",
-          content: questions[prevStep].text,
-          fieldName: questions[prevStep].field as keyof UserProfile,
+          content: prevQuestion.getDynamicText
+            ? prevQuestion.getDynamicText()
+            : prevQuestion.text,
+          fieldName: prevQuestion.field as keyof UserProfile,
         },
       ]);
       setShowInput(true);
@@ -297,21 +312,24 @@ function ChatOnboardingContent() {
   const handleSubmit = () => {
     const currentQuestion = questions[currentStep];
 
+    const inputStr = String(inputValue || "");
+
     if (
-      !inputValue.trim() &&
+      !inputStr.trim() && // Now safely using .trim() on a string
       currentQuestion.type !== "ethnicity" &&
       currentQuestion.type !== "file" &&
       currentQuestion.type !== "name"
     )
       return;
 
-    let answerText = inputValue;
-    let value: any = inputValue;
+    let answerText = inputStr;
+    let value: any = inputStr;
 
     // Update profile based on field
     if (currentQuestion.field === "age") {
       const age = parseInt(inputValue);
       setProfile((prev) => ({ ...prev, age }));
+      answerText = `${age} years old`;
       value = age;
     } else if (currentQuestion.field === "height") {
       const height = parseInt(inputValue);
@@ -395,6 +413,35 @@ function ChatOnboardingContent() {
     proceedToNext();
   };
 
+  const handleHeightSubmit = () => {
+    const feet = parseInt(heightFeet) || 0;
+    const inches = parseInt(heightInches) || 0;
+
+    if (feet <= 0 || inches < 0 || inches >= 12) return;
+
+    const totalInches = feet * 12 + inches;
+    setProfile((prev) => ({ ...prev, height: totalInches }));
+
+    // Add answer to conversation
+    setConversation((prev) => [
+      ...prev,
+      {
+        id: `a-${currentStep}`,
+        type: "answer",
+        content: `${feet}'${inches}"`,
+        value: totalInches,
+      },
+    ]);
+
+    // Clear inputs and hide temporarily, show processing
+    setHeightFeet("");
+    setHeightInches("");
+    setShowInput(false);
+    setIsProcessingAnswer(true);
+
+    proceedToNext();
+  };
+
   const handleFileUpload = async (file: File, type: "headshot" | "resume") => {
     setLoading(type);
     setError(null);
@@ -453,6 +500,7 @@ function ChatOnboardingContent() {
 
   async function handleProfileSubmit() {
     setShowInput(false);
+    setIsCompleted(true);
 
     // Add completion message
     setConversation((prev) => [
@@ -460,7 +508,7 @@ function ChatOnboardingContent() {
       {
         id: "complete",
         type: "question",
-        content: "Perfect! Setting up your profile now... 🎉",
+        content: "Perfect! Setting up your profile now 🎉",
       },
     ]);
 
@@ -486,75 +534,32 @@ function ChatOnboardingContent() {
   const currentQuestion =
     currentStep < questions.length ? questions[currentStep] : null;
 
-  // Displays progress of onboarding steps
-  const ProgressBar = () => {
-    const totalSteps = questions.length;
-    const stepHeight = 32; // gap-8 = 2rem = 32px
+  // Listen for ESC key press
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (
+        e.key === "Escape" &&
+        currentStep > 0 &&
+        (currentQuestion?.type === "ethnicity" ||
+          currentQuestion?.type === "file")
+      ) {
+        handleBack();
+      }
+    };
 
-    return (
-      <div className="fixed left-[calc(40%-24rem)] top-1/2 -translate-y-1/2 z-20">
-        <div className="relative">
-          {/* Background line */}
-          <div
-            className="absolute left-1/2 -translate-x-1/2 top-2 w-0.5 bg-gray-300"
-            style={{
-              height: `${stepHeight * (totalSteps + 1)}px`,
-            }}
-          />
-
-          {/* Progress line */}
-          {currentStep > 0 && (
-            <div
-              className="absolute left-1/2 -translate-x-1/2 top-2 w-0.5 bg-primary-dark-alt transition-all duration-500"
-              style={{
-                height: `${stepHeight * currentStep + 32}px`,
-              }}
-            />
-          )}
-
-          {/* Step circles */}
-          <div className="relative flex flex-col gap-8">
-            {questions.map((_, index) => {
-              const isCompleted = index < currentStep;
-              const isCurrent = index === currentStep;
-
-              return (
-                <div
-                  key={index}
-                  className="relative flex items-center justify-center"
-                >
-                  {/* Outer ring for current step */}
-                  {isCurrent && (
-                    <div className="absolute w-4 h-4 rounded-full border-[4px] border-primary-dark-alt" />
-                  )}
-
-                  {/* Inner circle */}
-                  <div
-                    className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                      isCompleted
-                        ? "bg-primary-dark-alt"
-                        : isCurrent
-                        ? "bg-white border-2 border-primary-dark-alt"
-                        : "bg-white border-2 border-gray-300"
-                    }`}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  };
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [currentStep, currentQuestion]);
 
   return (
     <div className="h-screen bg-primary-light-alt relative flex flex-col">
       {/* Logo */}
-      <h3 className="text-logo-lg text-primary-dark z-100 absolute top-6 left-6">
+      <h3 className="text-logo text-primary-dark z-100 absolute top-4 left-5">
         tableread
       </h3>
 
-      <ProgressBar />
+      {/* Progress Bar */}
+      <ProgressBar currentStep={currentStep} questions={questions} />
 
       {/* Gradient overlay at top - creates fade effect on scrolled content */}
       <div className="fixed top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#eeede4] via-[#eeede4]/80 to-transparent z-10 pointer-events-none" />
@@ -583,6 +588,11 @@ function ChatOnboardingContent() {
                   const isLatestAnswer =
                     item.type === "answer" && index === conversation.length - 1;
 
+                  const isUploadingFile =
+                    item.type === "question" &&
+                    item.fieldName === loading && // ✅ Only match the one being uploaded
+                    index === conversation.length - 1; // ✅ Only the most recent question
+
                   return (
                     <div
                       key={item.id}
@@ -590,7 +600,7 @@ function ChatOnboardingContent() {
                         !isCurrentQuestion && !isLatestAnswer ? "" : ""
                       }
                     >
-                      {item.type === "question" ? (
+                      {!isCompleted && item.type === "question" ? (
                         <div className="relative">
                           {/* Add the profile image for current question only */}
                           {isCurrentQuestion && (
@@ -599,7 +609,7 @@ function ChatOnboardingContent() {
                               alt="Admin"
                               width={40}
                               height={40}
-                              className="absolute -left-14 rounded-full object-cover"
+                              className="absolute -left-14 -top-2 rounded-full object-cover"
                               priority={true}
                             />
                           )}
@@ -637,15 +647,16 @@ function ChatOnboardingContent() {
                         </div>
                       )}
 
-                      {/* Show processing spinner after the current question when answer is being processed */}
-                      {isCurrentQuestion && isProcessingAnswer && (
-                        <div className="flex items-center py-4 animate-fadeIn">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                      {/* Show uploading message after the previous question when it's a file upload */}
+                      {isUploadingFile && (
+                        <div className="flex items-center py-4 animate-fadeIn text-md text-primary-dark font-semibold mb-8">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-3"></div>
+                          <span>Uploading...</span>
                         </div>
                       )}
 
                       {/* Current Input Area - only show for current question */}
-                      {isCurrentQuestion && showInput && currentQuestion && (
+                      {!isCompleted && isCurrentQuestion && showInput && currentQuestion && (
                         <div className="animate-fadeIn">
                           {error && (
                             <div className="mb-3 p-3 bg-red-50 text-red-600 text-sm rounded-lg">
@@ -662,11 +673,15 @@ function ChatOnboardingContent() {
                                   onChange={(e) =>
                                     setFirstNameValue(e.target.value)
                                   }
-                                  onKeyUp={(e) =>
-                                    e.key === "Enter" &&
-                                    lastNameValue.trim() &&
-                                    handleNameSubmit()
-                                  }
+                                  onKeyUp={(e) => {
+                                    if (
+                                      e.key === "Enter" &&
+                                      lastNameValue.trim()
+                                    )
+                                      handleNameSubmit();
+                                    if (e.key === "Escape" && currentStep > 0)
+                                      handleBack();
+                                  }}
                                   placeholder="First name"
                                   className="w-[35%] px-4 py-3 rounded-lg focus:outline-none bg-white text-primary-dark"
                                   autoFocus
@@ -677,11 +692,15 @@ function ChatOnboardingContent() {
                                   onChange={(e) =>
                                     setLastNameValue(e.target.value)
                                   }
-                                  onKeyUp={(e) =>
-                                    e.key === "Enter" &&
-                                    firstNameValue.trim() &&
-                                    handleNameSubmit()
-                                  }
+                                  onKeyUp={(e) => {
+                                    if (
+                                      e.key === "Enter" &&
+                                      firstNameValue.trim()
+                                    )
+                                      handleNameSubmit();
+                                    if (e.key === "Escape" && currentStep > 0)
+                                      handleBack();
+                                  }}
                                   placeholder="Last name"
                                   className="w-[35%] px-4 py-3 rounded-lg focus:outline-none bg-white text-primary-dark"
                                 />
@@ -696,68 +715,142 @@ function ChatOnboardingContent() {
                                   <ArrowRight className="w-5 h-5" />
                                 </button>
                               </div>
+                              {currentStep > 0 && (
+                                <div className="mt-3 text-xs text-primary-dark opacity-50">
+                                  ESC to go back • ENTER to continue
+                                </div>
+                              )}
                             </div>
                           ) : currentQuestion.type === "text" ? (
-                            <div className="flex gap-2">
-                              {currentStep > 0 && (
+                            <div>
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  value={inputValue}
+                                  onChange={(e) =>
+                                    setInputValue(e.target.value)
+                                  }
+                                  onKeyUp={(e) => {
+                                    if (e.key === "Enter") handleSubmit();
+                                    if (e.key === "Escape" && currentStep > 0)
+                                      handleBack();
+                                  }}
+                                  placeholder={`Enter here`}
+                                  className="w-1/2 px-4 py-3 rounded-lg focus:outline-none bg-white text-primary-dark"
+                                  autoFocus
+                                />
                                 <button
-                                  onClick={handleBack}
-                                  className="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                  onClick={handleSubmit}
+                                  disabled={!inputValue.trim()}
+                                  className="px-6 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
-                                  <ChevronLeft className="w-5 h-5 text-gray-600" />
+                                  <ArrowRight className="w-5 h-5" />
                                 </button>
+                              </div>
+                              {currentStep > 0 && (
+                                <div className="mt-3 text-xs text-primary-dark opacity-50">
+                                  ESC to go back • ENTER to continue
+                                </div>
                               )}
-                              <input
-                                type="text"
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
-                                onKeyUp={(e) =>
-                                  e.key === "Enter" && handleSubmit()
-                                }
-                                placeholder={`Enter here`}
-                                className="w-1/2 px-4 py-3 rounded-lg focus:outline-none bg-white text-primary-dark"
-                                autoFocus
-                              />
-                              <button
-                                onClick={handleSubmit}
-                                disabled={!inputValue.trim()}
-                                className="px-6 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                              >
-                                <ArrowRight className="w-5 h-5" />
-                              </button>
                             </div>
                           ) : currentQuestion.type === "number" ? (
-                            <div className="flex gap-2">
-                              {currentStep > 0 && (
+                            <div>
+                              <div className="flex gap-2">
+                                <input
+                                  type="number"
+                                  value={inputValue}
+                                  onChange={(e) =>
+                                    setInputValue(e.target.value)
+                                  }
+                                  onKeyUp={(e) => {
+                                    if (e.key === "Enter") handleSubmit();
+                                    if (e.key === "Escape" && currentStep > 0)
+                                      handleBack();
+                                  }}
+                                  placeholder="0"
+                                  className="w-20 px-4 py-3 rounded-lg focus:outline-none bg-white text-primary-dark"
+                                  autoFocus
+                                />
                                 <button
-                                  onClick={handleBack}
-                                  className="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                  onClick={handleSubmit}
+                                  disabled={!inputValue.trim()}
+                                  className="px-6 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
-                                  <ChevronLeft className="w-5 h-5 text-gray-600" />
+                                  <ArrowRight className="w-5 h-5" />
                                 </button>
+                              </div>
+                              {currentStep > 0 && (
+                                <div className="mt-3 text-xs text-primary-dark opacity-50">
+                                  ESC to go back • ENTER to continue
+                                </div>
                               )}
-                              <input
-                                type="number"
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
-                                onKeyUp={(e) =>
-                                  e.key === "Enter" && handleSubmit()
-                                }
-                                placeholder={
-                                  currentQuestion.field === "height"
-                                    ? "e.g., 66"
-                                    : "Enter age"
-                                }
-                                className="px-4 py-3 rounded-lg focus:outline-none bg-white text-primary-dark"
-                                autoFocus
-                              />
-                              <button
-                                onClick={handleSubmit}
-                                disabled={!inputValue.trim()}
-                                className="px-6 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                              >
-                                <ArrowRight className="w-5 h-5" />
-                              </button>
+                            </div>
+                          ) : currentQuestion.type === "height" ? (
+                            <div>
+                              <div className="flex gap-2">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="number"
+                                    value={heightFeet}
+                                    onChange={(e) =>
+                                      setHeightFeet(e.target.value)
+                                    }
+                                    onKeyUp={(e) => {
+                                      if (e.key === "Enter" && heightInches)
+                                        handleHeightSubmit();
+                                      if (e.key === "Escape" && currentStep > 0)
+                                        handleBack();
+                                    }}
+                                    placeholder="0"
+                                    min="1"
+                                    max="8"
+                                    className="w-18 px-4 py-3 rounded-lg focus:outline-none bg-white text-primary-dark"
+                                    autoFocus
+                                  />
+                                  <span className="text-primary-dark font-medium">
+                                    feet
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="number"
+                                    value={heightInches}
+                                    onChange={(e) =>
+                                      setHeightInches(e.target.value)
+                                    }
+                                    onKeyUp={(e) => {
+                                      if (e.key === "Enter" && heightFeet)
+                                        handleHeightSubmit();
+                                      if (e.key === "Escape" && currentStep > 0)
+                                        handleBack();
+                                    }}
+                                    placeholder="0"
+                                    min="0"
+                                    max="11"
+                                    className="w-18 px-4 py-3 rounded-lg focus:outline-none bg-white text-primary-dark"
+                                  />
+                                  <span className="text-primary-dark font-medium">
+                                    inches
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={handleHeightSubmit}
+                                  disabled={
+                                    !heightFeet ||
+                                    parseInt(heightFeet) <= 0 ||
+                                    parseInt(heightInches) < 0 ||
+                                    parseInt(heightInches) >= 12
+                                  }
+                                  className="px-6 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  <ArrowRight className="w-5 h-5" />
+                                </button>
+                              </div>
+                              {currentStep > 0 && (
+                                <div className="mt-3 text-xs text-primary-dark opacity-50">
+                                  ESC to go back • ENTER to continue
+                                </div>
+                              )}
                             </div>
                           ) : currentQuestion.type === "ethnicity" ? (
                             <div>
@@ -772,30 +865,19 @@ function ChatOnboardingContent() {
                                           : [...prev, eth.value]
                                       );
                                     }}
-                                    className={`p-3 rounded-lg border-2 text-sm transition-all ${
+                                    className={`p-3 rounded-lg border-1 text-sm transition-all ${
                                       selectedEthnicities.includes(eth.value)
                                         ? "border-blue-500 bg-blue-50"
-                                        : "border-gray-200 hover:border-gray-300 bg-white"
+                                        : "border-gray-200 hover:border-gray-500 bg-white"
                                     }`}
                                   >
-                                    <div className="text-xl mb-1">
-                                      {eth.emoji}
-                                    </div>
-                                    <div className="text-xs text-primary-dark font-semibold">
+                                    <div className="text-sm text-primary-dark font-semibold">
                                       {eth.label}
                                     </div>
                                   </button>
                                 ))}
                               </div>
                               <div className="flex gap-2">
-                                {currentStep > 0 && (
-                                  <button
-                                    onClick={handleBack}
-                                    className="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                  >
-                                    <ChevronLeft className="w-5 h-5 text-gray-600" />
-                                  </button>
-                                )}
                                 <button
                                   onClick={handleEthnicitySubmit}
                                   disabled={selectedEthnicities.length === 0}
@@ -804,6 +886,11 @@ function ChatOnboardingContent() {
                                   <ArrowRight className="w-5 h-5" />
                                 </button>
                               </div>
+                              {currentStep > 0 && (
+                                <div className="mt-3 text-xs text-gray-500">
+                                  Press ESC to go back
+                                </div>
+                              )}
                             </div>
                           ) : currentQuestion.type === "file" ? (
                             <div>
@@ -845,21 +932,25 @@ function ChatOnboardingContent() {
                                     />
                                   </label>
                                   <div className="flex gap-2">
-                                    {currentStep > 0 && (
-                                      <button
-                                        onClick={handleBack}
-                                        className="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                      >
-                                        <ChevronLeft className="w-5 h-5 text-gray-600" />
-                                      </button>
-                                    )}
                                     <button
                                       onClick={handleSkip}
+                                      onKeyUp={(e) => {
+                                        if (
+                                          e.key === "Escape" &&
+                                          currentStep > 0
+                                        )
+                                          handleBack();
+                                      }}
                                       className="flex-1 px-6 py-3 bg-primary-dark-alt text-white font-semibold rounded-lg hover:opacity-80 transition-colors"
                                     >
                                       Skip for now
                                     </button>
                                   </div>
+                                  {currentStep > 0 && (
+                                    <div className="mt-3 text-xs text-gray-500">
+                                      Press ESC to go back
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
