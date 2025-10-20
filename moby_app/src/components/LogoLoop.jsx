@@ -198,6 +198,7 @@ export const LogoLoop = memo(
 
     const renderLogoItem = useCallback((item, key) => {
       const isNodeItem = 'node' in item;
+      const scale = item.scale ?? 1; // <-- new
 
       const content = isNodeItem ? (
         <span className="logoloop__node" aria-hidden={!!item.href && !item.ariaLabel}>
@@ -235,11 +236,17 @@ export const LogoLoop = memo(
       );
 
       return (
-        <li className="logoloop__item" key={key} role="listitem">
+        <li
+          className="logoloop__item"
+          key={key}
+          role="listitem"
+          style={{ '--item-scale': scale }} // <-- new
+        >
           {itemContent}
         </li>
       );
     }, []);
+
 
     const logoLists = useMemo(
       () =>

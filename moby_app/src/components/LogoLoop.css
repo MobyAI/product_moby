@@ -128,3 +128,23 @@
     transition: none !important;
   }
 }
+
+/* Make every item follow the base height */
+.logoloop__item {
+  height: var(--logoloop-logoHeight);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Scale certain items visually without breaking the flow */
+.logoloop__item img,
+.logoloop__item .logoloop__node {
+  max-height: 100%;
+  width: auto;
+  object-fit: contain;
+  transform: scale(var(--item-scale, 1));      /* <-- new */
+  transform-origin: center;                    /* keep it centered */
+  will-change: transform;
+  pointer-events: none;                         /* optional, for hover behavior */
+}

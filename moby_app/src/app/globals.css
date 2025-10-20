@@ -168,7 +168,7 @@ body {
   background: var(--primary-light-alt);
   background-attachment: fixed;
   height: 100vh;
-  overflow: hidden;
+  /* overflow: hidden; */
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -797,4 +797,18 @@ body {
   background: linear-gradient(to top, #060010, transparent);
   pointer-events: none;
   transition: opacity 0.3s ease;
+}
+
+@theme inline {
+  --animate-pulse: pulse var(--duration) ease-out infinite;
+
+  @keyframes pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 var(--pulse-color);
+    }
+    50% {
+      box-shadow: 0 0 0 8px var(--pulse-color);
+    }
+  }
 }
