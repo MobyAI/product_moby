@@ -56,11 +56,11 @@ export default function ResumeUploadModal({ isOpen, onClose, onSuccess }: Resume
             />
 
             {/* Modal */}
-            <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <div className="relative bg-primary-light-alt rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
                 {/* Close button */}
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 p-1 rounded-lg hover:bg-gray-100"
+                    className="absolute top-4 right-4 p-1 rounded-lg hover:cursor-pointer"
                 >
                     <X className="w-5 h-5 text-gray-500" />
                 </button>
@@ -103,7 +103,7 @@ export default function ResumeUploadModal({ isOpen, onClose, onSuccess }: Resume
                     >
                         <div className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer transition-all ${isDragging
                                 ? 'border-emerald-500 bg-emerald-50'
-                                : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                                : 'border-gray-300 bg-transparent'
                             }`}>
                             <Upload className={`w-10 h-10 mb-3 ${isDragging ? 'text-emerald-500' : 'text-gray-400'}`} />
                             <p className="mb-2 text-sm text-gray-600">
@@ -135,7 +135,7 @@ export default function ResumeUploadModal({ isOpen, onClose, onSuccess }: Resume
                     <button
                         onClick={onClose}
                         disabled={loading}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                        className="flex-1 px-4 py-2 bg-white/50 rounded-lg shadow-sm hover:cursor-pointer transition-colors disabled:opacity-50"
                     >
                         Cancel
                     </button>
