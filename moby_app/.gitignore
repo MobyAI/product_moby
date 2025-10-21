@@ -60,3 +60,12 @@ moby-google-key.base64
 
 # Deprecated folder
 /deprecated
+
+# Firebase
+.firebase/
+.firebaserc
+
+# Cloud Functions
+functions/lib/
+functions/node_modules/
+functions/.eslintrc.js
