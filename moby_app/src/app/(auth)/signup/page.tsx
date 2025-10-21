@@ -125,6 +125,7 @@ export default function SignupPage() {
         setIsGoogleUser(true);
         setStep("password");
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.message || "Failed to sign up with Google");
       console.error(err);

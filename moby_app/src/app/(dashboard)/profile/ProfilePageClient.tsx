@@ -49,6 +49,7 @@ const ethnicityLabels = Object.fromEntries(
 
 function ProfilePageContent() {
   const [deleting, setDeleting] = useState<"headshot" | "resume" | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [saving, setSaving] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editedProfile, setEditedProfile] = useState<UserProfile | null>(null);

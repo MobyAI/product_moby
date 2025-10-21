@@ -432,9 +432,9 @@ function ScriptsListContent() {
                 3. Pin Your Favorites
               </h3>
               <p className="text-primary-dark-alt">
-                Pin scripts you're currently practicing or have upcoming
+                {`Pin scripts you're currently practicing or have upcoming
                 auditions for to keep them at the top of your collection for
-                easy access.
+                easy access.`}
               </p>
             </div>
           </div>

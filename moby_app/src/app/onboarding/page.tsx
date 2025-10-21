@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Upload, ArrowRight } from "lucide-react";
 import { uploadHeadshot, uploadResume } from "@/lib/firebase/client/media";
@@ -18,6 +18,7 @@ type ConversationItem = {
   type: "question" | "answer";
   content: string;
   fieldName?: keyof UserProfile | "headshot" | "resume";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   value?: any;
 };
 
@@ -69,12 +70,14 @@ const MultiLineTypewriter = ({
   const [completedLines, setCompletedLines] = useState<string[]>([]);
   const [isComplete, setIsComplete] = useState(false);
 
+  const linesKey = useMemo(() => lines.join("|"), [lines]);
+
   useEffect(() => {
     // Reset when lines change (new question)
     setCurrentLineIndex(0);
     setCompletedLines([]);
     setIsComplete(false);
-  }, [lines.join("|")]); // Use joined string as dependency to detect content change
+  }, [linesKey]); // Use joined string as dependency to detect content change
 
   const handleLineComplete = () => {
     if (isComplete) return; // Prevent re-execution
@@ -221,6 +224,7 @@ function ChatOnboardingContent() {
         },
       ]);
     }, 500);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleBack = () => {
@@ -324,6 +328,7 @@ function ChatOnboardingContent() {
       return;
 
     let answerText = inputStr;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let value: any = inputStr;
 
     // Update profile based on field
@@ -550,6 +555,7 @@ function ChatOnboardingContent() {
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, currentQuestion]);
 
   return (
@@ -578,7 +584,7 @@ function ChatOnboardingContent() {
               {/* Header as first message */}
               <div className="mb-8">
                 <div className="text-header-3 text-primary-dark-alt mb-2">
-                  Welcome! Let's get you set up.
+                  {`Welcome! Let's get you set up.`}
                 </div>
               </div>
 

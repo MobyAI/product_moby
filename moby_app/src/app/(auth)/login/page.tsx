@@ -60,6 +60,7 @@ export default function LoginPage() {
       } else {
         throw new Error("Email/password sign-in failed.");
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(
         err.message || "Failed to sign in. Please check your credentials."
@@ -96,6 +97,7 @@ export default function LoginPage() {
           throw new Error("Failed to refresh session after password update");
         }
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.message || "Failed to set password.");
       console.error(err);
@@ -137,6 +139,7 @@ export default function LoginPage() {
 
       // User has password, continue to app
       await handleSuccessfulLogin();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.message || "Failed to sign in with Google");
       console.error(err);
@@ -170,8 +173,8 @@ export default function LoginPage() {
             Set up password access
           </h1>
           <p className="text-gray-600">
-            You're signed in with Google using {email}. Set a password to also
-            enable email sign-in.
+            {`You're signed in with Google using ${email}. Set a password to also
+            enable email sign-in.`}
           </p>
         </div>
 
@@ -346,7 +349,7 @@ export default function LoginPage() {
       {/* Footer */}
       <div className="text-center space-y-4">
         <p className="text-sm text-gray-600">
-          Don't have an account?{" "}
+          {"Don't have an account? "}
           <a
             href={`/signup?next=${encodeURIComponent(next)}`}
             className="text-primary-dark underline font-medium"
