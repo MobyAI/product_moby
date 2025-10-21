@@ -195,7 +195,7 @@ export default function VoiceUploadPage(): React.ReactElement {
 
     return (
         <div className="max-w-2xl mx-auto p-6 overflow-y-auto">
-            <h1 className="text-header-1 text-white mb-8">Upload Voice Sample</h1>
+            <h1 className="text-header-2 text-primary-dark mb-8">Upload Voice Sample</h1>
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 {/* File Upload Section */}
