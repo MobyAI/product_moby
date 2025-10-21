@@ -271,27 +271,6 @@ function TrackerPageContent() {
     overscan: 5, // Number of items to render outside of view
   });
 
-  // // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  // const openModalWithData = (auditionData: any) => {
-  //     // Pre-populate form data with the audition data
-  //     setFormData({
-  //         date: auditionData.date,
-  //         projectTitle: auditionData.projectTitle || '',
-  //         auditionType: auditionData.auditionType || '',
-  //         castingDirector: auditionData.castingDirector || '',
-  //         auditionRole: auditionData.auditionRole || '',
-  //         source: auditionData.source || '',
-  //         billing: auditionData.billing || '',
-  //         status: auditionData.status || ''
-  //     });
-
-  //     // Set editing mode and store the ID for updates
-  //     setIsEditing(true);
-  //     setEditingId(auditionData.id); // Assuming each audition has a unique ID
-
-  //     // Open the modal
-  //     setIsModalOpen(true);
-  // };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const openModalWithData = (auditionData: any) => {
     flushSync(() => {

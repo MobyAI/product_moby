@@ -805,3 +805,9 @@ body {
   pointer-events: none;
   transition: opacity 0.3s ease;
 }
+
+/* Sentry feedback widget */
+#sentry-feedback {
+  --background: #363c54;
+  --trigger-background: #363c54;
+}
