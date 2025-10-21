@@ -22,6 +22,8 @@ interface BetaCodeData {
   createdBy?: string;
   expiresAt: admin.firestore.Timestamp | null;
   maxUses: number;
+  usedCount?: number;
+  usedByUsers?: string[];
 }
 
 interface UserData {
@@ -160,6 +162,25 @@ export const redeemBetaCode = onCall<RedeemBetaCodeData>(
         );
       }
 
+      // Check if code has reached max uses
+      const currentUsedCount = codeData.usedCount || 0;
+      if (currentUsedCount >= codeData.maxUses) {
+        throw new HttpsError(
+          "failed-precondition",
+          "This beta code has reached its maximum number of uses"
+        );
+      }
+
+      // Check if THIS USER already used this code
+      const usedByUsers = codeData.usedByUsers || [];
+      if (usedByUsers.includes(userId)) {
+        throw new HttpsError(
+          "already-exists",
+          "You have already used this beta code"
+        );
+      }
+
+      // Legacy check for old single-use codes
       if (codeData.maxUses === 1 && codeData.usedBy !== null) {
         throw new HttpsError(
           "failed-precondition",
@@ -225,13 +246,19 @@ export const redeemBetaCode = onCall<RedeemBetaCodeData>(
 
       await db.collection("users").doc(userId).set(updateData, { merge: true });
 
-      // Mark code as used
+      // Mark code as used - UPDATED SECTION
+      const codeUpdateData: any = {
+        usedCount: admin.firestore.FieldValue.increment(1),
+        usedByUsers: admin.firestore.FieldValue.arrayUnion(userId),
+      };
+
+      // For single-use codes, also set usedBy/usedAt for backwards compatibility
       if (codeData.maxUses === 1) {
-        await codeDoc.ref.update({
-          usedBy: userId,
-          usedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
+        codeUpdateData.usedBy = userId;
+        codeUpdateData.usedAt = admin.firestore.FieldValue.serverTimestamp();
       }
+
+      await codeDoc.ref.update(codeUpdateData);
 
       console.log(`✅ User ${userId} redeemed beta code: ${codeInput}`);
 

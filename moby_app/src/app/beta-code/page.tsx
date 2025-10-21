@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { auth } from "@/lib/firebase/client/config/app";
-import { Check } from "lucide-react";
+import { sendSessionLogin, handleLogout } from "@/lib/api/auth";
+import { MoveRight } from "lucide-react";
 
 interface RedeemBetaCodeResult {
   success: boolean;
@@ -12,6 +13,16 @@ interface RedeemBetaCodeResult {
   expiresAt: string;
   daysGranted: number;
 }
+
+const requestEmailUrl = `mailto:try.tableread@gmail.com?subject=${encodeURIComponent(
+  "Request Beta Access Code"
+)}&body=${encodeURIComponent(
+  `Hi,
+
+I'd like to request a beta access code to try using tableread!
+
+Thank you!`
+)}`;
 
 export default function BetaCodePage() {
   const router = useRouter();
@@ -37,30 +48,49 @@ export default function BetaCodePage() {
       const result = await redeemFn({ code: code.toUpperCase().trim() });
       const data = result.data as RedeemBetaCodeResult;
 
-      // Force token refresh to get new custom claims
-      const user = auth.currentUser;
-      if (user) {
-        await user.getIdToken(true);
-      }
-
       console.log("✅ Beta access granted:", data);
 
-      // Redirect
+      // Force token refresh and update session cookie
+      const user = auth.currentUser;
+      if (user) {
+        const idToken = await user.getIdToken(true);
+
+        // Create new session cookie with updated claims
+        const sessionResult = await sendSessionLogin(idToken);
+
+        if (!sessionResult.success) {
+          throw new Error(sessionResult.error || "Failed to refresh session");
+        }
+      }
+
+      // Now redirect - server will read the new session cookie with updated claims
       router.push("/tracker");
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error("❌ Error redeeming code:", err);
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : "Invalid beta code. Please check and try again.";
+
+      // Extract the actual error message from Firebase Functions error
+      let errorMessage = "Invalid beta code. Please check and try again.";
+
+      if (err?.code && err?.message) {
+        // Firebase Functions error - extract just the message part
+        errorMessage = err.message.replace(/^[^:]+:\s*/, ""); // Remove "functions/xxx: " prefix
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+
       setError(errorMessage);
       setLoading(false);
     }
   };
 
-  const handleSignOut = () => {
-    auth.signOut();
-    router.push("/login");
+  const handleSignOut = async () => {
+    const result = await handleLogout();
+
+    if (result.success) {
+      router.push("/login");
+    } else {
+      console.error("❌ Logout failed:", result.error);
+    }
   };
 
   if (loading) {
@@ -82,101 +112,87 @@ export default function BetaCodePage() {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-8">
-      {/* Header */}
-      <div className="text-start space-y-2">
-        <h1 className="text-header text-primary-dark">
-          Welcome to the Beta!
-        </h1>
-        <p className="text-gray-600">
-          Enter your exclusive beta code to get started
-        </p>
-      </div>
+    <>
+      {/* Logo */}
+      <h3 className="text-logo text-primary-dark z-50 absolute top-4 left-5">
+        tableread
+      </h3>
 
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label
-            htmlFor="beta-code"
-            className="block text-sm font-medium text-gray-700 mb-2"
+      <div className="w-full max-w-md mx-auto space-y-8">
+        {/* Header */}
+        <div className="text-start space-y-4">
+          <h1 className="text-header text-primary-dark">
+            Welcome to our Beta!
+          </h1>
+          <p className="text-gray-600">
+            Enter your exclusive code to get started
+          </p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <input
+              id="beta-code"
+              type="text"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="ENTER-CODE-HERE"
+              className="w-full px-4 py-3 rounded-lg bg-white border-0 border-gray-300 focus:border-primary-dark focus:outline-none text-gray-900 placeholder-gray-400 text-center text-lg font-mono tracking-wider uppercase"
+              autoComplete="off"
+              autoFocus
+              maxLength={20}
+            />
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading || code.trim().length < 8}
+            className="w-full flex items-center justify-center py-3 rounded-lg bg-primary-dark-alt font-semibold text-white transition-colors hover:opacity-90 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Beta Access Code
-          </label>
-          <input
-            id="beta-code"
-            type="text"
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="ENTER-CODE-HERE"
-            className="w-full px-4 py-3 rounded-lg bg-white border-0 border-gray-300 focus:border-primary-dark focus:outline-none text-gray-900 placeholder-gray-400 text-center text-lg font-mono tracking-wider uppercase"
-            autoComplete="off"
-            autoFocus
-            maxLength={20}
-          />
+            Activate Beta Access
+            <MoveRight className="w-5 h-5 ml-2" />
+          </button>
+        </form>
 
-          {/* Code requirements */}
-          <div className="mt-3 space-y-2">
-            <div
-              className={`flex items-center space-x-2 text-sm ${
-                code.trim().length >= 4 ? "text-green-600" : "text-gray-500"
-              }`}
-            >
-              <Check
-                className={`w-4 h-4 ${
-                  code.trim().length >= 4 ? "opacity-100" : "opacity-40"
-                }`}
-              />
-              <span>At least 4 characters</span>
+        {/* Footer */}
+        <div className="text-center space-y-4">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-primary-light-alt text-gray-500">
+                Need help?
+              </span>
             </div>
           </div>
-        </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
+          <p className="text-sm text-gray-600">
+            {"Don't have a code? "}
+            <a
+              href={requestEmailUrl}
+              className="text-primary-dark underline font-medium hover:cursor-pointer hover:text-gray-500"
+            >
+              Request access
+            </a>
+          </p>
 
-        <button
-          type="submit"
-          disabled={loading || code.trim().length < 4}
-          className="w-full py-3 rounded-lg bg-primary-dark-alt font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Activate Beta Access →
-        </button>
-      </form>
-
-      {/* Footer */}
-      <div className="text-center space-y-4">
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-primary-light-alt text-gray-500">
-              Need help?
-            </span>
-          </div>
-        </div>
-
-        <p className="text-sm text-gray-600">
-          {"Don't have a code? "}
-          <a
-            href="mailto:support@yourapp.com"
-            className="text-primary-dark underline font-medium"
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="text-sm text-primary-dark underline hover:cursor-pointer hover:text-gray-500"
           >
-            Request access
-          </a>
-        </p>
-
-        <button
-          type="button"
-          onClick={handleSignOut}
-          className="text-sm text-gray-600 underline hover:text-gray-900"
-        >
-          Sign out
-        </button>
+            Sign out
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

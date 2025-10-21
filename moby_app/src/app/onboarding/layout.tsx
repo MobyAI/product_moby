@@ -18,7 +18,7 @@ export default async function OnboardingLayout({
   }
 
   return (
-    <AuthShell requireProfile={false} requireAccess={true}>
+    <AuthShell requireProfile={false} requireAccess={false}>
       <div className="min-h-screen flex items-center justify-center bg-primary-light-alt p-4">
         {children}
       </div>
