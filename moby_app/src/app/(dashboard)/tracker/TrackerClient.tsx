@@ -22,6 +22,7 @@ import {
   Search,
   X,
   Plus,
+  Sparkles,
 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type {
@@ -36,11 +37,7 @@ import {
   updateAudition,
 } from "@/lib/firebase/client/auditions";
 import { toBasicError } from "@/types/error";
-import {
-  LoadingScreen,
-  Button,
-  DashboardLayout,
-} from "@/components/ui";
+import { LoadingScreen, Button, DashboardLayout } from "@/components/ui";
 import AuditionModal from "@/components/auditions/AuditionModal";
 import { flushSync } from "react-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -428,7 +425,9 @@ function TrackerPageContent() {
           <div className="flex items-center">
             <div
               className={`flex items-center transition-all duration-300 ease-in-out border rounded-md mr-1 overflow-hidden ${
-                showSearch ? "w-80 border-gray-300 bg-white" : "w-0 border-transparent bg-transparent"
+                showSearch
+                  ? "w-80 border-gray-300 bg-white"
+                  : "w-0 border-transparent bg-transparent"
               }`}
               style={{ height: "44px" }}
             >
@@ -491,293 +490,366 @@ function TrackerPageContent() {
           <h2 className="text-header text-center">Audition Tracker</h2>
         </div>
 
-        {/* Left-side: Active Filters */}
-        {filterType !== "all" || filterStatus !== "all" || searchTerm ? (
-          <div className="flex items-center gap-2 text-sm">
-            {filterType !== "all" && (
-              <span className="inline-flex items-center px-3 py-1.5 rounded-md bg-primary-light text-primary-dark">
-                Type: {filterType}
-                <button
-                  onClick={() => setFilterType("all")}
-                  className="ml-1 text-blue-600 hover:text-blue-800"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </span>
-            )}
-            {filterStatus !== "all" && (
-              <span className="inline-flex items-center px-3 py-1.5 rounded-md bg-primary-light text-primary-dark">
-                Status: {filterStatus}
-                <button
-                  onClick={() => setFilterStatus("all")}
-                  className="ml-1 text-blue-600 hover:text-blue-800"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </span>
-            )}
-            {searchTerm && (
-              <span className="inline-flex items-center px-3 py-1.5 rounded-md bg-primary-light text-primary-dark">
-                {`Search: "${searchTerm}"`}
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="ml-1 text-blue-600 hover:text-blue-800"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </span>
-            )}
-          </div>
-        ) : null}
-
-        {/* Main Content: Audition Table */}
-        <div className="flex-1 flex flex-col bg-white rounded-lg shadow-sm mt-6 mb-20 min-h-0">
-          {/* Fixed Table Header */}
-          <div className="bg-gray-50 border-b border-gray-200 rounded-t-lg">
-            <div className="flex px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              <div
-                onClick={() => handleSort("date")}
-                className="flex-none w-32 flex items-center gap-1 cursor-pointer hover:text-gray-700"
-              >
-                Date
-                {sortConfig.key === "date" &&
-                  (sortConfig.direction === "asc" ? (
-                    <ChevronUp className="w-3 h-3" />
-                  ) : (
-                    <ChevronDown className="w-3 h-3" />
-                  ))}
-              </div>
-              <div
-                onClick={() => handleSort("projectTitle")}
-                className="flex-1 min-w-[200px] flex items-center gap-1 cursor-pointer hover:text-gray-700"
-              >
-                Project
-                {sortConfig.key === "projectTitle" &&
-                  (sortConfig.direction === "asc" ? (
-                    <ChevronUp className="w-3 h-3" />
-                  ) : (
-                    <ChevronDown className="w-3 h-3" />
-                  ))}
-              </div>
-              <div className="flex-none w-32">
-                <div ref={typeFilterRef} className="relative inline-block">
-                  <button
-                    onClick={() => setShowTypeFilter(!showTypeFilter)}
-                    className="flex items-center gap-1 hover:text-gray-700 transition-colors"
+        {auditionsData.length === 0 && (
+          <>
+            <div className="flex-1 flex items-start justify-center pt-6">
+              <div className="w-full max-w-2xl space-y-10">
+                {/* Card 1: Add */}
+                <div className="bg-white/50 rounded-lg p-10 flex flex-col items-center text-center">
+                  <h3 className="text-header-2 text-primary-dark mb-3">
+                    1. Add New Audition
+                  </h3>
+                  <p className="text-primary-dark-alt">
+                    Start tracking your auditions by adding your first entry.
+                  </p>
+                  <p className="text-primary-dark-alt mb-6">
+                    Record important details and keep everything organized in
+                    one place.
+                  </p>
+                  <Button
+                    onClick={() => setIsModalOpen(true)}
+                    variant="primary"
+                    size="md"
+                    icon={Sparkles}
                   >
-                    TYPE
-                    <Filter
-                      className={`w-3 h-3 ${
-                        filterType !== "all" ? "text-blue-600" : ""
-                      }`}
-                    />
-                  </button>
+                    Click Here To Get Started!
+                  </Button>
+                </div>
 
-                  {showTypeFilter && (
-                    <div className="absolute top-full left-0 mt-1 bg-white rounded-md shadow-lg border border-gray-200 z-[60] min-w-[120px]">
+                {/* Card 2: View & Organize */}
+                <div className="bg-white/50 rounded-lg p-10 flex flex-col items-center text-center">
+                  <h3 className="text-header-2 text-primary-dark mb-3">
+                    2. View & Organize
+                  </h3>
+                  <p className="text-primary-dark-alt">
+                    All your auditions are displayed in an easy-to-read table.
+                    Use the filter options to narrow down by type or status,
+                    sort by date or project, and quickly search to find exactly
+                    what you need.
+                  </p>
+                </div>
+
+                {/* Card 3: Track Progress */}
+                <div className="bg-white/50 rounded-lg p-10 flex flex-col items-center text-center">
+                  <h3 className="text-header-2 text-primary-dark mb-3">
+                    3. Track Your Progress
+                  </h3>
+                  <p className="text-primary-dark-alt">
+                    Click any audition to view full details and update its
+                    status as you move through the process—from submitted to
+                    booked! Stay on top of every opportunity and never miss a
+                    follow-up.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {auditionsData.length > 0 && (
+          <>
+            {/* Left-side: Active Filters */}
+            {filterType !== "all" || filterStatus !== "all" || searchTerm ? (
+              <div className="flex items-center gap-2 text-sm">
+                {filterType !== "all" && (
+                  <span className="inline-flex items-center px-3 py-1.5 rounded-md bg-primary-light text-primary-dark">
+                    Type: {filterType}
+                    <button
+                      onClick={() => setFilterType("all")}
+                      className="ml-1 text-blue-600 hover:text-blue-800"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </span>
+                )}
+                {filterStatus !== "all" && (
+                  <span className="inline-flex items-center px-3 py-1.5 rounded-md bg-primary-light text-primary-dark">
+                    Status: {filterStatus}
+                    <button
+                      onClick={() => setFilterStatus("all")}
+                      className="ml-1 text-blue-600 hover:text-blue-800"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </span>
+                )}
+                {searchTerm && (
+                  <span className="inline-flex items-center px-3 py-1.5 rounded-md bg-primary-light text-primary-dark">
+                    {`Search: "${searchTerm}"`}
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="ml-1 text-blue-600 hover:text-blue-800"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </span>
+                )}
+              </div>
+            ) : null}
+
+            {/* Main Content: Audition Table */}
+            <div className="flex-1 flex flex-col bg-white rounded-lg shadow-sm mt-6 mb-20 min-h-0">
+              {/* Fixed Table Header */}
+              <div className="bg-gray-50 border-b border-gray-200 rounded-t-lg">
+                <div className="flex px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <div
+                    onClick={() => handleSort("date")}
+                    className="flex-none w-32 flex items-center gap-1 cursor-pointer hover:text-gray-700"
+                  >
+                    Date
+                    {sortConfig.key === "date" &&
+                      (sortConfig.direction === "asc" ? (
+                        <ChevronUp className="w-3 h-3" />
+                      ) : (
+                        <ChevronDown className="w-3 h-3" />
+                      ))}
+                  </div>
+                  <div
+                    onClick={() => handleSort("projectTitle")}
+                    className="flex-1 min-w-[200px] flex items-center gap-1 cursor-pointer hover:text-gray-700"
+                  >
+                    Project
+                    {sortConfig.key === "projectTitle" &&
+                      (sortConfig.direction === "asc" ? (
+                        <ChevronUp className="w-3 h-3" />
+                      ) : (
+                        <ChevronDown className="w-3 h-3" />
+                      ))}
+                  </div>
+                  <div className="flex-none w-32">
+                    <div ref={typeFilterRef} className="relative inline-block">
                       <button
-                        onClick={() => {
-                          setFilterType("all");
-                          setShowTypeFilter(false);
-                        }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${
-                          filterType === "all" ? "bg-gray-100 font-medium" : ""
-                        }`}
+                        onClick={() => setShowTypeFilter(!showTypeFilter)}
+                        className="flex items-center gap-1 hover:text-gray-700 transition-colors"
                       >
-                        All
+                        TYPE
+                        <Filter
+                          className={`w-3 h-3 ${
+                            filterType !== "all" ? "text-blue-600" : ""
+                          }`}
+                        />
                       </button>
-                      {Object.entries(projectTypeConfig).map(
-                        ([type, config]) => (
+
+                      {showTypeFilter && (
+                        <div className="absolute top-full left-0 mt-1 bg-white rounded-md shadow-lg border border-gray-200 z-[60] min-w-[120px]">
                           <button
-                            key={type}
                             onClick={() => {
-                              setFilterType(
-                                type as AuditionData["projectType"]
-                              );
+                              setFilterType("all");
                               setShowTypeFilter(false);
                             }}
-                            className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 ${
-                              filterType === type
+                            className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${
+                              filterType === "all"
                                 ? "bg-gray-100 font-medium"
                                 : ""
                             }`}
                           >
-                            {config.icon}
-                            {config.label}
+                            All
                           </button>
-                        )
+                          {Object.entries(projectTypeConfig).map(
+                            ([type, config]) => (
+                              <button
+                                key={type}
+                                onClick={() => {
+                                  setFilterType(
+                                    type as AuditionData["projectType"]
+                                  );
+                                  setShowTypeFilter(false);
+                                }}
+                                className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 ${
+                                  filterType === type
+                                    ? "bg-gray-100 font-medium"
+                                    : ""
+                                }`}
+                              >
+                                {config.icon}
+                                {config.label}
+                              </button>
+                            )
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
-                </div>
-              </div>
-              <div className="flex-1 min-w-[150px]">Casting</div>
-              <div className="flex-1 min-w-[120px]">Role</div>
-              <div className="flex-1 min-w-[150px]">Source</div>
-              <div className="flex-none w-28">Billing</div>
-              <div className="flex-none w-28">
-                <div ref={statusFilterRef} className="relative inline-block">
-                  <button
-                    onClick={() => setShowStatusFilter(!showStatusFilter)}
-                    className="flex items-center gap-1 hover:text-gray-700 transition-colors"
-                  >
-                    STATUS
-                    <Filter
-                      className={`w-3 h-3 ${
-                        filterStatus !== "all" ? "text-blue-600" : ""
-                      }`}
-                    />
-                  </button>
-
-                  {showStatusFilter && (
-                    <div className="absolute top-full right-0 mt-1 bg-white rounded-md shadow-lg border border-gray-200 z-[60] min-w-[120px]">
-                      <button
-                        onClick={() => {
-                          setFilterStatus("all");
-                          setShowStatusFilter(false);
-                        }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${
-                          filterStatus === "all"
-                            ? "bg-gray-100 font-medium"
-                            : ""
-                        }`}
-                      >
-                        All
-                      </button>
-                      {Object.entries(statusConfig).map(([status, config]) => (
-                        <button
-                          key={status}
-                          onClick={() => {
-                            setFilterStatus(status as AuditionData["status"]);
-                            setShowStatusFilter(false);
-                          }}
-                          className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${
-                            filterStatus === status
-                              ? "bg-gray-100 font-medium"
-                              : ""
-                          }`}
-                        >
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${config.bgColor} ${config.textColor} capitalize`}
-                          >
-                            {config.label}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Scrollable Table Body */}
-          <div ref={parentRef} className="flex-1 overflow-auto min-h-0">
-            <div
-              style={{
-                height: `${virtualizer.getTotalSize()}px`,
-                width: "100%",
-                position: "relative",
-              }}
-            >
-              {filteredAndSortedAuditions.length === 0 ? (
-                <div className="flex justify-center items-center h-32 text-gray-500">
-                  No auditions found matching your filters
-                </div>
-              ) : (
-                virtualizer.getVirtualItems().map((virtualRow) => {
-                  const audition = filteredAndSortedAuditions[virtualRow.index];
-
-                  return (
+                  </div>
+                  <div className="flex-1 min-w-[150px]">Casting</div>
+                  <div className="flex-1 min-w-[120px]">Role</div>
+                  <div className="flex-1 min-w-[150px]">Source</div>
+                  <div className="flex-none w-28">Billing</div>
+                  <div className="flex-none w-28">
                     <div
-                      key={virtualRow.key}
-                      style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: `${virtualRow.size}px`,
-                        transform: `translateY(${virtualRow.start}px)`,
-                      }}
+                      ref={statusFilterRef}
+                      className="relative inline-block"
                     >
-                      <div
-                        className="flex items-center px-6 py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors text-sm cursor-pointer h-15"
-                        onClick={() => openModalWithData(audition)}
+                      <button
+                        onClick={() => setShowStatusFilter(!showStatusFilter)}
+                        className="flex items-center gap-1 hover:text-gray-700 transition-colors"
                       >
-                        <div className="flex-none w-32 flex items-center gap-2 text-gray-400">
-                          <Calendar className="w-4 h-4 text-gray-400" />
-                          {new Date(audition.date).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </div>
-                        <div className="flex-1 min-w-[200px] font-medium text-gray-900">
-                          {audition.projectTitle}
-                        </div>
-                        <div className="flex-none w-32 flex items-center gap-2 text-gray-600 capitalize">
-                          {getProjectIcon(audition.auditionType)}
-                          <span>{audition.auditionType}</span>
-                        </div>
-                        <div className="flex-1 min-w-[150px] flex items-center gap-2 text-gray-600">
-                          <User className="w-4 h-4 text-gray-400" />
-                          {audition.castingDirector}
-                        </div>
-                        <div className="flex-1 min-w-[120px] text-gray-900">
-                          {audition.auditionRole}
-                        </div>
-                        <div className="flex-1 min-w-[150px] text-gray-600">
-                          {audition.source}
-                        </div>
-                        <div className="flex-none w-28 capitalize">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getBillingStyle(
-                              audition.billing
-                            )}`}
+                        STATUS
+                        <Filter
+                          className={`w-3 h-3 ${
+                            filterStatus !== "all" ? "text-blue-600" : ""
+                          }`}
+                        />
+                      </button>
+
+                      {showStatusFilter && (
+                        <div className="absolute top-full right-0 mt-1 bg-white rounded-md shadow-lg border border-gray-200 z-[60] min-w-[120px]">
+                          <button
+                            onClick={() => {
+                              setFilterStatus("all");
+                              setShowStatusFilter(false);
+                            }}
+                            className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${
+                              filterStatus === "all"
+                                ? "bg-gray-100 font-medium"
+                                : ""
+                            }`}
                           >
-                            {audition.billing}
-                          </span>
+                            All
+                          </button>
+                          {Object.entries(statusConfig).map(
+                            ([status, config]) => (
+                              <button
+                                key={status}
+                                onClick={() => {
+                                  setFilterStatus(
+                                    status as AuditionData["status"]
+                                  );
+                                  setShowStatusFilter(false);
+                                }}
+                                className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${
+                                  filterStatus === status
+                                    ? "bg-gray-100 font-medium"
+                                    : ""
+                                }`}
+                              >
+                                <span
+                                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${config.bgColor} ${config.textColor} capitalize`}
+                                >
+                                  {config.label}
+                                </span>
+                              </button>
+                            )
+                          )}
                         </div>
-                        <div className="flex-none w-28 capitalize">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusStyle(
-                              audition.status
-                            )}`}
-                          >
-                            {audition.status}
-                          </span>
-                        </div>
-                      </div>
+                      )}
                     </div>
-                  );
-                })
-              )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Scrollable Table Body */}
+              <div ref={parentRef} className="flex-1 overflow-auto min-h-0">
+                <div
+                  style={{
+                    height: `${virtualizer.getTotalSize()}px`,
+                    width: "100%",
+                    position: "relative",
+                  }}
+                >
+                  {filteredAndSortedAuditions.length === 0 ? (
+                    <div className="flex justify-center items-center h-32 text-gray-500">
+                      No auditions found
+                    </div>
+                  ) : (
+                    virtualizer.getVirtualItems().map((virtualRow) => {
+                      const audition =
+                        filteredAndSortedAuditions[virtualRow.index];
+
+                      return (
+                        <div
+                          key={virtualRow.key}
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: `${virtualRow.size}px`,
+                            transform: `translateY(${virtualRow.start}px)`,
+                          }}
+                        >
+                          <div
+                            className="flex items-center px-6 py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors text-sm cursor-pointer h-15"
+                            onClick={() => openModalWithData(audition)}
+                          >
+                            <div className="flex-none w-32 flex items-center gap-2 text-gray-400">
+                              <Calendar className="w-4 h-4 text-gray-400" />
+                              {new Date(audition.date).toLocaleDateString(
+                                "en-US",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                }
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-[200px] font-medium text-gray-900">
+                              {audition.projectTitle}
+                            </div>
+                            <div className="flex-none w-32 flex items-center gap-2 text-gray-600 capitalize">
+                              {getProjectIcon(audition.auditionType)}
+                              <span>{audition.auditionType}</span>
+                            </div>
+                            <div className="flex-1 min-w-[150px] flex items-center gap-2 text-gray-600">
+                              <User className="w-4 h-4 text-gray-400" />
+                              {audition.castingDirector}
+                            </div>
+                            <div className="flex-1 min-w-[120px] text-gray-900">
+                              {audition.auditionRole}
+                            </div>
+                            <div className="flex-1 min-w-[150px] text-gray-600">
+                              {audition.source}
+                            </div>
+                            <div className="flex-none w-28 capitalize">
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getBillingStyle(
+                                  audition.billing
+                                )}`}
+                              >
+                                {audition.billing}
+                              </span>
+                            </div>
+                            <div className="flex-none w-28 capitalize">
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusStyle(
+                                  audition.status
+                                )}`}
+                              >
+                                {audition.status}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-3 bg-gray-50 rounded-b-lg border-t border-gray-200 text-sm text-gray-500">
+                Showing {filteredAndSortedAuditions.length} of{" "}
+                {auditionsData.length} auditions
+              </div>
             </div>
-          </div>
-
-          {/* Footer */}
-          <div className="px-6 py-3 bg-gray-50 rounded-b-lg border-t border-gray-200 text-sm text-gray-500">
-            Showing {filteredAndSortedAuditions.length} of{" "}
-            {auditionsData.length} auditions
-          </div>
-
-          {/* Modal */}
-          {isModalOpen && (
-            <AuditionModal
-              isOpen={isModalOpen}
-              onClose={closeModal}
-              onSubmit={handleSubmit}
-              auditionTypes={auditionTypes}
-              initialData={formData}
-              isEditing={isEditing}
-              isSubmitting={isSubmitting}
-              updateFormData={setFormData}
-              formData={formData}
-              handleInputChange={handleInputChange}
-            />
-          )}
-        </div>
+          </>
+        )}
       </div>
+
+      {/* Add/Update Modal */}
+      {isModalOpen && (
+        <AuditionModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onSubmit={handleSubmit}
+          auditionTypes={auditionTypes}
+          initialData={formData}
+          isEditing={isEditing}
+          isSubmitting={isSubmitting}
+          updateFormData={setFormData}
+          formData={formData}
+          handleInputChange={handleInputChange}
+        />
+      )}
     </DashboardLayout>
   );
 }

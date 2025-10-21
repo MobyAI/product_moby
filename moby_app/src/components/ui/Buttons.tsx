@@ -22,7 +22,7 @@ export function Button({
 	...props
 }: ButtonProps) {
 	const iconSize = {
-		sm: "h-3.5 w-3.5",
+		sm: "h-4 w-4",
 		md: "h-4.5 w-4.5",
 		lg: "h-5 w-5"
 	}[size];

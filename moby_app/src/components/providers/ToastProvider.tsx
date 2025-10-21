@@ -157,7 +157,7 @@ function ToastViewport({
 
     return (
         <div
-            className="fixed inset-0 z-[100] pointer-events-none flex items-start justify-end p-4 mt-2 sm:p-8"
+            className="fixed inset-0 z-[100] pointer-events-none flex items-end justify-end p-4 sm:p-8"
             style={{ paddingTop: "env(safe-area-inset-top)" }}
         >
             <div

@@ -21,8 +21,14 @@ import {
 } from "@/components/ui";
 import Dialog, { useDialog } from "@/components/ui/Dialog";
 import EditDialog, { useEditDialog } from "./editDialog";
-import UploadForm from "../upload/uploadFile";
-import { Plus, RotateCcw, Search, X, Play } from "lucide-react";
+import {
+  Plus,
+  RotateCcw,
+  Search,
+  X,
+  Play,
+  Sparkles,
+} from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Sentry from "@sentry/nextjs";
 import { useToast } from "@/components/providers/ToastProvider";
@@ -316,88 +322,128 @@ function ScriptsListContent() {
 
   return (
     <DashboardLayout maxWidth={95}>
+      {/* Right-side controls (search + add) - Positioned at top right */}
+      <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
+        {/* Search input with expand/collapse */}
+        <div className="flex items-center">
+          <div
+            className={`flex items-center transition-all duration-300 ease-in-out border rounded-md mr-1 overflow-hidden ${
+              showSearch
+                ? "w-80 border-gray-300 bg-white"
+                : "w-0 border-transparent bg-transparent"
+            }`}
+            style={{ height: "44px" }}
+          >
+            <div className="relative w-full">
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search scripts..."
+                className="w-full h-9 px-3 pr-0 text-sm bg-transparent focus:outline-none focus:ring-0"
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setShowSearch(false);
+                    setSearchTerm("");
+                  }
+                }}
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Toggle search visibility */}
+          <Button
+            onClick={() => {
+              setShowSearch(!showSearch);
+              if (showSearch) setSearchTerm("");
+              else setTimeout(() => searchInputRef.current?.focus(), 100);
+            }}
+            variant="primary"
+            size="md"
+            icon={Search}
+            iconOnly={true}
+            className="h-10"
+          />
+        </div>
+
+        {/* Add Script Button */}
+        <Button
+          onClick={handleFileSelect}
+          variant="primary"
+          size="md"
+          icon={Plus}
+          className="h-10"
+        >
+          New Script
+        </Button>
+      </div>
+
+      {/* Centered Header */}
+      <div className="flex items-center justify-center mt-10 mb-8">
+        <h2 className="text-header text-primary-dark text-center">Scripts</h2>
+      </div>
+
       {/* Empty State - Upload Form */}
       {isFetched && allScripts.length === 0 && (
-        <div className="flex-1 flex items-center justify-center">
-          <UploadForm onFileUpload={handleFileSelect} />
+        <div className="flex-1 flex items-start justify-center pt-6">
+          <div className="w-full max-w-2xl space-y-10">
+            {/* Card 1: Upload */}
+            <div className="bg-white/50 rounded-lg p-10 flex flex-col items-center text-center">
+              <h3 className="text-header-2 text-primary-dark mb-3">
+                1. Upload Your First Script
+              </h3>
+              <p className="text-primary-dark-alt mb-6">
+                Get started by uploading a script to begin your rehearsal
+                journey.
+              </p>
+              <Button
+                onClick={handleFileSelect}
+                variant="primary"
+                size="md"
+                icon={Sparkles}
+              >
+                Click Here To Get Started!
+              </Button>
+            </div>
+
+            {/* Card 2: Rehearse */}
+            <div className="bg-white/50 rounded-lg p-10 flex flex-col items-center text-center">
+              <h3 className="text-header-2 text-primary-dark mb-3">
+                2. Start Rehearsing
+              </h3>
+              <p className="text-primary-dark-alt">
+                Once uploaded, press the play button to begin rehearsing your
+                script with our interactive practice tools and your personalized scene partner.
+              </p>
+            </div>
+
+            {/* Card 3: Pin Scripts */}
+            <div className="bg-white/50 rounded-lg p-10 flex flex-col items-center text-center">
+              <h3 className="text-header-2 text-primary-dark mb-3">
+                3. Pin Your Favorites
+              </h3>
+              <p className="text-primary-dark-alt">
+                {`Pin scripts you're currently practicing or have upcoming
+                auditions for to keep them at the top of your collection for
+                easy access.`}
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Scripts List */}
       {allScripts.length > 0 && (
         <div className="flex flex-col mx-[0%] h-full flex-1">
-          {/* Right-side controls (search + add) - Positioned at top right */}
-          <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
-            {/* Search input with expand/collapse */}
-            <div className="flex items-center">
-              <div
-                className={`flex items-center transition-all duration-300 ease-in-out border rounded-md mr-1 overflow-hidden ${
-                  showSearch
-                    ? "w-80 border-gray-300 bg-white"
-                    : "w-0 border-transparent bg-transparent"
-                }`}
-                style={{ height: "44px" }}
-              >
-                <div className="relative w-full">
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search scripts..."
-                    className="w-full h-9 px-3 pr-0 text-sm bg-transparent focus:outline-none focus:ring-0"
-                    onKeyDown={(e) => {
-                      if (e.key === "Escape") {
-                        setShowSearch(false);
-                        setSearchTerm("");
-                      }
-                    }}
-                  />
-                  {searchTerm && (
-                    <button
-                      onClick={() => setSearchTerm("")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Toggle search visibility */}
-              <Button
-                onClick={() => {
-                  setShowSearch(!showSearch);
-                  if (showSearch) setSearchTerm("");
-                  else setTimeout(() => searchInputRef.current?.focus(), 100);
-                }}
-                variant="primary"
-                size="md"
-                icon={Search}
-                iconOnly={true}
-                className="h-10"
-              />
-            </div>
-
-            {/* Add Script Button */}
-            <Button
-              onClick={handleFileSelect}
-              variant="primary"
-              size="md"
-              icon={Plus}
-              className="h-10"
-            >
-              New Script
-            </Button>
-          </div>
-
-          {/* Centered Header */}
-          <div className="flex items-center justify-center mt-10 mb-8">
-            <h2 className="text-header text-primary-dark text-center">
-              Scripts
-            </h2>
-          </div>
-
           {/* Pinned Scripts Carousel */}
           <div className="flex items-center justify-center mb-8">
             <CardCarousel

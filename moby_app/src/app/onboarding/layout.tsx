@@ -11,7 +11,7 @@ export default function OnboardingLayout({
 }) {
     return (
         <AuthShell requireProfile={false}>
-            <div className="bg-white min-h-screen min-w-screen p-8">
+            <div className="bg-transparent h-screen w-screen">
                 {children}
             </div>
         </AuthShell>
