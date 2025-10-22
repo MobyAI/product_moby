@@ -6,7 +6,6 @@ import AuthShell from "@/components/layouts/AuthShell";
 import NavBarShell from "@/components/layouts/NavBarShell";
 import { ToastProvider } from "@/components/providers/ToastProvider";
 import { AccessGateModal } from "@/components/ui/AccessGateModal";
-import BetaAccessBanner from "@/components/ui/BetaAccessBanner";
 import {
   verifyUserInfo,
   isAuthenticated,

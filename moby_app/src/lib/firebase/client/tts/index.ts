@@ -175,6 +175,7 @@ export async function updateVoiceSampleMetadata(
     const newCustomMetadata = {
       ...currentMetadata.customMetadata,
       ...Object.fromEntries(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         Object.entries(updates).filter(([_, v]) => v !== undefined)
       ),
     };

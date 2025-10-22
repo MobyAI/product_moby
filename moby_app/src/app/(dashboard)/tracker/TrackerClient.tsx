@@ -17,12 +17,19 @@ import {
   Tv,
   Video,
   Megaphone,
-  User,
+  Theater,
   Filter,
   Search,
   X,
   Plus,
   Sparkles,
+  Star,
+  UserRoundPlus,
+  UsersRound,
+  Mic,
+  EllipsisVertical,
+  Pencil,
+  Trash,
 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type {
@@ -35,6 +42,7 @@ import {
   addAudition,
   getAllAuditions,
   updateAudition,
+  deleteAudition,
 } from "@/lib/firebase/client/auditions";
 import { toBasicError } from "@/types/error";
 import { LoadingScreen, Button, DashboardLayout } from "@/components/ui";
@@ -43,6 +51,8 @@ import { flushSync } from "react-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Sentry from "@sentry/nextjs";
 import { useToast } from "@/components/providers/ToastProvider";
+import Dialog, { useDialog } from "@/components/ui/Dialog";
+import { motion, AnimatePresence } from "motion/react";
 
 // Sort configuration type
 interface SortConfig {
@@ -78,6 +88,8 @@ function TrackerPageContent() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   // Refs
   const typeFilterRef = useRef<HTMLDivElement>(null);
@@ -87,6 +99,9 @@ function TrackerPageContent() {
 
   // Toast Message
   const { showToast } = useToast();
+
+  // Confirm Dialog
+  const { dialogProps, openConfirm } = useDialog();
 
   // TanStack Query for data fetching
   const queryClient = useQueryClient();
@@ -129,11 +144,40 @@ function TrackerPageContent() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Refresh function to be passed to AddAuditionButton
-  // const handleRefresh = async () => {
-  //     console.log("Refreshing auditions data...");
-  //     await loadAuditions();
-  // };
+  const handleDelete = async (id: string) => {
+    openConfirm(
+      "Delete Audition",
+      "Are you sure? This action cannot be undone.",
+      async () => {
+        setIsDeleting(true);
+
+        try {
+          await deleteAudition(id);
+
+          showToast({
+            header: "Audition deleted!",
+            type: "success",
+          });
+
+          // Invalidate cache to refetch updated list
+          await queryClient.invalidateQueries({
+            queryKey: ["auditions"],
+          });
+        } catch (err) {
+          console.error("Failed to delete audition:", err);
+          Sentry.captureException(err);
+          showToast({
+            header: "Failed to delete",
+            line1: "Please try again",
+            type: "danger",
+          });
+        } finally {
+          setIsDeleting(false);
+        }
+      },
+      { type: "delete" }
+    );
+  };
 
   const handleRefresh = useCallback(async () => {
     console.log("Refreshing auditions data...");
@@ -155,13 +199,31 @@ function TrackerPageContent() {
       label: "Commercial",
       icon: <Megaphone className="w-4 h-4" />,
     },
-    theater: { label: "Theater", icon: <User className="w-4 h-4" /> },
-    voiceover: { label: "Voiceover", icon: <Video className="w-4 h-4" /> },
+    theater: { label: "Theater", icon: <Theater className="w-4 h-4" /> },
+    voiceover: { label: "Voiceover", icon: <Mic className="w-4 h-4" /> },
     other: { label: "Other", icon: <Video className="w-4 h-4" /> },
   };
 
   const getProjectIcon = (type: string) => {
     return projectTypeConfig[type]?.icon || <Video className="w-4 h-4" />;
+  };
+
+  // Billing type config
+  const billingConfig: Record<string, { label: string; icon: ReactElement }> = {
+    star: { label: "Star", icon: <Star className="w-4 h-4" /> },
+    "co-star": {
+      label: "Co-Star",
+      icon: <UserRoundPlus className="w-4 h-4" />,
+    },
+    extra: {
+      label: "Extra",
+      icon: <UsersRound className="w-4 h-4" />,
+    },
+    other: { label: "Other", icon: <Video className="w-4 h-4" /> },
+  };
+
+  const getBillingIcon = (type: string) => {
+    return billingConfig[type]?.icon || <Video className="w-4 h-4" />;
   };
 
   // Status type config
@@ -197,20 +259,6 @@ function TrackerPageContent() {
     return config
       ? `${config.bgColor} ${config.textColor}`
       : "bg-gray-100 text-gray-800";
-  };
-
-  // Billing badge style
-  const getBillingStyle = (billing: string): string => {
-    switch (billing) {
-      case "star":
-        return "bg-purple-100 text-purple-800";
-      case "co-star":
-        return "bg-indigo-100 text-indigo-800";
-      case "extra":
-        return "bg-gray-100 text-gray-600";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
   };
 
   // Sorting function
@@ -379,8 +427,21 @@ function TrackerPageContent() {
       label: "Commercial",
       icon: <Megaphone className="w-4 h-4" />,
     },
-    theater: { label: "Theater", icon: <User className="w-4 h-4" /> },
-    voiceover: { label: "Voiceover", icon: <Video className="w-4 h-4" /> },
+    theater: { label: "Theater", icon: <Theater className="w-4 h-4" /> },
+    voiceover: { label: "Voiceover", icon: <Mic className="w-4 h-4" /> },
+    other: { label: "Other", icon: <Video className="w-4 h-4" /> },
+  };
+
+  const billingTypes = {
+    star: { label: "Star", icon: <Star className="w-4 h-4" /> },
+    "co-star": {
+      label: "Co-Star",
+      icon: <UserRoundPlus className="w-4 h-4" />,
+    },
+    extra: {
+      label: "Extra",
+      icon: <UsersRound className="w-4 h-4" />,
+    },
     other: { label: "Other", icon: <Video className="w-4 h-4" /> },
   };
 
@@ -396,7 +457,7 @@ function TrackerPageContent() {
   }
 
   return (
-    <DashboardLayout maxWidth={90}>
+    <DashboardLayout maxWidth={96}>
       <div className="flex flex-col mx-[0%] min-h-0 flex-1">
         {/* Right-side controls (search + add button) */}
         <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
@@ -465,7 +526,7 @@ function TrackerPageContent() {
         </div>
 
         {/* Centered Header */}
-        <div className="flex items-center justify-center mt-10 mb-4">
+        <div className="flex items-center justify-center mt-10 mb-2">
           <h2 className="text-header text-center">Audition Tracker</h2>
         </div>
 
@@ -567,10 +628,10 @@ function TrackerPageContent() {
             ) : null}
 
             {/* Main Content: Audition Table */}
-            <div className="flex-1 flex flex-col bg-white rounded-lg shadow-sm mt-6 mb-20 min-h-0">
+            <div className="flex-1 flex flex-col bg-[#F7F6F2] rounded-[30px] shadow-xl mt-6 mb-15 min-h-0">
               {/* Fixed Table Header */}
-              <div className="bg-gray-50 border-b border-gray-200 rounded-t-lg">
-                <div className="flex px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <div className="bg-[#F7F6F2] border-b border-gray-200 rounded-t-[30px]">
+                <div className="flex pl-8 pr-8 py-5 text-left text-[13px] font-semibold text-primary-dark uppercase tracking-wider">
                   <div
                     onClick={() => handleSort("date")}
                     className="flex-none w-32 flex items-center gap-1 cursor-pointer hover:text-gray-700"
@@ -585,7 +646,7 @@ function TrackerPageContent() {
                   </div>
                   <div
                     onClick={() => handleSort("projectTitle")}
-                    className="flex-1 min-w-[200px] flex items-center gap-1 cursor-pointer hover:text-gray-700"
+                    className="flex-1 flex items-center gap-1 cursor-pointer hover:text-gray-700"
                   >
                     Project
                     {sortConfig.key === "projectTitle" &&
@@ -595,7 +656,7 @@ function TrackerPageContent() {
                         <ChevronDown className="w-3 h-3" />
                       ))}
                   </div>
-                  <div className="flex-none w-32">
+                  <div className="flex-1">
                     <div ref={typeFilterRef} className="relative inline-block">
                       <button
                         onClick={() => setShowTypeFilter(!showTypeFilter)}
@@ -649,11 +710,11 @@ function TrackerPageContent() {
                       )}
                     </div>
                   </div>
-                  <div className="flex-1 min-w-[150px]">Casting</div>
-                  <div className="flex-1 min-w-[120px]">Role</div>
-                  <div className="flex-1 min-w-[150px]">Source</div>
-                  <div className="flex-none w-28">Billing</div>
-                  <div className="flex-none w-28">
+                  <div className="flex-1">Casting</div>
+                  <div className="flex-1">Role</div>
+                  <div className="flex-1">Source</div>
+                  <div className="flex-none w-32">Billing</div>
+                  <div className="flex-none w-32">
                     <div
                       ref={statusFilterRef}
                       className="relative inline-block"
@@ -713,6 +774,8 @@ function TrackerPageContent() {
                       )}
                     </div>
                   </div>
+                  {/* Actions column header - matches body width */}
+                  <div className="flex-none w-[35px]"></div>
                 </div>
               </div>
 
@@ -746,55 +809,161 @@ function TrackerPageContent() {
                             transform: `translateY(${virtualRow.start}px)`,
                           }}
                         >
-                          <div
-                            className="flex items-center px-6 py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors text-sm cursor-pointer h-15"
-                            onClick={() => openModalWithData(audition)}
-                          >
-                            <div className="flex-none w-32 flex items-center gap-2 text-gray-400">
-                              <Calendar className="w-4 h-4 text-gray-400" />
-                              {new Date(audition.date).toLocaleDateString(
-                                "en-US",
-                                {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                }
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-[200px] font-medium text-gray-900">
-                              {audition.projectTitle}
-                            </div>
-                            <div className="flex-none w-32 flex items-center gap-2 text-gray-600 capitalize">
-                              {getProjectIcon(audition.auditionType)}
-                              <span>{audition.auditionType}</span>
-                            </div>
-                            <div className="flex-1 min-w-[150px] flex items-center gap-2 text-gray-600">
-                              <User className="w-4 h-4 text-gray-400" />
-                              {audition.castingDirector}
-                            </div>
-                            <div className="flex-1 min-w-[120px] text-gray-900">
-                              {audition.auditionRole}
-                            </div>
-                            <div className="flex-1 min-w-[150px] text-gray-600">
-                              {audition.source}
-                            </div>
-                            <div className="flex-none w-28 capitalize">
-                              <span
-                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getBillingStyle(
-                                  audition.billing
-                                )}`}
+                          <div className="flex items-center pl-8 pr-8 py-4 border-b border-gray-200 hover:bg-gray-200 transition-colors text-sm h-15 group">
+                            <motion.div
+                              className="flex items-center flex-1 cursor-pointer min-w-0"
+                              onClick={() => openModalWithData(audition)}
+                              animate={{
+                                x: openMenuId === audition.id ? -8 : 0,
+                              }}
+                              transition={{
+                                type: "spring",
+                                stiffness: 300,
+                                damping: 30,
+                              }}
+                            >
+                              {/* All your existing content columns */}
+                              <div className="flex-none w-32 flex items-center gap-2 text-gray-600">
+                                <Calendar className="w-4 h-4 text-gray-500" />
+                                {new Date(audition.date).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  }
+                                )}
+                              </div>
+                              <div className="flex-1 font-medium text-primary-dark truncate min-w-0">
+                                {audition.projectTitle}
+                              </div>
+                              <div className="flex-1 flex items-center gap-2 text-primary-dark capitalize min-w-0">
+                                {getProjectIcon(audition.auditionType)}
+                                <span>
+                                  {audition.auditionType === "tv"
+                                    ? "TV"
+                                    : audition.auditionType}
+                                </span>
+                              </div>
+                              <div className="flex-1 flex items-center gap-2 text-primary-dark capitalize truncate min-w-0">
+                                {audition.castingDirector}
+                              </div>
+                              <div className="flex-1 text-primary-dark truncate min-w-0">
+                                {audition.auditionRole}
+                              </div>
+                              <div className="flex-1 text-primary-dark truncate min-w-0">
+                                {audition.source}
+                              </div>
+                              <div className="flex-none w-32 flex items-center gap-2 text-primary-dark capitalize">
+                                {getBillingIcon(audition.billing)}
+                                <span>{audition.billing}</span>
+                              </div>
+                              <div className="flex-none w-32 capitalize">
+                                <span
+                                  className={`inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium ${getStatusStyle(
+                                    audition.status
+                                  )}`}
+                                >
+                                  {audition.status}
+                                </span>
+                              </div>
+                            </motion.div>
+
+                            {/* Actions Column - Modified to expand inline */}
+                            <div className="flex-none flex items-center justify-end overflow-hidden">
+                              {/* Sliding Menu Container with variable width */}
+                              <div
+                                className={`flex items-center transition-all duration-300 ease-out origin-right ${
+                                  openMenuId === audition.id
+                                    ? "max-w-[300px] scale-x-100 opacity-100 mr-2"
+                                    : "max-w-0 scale-x-0 opacity-0"
+                                }`}
+                                style={{
+                                  pointerEvents:
+                                    openMenuId === audition.id
+                                      ? "auto"
+                                      : "none",
+                                }}
                               >
-                                {audition.billing}
-                              </span>
-                            </div>
-                            <div className="flex-none w-28 capitalize">
-                              <span
-                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusStyle(
-                                  audition.status
-                                )}`}
-                              >
-                                {audition.status}
-                              </span>
+                                <AnimatePresence mode="wait">
+                                  {openMenuId === audition.id && (
+                                    <motion.div
+                                      key="menu-open"
+                                      className="flex items-center gap-1"
+                                      initial={{ opacity: 0, x: 20 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      exit={{ opacity: 0, x: 20 }}
+                                      transition={{ duration: 0.15 }}
+                                    >
+                                      <motion.button
+                                        initial={{ opacity: 0, x: 10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: 0 }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openModalWithData(audition);
+                                          setOpenMenuId(null);
+                                        }}
+                                        className="p-3 rounded-full hover:bg-white/50 hover:cursor-pointer flex items-center gap-2 text-gray-700"
+                                        aria-label="Edit"
+                                      >
+                                        <Pencil className="w-4 h-4" />
+                                      </motion.button>
+                                      <motion.button
+                                        initial={{ opacity: 0, x: 10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: 0.02 }}
+                                        disabled={isDeleting}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDelete(audition.id);
+                                        }}
+                                        className="p-3 rounded-full hover:bg-red-50 hover:cursor-pointer flex items-center gap-2 text-red-600"
+                                        aria-label="Delete"
+                                      >
+                                        <Trash className="w-4 h-4" />
+                                      </motion.button>
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </div>
+
+                              {/* Ellipsis Button */}
+                              <AnimatePresence mode="wait">
+                                {openMenuId === audition.id ? (
+                                  <motion.button
+                                    key="close-button"
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.8 }}
+                                    transition={{ duration: 0.15 }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenMenuId(null);
+                                    }}
+                                    className="p-3 rounded-full hover:bg-black/5 text-gray-600 transition-colors hover:cursor-pointer flex-shrink-0"
+                                    aria-label="Close menu"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </motion.button>
+                                ) : (
+                                  <motion.button
+                                    key="menu-button"
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.8 }}
+                                    transition={{ duration: 0.15 }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenMenuId(audition.id);
+                                    }}
+                                    className="p-3 rounded-full hover:bg-white/50 text-gray-600 transition-colors hover:cursor-pointer flex-shrink-0"
+                                    aria-label="Open menu"
+                                  >
+                                    <EllipsisVertical className="w-4 h-4" />
+                                  </motion.button>
+                                )}
+                              </AnimatePresence>
                             </div>
                           </div>
                         </div>
@@ -805,7 +974,7 @@ function TrackerPageContent() {
               </div>
 
               {/* Footer */}
-              <div className="px-6 py-3 bg-gray-50 rounded-b-lg border-t border-gray-200 text-sm text-gray-500">
+              <div className="px-8 py-4 bg-[#F7F6F2] rounded-b-[30px] border-t border-gray-300 text-sm text-primary-dark text-center">
                 Showing {filteredAndSortedAuditions.length} of{" "}
                 {auditionsData.length} auditions
               </div>
@@ -821,6 +990,7 @@ function TrackerPageContent() {
           onClose={closeModal}
           onSubmit={handleSubmit}
           auditionTypes={auditionTypes}
+          billings={billingTypes}
           initialData={formData}
           isEditing={isEditing}
           isSubmitting={isSubmitting}
@@ -829,6 +999,9 @@ function TrackerPageContent() {
           handleInputChange={handleInputChange}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Dialog {...dialogProps} />
     </DashboardLayout>
   );
 }

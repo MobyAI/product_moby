@@ -130,7 +130,6 @@ export async function deleteAuditionAssets(auditionID: string) {
 export async function deleteAudition(auditionID: string) {
     const { doc } = userAuditionsRefs();
     await deleteDoc(doc(auditionID));
-    await deleteAuditionAssets(auditionID);
 }
 
 // Additional utility functions for audition management

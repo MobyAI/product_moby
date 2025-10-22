@@ -65,6 +65,8 @@ export default function BetaCodePage() {
 
       // Now redirect - server will read the new session cookie with updated claims
       router.push("/tracker");
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error("❌ Error redeeming code:", err);
 

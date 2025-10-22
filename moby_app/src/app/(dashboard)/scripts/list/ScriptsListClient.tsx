@@ -443,9 +443,9 @@ function ScriptsListContent() {
 
       {/* Scripts List */}
       {allScripts.length > 0 && (
-        <div className="flex flex-col mx-[0%] h-full flex-1">
+        <div className="flex flex-col mx-[0%] h-full flex-1 overflow-hidden">
           {/* Pinned Scripts Carousel */}
-          <div className="flex items-center justify-center mb-8">
+          <div className="flex items-center justify-center mb-8 flex-shrink-0">
             <CardCarousel
               cards={pinnedScriptCards}
               cardsPerPage={3}
@@ -455,7 +455,7 @@ function ScriptsListContent() {
           </div>
 
           {/* Two-column section that fills remaining space */}
-          <div className="flex-1 flex gap-4 min-h-0">
+          <div className="flex-1 flex gap-4 min-h-0 overflow-hidden">
             {/* Left Section - Selected Script Details */}
 
             <div className="flex-[0_0_50%] flex flex-col gap-4 min-h-0">
@@ -504,7 +504,7 @@ function ScriptsListContent() {
                     recentlyPracticed.map((script) => (
                       <div
                         key={script.id}
-                        className="bg-primary-light-alt rounded-lg p-6 flex items-center justify-between"
+                        className="bg-primary-light-alt rounded-lg p-6 flex items-center justify-between flex-shrink-0"
                       >
                         <div>
                           <h4 className="text-xl font-bold text-primary-dark-alt mb-2">

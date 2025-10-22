@@ -9,14 +9,17 @@ import { Copy } from "lucide-react";
 // TYPES
 // ============================================================================
 
+// Type alias for Firestore timestamps that can be Date, Firestore Timestamp, or number
+type FirestoreTimestamp = Date | { toDate: () => Date } | number | null;
+
 interface BetaCodeData {
   code: string;
   isActive: boolean;
   usedBy: string | null;
-  usedAt: any;
-  createdAt: any;
+  usedAt: FirestoreTimestamp;
+  createdAt: FirestoreTimestamp;
   createdBy?: string;
-  expiresAt: any;
+  expiresAt: FirestoreTimestamp;
   maxUses: number;
   usedCount?: number;
   usedByUsers?: string[];
@@ -25,8 +28,8 @@ interface BetaCodeData {
 interface BetaUser {
   uid: string;
   email: string | null;
-  betaActivatedAt: any;
-  betaExpiresAt: any;
+  betaActivatedAt: FirestoreTimestamp;
+  betaExpiresAt: FirestoreTimestamp;
   accessLevel: string;
   betaCode?: string;
 }
@@ -66,11 +69,11 @@ function formatDate(date: Date): string {
   });
 }
 
-function convertTimestamp(timestamp: any): Date {
+function convertTimestamp(timestamp: FirestoreTimestamp): Date {
   if (!timestamp) return new Date();
 
   // Handle Firestore Timestamp
-  if (timestamp.toDate) {
+  if (typeof timestamp === "object" && "toDate" in timestamp) {
     return timestamp.toDate();
   }
 
@@ -113,6 +116,7 @@ export default function BetaCodesAdminPage() {
 
   useEffect(() => {
     checkAdminAndLoad();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkAdminAndLoad = async () => {
@@ -145,9 +149,11 @@ export default function BetaCodesAdminPage() {
       const result = await getAllBetaCodes();
       const data = result.data as { success: boolean; codes: BetaCodeData[] };
       setCodes(data.codes);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error loading codes:", error);
-      alert(`Failed to load codes: ${error.message}`);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      alert(`Failed to load codes: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -176,9 +182,11 @@ export default function BetaCodesAdminPage() {
       // Reset form
       setMaxUses(1);
       setDurationDays(30);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error creating code:", error);
-      alert(`❌ Failed to create code: ${error.message}`);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      alert(`❌ Failed to create code: ${errorMessage}`);
     } finally {
       setCreating(false);
     }
@@ -201,9 +209,11 @@ export default function BetaCodesAdminPage() {
 
       setCodeUsers((prev) => ({ ...prev, [code]: data.users }));
       setExpandedCode(code);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error loading users:", error);
-      alert(`Failed to load users: ${error.message}`);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      alert(`Failed to load users: ${errorMessage}`);
 
       // Show at least the user IDs from usedByUsers if cloud function fails
       const codeData = codes.find((c) => c.code === code);
@@ -226,10 +236,14 @@ export default function BetaCodesAdminPage() {
 
   const handleRevokeAccess = async (
     uid: string,
-    email: string,
+    identifier: string,
     code: string
   ) => {
-    if (!confirm(`Are you sure you want to revoke beta access for ${email}?`)) {
+    if (
+      !confirm(
+        `Are you sure you want to revoke beta access for ${identifier}?\n\nThis will remove their beta status immediately.`
+      )
+    ) {
       return;
     }
 
@@ -237,27 +251,28 @@ export default function BetaCodesAdminPage() {
       const revokeBetaAccess = httpsCallable(functions, "revokeBetaAccess");
       await revokeBetaAccess({ uid });
 
-      // Reload users for this code
-      const getBetaCodeUsers = httpsCallable(functions, "getBetaCodeUsers");
-      const result = await getBetaCodeUsers({ code });
-      const data = result.data as { success: boolean; users: BetaUser[] };
-      setCodeUsers((prev) => ({ ...prev, [code]: data.users }));
+      alert(`✅ Beta access revoked for ${identifier}`);
 
-      // Reload all codes to update counts
-      await loadCodes();
-
-      alert("✅ Access revoked successfully!");
-    } catch (error: any) {
+      // Reload the users for this code
+      setCodeUsers((prev) => {
+        const newCodeUsers = { ...prev };
+        delete newCodeUsers[code];
+        return newCodeUsers;
+      });
+      await loadUsers(code);
+    } catch (error: unknown) {
       console.error("Error revoking access:", error);
-      alert(`❌ Failed to revoke access: ${error.message}`);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      alert(`❌ Failed to revoke access: ${errorMessage}`);
     }
   };
 
   const handleDeleteCode = async (code: string, usedCount: number) => {
     const message =
       usedCount > 0
-        ? `⚠️ Delete code "${code}"? This will revoke access for ${usedCount} user(s). This cannot be undone!`
-        : `Delete code "${code}"? This cannot be undone!`;
+        ? `Are you sure you want to delete code "${code}"?\n\n⚠️  WARNING: This code has been used by ${usedCount} user(s)!\nDeleting it will NOT revoke their access automatically.\nYou may want to revoke their access first.`
+        : `Are you sure you want to delete code "${code}"?`;
 
     if (!confirm(message)) {
       return;
@@ -265,25 +280,58 @@ export default function BetaCodesAdminPage() {
 
     try {
       const deleteBetaCode = httpsCallable(functions, "deleteBetaCode");
-      const result = await deleteBetaCode({ code });
-      const data = result.data as { success: boolean; message: string };
+      await deleteBetaCode({ code });
 
-      // Remove from local state
-      setExpandedCode(null);
-      setCodeUsers((prev) => {
-        const newState = { ...prev };
-        delete newState[code];
-        return newState;
-      });
-
-      // Reload codes
+      alert(`✅ Code deleted: ${code}`);
       await loadCodes();
 
-      alert(`✅ ${data.message}`);
-    } catch (error: any) {
+      // Clear expanded state if this was the expanded code
+      if (expandedCode === code) {
+        setExpandedCode(null);
+      }
+    } catch (error: unknown) {
       console.error("Error deleting code:", error);
-      alert(`❌ Failed to delete code: ${error.message}`);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      alert(`❌ Failed to delete code: ${errorMessage}`);
     }
+  };
+
+  const getCodeStatus = (code: BetaCodeData) => {
+    if (!code.isActive) {
+      return { status: "Inactive", color: "bg-gray-200 text-gray-700" };
+    }
+
+    const usedCount = code.usedCount || 0;
+    if (usedCount >= code.maxUses) {
+      return { status: "Full", color: "bg-yellow-100 text-yellow-700" };
+    }
+
+    if (code.expiresAt) {
+      const now = new Date();
+      const expiresDate = convertTimestamp(code.expiresAt);
+      if (now > expiresDate) {
+        return { status: "Expired", color: "bg-red-100 text-red-700" };
+      }
+    }
+
+    return { status: "Active", color: "bg-green-100 text-green-700" };
+  };
+
+  const getBetaStatus = (user: BetaUser) => {
+    if (user.accessLevel !== "beta") {
+      return { status: "No Access", color: "text-gray-500" };
+    }
+
+    if (user.betaExpiresAt) {
+      const now = new Date();
+      const expiresDate = convertTimestamp(user.betaExpiresAt);
+      if (now > expiresDate) {
+        return { status: "Expired", color: "text-red-600" };
+      }
+    }
+
+    return { status: "Active", color: "text-green-600" };
   };
 
   const copyToClipboard = async (text: string) => {
@@ -291,76 +339,38 @@ export default function BetaCodesAdminPage() {
       await navigator.clipboard.writeText(text);
       setCopySuccess(text);
       setTimeout(() => setCopySuccess(null), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
+    } catch (error) {
+      console.error("Failed to copy:", error);
     }
   };
 
-  const getBetaStatus = (user: BetaUser) => {
-    if (!user.betaExpiresAt) {
-      return { status: "No expiration", color: "text-gray-500" };
-    }
-
-    const expiresAt = convertTimestamp(user.betaExpiresAt);
-    const now = new Date();
-
-    if (expiresAt < now) {
-      return { status: "Expired", color: "text-red-600" };
-    }
-
-    const daysRemaining = Math.ceil(
-      (expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    return {
-      status: `${daysRemaining} day${daysRemaining !== 1 ? "s" : ""} remaining`,
-      color: daysRemaining < 7 ? "text-yellow-600" : "text-green-600",
-    };
-  };
-
-  const getCodeStatus = (code: BetaCodeData) => {
-    if (!code.isActive) {
-      return { status: "Inactive", color: "bg-gray-100 text-gray-800" };
-    }
-
-    const usedCount = code.usedCount || 0;
-    if (usedCount >= code.maxUses) {
-      return { status: "Fully Used", color: "bg-orange-100 text-orange-800" };
-    }
-
-    if (code.expiresAt) {
-      const expiresAt = convertTimestamp(code.expiresAt);
-      const now = new Date();
-
-      if (expiresAt < now) {
-        return { status: "Expired", color: "bg-red-100 text-red-800" };
-      }
-    }
-
-    return { status: "Active", color: "bg-green-100 text-green-800" };
-  };
-
-  if (loading) {
+  if (!isAdmin) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl">Loading beta codes...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+          <p className="text-gray-600">
+            You must be an admin to view this page.
+          </p>
+        </div>
       </div>
     );
   }
 
-  if (!isAdmin) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-red-600">Access Denied: Admin Only</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <h1 className="text-header-2 text-primary-dark mb-8">Beta Code Management</h1>
+    <div className="max-w-6xl mx-auto p-6 space-y-6">
+      <h1 className="text-3xl font-bold">Beta Codes Admin</h1>
 
-      {/* Create New Code Section */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+      {/* Create New Code */}
+      <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold mb-4">Create New Beta Code</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
