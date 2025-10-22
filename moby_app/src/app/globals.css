@@ -812,3 +812,7 @@ body {
     }
   }
 }
+
+.step-guide {
+  background-color: #eeede4 !important;
+}
