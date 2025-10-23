@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronUp } from "lucide-react";
 
 export type StepItem = {
   title: string;
@@ -23,19 +23,20 @@ const slideVariants = {
 
 export default function StepGuide({ steps, className, loop = true }: StepGuideProps) {
   const [index, setIndex] = useState(0);
+  const atStart = index === 0;
   const atEnd = index >= steps.length - 1;
   const canAdvance = loop || !atEnd;
 
   const handleNext = useCallback(() => {
-   if (!canAdvance) {
-    window.open(
-      "https://docs.google.com/forms/d/e/1FAIpQLSe9THykmDJkTY1C2E7sdofD58M3UGKhKHKQQ_gUsoyPBM1jsQ/viewform",
-      "_blank"
-    );
-    return;
-  }
+    if (!canAdvance) return;
     setIndex((i) => (i + 1) % steps.length);
   }, [canAdvance, steps.length]);
+
+  const handlePrev = useCallback(() => {
+    // Hide the button on step 1 (index 0), but keep logic robust if called.
+    if (atStart && !loop) return;
+    setIndex((i) => (i - 1 + steps.length) % steps.length);
+  }, [atStart, loop, steps.length]);
 
   const current = useMemo(() => steps[index], [steps, index]);
 
@@ -63,26 +64,50 @@ export default function StepGuide({ steps, className, loop = true }: StepGuidePr
             {current.body && <p className="text-slate-600 dark:text-slate-300/90 text-base leading-relaxed">{current.body}</p>}
 
             <div className="mt-auto pt-8">
-              <button
-                type="button"
-                onClick={handleNext}
-                aria-label={canAdvance ? "Next step" : "End of guide"}
-                className={`group inline-flex items-center gap-2 rounded-lg px-6 py-3 text-base ${
-                //   canAdvance
-                    "bg-slate-900 text-white hover:bg-slate-800"
-                    // : "bg-slate-200 text-slate-500 cursor-not-allowed"
-                }`}
-              >
-                <span>{canAdvance ? "Next" : "Get started!"}</span>
-                {canAdvance && <motion.span
-                  aria-hidden
-                  animate={{ y: [0, 5, 0] }}
-                  transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
-                  className="grid place-items-center"
+              <div className="flex items-center gap-3">
+                {/* PREVIOUS: hidden on first step */}
+                {!atStart && (
+                  <button
+                    type="button"
+                    onClick={handlePrev}
+                    aria-label="Previous step"
+                    className="group inline-flex items-center gap-2 rounded-lg px-5 py-3 text-base bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 border border-slate-200/70"
+                  >
+                    {/* <ChevronLeft className="w-5 h-5" /> */}
+                    <span>Previous</span>
+                    <motion.span
+                        aria-hidden
+                        animate={{ y: [0, 5, 0] }}
+                        transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
+                        className="grid place-items-center"
+                    >
+                        <ChevronUp className="w-5 h-5" />
+                    </motion.span>
+                  </button>
+                )}
+
+                {/* NEXT */}
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  aria-label={canAdvance ? "Next step" : "End of guide"}
+                  className={`group inline-flex items-center gap-2 rounded-lg px-6 py-3 text-base ${
+                    "bg-slate-900 text-white hover:bg-slate-800 focus"
+                  }`}
                 >
-                  <ChevronDown className="w-5 h-5" />
-                </motion.span>}
-              </button>
+                  <span>{canAdvance ? "Next" : "Get started!"}</span>
+                  {canAdvance && (
+                    <motion.span
+                      aria-hidden
+                      animate={{ y: [0, 5, 0] }}
+                      transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
+                      className="grid place-items-center"
+                    >
+                      <ChevronDown className="w-5 h-5" />
+                    </motion.span>
+                  )}
+                </button>
+              </div>
             </div>
           </motion.div>
         </AnimatePresence>
