@@ -69,6 +69,3 @@ moby-google-key.base64
 functions/lib/
 functions/node_modules/
 functions/.eslintrc.js
-
-# Scripts
-/scripts
