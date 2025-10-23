@@ -1,37 +1,47 @@
 import { redirect } from "next/navigation";
-import { verifyUserInfo, isAuthenticated, hasProfile } from "@/lib/firebase/admin/auth/verifySession";
+import {
+  verifyUserInfo,
+  isAuthenticated,
+  hasProfile,
+  hasAccess,
+} from "@/lib/firebase/admin/auth/verifySession";
 import { UserProvider, type AuthUser } from "./UserProvider";
 
 export default async function ServerAuthProvider({
-    children,
-    requireProfile = true
+  children,
+  requireProfile = true,
+  requireAccess = true,
 }: {
-    children: React.ReactNode;
-    requireProfile?: boolean;
+  children: React.ReactNode;
+  requireProfile?: boolean;
+  requireAccess?: boolean;
 }) {
-    const userStatus = await verifyUserInfo();
+  const userStatus = await verifyUserInfo();
 
-    if (!isAuthenticated(userStatus)) {
-        redirect("/login");
-    }
+  // 1. Check authentication first
+  if (!isAuthenticated(userStatus)) {
+    redirect("/login");
+  }
 
-    if (requireProfile && !hasProfile(userStatus)) {
-        redirect("/onboarding");
-    }
+  // 2. Check access level (before profile check)
+  // Users need beta code before they can proceed
+  if (requireAccess && !hasAccess(userStatus)) {
+    redirect("/beta-code");
+  }
 
-    if (!requireProfile && hasProfile(userStatus)) {
-        // redirect if user goes to onboarding page and has profile already
-        // redirect("/scripts/list");
-        redirect("/tracker");
-    }
+  // 3. Check profile completion
+  if (requireProfile && !hasProfile(userStatus)) {
+    redirect("/onboarding");
+  }
 
-    const value: AuthUser = {
-        uid: userStatus.uid
-    };
+  // 4. Prevent accessing onboarding if profile already exists
+  // if (!requireProfile && hasProfile(userStatus)) {
+  //   redirect("/tracker");
+  // }
 
-    return (
-        <UserProvider value={value}>
-            {children}
-        </UserProvider>
-    );
+  const value: AuthUser = {
+    uid: userStatus.uid,
+  };
+
+  return <UserProvider value={value}>{children}</UserProvider>;
 }

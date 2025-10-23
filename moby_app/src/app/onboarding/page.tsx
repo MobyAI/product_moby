@@ -559,9 +559,9 @@ function ChatOnboardingContent() {
   }, [currentStep, currentQuestion]);
 
   return (
-    <div className="h-screen bg-primary-light-alt relative flex flex-col">
+    <div className="h-screen w-screen bg-primary-light-alt relative flex flex-col">
       {/* Logo */}
-      <h3 className="text-logo text-primary-dark z-100 absolute top-4 left-5">
+      <h3 className="text-logo text-primary-dark z-100 absolute top-0 left-2">
         tableread
       </h3>
 
@@ -577,7 +577,7 @@ function ChatOnboardingContent() {
 
       {/* Scrollable area with flex layout */}
       <div ref={scrollAreaRef} className="flex-1 overflow-y-auto pt-25">
-        <div className="max-w-2xl mx-auto px-6 min-h-full flex flex-col">
+        <div className="max-w-2xl mx-auto min-h-full flex flex-col">
           {/* This flex spacer will center content when it's small */}
           <div className="flex-1 flex flex-col justify-center">
             <div ref={contentRef}>

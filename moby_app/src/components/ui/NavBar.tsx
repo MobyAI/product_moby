@@ -97,7 +97,7 @@ export default function NavBar() {
           "fixed left-0 top-1/2 -translate-y-1/2 z-50",
           "h-[99%] bg-[#e1ddcf] border-[0.5px] border-black/10",
           "rounded-tr-[10px] rounded-br-[10px]",
-          "shadow-2xl",
+          "shadow-3xl",
           "flex flex-col items-start justify-between py-4",
           "transition-all duration-300 ease-in-out",
         ].join(" ")}

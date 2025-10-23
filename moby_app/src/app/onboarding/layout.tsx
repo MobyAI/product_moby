@@ -1,19 +1,29 @@
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 import type { ReactNode } from "react";
+import { redirect } from "next/navigation";
+import {
+  verifyUserInfo,
+  hasProfile,
+} from "@/lib/firebase/admin/auth/verifySession";
 import AuthShell from "@/components/layouts/AuthShell";
 
-export default function OnboardingLayout({
-    children
+export default async function OnboardingLayout({
+  children,
 }: {
-    children: ReactNode
+  children: ReactNode;
 }) {
-    return (
-        <AuthShell requireProfile={false}>
-            <div className="bg-transparent h-screen w-screen">
-                {children}
-            </div>
-        </AuthShell>
-    );
+  const userStatus = await verifyUserInfo();
+
+  if (hasProfile(userStatus)) {
+    redirect("/tracker");
+  }
+
+  return (
+    <AuthShell requireProfile={false} requireAccess={false}>
+      <div className="min-h-screen flex items-center justify-center bg-primary-light-alt p-4">
+        {children}
+      </div>
+    </AuthShell>
+  );
 }
