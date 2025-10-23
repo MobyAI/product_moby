@@ -8,6 +8,9 @@ interface AuditionModalProps {
   auditionTypes?: {
     [key: string]: { label: string; icon: JSX.Element };
   };
+  billings?: {
+    [key: string]: { label: string; icon: JSX.Element };
+  };
   initialData?: {
     date?: string;
     projectTitle?: string;
@@ -52,6 +55,7 @@ const AuditionModal: React.FC<AuditionModalProps> = ({
   onClose,
   onSubmit,
   auditionTypes = {},
+  billings = {},
   initialData = null,
   isEditing = false,
   isSubmitting = false,
@@ -285,9 +289,11 @@ const AuditionModal: React.FC<AuditionModalProps> = ({
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-500 bg-white"
                       >
                         <option value="">Select billing</option>
-                        <option value="star">Star</option>
-                        <option value="co-star">Co-Star</option>
-                        <option value="extra">Extra</option>
+                        {Object.entries(billings).map(([key, type]) => (
+                          <option key={key} value={key}>
+                            {type.label || key}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
@@ -425,9 +431,11 @@ const AuditionModal: React.FC<AuditionModalProps> = ({
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-500 bg-white"
                   >
                     <option value="">Select billing</option>
-                    <option value="star">Star</option>
-                    <option value="co-star">Co-Star</option>
-                    <option value="extra">Extra</option>
+                    {Object.entries(billings).map(([key, type]) => (
+                      <option key={key} value={key}>
+                        {type.label || key}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -483,8 +491,7 @@ const AuditionModal: React.FC<AuditionModalProps> = ({
             ) : (
               <>
                 <button
-                  type="button"
-                  onClick={handleClose}
+                  type="submit"
                   className="flex-1 w-[30%] px-6 py-3 border border-bg-primary-dark-alt text-primary-dark-alt rounded-lg font-medium hover:cursor-pointer"
                 >
                   Skip

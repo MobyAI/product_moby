@@ -1,3 +1,5 @@
 # Ignore STT server directories during Vercel builds
 google-server/
 deepgram-server/
+functions/
+deprecated/

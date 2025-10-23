@@ -6,8 +6,9 @@ import React, {
   MouseEventHandler,
   UIEvent,
 } from "react";
+import { useRouter } from "next/navigation";
 import { motion, useInView, AnimatePresence } from "motion/react";
-import { Trash, PinOff, Pin, Pencil, MoreVertical, X } from "lucide-react";
+import { Trash, PinOff, Pin, Pencil, MoreVertical, X, Play } from "lucide-react";
 
 interface AnimatedItemProps {
   children: ReactNode;
@@ -97,6 +98,7 @@ export const AnimatedList: React.FC<AnimatedListProps> = ({
   const [topGradientOpacity, setTopGradientOpacity] = useState<number>(0);
   const [bottomGradientOpacity, setBottomGradientOpacity] = useState<number>(1);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleScroll = (e: UIEvent<HTMLDivElement>) => {
     const target = e.target as HTMLDivElement;
@@ -197,6 +199,20 @@ export const AnimatedList: React.FC<AnimatedListProps> = ({
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.15 }}
                 >
+                  <motion.button
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/practice-room?scriptID=${item.id}`);
+                    }}
+                    disabled={savingItemId != null || deletingItemId != null}
+                    className="p-3 rounded-full hover:bg-black/5 transition-colors hover:cursor-pointer"
+                    aria-label="Play"
+                  >
+                    <Play className="w-5 h-5 text-primary-dark-alt" />
+                  </motion.button>
                   {togglePinned && (
                     <motion.button
                       initial={{ opacity: 0, x: 10 }}

@@ -1,21 +1,26 @@
-import { withSentryConfig } from '@sentry/nextjs';
+import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   compiler: {
-    ...(process.env.NODE_ENV === 'production'
+    ...(process.env.NODE_ENV === "production"
       ? {
-        removeConsole: {
-          exclude: ['log', 'error', 'warn'],
-        },
-      }
+          removeConsole: {
+            exclude: ["log", "error", "warn"],
+          },
+        }
       : {}),
   },
   webpack: (config) => {
     // Exclude STT servers from webpack processing
     config.watchOptions = {
       ...config.watchOptions,
-      ignored: ['**/google-server/**', '**/deepgram-server/**', '**/deprecated/**'],
+      ignored: [
+        "**/google-server/**",
+        "**/deepgram-server/**",
+        "**/deprecated/**",
+        "**/functions/**",
+      ],
     };
 
     return config;
@@ -23,14 +28,14 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'firebasestorage.googleapis.com',
-        pathname: '/v0/b/**',
+        protocol: "https",
+        hostname: "firebasestorage.googleapis.com",
+        pathname: "/v0/b/**",
       },
       {
-        protocol: 'https',
-        hostname: '*.firebasestorage.app',
-        pathname: '/**',
+        protocol: "https",
+        hostname: "*.firebasestorage.app",
+        pathname: "/**",
       },
       {
         protocol: "https",

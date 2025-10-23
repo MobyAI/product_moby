@@ -1,22 +1,18 @@
 import { redirect } from "next/navigation";
 import { ReactNode } from "react";
-import { verifyUserInfo, isAuthenticated } from "@/lib/firebase/admin/auth/verifySession";
-
-// Define your admin UIDs
-// const ADMIN_UIDS = [
-//   "your-admin-uid-here",
-// ];
-
-const ADMIN_UIDS = process.env.NEXT_PUBLIC_ADMIN_UIDS?.split(',') || [];
+import {
+  verifyUserInfo,
+  isAuthenticated,
+} from "@/lib/firebase/admin/auth/verifySession";
 
 interface AdminAuthWrapperProps {
   children: ReactNode;
   fallbackPath?: string;
 }
 
-export default async function AdminAuthShell({ 
-  children, 
-  fallbackPath = "/home" 
+export default async function AdminAuthShell({
+  children,
+  fallbackPath = "/home",
 }: AdminAuthWrapperProps) {
   const userStatus = await verifyUserInfo();
 
@@ -25,8 +21,10 @@ export default async function AdminAuthShell({
     redirect("/login");
   }
 
-  // Check if user is an admin
-  if (!ADMIN_UIDS.includes(userStatus.uid)) {
+  // Check if user has admin custom claim
+  const isAdmin = userStatus.admin === true;
+
+  if (!isAdmin) {
     redirect(fallbackPath);
   }
 

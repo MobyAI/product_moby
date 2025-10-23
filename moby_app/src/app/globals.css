@@ -333,6 +333,13 @@ body {
     font-family: var(--font-crimson);
   }
 
+  .text-logo-lg {
+    font-size: 2.5rem;
+    line-height: 2.5rem;
+    font-weight: 700;
+    font-family: var(--font-crimson);
+  }
+
   .text-header {
     font-size: 3.2rem;
     line-height: 2.5rem;
@@ -815,4 +822,10 @@ body {
 
 .step-guide {
   background-color: #eeede4 !important;
+}
+
+/* Sentry feedback widget */
+#sentry-feedback {
+  --background: #363c54;
+  --trigger-background: #363c54;
 }

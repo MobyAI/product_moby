@@ -12,7 +12,7 @@ import { getAllVoiceSamples } from "@/lib/firebase/client/tts";
 import Dialog, { useDialog } from "@/components/ui/Dialog";
 import * as Sentry from "@sentry/nextjs";
 import { useToast } from "@/components/providers/ToastProvider";
-import { X, Play, Pause } from "lucide-react";
+import { X, Play, Pause, Mars, Venus, NonBinary } from "lucide-react";
 
 interface ScriptUploadModalProps {
   isOpen: boolean;
@@ -30,6 +30,7 @@ interface VoiceSample {
   description: string;
   url: string;
   voiceId: string;
+  gender?: string;
 }
 
 interface VoiceAssignment {
@@ -853,6 +854,48 @@ export default function ScriptUploadModal({
     }
   };
 
+  const getModalWidth = (stage: number): string => {
+    if (processingError.hasError) {
+      return "max-w-2xl"; // Compact width for error messages
+    }
+
+    switch (stage) {
+      case 0: // Voice library setup stage
+        return "max-w-xl";
+      case 1: // Text extraction stage
+        return "max-w-xl";
+      case 2: // Name your script stage
+        return "max-w-xl";
+      case 3:
+        // Check if all voices have been assigned (success state)
+        if (
+          extractedRoles &&
+          Object.keys(voiceAssignments).length >= extractedRoles.length
+        ) {
+          return "max-w-xl";
+        }
+        // Normal voice assignment view
+        return "max-w-4xl";
+      case 4: // User role selection stage
+        return "max-w-xl";
+      case 5:
+        // Loading state - waiting for script to parse
+        if (!parsedScript) {
+          return "max-w-xl";
+        }
+        // Missing characters - voice assignment
+        if (missingCharacters.length > 0) {
+          return "max-w-4xl";
+        }
+        // Success state - all verified
+        return "max-w-xl";
+      case 6: // Script review stage
+        return "max-w-4xl";
+      default:
+        return "max-w-4xl";
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -866,7 +909,9 @@ export default function ScriptUploadModal({
       {/* Modal */}
       <div
         ref={modalRef}
-        className="relative bg-primary-light-alt rounded-3xl p-8 w-full max-w-4xl max-h-[90vh] overflow-hidden"
+        className={`relative bg-primary-light-alt rounded-3xl p-8 w-full ${getModalWidth(
+          currentStage
+        )} max-h-[95vh] overflow-hidden`}
       >
         {/* Header with Loading Progress */}
         {/* <div className="bg-transparent mb-4 pb-6 border-b border-gray-300">
@@ -996,7 +1041,7 @@ export default function ScriptUploadModal({
                         }
                       }}
                       placeholder="Enter here"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-1 focus:ring-gray-900 focus:border-transparent"
                       autoFocus
                     />
                     <button
@@ -1034,7 +1079,7 @@ export default function ScriptUploadModal({
                       if (currentIndex >= extractedRoles.length)
                         return (
                           <div className="text-center">
-                            <div className="w-16 h-16 mx-auto mb-4 text-green-500">
+                            <div className="w-20 h-20 mx-auto mb-4 text-green-500">
                               <svg
                                 className="w-full h-full"
                                 fill="currentColor"
@@ -1047,7 +1092,7 @@ export default function ScriptUploadModal({
                                 />
                               </svg>
                             </div>
-                            <p className="text-gray-600">
+                            <p className="text-header-3 text-primary-dark">
                               Voices assigned to all roles!
                             </p>
                           </div>
@@ -1064,7 +1109,7 @@ export default function ScriptUploadModal({
                           voiceSelect={`${currentRole}`}
                           fullHeight={true}
                         >
-                          <div className="overflow-y-auto max-h-[50vh]">
+                          <div className="overflow-y-auto max-h-[60vh]">
                             <RoleVoiceAssignment
                               key={currentRole}
                               role={currentRole}
@@ -1264,7 +1309,7 @@ export default function ScriptUploadModal({
                 ) : (
                   // All characters have voices - show success
                   <div className="text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 text-green-500">
+                    <div className="w-20 h-20 mx-auto mb-4 text-green-500">
                       <svg
                         className="w-full h-full"
                         fill="currentColor"
@@ -1277,8 +1322,10 @@ export default function ScriptUploadModal({
                         />
                       </svg>
                     </div>
-                    <p className="text-gray-600">All characters verified!</p>
-                    <p className="text-sm text-gray-500 mt-2">
+                    <p className="text-header-3 text-primary-dark mb-1">
+                      All characters verified!
+                    </p>
+                    <p className="text-sm text-gray-500">
                       Moving to script review...
                     </p>
                   </div>
@@ -1294,7 +1341,7 @@ export default function ScriptUploadModal({
               description="Feel free to click on the lines to edit them if you need to."
               fullHeight={false}
             >
-              <div className="flex flex-col max-h-[60vh]">
+              <div className="flex flex-col max-h-[80vh]">
                 <div className="flex-1 border border-gray-200 rounded-lg p-4 bg-gray-50 overflow-y-auto">
                   {scriptSaving ? (
                     <div className="flex items-center justify-center h-full">
@@ -1338,7 +1385,7 @@ export default function ScriptUploadModal({
         </div>
 
         {/* Progress Indicators */}
-        <div className="pt-6">
+        <div className="pt-8">
           <div className="flex justify-between items-center gap-2">
             {[1, 2, 3, 4, 5, 6].map((stage) => (
               <div
@@ -1513,10 +1560,13 @@ const RoleVoiceAssignment = ({
 }: RoleVoiceAssignmentProps) => {
   const [playingUrl, setPlayingUrl] = useState<string | null>(null);
   const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(null);
+  const [selectedGender, setSelectedGender] = useState<
+    "male" | "female" | "non-binary"
+  >("female");
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const handlePlay = (url: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent selecting the voice when playing
+    e.stopPropagation();
 
     if (playingUrl === url) {
       audioRef.current?.pause();
@@ -1553,6 +1603,12 @@ const RoleVoiceAssignment = ({
     };
   }, []);
 
+  // Filter voices by selected gender
+  const filteredVoices =
+    voiceSamples?.filter(
+      (sample) => sample.gender?.toLowerCase() === selectedGender
+    ) || [];
+
   if (isLoading) {
     return (
       <div className="text-center py-8">
@@ -1569,61 +1625,126 @@ const RoleVoiceAssignment = ({
   }
 
   return (
-    <div className="flex flex-wrap gap-4 justify-center">
-      {voiceSamples
-        .sort((a, b) => {
-          if (a.name === "Jessica") return -1;
-          if (b.name === "Jessica") return 1;
-          return 0;
-        })
-        .map((sample) => (
-          <div
-            key={sample.voiceId}
-            onClick={() => handleSelectVoice(sample)}
+    <div className="space-y-6 pb-8">
+      {/* Gender Toggle */}
+      <div className="flex justify-center pb-4">
+        <div className="inline-flex rounded-full bg-primary-light p-1">
+          <button
+            onClick={() => setSelectedGender("female")}
             className={`
-                w-55 h-50 p-5 rounded-2xl cursor-pointer transition-all duration-300
-                bg-[#A8A8A8]/10 hover:bg-[#A8A8A8]/20 flex flex-col justify-between
-                ${
-                  selectedVoiceId === sample.voiceId
-                    ? "ring-0 ring-primary-dark-alt"
-                    : ""
-                }
-                `}
+        flex items-center justify-center gap-2 px-2 py-2 w-[110px] rounded-full transition-all duration-200
+        ${
+          selectedGender === "female"
+            ? "bg-primary-dark-alt text-white"
+            : "text-gray-600 hover:text-gray-900"
+        }
+      `}
           >
-            {/* Top section: Name + Description */}
-            <div>
-              <h4 className="font-semibold text-primary-dark text-md">
-                {sample.name}
-                {sample.name === "Jessica" && (
-                  <span className="text-sm text-yellow-500 font-normal ml-1">
-                    (crowd favorite)
-                  </span>
-                )}
-              </h4>
+            <Venus className="w-5 h-5" />
+            <span className="text-sm">Female</span>
+          </button>
+          <button
+            onClick={() => setSelectedGender("male")}
+            className={`
+        flex items-center justify-center gap-2 px-2 py-2 w-[110px] rounded-full transition-all duration-200
+        ${
+          selectedGender === "male"
+            ? "bg-primary-dark-alt text-white"
+            : "text-gray-600 hover:text-gray-900"
+        }
+      `}
+          >
+            <Mars className="w-5 h-5" />
+            <span className="text-sm">Male</span>
+          </button>
+          <button
+            onClick={() => setSelectedGender("non-binary")}
+            className={`
+        flex items-center justify-center gap-2 px-2 py-2 w-[110px] rounded-full transition-all duration-200
+        ${
+          selectedGender === "non-binary"
+            ? "bg-primary-dark-alt text-white"
+            : "text-gray-600 hover:text-gray-900"
+        }
+      `}
+          >
+            <NonBinary className="w-5 h-5" />
+            <span className="text-sm">Neutral</span>
+          </button>
+        </div>
+      </div>
 
-              <p className="text-sm text-primary-dark/80 mt-2 line-clamp-3 leading-relaxed">
-                {sample.description}
-              </p>
-            </div>
+      {/* Voice Cards */}
+      {filteredVoices.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          No {selectedGender} voices available
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-4 justify-center">
+          {filteredVoices
+            .sort((a, b) => {
+              const crowdFavorites = ["Jessica", "Adam", "Jordan"];
+              const aIsFavorite = crowdFavorites.includes(a.name);
+              const bIsFavorite = crowdFavorites.includes(b.name);
 
-            {/* Bottom section: Play button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation(); // ✅ prevents parent click from overriding button styles
-                handlePlay(sample.url, e);
-              }}
-              className={`
-                self-center flex items-center justify-center w-8 h-8 rounded-full cursor-pointer hover:scale-105 active:scale-95
-                transition-all duration-300 text-white font-medium bg-primary-dark-alt shadow-md`}
-            >
-              {playingUrl === sample.url ? (
-                <Pause className="w-3.5 h-3.5" />
-              ) : (
-                <Play className="w-3.5 h-3.5" />
-              )}
-            </button>
-          </div>
-        ))}
+              // If a is favorite and b is not, a comes first
+              if (aIsFavorite && !bIsFavorite) return -1;
+              // If b is favorite and a is not, b comes first
+              if (!aIsFavorite && bIsFavorite) return 1;
+              // Otherwise maintain original order
+              return 0;
+            })
+            .map((sample) => (
+              <div
+                key={sample.voiceId}
+                onClick={() => handleSelectVoice(sample)}
+                className={`
+        w-55 h-50 p-5 rounded-2xl cursor-pointer transition-all duration-300
+        bg-[#A8A8A8]/10 hover:bg-[#A8A8A8]/20 flex flex-col justify-between
+        ${
+          selectedVoiceId === sample.voiceId
+            ? "ring-2 ring-primary-dark-alt"
+            : ""
+        }
+      `}
+              >
+                {/* Top section: Name + Description */}
+                <div>
+                  <h4 className="font-semibold text-primary-dark text-md">
+                    {sample.name}
+                    {["Jessica", "Adam", "Jordan"].includes(sample.name) && (
+                      <span className="text-sm text-yellow-500 font-normal ml-1">
+                        (crowd favorite)
+                      </span>
+                    )}
+                  </h4>
+
+                  <p className="text-sm text-primary-dark/80 mt-2 line-clamp-3 leading-relaxed">
+                    {sample.description}
+                  </p>
+                </div>
+
+                {/* Bottom section: Play button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePlay(sample.url, e);
+                  }}
+                  className={`
+          self-center flex items-center justify-center w-8 h-8 rounded-full cursor-pointer hover:scale-105 active:scale-95
+          transition-all duration-300 text-white font-medium bg-primary-dark-alt shadow-md
+        `}
+                >
+                  {playingUrl === sample.url ? (
+                    <Pause className="w-3.5 h-3.5" />
+                  ) : (
+                    <Play className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </div>
+            ))}
+        </div>
+      )}
     </div>
   );
 };
