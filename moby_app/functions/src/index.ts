@@ -247,6 +247,7 @@ export const redeemBetaCode = onCall<RedeemBetaCodeData>(
       await db.collection("users").doc(userId).set(updateData, { merge: true });
 
       // Mark code as used - UPDATED SECTION
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const codeUpdateData: any = {
         usedCount: admin.firestore.FieldValue.increment(1),
         usedByUsers: admin.firestore.FieldValue.arrayUnion(userId),

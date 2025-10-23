@@ -34,11 +34,11 @@ const Navbar: React.FC = () => {
   const CTAButton: React.FC<
     React.PropsWithChildren<{ variant?: "primary" | "ghost"; href?: string }>
   > = ({ variant = "primary", href = "#", children }) => (
-    <Link href={href} scroll={false} target="_blank">
+    <Link href={href} scroll={false}>
       <span
         className={
           variant === "primary"
-            ? "inline-flex items-center gap-2 rounded-2xl px-5 py-3 bg-white text-slate-900 shadow hover:shadow-md transition-shadow text-body-large"
+            ? "inline-flex items-center gap-2 rounded-2xl px-5 py-1 bg-white text-slate-900 shadow hover:shadow-md transition-shadow text-body-large"
             : "inline-flex items-center gap-2 rounded-2xl px-5 py-3 bg-white/20 text-white border border-white/30 hover:bg-white/30 transition"
         }
         style={{ backgroundColor: "#f5d76e" }}
@@ -69,7 +69,7 @@ const Navbar: React.FC = () => {
           </div> */}
 
           <div className="hidden md:flex items-center">
-            <CTAButton variant="primary" href="https://docs.google.com/forms/d/e/1FAIpQLSe9THykmDJkTY1C2E7sdofD58M3UGKhKHKQQ_gUsoyPBM1jsQ/viewform?usp=dialog">
+            <CTAButton variant="primary" href="/signup">
               {/* Sign up for beta access */}
               Login
             </CTAButton>

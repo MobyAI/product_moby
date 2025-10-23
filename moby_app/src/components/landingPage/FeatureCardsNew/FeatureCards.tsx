@@ -32,7 +32,8 @@ const fallbackFeatures: Feature[] = [
     id: "speech",
     media: { node: <LinePreview /> },
     badge: "",
-    title: "Perform with human-level emotion",
+    // title: "Perform with human-level emotion",
+    title: "Bring every line to life",
     description:
       "Add emotional notes to any line and watch your reader bring it to life—perfect tone, perfect timing, every single take.",
   },
@@ -55,7 +56,8 @@ const fallbackFeatures: Feature[] = [
 ];
 
 export default function FeatureShowcase({
-  headline = "Practice smarter, perform better",
+//   headline = "Practice smarter, perform better",
+headline="Elevate every performance",
   features = fallbackFeatures,
   className,
 }: FeatureShowcaseProps) {
@@ -77,8 +79,9 @@ export default function FeatureShowcase({
             {headline}
           </h2>
           <p className="text-white/90 mt-3 text-base sm:text-lg">
-            Everything you need to rehearse, control delivery, and track your
-            progress
+            {/* Everything you need to rehearse, control delivery, and track your
+            progress */}
+            From rehearsing your lines to mastering delivery and tracking your journey—own every moment on and off the script.
           </p>
         </div>
 

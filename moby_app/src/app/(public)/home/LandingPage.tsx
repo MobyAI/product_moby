@@ -99,7 +99,7 @@ const LandingPage = () => {
                                         {/* </PulsatingButton> */}
                                     </div>
                                 {/* <p className="text-center text-sm text-slate-500 mt-2">or login <span style={{ textDecoration: 'underline'}}>here</span></p> */}
-                                <p className="text-center text-sm text-slate-500 mt-2">or login <span style={{ textDecoration: 'underline'}}>here</span></p>
+                                <p className="text-center text-sm text-gray-600 mt-2">or login <Link href="/signup" style={{ textDecoration: 'underline'}}>here</Link></p>
                                 </div>
                             </div>
                         </div>
@@ -132,11 +132,7 @@ const LandingPage = () => {
                     <h2 className="text-header text-center">How do I use this?</h2>
                     <StepGuide
                         steps={[
-                            // { title: "Sign in", body: "Enter the beta code you received in your email", media: "/gifs/step1.gif" },
-                            // { title: "Sign up", body: "Enter your email and password / sign up using Google.", media: "/gifs/step2.gif" },
-                            // { title: "Upload auditions!", body: "Begin uploading a previous audition or a current one. Keep track of it with one glance", media: "/gifs/step3.gif" },
-                            // TODO: have ChatGPT rewrite these prompts and better adjust
-                            { title: "Upload your script", body: "Drop your script right in and get ready to bring your lines to life.", media: "/gifs/step1.gif" },
+                            { title: "Upload your script", body: "Drop your script right in and get ready to bring your lines to life.", media: "/assets/temp.gif" },
                             { title: "Add key details", body: "Enter scene info, character notes, or anything else to help shape your performance setup.", media: "/gifs/step2.gif" },
                             { title: "Fine-tune the delivery", body: "Refine each line with emotive tags and timing tweaks so the reader performs exactly how   you imagine.", media: "/gifs/step3.gif" },
                             { title: "Rehearse and refine", body: "Step into your scene and start practicing. Adjust as you go until every line feels perfect.", media: "/gifs/step4.gif" },
@@ -187,22 +183,6 @@ const LandingPage = () => {
                         </p>
                         <p className="text-white text-body-small">All rights reserved.</p>
                     </div>
-
-                    {/* Right: Links */}
-                    {/* <div className="flex gap-6 mt-4 sm:mt-0 text-slate-500">
-                        <Link href="/privacy" className="hover:text-slate-900 transition">
-                            Privacy
-                        </Link>
-                        <Link href="/terms" className="hover:text-slate-900 transition">
-                            Terms
-                        </Link>
-                        <Link
-                            href="mailto:hello@tablread.com"
-                            className="hover:text-slate-900 transition"
-                        >
-                            Contact
-                        </Link>
-                    </div> */}
                 </div>
             </footer>
         </div>

@@ -27,7 +27,13 @@ export default function StepGuide({ steps, className, loop = true }: StepGuidePr
   const canAdvance = loop || !atEnd;
 
   const handleNext = useCallback(() => {
-    if (!canAdvance) return;
+   if (!canAdvance) {
+    window.open(
+      "https://docs.google.com/forms/d/e/1FAIpQLSe9THykmDJkTY1C2E7sdofD58M3UGKhKHKQQ_gUsoyPBM1jsQ/viewform",
+      "_blank"
+    );
+    return;
+  }
     setIndex((i) => (i + 1) % steps.length);
   }, [canAdvance, steps.length]);
 
@@ -62,20 +68,20 @@ export default function StepGuide({ steps, className, loop = true }: StepGuidePr
                 onClick={handleNext}
                 aria-label={canAdvance ? "Next step" : "End of guide"}
                 className={`group inline-flex items-center gap-2 rounded-lg px-6 py-3 text-base ${
-                  canAdvance
-                    ? "bg-slate-900 text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900"
-                    : "bg-slate-200 text-slate-500 cursor-not-allowed"
+                //   canAdvance
+                    "bg-slate-900 text-white hover:bg-slate-800"
+                    // : "bg-slate-200 text-slate-500 cursor-not-allowed"
                 }`}
               >
-                <span>{canAdvance ? "Next" : "Done"}</span>
-                <motion.span
+                <span>{canAdvance ? "Next" : "Get started!"}</span>
+                {canAdvance && <motion.span
                   aria-hidden
                   animate={{ y: [0, 5, 0] }}
                   transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
                   className="grid place-items-center"
                 >
                   <ChevronDown className="w-5 h-5" />
-                </motion.span>
+                </motion.span>}
               </button>
             </div>
           </motion.div>
