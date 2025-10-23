@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import TrackerClient from "./TrackerClient";
 
 export const metadata: Metadata = {
-  title: "Audition Tracker - Playr",
+  title: "Audition Tracker - tableread",
   description: "Track and manage your audition history",
 };
 

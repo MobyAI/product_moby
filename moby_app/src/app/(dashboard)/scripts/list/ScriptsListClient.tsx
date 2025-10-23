@@ -21,14 +21,7 @@ import {
 } from "@/components/ui";
 import Dialog, { useDialog } from "@/components/ui/Dialog";
 import EditDialog, { useEditDialog } from "./editDialog";
-import {
-  Plus,
-  RotateCcw,
-  Search,
-  X,
-  Play,
-  Sparkles,
-} from "lucide-react";
+import { Plus, RotateCcw, Search, X, Play, Sparkles } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Sentry from "@sentry/nextjs";
 import { useToast } from "@/components/providers/ToastProvider";
@@ -114,11 +107,26 @@ function ScriptsListContent() {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".pdf,.docx";
+
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
     input.onchange = (e: Event) => {
       if (!e.target) return;
       const target = e.target as HTMLInputElement;
       const file = target.files?.[0];
+
       if (file) {
+        if (file.size > MAX_FILE_SIZE) {
+          showToast({
+            header: "File too large",
+            line1: `Maximum file size is ${
+              MAX_FILE_SIZE / (1024 * 1024)
+            }MB. Your file is ${(file.size / (1024 * 1024)).toFixed(1)}MB.`,
+            type: "danger",
+          });
+          return;
+        }
+
         setSelectedFile(file);
         setIsModalOpen(true);
       }
@@ -422,7 +430,8 @@ function ScriptsListContent() {
               </h3>
               <p className="text-primary-dark-alt">
                 Once uploaded, press the play button to begin rehearsing your
-                script with our interactive practice tools and your personalized scene partner.
+                script with our interactive practice tools and your personalized
+                scene partner.
               </p>
             </div>
 

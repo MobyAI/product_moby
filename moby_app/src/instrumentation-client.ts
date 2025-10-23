@@ -12,7 +12,7 @@ Sentry.init({
     Sentry.replayIntegration(),
     Sentry.feedbackIntegration({
       // Optional: customize the widget appearance and behavior
-      colorScheme: "dark", // "light", "dark", or "system"
+      colorScheme: "light", // "light", "dark", or "system"
       buttonLabel: "Report",
       submitButtonLabel: "Submit",
       formTitle: "Submit Report",

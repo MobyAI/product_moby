@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllVoiceSamples, saveVoiceSampleBlob } from '@/lib/firebase/client/tts';
+import { withAuth } from "@/lib/api/withAuth";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(_req: NextRequest) {
@@ -12,7 +13,7 @@ export async function GET(_req: NextRequest) {
     }
 }
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: any) {
     try {
         const formData = await req.formData();
 
@@ -36,3 +37,5 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
     }
 }
+
+export const POST = withAuth(postHandler, { adminOnly: true });

@@ -6,6 +6,7 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 import { auth } from "@/lib/firebase/client/config/app";
 import { sendSessionLogin, handleLogout } from "@/lib/api/auth";
 import { MoveRight } from "lucide-react";
+import BetaAccessRequestModal from "./requestModal";
 
 interface RedeemBetaCodeResult {
   success: boolean;
@@ -14,21 +15,12 @@ interface RedeemBetaCodeResult {
   daysGranted: number;
 }
 
-const requestEmailUrl = `mailto:try.tableread@gmail.com?subject=${encodeURIComponent(
-  "Request Beta Access Code"
-)}&body=${encodeURIComponent(
-  `Hi,
-
-I'd like to request a beta access code to try using tableread!
-
-Thank you!`
-)}`;
-
 export default function BetaCodePage() {
   const router = useRouter();
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -178,12 +170,12 @@ export default function BetaCodePage() {
 
           <p className="text-sm text-gray-600">
             {"Don't have a code? "}
-            <a
-              href={requestEmailUrl}
+            <button
+              onClick={() => setIsModalOpen(true)}
               className="text-primary-dark underline font-medium hover:cursor-pointer hover:text-gray-500"
             >
               Request access
-            </a>
+            </button>
           </p>
 
           <button
@@ -195,6 +187,12 @@ export default function BetaCodePage() {
           </button>
         </div>
       </div>
+
+      {/* Modal */}
+      <BetaAccessRequestModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </>
   );
 }
