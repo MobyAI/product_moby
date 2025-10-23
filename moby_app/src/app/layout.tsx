@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Playr",
+  title: "tableread",
   description: "AI powered, all-in-one tool for actors",
 };
 
