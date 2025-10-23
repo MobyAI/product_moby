@@ -27,8 +27,14 @@ export default function StepGuide({ steps, className, loop = true }: StepGuidePr
   const atEnd = index >= steps.length - 1;
   const canAdvance = loop || !atEnd;
 
-  const handleNext = useCallback(() => {
-    if (!canAdvance) return;
+const handleNext = useCallback(() => {
+   if (!canAdvance) {
+    window.open(
+      "https://docs.google.com/forms/d/e/1FAIpQLSe9THykmDJkTY1C2E7sdofD58M3UGKhKHKQQ_gUsoyPBM1jsQ/viewform",
+      "_blank"
+    );
+    return;
+  }
     setIndex((i) => (i + 1) % steps.length);
   }, [canAdvance, steps.length]);
 
