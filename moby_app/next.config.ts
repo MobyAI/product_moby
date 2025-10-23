@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
         "**/deepgram-server/**",
         "**/deprecated/**",
         "**/functions/**",
-        "**/scripts/**",
+        "scripts/**",
       ],
     };
 
