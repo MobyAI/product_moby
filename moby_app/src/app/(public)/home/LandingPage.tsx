@@ -132,10 +132,10 @@ const LandingPage = () => {
                     <h2 className="text-header text-center">How do I use this?</h2>
                     <StepGuide
                         steps={[
-                            { title: "Upload your script", body: "Drop your script right in and get ready to bring your lines to life.", media: "/assets/temp.gif" },
-                            { title: "Add key details", body: "Enter scene info, character notes, or anything else to help shape your performance setup.", media: "/gifs/step2.gif" },
-                            { title: "Fine-tune the delivery", body: "Refine each line with emotive tags and timing tweaks so the reader performs exactly how   you imagine.", media: "/gifs/step3.gif" },
-                            { title: "Rehearse and refine", body: "Step into your scene and start practicing. Adjust as you go until every line feels perfect.", media: "/gifs/step4.gif" },
+                            { title: "Upload your script", body: "Drop your script right in and get ready to bring your lines to life.", media: "/assets/Upload.mp4" },
+                            { title: "Add key details", body: "Enter scene info, character notes, or anything else to help shape your performance setup.", media: "/assets/fill.mp4" },
+                            { title: "Fine-tune the delivery", body: "Refine each line with emotive tags and timing tweaks so the reader performs exactly how   you imagine.", media: "/assets/Finetune.mp4" },
+                            { title: "Rehearse and refine", body: "Step into your scene and start practicing. Adjust as you go until every line feels perfect.", media: "/assets/Practice.mp4" },
                         ]}
                         loop={false} // optional: stop at last step instead of cycling
                     />

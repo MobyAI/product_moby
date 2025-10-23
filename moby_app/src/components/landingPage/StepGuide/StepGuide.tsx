@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronLeft, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 export type StepItem = {
   title: string;
   body?: string;
-  media: string;
+  media: string; // Now supports mp4 files
   alt?: string;
 };
 
@@ -33,12 +33,13 @@ export default function StepGuide({ steps, className, loop = true }: StepGuidePr
   }, [canAdvance, steps.length]);
 
   const handlePrev = useCallback(() => {
-    // Hide the button on step 1 (index 0), but keep logic robust if called.
     if (atStart && !loop) return;
     setIndex((i) => (i - 1 + steps.length) % steps.length);
   }, [atStart, loop, steps.length]);
 
   const current = useMemo(() => steps[index], [steps, index]);
+
+  const isVideo = current.media.endsWith(".mp4") || current.media.includes(".mp4?");
 
   return (
     <section
@@ -58,42 +59,26 @@ export default function StepGuide({ steps, className, loop = true }: StepGuidePr
             className="flex flex-col h-full"
           >
             <header className="mb-3">
-              <p className="text-xs tracking-wider font-semibold uppercase text-slate-500">Step {index + 1} of {steps.length}</p>
-              <h3 className="mt-1 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">{current.title}</h3>
+              <p className="text-xs tracking-wider font-semibold uppercase text-slate-500">
+                Step {index + 1} of {steps.length}
+              </p>
+              <h3 className="mt-1 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+                {current.title}
+              </h3>
             </header>
-            {current.body && <p className="text-slate-600 dark:text-slate-300/90 text-base leading-relaxed">{current.body}</p>}
+            {current.body && (
+              <p className="text-slate-600 dark:text-slate-300/90 text-base leading-relaxed">
+                {current.body}
+              </p>
+            )}
 
             <div className="mt-auto pt-8">
               <div className="flex items-center gap-3">
-                {/* PREVIOUS: hidden on first step */}
-                {!atStart && (
-                  <button
-                    type="button"
-                    onClick={handlePrev}
-                    aria-label="Previous step"
-                    className="group inline-flex items-center gap-2 rounded-lg px-5 py-3 text-base bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 border border-slate-200/70"
-                  >
-                    {/* <ChevronLeft className="w-5 h-5" /> */}
-                    <span>Previous</span>
-                    <motion.span
-                        aria-hidden
-                        animate={{ y: [0, 5, 0] }}
-                        transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
-                        className="grid place-items-center"
-                    >
-                        <ChevronUp className="w-5 h-5" />
-                    </motion.span>
-                  </button>
-                )}
-
-                {/* NEXT */}
                 <button
                   type="button"
                   onClick={handleNext}
                   aria-label={canAdvance ? "Next step" : "End of guide"}
-                  className={`group inline-flex items-center gap-2 rounded-lg px-6 py-3 text-base ${
-                    "bg-slate-900 text-white hover:bg-slate-800 focus"
-                  }`}
+                  className={`group inline-flex items-center gap-2 rounded-lg px-6 py-3 text-base bg-slate-900 text-white hover:bg-slate-800 focus`}
                 >
                   <span>{canAdvance ? "Next" : "Get started!"}</span>
                   {canAdvance && (
@@ -107,26 +92,61 @@ export default function StepGuide({ steps, className, loop = true }: StepGuidePr
                     </motion.span>
                   )}
                 </button>
+                {!atStart && (
+                  <button
+                    type="button"
+                    onClick={handlePrev}
+                    aria-label="Previous step"
+                    className="group inline-flex items-center gap-2 rounded-lg px-5 py-3 text-base bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 border border-slate-200/70"
+                  >
+                    <span>Previous</span>
+                    <motion.span
+                      aria-hidden
+                      animate={{ y: [0, 5, 0] }}
+                      transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
+                      className="grid place-items-center"
+                    >
+                      <ChevronUp className="w-5 h-5" />
+                    </motion.span>
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* RIGHT: GIF / Media */}
-      <div className="flex-1 p-4 sm:p-6 flex items-center justify-center overflow-hidden">
+      {/* RIGHT: Media */}
+      <div className="flex-1 md:flex-[1.2] p-0 sm:p-0 flex items-center justify-center overflow-hidden bg-transparent rounded-xl" style={{ marginRight: 15 }}>
         <AnimatePresence mode="wait">
-          <motion.img
-            key={`media-${index}`}
-            src={current.media}
-            alt={current.alt ?? current.title}
-            className="w-full h-full object-contain"
-            variants={slideVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={{ type: "spring", stiffness: 260, damping: 26 }}
-          />
+          {isVideo ? (
+            <motion.video
+              key={`media-${index}`}
+              src={current.media}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover rounded-none"
+              variants={slideVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ type: "spring", stiffness: 260, damping: 26 }}
+            />
+          ) : (
+            <motion.img
+              key={`media-${index}`}
+              src={current.media}
+              alt={current.alt ?? current.title}
+              className="w-full h-full object-contain"
+              variants={slideVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ type: "spring", stiffness: 260, damping: 26 }}
+            />
+          )}
         </AnimatePresence>
       </div>
     </section>
