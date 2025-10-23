@@ -63,11 +63,18 @@ const Navbar: React.FC = () => {
             <NavLink href="#how"><span className="text-black text-body-large">How does it work?</span></NavLink>
           </nav>
 
-          <div className="hidden md:flex items-center gap-3">
+          {/* <div className="hidden md:flex items-center"> */}
+            {/* TODO: lead to sign up page  */}
+            {/* <NavLink href="#features"><span className="text-black text-body-large">Sign in</span></NavLink>
+          </div> */}
+
+          <div className="hidden md:flex items-center">
             <CTAButton variant="primary" href="https://docs.google.com/forms/d/e/1FAIpQLSe9THykmDJkTY1C2E7sdofD58M3UGKhKHKQQ_gUsoyPBM1jsQ/viewform?usp=dialog">
-              Sign up for beta access
+              {/* Sign up for beta access */}
+              Login
             </CTAButton>
           </div>
+         
 
           {/* Mobile toggle */}
           <button
