@@ -21,7 +21,7 @@ import {
 } from "@/components/ui";
 import Dialog, { useDialog } from "@/components/ui/Dialog";
 import EditDialog, { useEditDialog } from "./editDialog";
-import { Plus, RotateCcw, Search, X, Play, Sparkles, Pin, Upload } from "lucide-react";
+import { Plus, RotateCcw, Search, X, Play, Sparkles, Pin } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Sentry from "@sentry/nextjs";
 import { useToast } from "@/components/providers/ToastProvider";

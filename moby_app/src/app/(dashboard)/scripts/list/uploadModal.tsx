@@ -1360,7 +1360,7 @@ export default function ScriptUploadModal({
                         <h3 className="text-header-3 text-primary-dark mb-1">
                           Saving Script
                         </h3>
-                        <p className="text-gray-500">We're almost done!</p>
+                        <p className="text-gray-500">{"You're almost done!"}</p>
                       </div>
                     </div>
                   ) : (

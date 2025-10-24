@@ -8,12 +8,14 @@ interface AuthenticatedRequest extends NextRequest {
     accessLevel?: "no_access" | "beta" | "paid" | "expired";
     betaExpiresAt?: number;
     admin?: boolean;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
   };
 }
 
 type AuthenticatedHandler = (
   req: AuthenticatedRequest,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   context?: any
 ) => Promise<NextResponse> | NextResponse;
 
@@ -28,6 +30,7 @@ export function withAuth(
 ) {
   const { requireAccess = true, adminOnly = false } = options;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return async (req: NextRequest, context?: any) => {
     try {
       // Verify session exists
