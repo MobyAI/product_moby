@@ -846,17 +846,17 @@ function TrackerPageContent() {
                                 </span>
                               </div>
                               <div className="flex-1 flex items-center gap-2 text-primary-dark capitalize truncate min-w-0">
-                                {audition.castingDirector}
+                                {audition.castingDirector || "-"}
                               </div>
                               <div className="flex-1 text-primary-dark truncate min-w-0">
-                                {audition.auditionRole}
+                                {audition.auditionRole || "-"}
                               </div>
                               <div className="flex-1 text-primary-dark truncate min-w-0">
-                                {audition.source}
+                                {audition.source || "-"}
                               </div>
                               <div className="flex-none w-32 flex items-center gap-2 text-primary-dark capitalize">
                                 {getBillingIcon(audition.billing)}
-                                <span>{audition.billing}</span>
+                                <span>{audition.billing || "-"}</span>
                               </div>
                               <div className="flex-none w-32 capitalize">
                                 <span
@@ -864,7 +864,7 @@ function TrackerPageContent() {
                                     audition.status
                                   )}`}
                                 >
-                                  {audition.status}
+                                  {audition.status || "-"}
                                 </span>
                               </div>
                             </motion.div>

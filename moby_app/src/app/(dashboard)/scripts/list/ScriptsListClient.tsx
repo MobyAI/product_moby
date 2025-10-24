@@ -108,7 +108,7 @@ function ScriptsListContent() {
     input.type = "file";
     input.accept = ".pdf,.docx";
 
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB
 
     input.onchange = (e: Event) => {
       if (!e.target) return;
@@ -123,6 +123,7 @@ function ScriptsListContent() {
               MAX_FILE_SIZE / (1024 * 1024)
             }MB. Your file is ${(file.size / (1024 * 1024)).toFixed(1)}MB.`,
             type: "danger",
+            alignment: "center",
           });
           return;
         }
@@ -147,6 +148,7 @@ function ScriptsListContent() {
           showToast({
             header: "Script deleted!",
             type: "success",
+            alignment: "center",
           });
 
           // Invalidate cache to refetch updated list
@@ -160,6 +162,7 @@ function ScriptsListContent() {
             header: "Failed to delete script",
             line1: "Please try again",
             type: "danger",
+            alignment: "center",
           });
         } finally {
           setDeletingItemId(null);
@@ -189,6 +192,7 @@ function ScriptsListContent() {
       showToast({
         header: "Script name updated!",
         type: "success",
+        alignment: "center",
       });
 
       await queryClient.invalidateQueries({
@@ -201,6 +205,7 @@ function ScriptsListContent() {
         header: "Failed to update script name",
         line1: "Please try again",
         type: "danger",
+        alignment: "center",
       });
       throw err;
     }
@@ -224,6 +229,7 @@ function ScriptsListContent() {
         header: "Failed to update script",
         line1: "Please try again",
         type: "danger",
+        alignment: "center",
       });
     } finally {
       setIsPinning(false);
@@ -237,6 +243,7 @@ function ScriptsListContent() {
     showToast({
       header: "New script uploaded!",
       type: "success",
+      alignment: "center",
     });
 
     // Refetch scripts list after upload
