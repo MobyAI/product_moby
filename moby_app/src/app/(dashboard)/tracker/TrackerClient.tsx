@@ -246,7 +246,7 @@ function TrackerPageContent() {
       bgColor: "bg-blue-100",
       textColor: "text-blue-800",
     },
-    hold: { label: "Hold", bgColor: "bg-pink-100", textColor: "text-pink-800" },
+    hold: { label: "Hold", bgColor: "bg-yellow-100", textColor: "text-yellow-800" },
     booked: {
       label: "Booked",
       bgColor: "bg-green-100",
@@ -635,7 +635,7 @@ function TrackerPageContent() {
                 <div className="flex pl-8 pr-8 py-5 text-left text-[13px] font-semibold text-primary-dark uppercase tracking-wider">
                   <div
                     onClick={() => handleSort("date")}
-                    className="flex-none w-32 flex items-center gap-1 cursor-pointer hover:text-gray-700"
+                    className="flex-1 w-32 flex items-center gap-1 cursor-pointer hover:text-gray-700"
                   >
                     Date
                     {sortConfig.key === "date" &&
@@ -714,8 +714,8 @@ function TrackerPageContent() {
                   <div className="flex-1">Casting</div>
                   <div className="flex-1">Role</div>
                   <div className="flex-1">Source</div>
-                  <div className="flex-none w-32">Billing</div>
-                  <div className="flex-none w-32">
+                  <div className="flex-1 w-32">Billing</div>
+                  <div className="flex-1 w-32">
                     <div
                       ref={statusFilterRef}
                       className="relative inline-block"
@@ -776,7 +776,7 @@ function TrackerPageContent() {
                     </div>
                   </div>
                   {/* Actions column header - matches body width */}
-                  <div className="flex-none w-[35px]"></div>
+                  <div className="flex-none w-[36px]"></div>
                 </div>
               </div>
 
@@ -812,8 +812,8 @@ function TrackerPageContent() {
                         >
                           <div className="flex items-center pl-8 pr-8 py-4 border-b border-gray-200 hover:bg-gray-200 transition-colors text-sm h-15 group">
                             <motion.div
-                              className="flex items-center flex-1 cursor-pointer min-w-0"
-                              onClick={() => openModalWithData(audition)}
+                              className="flex items-center flex-1 min-w-0"
+                              // onClick={() => openModalWithData(audition)}
                               animate={{
                                 x: openMenuId === audition.id ? -8 : 0,
                               }}
@@ -824,7 +824,7 @@ function TrackerPageContent() {
                               }}
                             >
                               {/* All your existing content columns */}
-                              <div className="flex-none w-32 flex items-center gap-2 text-gray-600">
+                              <div className="flex-1 w-32 flex items-center gap-2 text-gray-600">
                                 <Calendar className="w-4 h-4 text-gray-500" />
                                 {new Date(audition.date).toLocaleDateString(
                                   "en-US",
@@ -855,13 +855,13 @@ function TrackerPageContent() {
                               <div className="flex-1 text-primary-dark truncate min-w-0">
                                 {audition.source || "-"}
                               </div>
-                              <div className="flex-none w-32 flex items-center gap-2 text-primary-dark capitalize">
-                                {getBillingIcon(audition.billing)}
+                              <div className="flex-1 w-32 flex items-center gap-2 text-primary-dark capitalize">
+                                {audition.billing && getBillingIcon(audition.billing)}
                                 <span>{audition.billing || "-"}</span>
                               </div>
-                              <div className="flex-none w-32 capitalize">
+                              <div className="flex-1 w-32 capitalize">
                                 <span
-                                  className={`inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium ${getStatusStyle(
+                                  className={`inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium ${audition.status && getStatusStyle(
                                     audition.status
                                   )}`}
                                 >
@@ -976,8 +976,7 @@ function TrackerPageContent() {
 
               {/* Footer */}
               <div className="px-8 py-4 bg-[#F7F6F2] rounded-b-[30px] border-t border-gray-300 text-sm text-primary-dark text-center">
-                Showing {filteredAndSortedAuditions.length} of{" "}
-                {auditionsData.length} auditions
+                Currently tracking:<span className="font-semibold ml-1.5">{filteredAndSortedAuditions.length} total auditions</span>
               </div>
             </div>
           </>
