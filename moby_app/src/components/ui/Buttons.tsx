@@ -9,6 +9,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 	icon?: LucideIcon;
 	iconPosition?: "left" | "right";
 	iconOnly?: boolean;
+	title?: string;
 }
 
 export function Button({
@@ -19,6 +20,7 @@ export function Button({
 	icon: Icon,
 	iconPosition = "left",
 	iconOnly = false,
+	title,
 	...props
 }: ButtonProps) {
 	const iconSize = {
@@ -28,7 +30,7 @@ export function Button({
 	}[size];
 
 	// Base styles with 3D effect
-	const baseStyles = "font-medium rounded-[10px] transition-all inline-flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden transform hover:scale-103 active:scale-95";
+	const baseStyles = "font-medium rounded-full transition-all inline-flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden transform hover:scale-105 active:scale-95";
 
 	// 3D shadow styles
 	const shadowStyles = "shadow-lg hover:shadow-xl";
@@ -41,10 +43,10 @@ export function Button({
 				shadowStyles,
 				{
 					// Primary with gradient overlay
-					"bg-primary-dark-alt text-primary-light before:absolute before:inset-0 before:bg-gradient-to-t before:from-white/20 before:to-transparent before:pointer-events-none hover:bg-btn-primary-hover": variant === "primary",
+					"bg-primary-dark-alt text-primary-light before:absolute before:inset-0 before:pointer-events-none hover:bg-btn-primary-hover": variant === "primary",
 
 					// Secondary with gradient overlay
-					"bg-btn-secondary text-white before:absolute before:inset-0 before:bg-gradient-to-t before:from-white/20 before:to-transparent before:pointer-events-none hover:bg-btn-secondary-hover": variant === "secondary",
+					"bg-[#f5d76e] text-black before:absolute before:inset-0 before:pointer-events-none hover:bg-btn-secondary-hover": variant === "secondary",
 
 					// Accent with gradient overlay
 					"bg-btn-accent text-white before:absolute before:inset-0 before:bg-gradient-to-t before:from-white/20 before:to-transparent before:pointer-events-none hover:bg-btn-accent-hover": variant === "accent",
@@ -73,6 +75,7 @@ export function Button({
 				// Additional inline styles for enhanced 3D effect
 				boxShadow: variant !== "ghost" ? "0 4px 14px 0 rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.3)" : undefined,
 			}}
+			title={title}
 			{...props}
 		>
 			<span className="relative z-10 flex items-center gap-2 font-semibold">

@@ -117,7 +117,7 @@ export default function EditDialog({
       {/* Dialog panel */}
       <div
         ref={dialogRef}
-        className="relative z-10 transform overflow-hidden rounded-xl bg-primary-light-alt py-4 px-4 text-left max-w-md w-full transition-all animate-fadeIn"
+        className="relative z-10 transform overflow-hidden rounded-xl bg-primary-light-alt p-6 text-left max-w-md w-full transition-all animate-fadeIn"
       >
         {/* Close button */}
         {showCloseButton && (
@@ -135,28 +135,23 @@ export default function EditDialog({
         )}
 
         {/* Content */}
-        <div className="relative px-4 pb-4 pt-5">
+        <div className="relative mb-4">
           <div className="sm:flex sm:items-start">
-            <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
-              <h3
-                id="dialog-title"
-                className="text-xl font-semibold leading-6 text-primary-dark"
-              >
+            <div className="text-left w-full space-y-3">
+              <h3 id="dialog-title" className="text-header-3 text-primary-dark">
                 {title}
               </h3>
-              <div className="mt-4">
-                <input
-                  ref={inputRef}
-                  id="edit-input"
-                  type="text"
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={placeholder}
-                  disabled={isLoading}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                />
-              </div>
+              <input
+                ref={inputRef}
+                id="edit-input"
+                type="text"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={placeholder}
+                disabled={isLoading}
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              />
             </div>
           </div>
         </div>
@@ -166,7 +161,7 @@ export default function EditDialog({
           <button
             type="button"
             disabled={isLoading || !value.trim()}
-            className="inline-flex justify-center rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm bg-gray-700 hover:bg-gray-600 focus:ring-gray-500 text-white sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex justify-center rounded-lg border border-primary-dark px-8 py-2.5 text-sm font-medium shadow-sm bg-primary-dark hover:cursor-pointer hover:opacity-90 focus:ring-gray-500 text-white sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             onClick={handleSave}
           >
             {isLoading ? (
@@ -201,7 +196,7 @@ export default function EditDialog({
           <button
             type="button"
             disabled={isLoading}
-            className="inline-flex justify-center rounded-lg bg-white/50 px-4 py-2.5 text-sm font-medium text-primary-dark shadow-sm hover:bg-white/20 hover:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none transition-colors"
+            className="inline-flex justify-center rounded-lg bg-white/50 text-primary-dark border border-gray-500 px-8 py-2.5 text-sm font-medium shadow-sm hover:cursor-pointer hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none transition-colors"
             onClick={onClose}
           >
             {cancelText}

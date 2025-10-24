@@ -132,7 +132,7 @@ const AuditionModal: React.FC<AuditionModalProps> = ({
     >
       {/* Modal */}
       <div
-        className={`bg-primary-light-alt rounded-2xl p-8 w-full ${
+        className={`relative bg-primary-light-alt rounded-2xl p-6 w-full ${
           isEditing ? "max-w-4xl" : "max-w-xl"
         } max-h-[90vh] overflow-y-auto shadow-2xl transform transition-all duration-300 scale-100`}
       >
@@ -158,7 +158,7 @@ const AuditionModal: React.FC<AuditionModalProps> = ({
           <button
             onClick={handleClose}
             disabled={isSubmitting}
-            className="p-5 transition-colors duration-200 text-gray-400 disabled:opacity-50"
+            className="absolute top-6 right-6 transition-colors duration-200 text-gray-400 disabled:opacity-50 hover:cursor-pointer hover:opacity-80"
           >
             <X className="w-6 h-6" />
           </button>

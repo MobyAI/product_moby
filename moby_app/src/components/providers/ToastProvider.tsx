@@ -44,7 +44,7 @@ function toneClasses(type: ToastType) {
   switch (type) {
     case "success":
       return {
-        bg: "bg-green-500/20",
+        bg: "bg-primary-light-alt",
         border: "border-green-500/50",
         icon: "bg-green-500 text-white",
         text: "text-green-600",
@@ -52,7 +52,7 @@ function toneClasses(type: ToastType) {
       };
     case "danger":
       return {
-        bg: "bg-red-500/20",
+        bg: "bg-primary-light-alt",
         border: "border-red-500/50",
         icon: "bg-red-500 text-white",
         text: "text-red-600",
@@ -60,7 +60,7 @@ function toneClasses(type: ToastType) {
       };
     case "warning":
       return {
-        bg: "bg-yellow-500/20",
+        bg: "bg-primary-light-alt",
         border: "border-yellow-500/50",
         icon: "bg-yellow-500 text-white",
         text: "text-yellow-600",
@@ -68,7 +68,7 @@ function toneClasses(type: ToastType) {
       };
     default:
       return {
-        bg: "bg-zinc-500/20",
+        bg: "bg-primary-light-alt",
         border: "border-zinc-500/50",
         icon: "bg-zinc-500 text-white",
         text: "text-zinc-600",

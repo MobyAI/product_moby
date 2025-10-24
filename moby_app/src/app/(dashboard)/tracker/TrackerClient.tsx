@@ -464,12 +464,12 @@ function TrackerPageContent() {
           {/* Search bar */}
           <div className="flex items-center">
             <div
-              className={`flex items-center transition-all duration-300 ease-in-out border rounded-md mr-1 overflow-hidden ${
+              className={`flex items-center transition-all duration-300 ease-in-out border rounded-md mr-2 overflow-hidden ${
                 showSearch
-                  ? "w-80 border-gray-300 bg-white"
+                  ? "w-90 border-gray-300 bg-white"
                   : "w-0 border-transparent bg-transparent"
               }`}
-              style={{ height: "44px" }}
+              style={{ height: "45px" }}
             >
               <div className="relative w-full">
                 <input
@@ -477,9 +477,9 @@ function TrackerPageContent() {
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search auditions..."
+                  placeholder="Search auditions"
                   className={`
-              w-full h-9 px-3 pr-0 text-sm bg-transparent
+              w-full h-9 px-4 pr-0 text-md bg-transparent
               focus:outline-none focus:ring-0
             `}
                   onKeyDown={(e) => {
@@ -506,10 +506,11 @@ function TrackerPageContent() {
                 if (showSearch) setSearchTerm("");
               }}
               variant="primary"
-              size="md"
+              size="lg"
               icon={Search}
               iconOnly={true}
-              className="h-10"
+              className="h-12 w-12"
+              title="Search Auditions"
             />
           </div>
 
@@ -517,12 +518,12 @@ function TrackerPageContent() {
           <Button
             onClick={() => setIsModalOpen(true)}
             variant="primary"
-            size="md"
+            size="lg"
             icon={Plus}
-            className="h-10"
-          >
-            New Audition
-          </Button>
+            iconOnly={true}
+            className="h-12 w-12"
+            title="Add Audition"
+          />
         </div>
 
         {/* Centered Header */}

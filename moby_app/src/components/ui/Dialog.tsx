@@ -165,7 +165,7 @@ export default function Dialog({
       {/* Dialog panel */}
       <div
         ref={dialogRef}
-        className="relative z-10 transform overflow-hidden rounded-xl bg-primary-light-alt py-4 px-4 text-left max-w-md transition-all animate-fadeIn"
+        className="relative z-10 transform overflow-hidden rounded-xl bg-primary-light-alt p-6 text-left max-w-md transition-all animate-fadeIn"
       >
         {/* Close button */}
         {showCloseButton && (
@@ -183,19 +183,19 @@ export default function Dialog({
         )}
 
         {/* Content */}
-        <div className="relative px-4 pb-4 pt-5">
-          <div className="sm:flex sm:items-start">
-            <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
+        <div className="relative">
+          <div className="flex items-start">
+            <div className="text-left w-full">
               <h3
                 id="dialog-title"
-                className="text-xl font-semibold leading-6 text-primary-dark"
+                className="text-header-3 text-primary-dark"
               >
                 {title}
               </h3>
-              <div className="mt-2">
+              <div className="mt-2 mb-4">
                 <p
                   id="dialog-message"
-                  className="text-md text-gray-500 whitespace-pre-wrap"
+                  className="text-md text-primary-dark"
                 >
                   {message}
                 </p>
@@ -209,7 +209,7 @@ export default function Dialog({
           <button
             type="button"
             disabled={isLoading}
-            className={`inline-flex justify-center rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm ${config.confirmBtnClass} sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`inline-flex justify-center rounded-lg bg-primary-dark border border-primary-dark text-white hover:cursor-pointer hover:opacity-90 px-8 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed`}
             onClick={handlePrimaryAction}
           >
             {isLoading ? (
@@ -245,7 +245,7 @@ export default function Dialog({
             <button
               type="button"
               disabled={isLoading}
-              className="inline-flex justify-center rounded-lg bg-white/50 px-4 py-2.5 text-sm font-medium text-primary-dark shadow-sm hover:bg-white/20 hover:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none transition-colors"
+              className="inline-flex justify-center rounded-lg px-8 py-2.5 text-sm text-primary-dark border border-primary-dark shadow-sm hover:opacity-80 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none transition-colors"
               onClick={onClose}
             >
               {cancelText}
