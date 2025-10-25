@@ -2,8 +2,8 @@ import { Metadata } from 'next';
 import ProfilePageClient from './ProfilePageClient';
 
 export const metadata: Metadata = {
-    title: "Profile - Playr",
-    description: "View and manage your user profile",
+    title: "Profile - tableread",
+    description: "View and manage your profile",
 };
 
 export default function ProfilePage() {

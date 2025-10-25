@@ -8,7 +8,16 @@ import React, {
 } from "react";
 import { useRouter } from "next/navigation";
 import { motion, useInView, AnimatePresence } from "motion/react";
-import { Trash, PinOff, Pin, Pencil, MoreVertical, X, Play } from "lucide-react";
+import {
+  Trash,
+  PinOff,
+  Pin,
+  Pencil,
+  MoreVertical,
+  X,
+  Play,
+  Calendar,
+} from "lucide-react";
 
 interface AnimatedItemProps {
   children: ReactNode;
@@ -181,12 +190,14 @@ export const AnimatedList: React.FC<AnimatedListProps> = ({
             <h3 className="text-lg font-semibold text-primary-dark-alt mb-1">
               {item.name}
             </h3>
-            <p className="text-gray-400 text-sm">
-              <span className="font-semibold text-primary-dark-alt">
-                Uploaded:
-              </span>{" "}
-              {formatDate(item.createdAt)}
-            </p>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="flex-shrink-0" title="Upload date">
+                <Calendar className="w-4 h-4" />
+              </span>
+              <span className="font-medium text-gray-500">
+                {formatDate(item.createdAt)}
+              </span>
+            </div>
           </div>
           <div className="flex items-center ml-4">
             <AnimatePresence mode="wait">

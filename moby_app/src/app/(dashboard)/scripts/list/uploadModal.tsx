@@ -889,7 +889,12 @@ export default function ScriptUploadModal({
         }
         // Success state - all verified
         return "max-w-xl";
-      case 6: // Script review stage
+      case 6:
+        // Script saving state
+        if (scriptSaving) {
+          return "max-w-xl";
+        }
+        // Script review
         return "max-w-4xl";
       default:
         return "max-w-4xl";
@@ -1342,16 +1347,20 @@ export default function ScriptUploadModal({
               fullHeight={false}
             >
               <div className="flex flex-col max-h-[80vh]">
-                <div className="flex-1 border border-gray-200 rounded-lg p-4 bg-gray-50 overflow-y-auto">
+                <div className="flex-1 border border-gray-200 rounded-lg p-4 bg-transparent overflow-y-auto">
                   {scriptSaving ? (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="w-30 h-30 relative">
+                    <div className="text-center py-8">
+                      <div className="w-30 h-30 mx-auto mb-6 relative">
                         <div className="absolute inset-0 border-4 border-gray-800/20 rounded-full" />
                         <div className="absolute inset-0 border-4 border-gray-800 border-t-transparent rounded-full animate-spin" />
                         <div
                           className="absolute inset-2 border-2 border-gray-800/40 border-b-transparent rounded-full animate-spin animate-reverse"
                           style={{ animationDuration: "1.5s" }}
                         />
+                        <h3 className="text-header-3 text-primary-dark mb-1">
+                          Saving Script
+                        </h3>
+                        <p className="text-gray-500">{"You're almost done!"}</p>
                       </div>
                     </div>
                   ) : (

@@ -84,12 +84,12 @@ export function ScriptSelectorModal({
         {/* Fixed Header */}
         <div className="relative p-6 pb-4">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-semibold text-primary-dark">
+            <h3 className="text-header-3 text-primary-dark">
               Select Script to Pin
             </h3>
             <button
               onClick={onClose}
-              className="absolute right-5 top-5 z-10 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute right-5 top-5 z-10 text-gray-400 hover:opacity-80 hover:cursor-pointer transition-colors"
               aria-label="Close"
             >
               <X className="w-5 h-5" />

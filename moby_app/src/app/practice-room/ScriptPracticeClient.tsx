@@ -249,6 +249,7 @@ function RehearsalRoomContent() {
             showToast({
               header: "Script ready!",
               type: "success",
+              alignment: "right",
             });
           }
         } catch (e) {
@@ -405,6 +406,7 @@ function RehearsalRoomContent() {
         showToast({
           header: "Script ready!",
           type: "success",
+          alignment: "right",
         });
 
         setLoadStage("✅ Retry succeeded!");
@@ -457,6 +459,7 @@ function RehearsalRoomContent() {
           header: "Fullscreen not available",
           line1: "Your browser doesn't support fullscreen mode",
           type: "warning",
+          alignment: "right",
         });
       }
     } else {
@@ -520,6 +523,7 @@ function RehearsalRoomContent() {
         showToast({
           header: "Roles updated!",
           type: "success",
+          alignment: "right",
         });
       }
 
@@ -532,6 +536,7 @@ function RehearsalRoomContent() {
         header: "Failed to update resources",
         line1: "Some lines readings may fail",
         type: "danger",
+        alignment: "right",
       });
     } finally {
       setHydrating(false);
@@ -682,6 +687,7 @@ function RehearsalRoomContent() {
         showToast({
           header: "Line updated!",
           type: "success",
+          alignment: "right",
         });
       }
     } catch (err) {
@@ -695,6 +701,7 @@ function RehearsalRoomContent() {
         header: "Line failed to update",
         line1: "Please try again",
         type: "danger",
+        alignment: "right",
       });
     } finally {
       setHydrating(false);
@@ -746,6 +753,7 @@ function RehearsalRoomContent() {
         showToast({
           header: "Direction updated!",
           type: "success",
+          alignment: "right",
         });
       }
     } catch (err) {
@@ -759,6 +767,7 @@ function RehearsalRoomContent() {
         header: "Direction update failed",
         line1: "Your change was not saved",
         type: "danger",
+        alignment: "right",
       });
     }
   };
@@ -822,6 +831,7 @@ function RehearsalRoomContent() {
         showToast({
           header: "Line refreshed!",
           type: "success",
+          alignment: "right",
         });
       }
     } catch (err) {
@@ -835,6 +845,7 @@ function RehearsalRoomContent() {
         header: "Line failed to refresh",
         line1: "Please try again",
         type: "danger",
+        alignment: "right",
       });
     } finally {
       setHydrating(false);
@@ -1006,6 +1017,7 @@ function RehearsalRoomContent() {
           header: "Scene partner line failed",
           line1: "Pause and try to refresh?",
           type: "danger",
+          alignment: "right",
         });
 
         // Matched timing of the toast message to give user chance to pause and refresh the line
@@ -1059,6 +1071,7 @@ function RehearsalRoomContent() {
         showToast({
           header: "Congratulations, you finished!",
           type: "success",
+          alignment: "right",
         });
 
         setIsFinished(true);
@@ -1238,6 +1251,7 @@ function RehearsalRoomContent() {
           showToast({
             header: "Congratulations, you finished!",
             type: "success",
+            alignment: "right",
           });
 
           setIsFinished(true);
@@ -1343,6 +1357,7 @@ function RehearsalRoomContent() {
           line1: error.message1,
           line2: error.message2,
           type: "danger",
+          alignment: "right",
           // action: error.recoverable ? (
           //     <Button
           //         size="sm"
@@ -1366,6 +1381,7 @@ function RehearsalRoomContent() {
           line2: error.message2,
           type: "danger",
           duration: error.recoverable ? 5000 : undefined,
+          alignment: "right",
         });
 
         if (!error.recoverable) {
@@ -1380,6 +1396,7 @@ function RehearsalRoomContent() {
           line1: error.message1,
           line2: error.message2,
           type: "danger",
+          alignment: "right",
           // action: (
           //     <Button
           //         size="sm"

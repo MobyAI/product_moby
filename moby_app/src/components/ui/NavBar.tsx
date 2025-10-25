@@ -28,6 +28,7 @@ export default function NavBar() {
   const TOGGLE_BTN_OFFSET = 2.5; // rem offset from navbar edge
   const ANIMATION_DURATION = 100;
   const TYPING_SPEED = 50;
+  const MOBILE_BREAKPOINT = 1024;
 
   const routes: Route[] = [
     { href: "/tracker", label: "Tracker", icon: LayoutDashboard },
@@ -43,6 +44,26 @@ export default function NavBar() {
   // State to control when to show expanded content
   const [showExpandedContent, setShowExpandedContent] = useState(!isCollapsed);
   const [logoText, setLogoText] = useState(isCollapsed ? "" : "tableread");
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  // Auto collapse on smaller screens
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobile = window.innerWidth < MOBILE_BREAKPOINT;
+      setIsMobileView(isMobile);
+
+      if (isMobile && !isCollapsed) {
+        setIsCollapsed(true);
+      }
+    };
+
+    // Check on mount
+    handleResize();
+
+    // Listen to resize events
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [isCollapsed, setIsCollapsed]);
 
   useEffect(() => {
     if (isCollapsed) {
@@ -88,6 +109,13 @@ export default function NavBar() {
   const toggleBtnPosition = isCollapsed
     ? `calc(${COLLAPSED_WIDTH} - 2.5rem)`
     : `calc(${EXPANDED_WIDTH} - ${TOGGLE_BTN_OFFSET}rem)`;
+
+  // Only allow toggle if not in mobile view
+  const handleToggle = () => {
+    if (!isMobileView) {
+      setIsCollapsed(!isCollapsed);
+    }
+  };
 
   return (
     <>
@@ -200,10 +228,7 @@ export default function NavBar() {
             aria-label="Log out"
           >
             <CircleQuestionMark
-              className={[
-                "h-5 w-5 flex-shrink-0",
-                "text-black/60",
-              ].join(" ")}
+              className={["h-5 w-5 flex-shrink-0", "text-black/60"].join(" ")}
             />
             {/* Label - only show when expanded */}
             {!isCollapsed && (
@@ -232,10 +257,7 @@ export default function NavBar() {
             aria-label="Log out"
           >
             <LogOut
-              className={[
-                "h-5 w-5 flex-shrink-0",
-                "text-black/60",
-              ].join(" ")}
+              className={["h-5 w-5 flex-shrink-0", "text-black/60"].join(" ")}
             />
             {/* Label - only show when expanded */}
             {!isCollapsed && (
@@ -299,32 +321,34 @@ export default function NavBar() {
         </div>
       </aside>
 
-      {/* Toggle Button - Positioned at the edge of navbar */}
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className={[
-          "fixed top-1/2 -translate-y-1/2 z-50",
-          "h-10 w-10 rounded-full",
-          "bg-transparent",
-          "flex items-center justify-center",
-          "transition-all duration-300 ease-in-out",
-          "group",
-        ].join(" ")}
-        style={{
-          left: toggleBtnPosition,
-        }}
-        aria-label={isCollapsed ? "Show navigation" : "Hide navigation"}
-        title={isCollapsed ? "Show navigation" : "Hide navigation"}
-      >
-        <ArrowRightToLine
+      {/* Toggle Button - Only show when screen is >= 1110px */}
+      {!isMobileView && (
+        <button
+          onClick={handleToggle}
           className={[
-            "h-5 w-5 text-primary-dark",
-            "transition-transform duration-300",
-            "group-hover:scale-110",
-            isCollapsed ? "rotate-0" : "rotate-180",
+            "fixed top-1/2 -translate-y-1/2 z-50",
+            "h-10 w-10 rounded-full",
+            "bg-transparent",
+            "flex items-center justify-center",
+            "transition-all duration-300 ease-in-out",
+            "group",
           ].join(" ")}
-        />
-      </button>
+          style={{
+            left: toggleBtnPosition,
+          }}
+          aria-label={isCollapsed ? "Show navigation" : "Hide navigation"}
+          title={isCollapsed ? "Show navigation" : "Hide navigation"}
+        >
+          <ArrowRightToLine
+            className={[
+              "h-5 w-5 text-primary-dark",
+              "transition-transform duration-300",
+              "group-hover:scale-110",
+              isCollapsed ? "rotate-0" : "rotate-180",
+            ].join(" ")}
+          />
+        </button>
+      )}
     </>
   );
 }

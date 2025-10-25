@@ -28,6 +28,9 @@ import {
   X,
   Play,
   Sparkles,
+  Pin,
+  Calendar,
+  Clock,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Sentry from "@sentry/nextjs";
@@ -62,10 +65,10 @@ function PlaceholderCard({ onClick, disabled }: PlaceholderCardProps) {
     <button
       onClick={onClick}
       disabled={disabled}
-      className="bg-white/40 rounded-[10px] p-8 w-90 h-60 flex items-center justify-center hover:cursor-pointer hover:bg-white/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+      className="bg-white/40 text-gray-300 rounded-[10px] p-8 w-90 h-60 flex items-center justify-center hover:cursor-pointer hover:bg-white/80 hover:text-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
       aria-label="Add pinned script"
     >
-      <Plus className="w-12 h-12 text-primary-dark" />
+      <Pin className="w-10 h-10" />
     </button>
   );
 }
@@ -84,6 +87,10 @@ function ScriptsListContent() {
 
   // Script selector modal
   const [isSelectorModalOpen, setIsSelectorModalOpen] = useState(false);
+
+  // File upload drag-and-drop modal
+  const [isFileUploadModalOpen, setIsFileUploadModalOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Search
   const [showSearch, setShowSearch] = useState(false);
@@ -111,16 +118,40 @@ function ScriptsListContent() {
   });
 
   const handleFileSelect = () => {
+    setIsFileUploadModalOpen(true);
+  };
+
+  const handleFileFromModal = (file: File) => {
+    const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB
+
+    if (file.size > MAX_FILE_SIZE) {
+      showToast({
+        header: "File too large",
+        line1: `Maximum file size is ${
+          MAX_FILE_SIZE / (1024 * 1024)
+        }MB. Your file is ${(file.size / (1024 * 1024)).toFixed(1)}MB.`,
+        type: "danger",
+        alignment: "center",
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+    setIsFileUploadModalOpen(false);
+    setIsModalOpen(true);
+  };
+
+  const handleBrowseFile = () => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".pdf,.docx";
+
     input.onchange = (e: Event) => {
       if (!e.target) return;
       const target = e.target as HTMLInputElement;
       const file = target.files?.[0];
       if (file) {
-        setSelectedFile(file);
-        setIsModalOpen(true);
+        handleFileFromModal(file);
       }
     };
     input.click();
@@ -139,6 +170,7 @@ function ScriptsListContent() {
           showToast({
             header: "Script deleted!",
             type: "success",
+            alignment: "center",
           });
 
           // Invalidate cache to refetch updated list
@@ -152,6 +184,7 @@ function ScriptsListContent() {
             header: "Failed to delete script",
             line1: "Please try again",
             type: "danger",
+            alignment: "center",
           });
         } finally {
           setDeletingItemId(null);
@@ -181,6 +214,7 @@ function ScriptsListContent() {
       showToast({
         header: "Script name updated!",
         type: "success",
+        alignment: "center",
       });
 
       await queryClient.invalidateQueries({
@@ -193,6 +227,7 @@ function ScriptsListContent() {
         header: "Failed to update script name",
         line1: "Please try again",
         type: "danger",
+        alignment: "center",
       });
       throw err;
     }
@@ -216,6 +251,7 @@ function ScriptsListContent() {
         header: "Failed to update script",
         line1: "Please try again",
         type: "danger",
+        alignment: "center",
       });
     } finally {
       setIsPinning(false);
@@ -229,6 +265,7 @@ function ScriptsListContent() {
     showToast({
       header: "New script uploaded!",
       type: "success",
+      alignment: "center",
     });
 
     // Refetch scripts list after upload
@@ -327,12 +364,12 @@ function ScriptsListContent() {
         {/* Search input with expand/collapse */}
         <div className="flex items-center">
           <div
-            className={`flex items-center transition-all duration-300 ease-in-out border rounded-md mr-1 overflow-hidden ${
+            className={`flex items-center transition-all duration-300 ease-in-out border rounded-md mr-2 overflow-hidden ${
               showSearch
-                ? "w-80 border-gray-300 bg-white"
+                ? "w-60 sm:w-90 border-gray-300 bg-white"
                 : "w-0 border-transparent bg-transparent"
             }`}
-            style={{ height: "44px" }}
+            style={{ height: "45px" }}
           >
             <div className="relative w-full">
               <input
@@ -340,8 +377,8 @@ function ScriptsListContent() {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search scripts..."
-                className="w-full h-9 px-3 pr-0 text-sm bg-transparent focus:outline-none focus:ring-0"
+                placeholder="Search scripts"
+                className="w-full h-9 px-4 pr-0 text-md bg-transparent focus:outline-none focus:ring-0"
                 onKeyDown={(e) => {
                   if (e.key === "Escape") {
                     setShowSearch(false);
@@ -368,10 +405,11 @@ function ScriptsListContent() {
               else setTimeout(() => searchInputRef.current?.focus(), 100);
             }}
             variant="primary"
-            size="md"
+            size="lg"
             icon={Search}
             iconOnly={true}
-            className="h-10"
+            className="h-12 w-12"
+            title="Search Scripts"
           />
         </div>
 
@@ -379,16 +417,16 @@ function ScriptsListContent() {
         <Button
           onClick={handleFileSelect}
           variant="primary"
-          size="md"
+          size="lg"
           icon={Plus}
-          className="h-10"
-        >
-          New Script
-        </Button>
+          iconOnly={true}
+          className="h-12 w-12"
+          title="Upload Script"
+        />
       </div>
 
       {/* Centered Header */}
-      <div className="flex items-center justify-center mt-10 mb-8">
+      <div className="flex items-center justify-center mt-15 sm:mt-10 mb-8">
         <h2 className="text-header text-primary-dark text-center">Scripts</h2>
       </div>
 
@@ -422,7 +460,8 @@ function ScriptsListContent() {
               </h3>
               <p className="text-primary-dark-alt">
                 Once uploaded, press the play button to begin rehearsing your
-                script with our interactive practice tools and your personalized scene partner.
+                script with our interactive practice tools and your personalized
+                scene partner.
               </p>
             </div>
 
@@ -455,10 +494,9 @@ function ScriptsListContent() {
           </div>
 
           {/* Two-column section that fills remaining space */}
-          <div className="flex-1 flex gap-4 min-h-0 overflow-hidden">
+          <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0 overflow-hidden">
             {/* Left Section - Selected Script Details */}
-
-            <div className="flex-[0_0_50%] flex flex-col gap-4 min-h-0">
+            <div className="flex-1 flex flex-col gap-4 min-h-0">
               <div className="flex-1 bg-white/40 rounded-lg p-5 flex flex-col min-h-0">
                 <h3 className="text-header-3 text-primary-dark mb-2">
                   Your Collection
@@ -480,77 +518,88 @@ function ScriptsListContent() {
             </div>
 
             {/* Right Section - Collection */}
-            <div className="flex-[0_0_50%] flex flex-col gap-4 min-h-0">
+            <div className="hidden lg:flex flex-1 flex-col gap-4 min-h-0">
               {/* Most Recently Practiced Scripts */}
-              <div className="flex-1 bg-white/40 rounded-lg p-5 flex flex-col gap-4 overflow-y-auto">
+              <div className="flex-1 bg-white/40 rounded-lg p-5 flex flex-col gap-4 min-h-0">
                 <h3 className="text-header-3 text-primary-dark">
                   Recently Practiced
                 </h3>
-                {(() => {
-                  const recentlyPracticed = allScripts
-                    .filter(
-                      (s) =>
-                        s.lastPracticed !== null &&
-                        s.lastPracticed !== undefined
-                    )
-                    .sort(
-                      (a, b) =>
-                        b.lastPracticed!.toDate().getTime() -
-                        a.lastPracticed!.toDate().getTime()
-                    )
-                    .slice(0, 3);
+                <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4">
+                  {(() => {
+                    const recentlyPracticed = allScripts
+                      .filter(
+                        (s) =>
+                          s.lastPracticed !== null &&
+                          s.lastPracticed !== undefined
+                      )
+                      .sort(
+                        (a, b) =>
+                          b.lastPracticed!.toDate().getTime() -
+                          a.lastPracticed!.toDate().getTime()
+                      )
+                      .slice(0, 3);
 
-                  return recentlyPracticed.length > 0 ? (
-                    recentlyPracticed.map((script) => (
-                      <div
-                        key={script.id}
-                        className="bg-primary-light-alt rounded-lg p-6 flex items-center justify-between flex-shrink-0"
-                      >
-                        <div>
-                          <h4 className="text-xl font-bold text-primary-dark-alt mb-2">
-                            {script.name}
-                          </h4>
-                          <div className="text-gray-400 text-sm">
-                            <p>
-                              <span className="font-semibold text-primary-dark-alt">
-                                Uploaded:
-                              </span>{" "}
-                              {script.createdAt?.toDate().toLocaleDateString()}
-                            </p>
-                            <p>
-                              <span className="font-semibold text-primary-dark-alt">
-                                Last Practiced:
-                              </span>{" "}
-                              {script
-                                .lastPracticed!.toDate()
-                                .toLocaleDateString()}
-                            </p>
+                    return recentlyPracticed.length > 0 ? (
+                      recentlyPracticed.map((script) => (
+                        <div
+                          key={script.id}
+                          className="bg-primary-light-alt rounded-lg px-6 py-4 flex items-center justify-between flex-shrink-0"
+                        >
+                          <div>
+                            <h4 className="text-xl font-bold text-primary-dark-alt mb-2">
+                              {script.name}
+                            </h4>
+                            <div className="flex items-center gap-2 text-sm">
+                              <span
+                                className="flex-shrink-0"
+                                title="Upload date"
+                              >
+                                <Calendar className="w-4 h-4" />
+                              </span>
+                              <span className="font-medium text-gray-500">
+                                {script.createdAt
+                                  ?.toDate()
+                                  .toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <span
+                                className="flex-shrink-0"
+                                title="Last practiced"
+                              >
+                                <Clock className="w-4 h-4" />
+                              </span>
+                              <span className="font-medium text-gray-500">
+                                {script
+                                  .lastPracticed!.toDate()
+                                  .toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                          <div>
+                            <Button
+                              onClick={() =>
+                                router.push(
+                                  `/practice-room?scriptID=${script.id}`
+                                )
+                              }
+                              variant="primary"
+                              size="lg"
+                              icon={Play}
+                              iconOnly={true}
+                            />
                           </div>
                         </div>
-                        <div>
-                          <Button
-                            onClick={() =>
-                              router.push(
-                                `/practice-room?scriptID=${script.id}`
-                              )
-                            }
-                            variant="primary"
-                            size="md"
-                            icon={Play}
-                          >
-                            Practice
-                          </Button>
-                        </div>
+                      ))
+                    ) : (
+                      <div className="flex-1 flex items-center justify-center">
+                        <h3 className="text-2xl font-crimson text-primary-dark">
+                          Nothing yet. Press play to start practicing! 😎
+                        </h3>
                       </div>
-                    ))
-                  ) : (
-                    <div className="flex-1 flex items-center justify-center">
-                      <h3 className="text-header-3 text-primary-dark">
-                        No recently practiced scripts
-                      </h3>
-                    </div>
-                  );
-                })()}
+                    );
+                  })()}
+                </div>
               </div>
             </div>
           </div>
@@ -601,6 +650,105 @@ function ScriptsListContent() {
         onSelect={handleTogglePinned}
         isPinning={isPinning}
       />
+
+      {/* File Upload Drag & Drop Modal */}
+      {isFileUploadModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="upload-dialog-title"
+        >
+          {/* Overlay */}
+          <div
+            className="fixed inset-0 bg-black/50 transition-opacity"
+            onClick={() => setIsFileUploadModalOpen(false)}
+          />
+
+          {/* Dialog panel */}
+          <div className="relative z-10 transform overflow-hidden rounded-xl bg-primary-light-alt p-6 text-left max-w-md w-full transition-all animate-fadeIn">
+            {/* Close button */}
+            <div className="absolute right-5 top-5 z-10">
+              <button
+                type="button"
+                className="rounded-md bg-transparent text-gray-500 hover:opacity-90 hover:cursor-pointer focus:outline-none transition-colors"
+                onClick={() => setIsFileUploadModalOpen(false)}
+              >
+                <span className="sr-only">Close</span>
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="relative">
+              <div className="flex items-start">
+                <div className="text-left w-full">
+                  <h3
+                    id="upload-dialog-title"
+                    className="text-header-2 text-primary-dark"
+                  >
+                    Upload Script
+                  </h3>
+                  <div className="mt-5">
+                    {/* Drag and Drop Area */}
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsDragging(true);
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        setIsDragging(false);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setIsDragging(false);
+                        const file = e.dataTransfer.files[0];
+                        if (
+                          file &&
+                          (file.name.endsWith(".pdf") ||
+                            file.name.endsWith(".docx"))
+                        ) {
+                          handleFileFromModal(file);
+                        } else {
+                          showToast({
+                            header: "Invalid file type",
+                            line1: "Please upload a PDF or DOCX file",
+                            type: "danger",
+                            alignment: "center",
+                          });
+                        }
+                      }}
+                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                        isDragging
+                          ? "border-primary-dark bg-primary-light"
+                          : "border-gray-300 hover:border-primary-dark"
+                      }`}
+                    >
+                      <div className="flex flex-col items-center gap-3">
+                        <Plus className="w-13 h-13 text-gray-500" />
+                        <p className="text-md text-gray-500 font-medium mb-1">
+                          Drag and drop file here or
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleBrowseFile}
+                          className="inline-flex justify-center rounded-full bg-primary-dark px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:cursor-pointer hover:opacity-90 transition-colors"
+                        >
+                          Browse Files
+                        </button>
+                        <p className="text-xs text-gray-500">
+                          PDF or DOCX • Max 3MB
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

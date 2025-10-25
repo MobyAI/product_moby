@@ -1,6 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Trash, Play, PinOff, Pencil, Ellipsis, X } from "lucide-react";
+import {
+  Trash,
+  Play,
+  PinOff,
+  Pencil,
+  Ellipsis,
+  X,
+  Clock,
+  Calendar,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui";
 import { Timestamp } from "firebase/firestore";
@@ -190,12 +199,11 @@ export function ScriptCard({
 
   return (
     <div
-      className={`${bgColor} rounded-[10px] p-8 transition-shadow duration-200
-          w-90 h-60 flex flex-col justify-between relative`}
+      className={`${bgColor} rounded-[20px] py-7 px-8 transition-shadow duration-200
+      w-85 h-55 2xl:w-90 flex flex-col justify-between relative`}
     >
       {/* Expandable menu for star/delete */}
       <div className="absolute top-4 right-4">
-        {/* Toggle button - Ellipsis or X */}
         <button
           ref={toggleButtonRef}
           onClick={(e) => {
@@ -203,7 +211,7 @@ export function ScriptCard({
             setIsMenuOpen(!isMenuOpen);
           }}
           className={`p-3 rounded-full hover:cursor-pointer transition-colors ${
-            isMenuOpen ? "bg-white text-black" : "text-white hover:bg-black/5"
+            isMenuOpen ? "bg-white text-black" : "text-white hover:bg-white/10"
           }`}
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
         >
@@ -219,49 +227,52 @@ export function ScriptCard({
       {typeof document !== "undefined" &&
         createPortal(menuButtons, document.body)}
 
-      {/* Top section: name and dates */}
-      <div className="flex-1 min-w-0 overflow-hidden">
+      {/* Content */}
+      <div className="flex-1 flex flex-col gap-3 pr-8">
         {/* Script Name */}
-        <h3 className="text-xl font-semibold text-white truncate" title={name}>
+        <h3
+          className="text-2xl font-bold text-white truncate leading-tight"
+          title={name}
+        >
           {name}
         </h3>
 
-        {/* Created Date */}
-        {formatted && (
-          <p className="text-sm text-white mt-3 font-semibold">
-            Uploaded:{" "}
-            <span className="font-medium text-accent">{formatted}</span>
-          </p>
-        )}
+        {/* Metadata with icons */}
+        <div className="flex flex-col gap-2 text-white/80">
+          {formatted && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="flex-shrink-0" title="Upload date">
+                <Calendar className="w-4 h-4" />
+              </span>
+              <span className="font-medium">{formatted}</span>
+            </div>
+          )}
 
-        {/* Last Practiced */}
-        {formattedLastPracticed && (
-          <p className="text-sm text-white mt-1 font-semibold">
-            Last practiced:{" "}
-            <span className="font-medium text-accent">
-              {formattedLastPracticed}
-            </span>
-          </p>
-        )}
-      </div>
-
-      {/* Bottom section: Practice button and Menu */}
-      <div className="mt-auto flex gap-2 items-center">
-        {/* Practice button - takes most of the space */}
-        <div className="flex-1">
-          <Button
-            onClick={handlePractice}
-            icon={Play}
-            variant="ghost"
-            size="md"
-            aria-label={`Practice ${name}`}
-            title="Practice script"
-            className="w-full h-12"
-          >
-            Practice
-          </Button>
+          {formattedLastPracticed && (
+            <div className="flex items-center gap-2 text-sm">
+              <span
+                className="flex-shrink-0"
+                title="Last practiced"
+              >
+                <Clock className="w-4 h-4" />
+              </span>
+              <span className="font-medium">{formattedLastPracticed}</span>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Practice button */}
+      <Button
+        onClick={handlePractice}
+        icon={Play}
+        variant="ghost"
+        size="md"
+        aria-label="Practice script"
+        className="w-full h-11"
+      >
+        Practice
+      </Button>
     </div>
   );
 }

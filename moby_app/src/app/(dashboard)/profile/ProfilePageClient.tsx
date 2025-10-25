@@ -411,7 +411,7 @@ function ProfilePageContent() {
   return (
     <DashboardLayout maxWidth={100}>
       {/* Header */}
-      <div className="bg-transparent rounded-lg mb-0">
+      <div className="bg-transparent rounded-lg mt-15">
         <div className="flex justify-between items-center">
           <div>
             <h3 className="text-header text-primary-dark ml-5 mb-10">
@@ -422,7 +422,7 @@ function ProfilePageContent() {
       </div>
 
       {/* Main Content - Two Column Layout */}
-      <div className="grid grid-cols-[35%_65%] gap-9">
+      <div className="grid grid-cols-1 lg:grid-cols-[35%_65%] gap-9">
         {/* Left Column - Profile Picture & Headshots */}
         <div className="bg- relative">
           <div className="flex flex-col items-center mt-8">
