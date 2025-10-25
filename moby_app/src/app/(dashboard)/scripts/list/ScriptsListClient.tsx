@@ -21,7 +21,17 @@ import {
 } from "@/components/ui";
 import Dialog, { useDialog } from "@/components/ui/Dialog";
 import EditDialog, { useEditDialog } from "./editDialog";
-import { Plus, RotateCcw, Search, X, Play, Sparkles, Pin } from "lucide-react";
+import {
+  Plus,
+  RotateCcw,
+  Search,
+  X,
+  Play,
+  Sparkles,
+  Pin,
+  Calendar,
+  Clock,
+} from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Sentry from "@sentry/nextjs";
 import { useToast } from "@/components/providers/ToastProvider";
@@ -356,7 +366,7 @@ function ScriptsListContent() {
           <div
             className={`flex items-center transition-all duration-300 ease-in-out border rounded-md mr-2 overflow-hidden ${
               showSearch
-                ? "w-90 border-gray-300 bg-white"
+                ? "w-60 sm:w-90 border-gray-300 bg-white"
                 : "w-0 border-transparent bg-transparent"
             }`}
             style={{ height: "45px" }}
@@ -416,7 +426,7 @@ function ScriptsListContent() {
       </div>
 
       {/* Centered Header */}
-      <div className="flex items-center justify-center mt-10 mb-8">
+      <div className="flex items-center justify-center mt-15 sm:mt-10 mb-8">
         <h2 className="text-header text-primary-dark text-center">Scripts</h2>
       </div>
 
@@ -484,7 +494,7 @@ function ScriptsListContent() {
           </div>
 
           {/* Two-column section that fills remaining space */}
-          <div className="flex-1 flex gap-4 min-h-0 overflow-hidden">
+          <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0 overflow-hidden">
             {/* Left Section - Selected Script Details */}
             <div className="flex-1 flex flex-col gap-4 min-h-0">
               <div className="flex-1 bg-white/40 rounded-lg p-5 flex flex-col min-h-0">
@@ -508,77 +518,88 @@ function ScriptsListContent() {
             </div>
 
             {/* Right Section - Collection */}
-            <div className="flex-1 flex flex-col gap-4 min-h-0">
+            <div className="hidden lg:flex flex-1 flex-col gap-4 min-h-0">
               {/* Most Recently Practiced Scripts */}
-              <div className="flex-1 bg-white/40 rounded-lg p-5 flex flex-col gap-4 overflow-y-auto">
+              <div className="flex-1 bg-white/40 rounded-lg p-5 flex flex-col gap-4 min-h-0">
                 <h3 className="text-header-3 text-primary-dark">
                   Recently Practiced
                 </h3>
-                {(() => {
-                  const recentlyPracticed = allScripts
-                    .filter(
-                      (s) =>
-                        s.lastPracticed !== null &&
-                        s.lastPracticed !== undefined
-                    )
-                    .sort(
-                      (a, b) =>
-                        b.lastPracticed!.toDate().getTime() -
-                        a.lastPracticed!.toDate().getTime()
-                    )
-                    .slice(0, 3);
+                <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4">
+                  {(() => {
+                    const recentlyPracticed = allScripts
+                      .filter(
+                        (s) =>
+                          s.lastPracticed !== null &&
+                          s.lastPracticed !== undefined
+                      )
+                      .sort(
+                        (a, b) =>
+                          b.lastPracticed!.toDate().getTime() -
+                          a.lastPracticed!.toDate().getTime()
+                      )
+                      .slice(0, 3);
 
-                  return recentlyPracticed.length > 0 ? (
-                    recentlyPracticed.map((script) => (
-                      <div
-                        key={script.id}
-                        className="bg-primary-light-alt rounded-lg p-6 flex items-center justify-between flex-shrink-0"
-                      >
-                        <div>
-                          <h4 className="text-xl font-bold text-primary-dark-alt mb-2">
-                            {script.name}
-                          </h4>
-                          <div className="text-gray-400 text-sm">
-                            <p>
-                              <span className="font-semibold text-primary-dark-alt">
-                                Uploaded:
-                              </span>{" "}
-                              {script.createdAt?.toDate().toLocaleDateString()}
-                            </p>
-                            <p>
-                              <span className="font-semibold text-primary-dark-alt">
-                                Last Practiced:
-                              </span>{" "}
-                              {script
-                                .lastPracticed!.toDate()
-                                .toLocaleDateString()}
-                            </p>
+                    return recentlyPracticed.length > 0 ? (
+                      recentlyPracticed.map((script) => (
+                        <div
+                          key={script.id}
+                          className="bg-primary-light-alt rounded-lg px-6 py-4 flex items-center justify-between flex-shrink-0"
+                        >
+                          <div>
+                            <h4 className="text-xl font-bold text-primary-dark-alt mb-2">
+                              {script.name}
+                            </h4>
+                            <div className="flex items-center gap-2 text-sm">
+                              <span
+                                className="flex-shrink-0"
+                                title="Upload date"
+                              >
+                                <Calendar className="w-4 h-4" />
+                              </span>
+                              <span className="font-medium text-gray-500">
+                                {script.createdAt
+                                  ?.toDate()
+                                  .toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <span
+                                className="flex-shrink-0"
+                                title="Last practiced"
+                              >
+                                <Clock className="w-4 h-4" />
+                              </span>
+                              <span className="font-medium text-gray-500">
+                                {script
+                                  .lastPracticed!.toDate()
+                                  .toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                          <div>
+                            <Button
+                              onClick={() =>
+                                router.push(
+                                  `/practice-room?scriptID=${script.id}`
+                                )
+                              }
+                              variant="primary"
+                              size="lg"
+                              icon={Play}
+                              iconOnly={true}
+                            />
                           </div>
                         </div>
-                        <div>
-                          <Button
-                            onClick={() =>
-                              router.push(
-                                `/practice-room?scriptID=${script.id}`
-                              )
-                            }
-                            variant="primary"
-                            size="md"
-                            icon={Play}
-                          >
-                            Practice
-                          </Button>
-                        </div>
+                      ))
+                    ) : (
+                      <div className="flex-1 flex items-center justify-center">
+                        <h3 className="text-2xl font-crimson text-primary-dark">
+                          Nothing yet. Press play to start practicing! 😎
+                        </h3>
                       </div>
-                    ))
-                  ) : (
-                    <div className="flex-1 flex items-center justify-center">
-                      <h3 className="text-2xl font-crimson text-primary-dark">
-                        Nothing yet. Press play to start practicing! 😎
-                      </h3>
-                    </div>
-                  );
-                })()}
+                    );
+                  })()}
+                </div>
               </div>
             </div>
           </div>
@@ -633,7 +654,7 @@ function ScriptsListContent() {
       {/* File Upload Drag & Drop Modal */}
       {isFileUploadModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0"
+          className="fixed inset-0 z-50 flex items-center justify-center"
           role="dialog"
           aria-modal="true"
           aria-labelledby="upload-dialog-title"
@@ -645,7 +666,7 @@ function ScriptsListContent() {
           />
 
           {/* Dialog panel */}
-          <div className="relative z-10 transform overflow-hidden rounded-xl bg-primary-light-alt py-4 px-4 text-left max-w-md w-full transition-all animate-fadeIn">
+          <div className="relative z-10 transform overflow-hidden rounded-xl bg-primary-light-alt p-6 text-left max-w-md w-full transition-all animate-fadeIn">
             {/* Close button */}
             <div className="absolute right-5 top-5 z-10">
               <button
@@ -659,9 +680,9 @@ function ScriptsListContent() {
             </div>
 
             {/* Content */}
-            <div className="relative p-3">
-              <div className="sm:flex sm:items-start">
-                <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
+            <div className="relative">
+              <div className="flex items-start">
+                <div className="text-left w-full">
                   <h3
                     id="upload-dialog-title"
                     className="text-header-2 text-primary-dark"

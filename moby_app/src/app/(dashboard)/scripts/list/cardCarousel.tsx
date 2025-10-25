@@ -53,9 +53,9 @@ export const CardCarousel: React.FC<CardCarouselProps> = ({
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
-      if (width < 768) {
+      if (width < 900) {
         setResponsiveCardsPerPage(1);
-      } else if (width < 1024) {
+      } else if (width < 1440) {
         setResponsiveCardsPerPage(2);
       } else {
         setResponsiveCardsPerPage(cardsPerPage);
@@ -119,7 +119,7 @@ export const CardCarousel: React.FC<CardCarouselProps> = ({
   }
 
   return (
-    <div className={`w-[90%] mx-auto ${className}`}>
+    <div className={`w-[95%] mx-auto ${className}`}>
       <div className="relative">
         {/* Arrow Buttons */}
         {showArrows && (
@@ -165,7 +165,7 @@ export const CardCarousel: React.FC<CardCarouselProps> = ({
                   const absoluteIndex =
                     pageIndex * responsiveCardsPerPage + cardIndex;
                   return (
-                    <div key={absoluteIndex} className="flex-1 px-2">
+                    <div key={absoluteIndex} className="flex-1 px-2 flex justify-center">
                       <AnimatedCard
                         index={absoluteIndex}
                         delay={cardIndex * 0.1}

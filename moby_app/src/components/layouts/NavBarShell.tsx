@@ -9,14 +9,11 @@ import {
 } from "react";
 import { usePathname } from "next/navigation";
 import NavBar from "@/components/ui/NavBar";
+import MobileNavBar from "@/components/ui/MobileNavBar";
 import BetaAccessBanner from "../ui/BetaAccessBanner";
 
 // Routes where navbar should auto-collapse
-const AUTO_COLLAPSE_ROUTES = [
-  "/scripts/upload",
-  "/scripts/practice",
-  "/onboarding",
-];
+const AUTO_COLLAPSE_ROUTES = ["/scripts/practice"];
 
 // Routes with dark background
 const DARK_BG_ROUTES = ["/scripts/practice"];
@@ -53,6 +50,7 @@ export default function NavBarShell({
   accessLevel,
 }: NavBarShellProps) {
   const pathname = usePathname();
+  const [isMobile, setIsMobile] = useState(false);
 
   // Check if current route should auto-collapse
   const shouldAutoCollapse = AUTO_COLLAPSE_ROUTES.some((route) =>
@@ -72,6 +70,17 @@ export default function NavBarShell({
     }
     return shouldAutoCollapse;
   });
+
+  // Check if mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640); // sm breakpoint
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Auto-collapse/expand based on route (unless user manually toggled)
   useEffect(() => {
@@ -97,15 +106,20 @@ export default function NavBarShell({
       value={{ isCollapsed, setIsCollapsed: handleSetCollapsed }}
     >
       <div className="h-screen flex overflow-hidden">
-        {/* Left sidebar area - transparent to show gradient */}
-        <aside
-          className={`
-                        relative flex-shrink-0 transition-all duration-300 ease-in-out
-                        ${isCollapsed ? "w-[5rem]" : "w-[15rem]"}
-                    `}
-        >
-          <NavBar />
-        </aside>
+        {/* Desktop Navbar - Hidden on mobile */}
+        {!isMobile && (
+          <aside
+            className={`
+              relative flex-shrink-0 transition-all duration-300 ease-in-out
+              ${isCollapsed ? "w-[5rem]" : "w-[15rem]"}
+            `}
+          >
+            <NavBar />
+          </aside>
+        )}
+
+        {/* Mobile Navbar - Only shown on mobile */}
+        {isMobile && <MobileNavBar />}
 
         {/* Main content area with card-like appearance */}
         <div className="flex-1 h-full w-full overflow-hidden relative">
@@ -117,13 +131,11 @@ export default function NavBarShell({
 
           <main
             className={`
-                            h-full
-                            [scrollbar-width:none] [-ms-overflow-style:none]
-                            ${
-                              shouldDarken ? "bg-transparent" : "bg-transparent"
-                            }
-                            p-4 overflow-auto ${contentClassName ?? ""}
-                        `}
+                        h-full
+                        [scrollbar-width:none] [-ms-overflow-style:none]
+                        ${shouldDarken ? "bg-transparent" : "bg-transparent"}
+                        p-4 overflow-auto ${contentClassName ?? ""}
+                      `}
           >
             {children}
           </main>

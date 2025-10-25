@@ -64,7 +64,7 @@ export default function BetaAccessBanner({
   if (accessLevel !== "beta") return null;
 
   return (
-    <div className="absolute top-4 left-4 z-50 w-6/20 flex items-center justify-between text-sm bg-[#f5d76e] rounded-lg px-4 py-2 shadow-md">
+    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 lg:bottom-auto lg:top-4 lg:left-4 lg:translate-x-0 z-50 w-[250px] sm:w-[400px] flex items-center justify-between text-sm bg-[#f5d76e] rounded-lg px-4 py-2 shadow-md">
       <div className="flex items-center space-x-2">
         <span className="inline-flex items-center px-2 py-1 rounded-md bg-primary-dark-alt text-white font-medium text-sm">
           BETA
@@ -81,7 +81,7 @@ export default function BetaAccessBanner({
       </div>
       <a
         href={upgradeEmailUrl}
-        className="text-gray-600 hover:text-gray-900 underline"
+        className="text-gray-600 hover:text-gray-900 underline hidden sm:inline"
       >
         Upgrade Access! 🥳
       </a>
