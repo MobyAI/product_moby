@@ -105,7 +105,7 @@ export default function NavBarShell({
     <NavBarContext.Provider
       value={{ isCollapsed, setIsCollapsed: handleSetCollapsed }}
     >
-      <div className="h-screen flex overflow-hidden">
+      <div className="h-screen h-dvh flex overflow-hidden">
         {/* Desktop Navbar - Hidden on mobile */}
         {!isMobile && (
           <aside

@@ -15,14 +15,14 @@ export default async function AuthLayout({
   if (user) redirect("/tracker");
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#EEEDE4]">
+    <div className="h-screen h-dvh flex flex-col bg-[#EEEDE4]">
       {/* Logo */}
       <div className="pl-5 pt-4">
         <h1 className="text-logo text-primary-dark">tableread</h1>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="flex-1 flex items-center justify-center p-6 mb-20">
         <Suspense
           fallback={
             <div className="flex flex-col items-center space-y-4">

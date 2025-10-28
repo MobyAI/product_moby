@@ -127,7 +127,7 @@ export const CardCarousel: React.FC<CardCarouselProps> = ({
             <button
               onClick={handlePrevious}
               disabled={currentPage === 0}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 z-10 hover:bg-black/5 disabled:opacity-50 disabled:cursor-not-allowed text-black rounded-full p-3 transition-all"
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 z-10 disabled:opacity-50 disabled:cursor-not-allowed text-black rounded-full p-3 transition-all"
               aria-label="Previous page"
             >
               <ChevronLeft size={24} />
@@ -135,7 +135,7 @@ export const CardCarousel: React.FC<CardCarouselProps> = ({
             <button
               onClick={handleNext}
               disabled={currentPage === totalPages - 1}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 z-10 hover:bg-black/5 disabled:opacity-50 disabled:cursor-not-allowed text-black rounded-full p-3 transition-all"
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 z-10 disabled:opacity-50 disabled:cursor-not-allowed text-black rounded-full p-3 transition-all"
               aria-label="Next page"
             >
               <ChevronRight size={24} />
