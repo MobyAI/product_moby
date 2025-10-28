@@ -776,8 +776,8 @@ function TrackerPageContent() {
             {/* Main Content: Audition Table */}
             <div className="flex-1 flex flex-col bg-[#F7F6F2] rounded-[30px] shadow-xl mt-6 mb-15 min-h-0">
               {/* Scrollable Container for Header + Body */}
-              <div className="hidden sm:block overflow-x-auto hide-scrollbar">
-                <div className="min-w-[1024px]">
+              <div className="hidden sm:block overflow-x-auto hide-scrollbar flex-1 min-h-0">
+                <div className="min-w-[1024px] h-full flex flex-col">
                   {/* Fixed Table Header */}
                   <div className="sticky top-0 z-10 bg-[#F7F6F2] border-b border-gray-200 rounded-t-[30px]">
                     <div className="flex pl-8 pr-8 py-5 text-left text-[13px] font-semibold text-primary-dark uppercase tracking-wider">

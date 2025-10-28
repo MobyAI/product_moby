@@ -248,17 +248,12 @@ export function ScriptCard({
             </div>
           )}
 
-          {formattedLastPracticed && (
-            <div className="flex items-center gap-2 text-sm">
-              <span
-                className="flex-shrink-0"
-                title="Last practiced"
-              >
-                <Clock className="w-4 h-4" />
-              </span>
-              <span className="font-medium">{formattedLastPracticed}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2 text-sm">
+            <span className="flex-shrink-0" title="Last practiced">
+              <Clock className="w-4 h-4" />
+            </span>
+            <span className="font-medium">{formattedLastPracticed ? formattedLastPracticed : "Not practiced yet"}</span>
+          </div>
         </div>
       </div>
 

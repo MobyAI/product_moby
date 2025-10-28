@@ -65,7 +65,7 @@ function PlaceholderCard({ onClick, disabled }: PlaceholderCardProps) {
     <button
       onClick={onClick}
       disabled={disabled}
-      className="bg-white/40 text-gray-300 rounded-[10px] p-8 w-90 h-60 flex items-center justify-center hover:cursor-pointer hover:bg-white/80 hover:text-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+      className="bg-white/40 text-gray-300 rounded-[10px] p-8 w-85 h-55 2xl:w-90 flex items-center justify-center hover:cursor-pointer hover:bg-white/80 hover:text-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
       aria-label="Add pinned script"
     >
       <Pin className="w-10 h-10" />
