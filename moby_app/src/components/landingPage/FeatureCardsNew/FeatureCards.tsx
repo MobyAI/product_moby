@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
-import { BarChart3, Gauge, LineChart } from "lucide-react";
+import { VenetianMask, Gauge, TrendingUp, AudioWaveform } from "lucide-react";
 
 export type Feature = {
   id: string;
@@ -22,7 +22,7 @@ export type FeatureShowcaseProps = {
 const fallbackFeatures: Feature[] = [
   {
     id: "practice",
-    media: { node: <BarPreview /> },
+    media: { node: <MaskPreview /> },
     badge: "",
     title: "Practice anytime, anywhere",
     description:
@@ -30,7 +30,7 @@ const fallbackFeatures: Feature[] = [
   },
   {
     id: "speech",
-    media: { node: <LinePreview /> },
+    media: { node: <VoicePreview /> },
     badge: "",
     // title: "Perform with human-level emotion",
     title: "Bring every line to life",
@@ -47,7 +47,7 @@ const fallbackFeatures: Feature[] = [
   },
   {
     id: "track",
-    media: { node: <GaugePreview /> },
+    media: { node: <LinePreview /> },
     badge: "",
     title: "Stay organized, stay ahead",
     description:
@@ -56,37 +56,42 @@ const fallbackFeatures: Feature[] = [
 ];
 
 export default function FeatureShowcase({
-//   headline = "Practice smarter, perform better",
-headline="Elevate every performance",
+  //   headline = "Practice smarter, perform better",
+  // headline = "Elevate every performance",
   features = fallbackFeatures,
   className,
 }: FeatureShowcaseProps) {
   return (
     <section
       className={[
-        "w-full",
-        "py-16 sm:py-20 lg:py-24",
-        "bg-[#363c54]",
+        "w-[85%] min-h-screen",
+        "mx-auto py-16 sm:py-20 lg:py-30",
         className,
       ]
         .filter(Boolean)
         .join(" ")}
     >
-      <div className="mx-auto max-w-[1600px] px-6 sm:px-10 lg:px-12">
-        {/* Section header */}
-        <div className="text-center max-w-3xl mx-auto">
-          <h2 className="mt-3 text-4xl font-extrabold tracking-tight text-white">
-            {headline}
-          </h2>
-          <p className="text-white/90 mt-3 text-base sm:text-lg">
-            {/* Everything you need to rehearse, control delivery, and track your
-            progress */}
-            From rehearsing your lines to mastering delivery and tracking your journey—own every moment on and off the script.
+      <div className="px-6 sm:px-10 lg:px-12">
+        {/* Section header - horizontal layout */}
+        <div className="mx-auto flex flex-col lg:flex-row lg:items-start gap-8 lg:gap-16">
+          {/* Headline - left side */}
+          <div className="flex-shrink-0">
+            <h2 className="text-5xl sm:text-6xl lg:text-[125px] font-inter font-[200] tracking-tight text-white">
+              Elevate
+              <br />
+              <span className="ml-8 sm:ml-12 lg:ml-16">every performance</span>
+            </h2>
+          </div>
+
+          {/* Description - right side */}
+          <p className="text-white/90 text-base sm:text-lg lg:text-xl max-w-xl lg:self-end lg:mb-[-5rem]">
+            From rehearsing your lines to mastering delivery and tracking your
+            journey—own every moment on and off the script.
           </p>
         </div>
 
         {/* Cards grid */}
-        <div className="mt-12 grid gap-4 sm:gap-6 lg:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="mt-[10rem] grid gap-4 sm:gap-6 lg:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {features.map((f) => (
             <FeatureCard key={f.id} feature={f} />
           ))}
@@ -97,7 +102,7 @@ headline="Elevate every performance",
 }
 
 function FeatureCard({ feature }: { feature: Feature }) {
-  const { title, description } = feature;
+  const { title, description, media } = feature;
 
   return (
     <motion.div
@@ -106,9 +111,10 @@ function FeatureCard({ feature }: { feature: Feature }) {
       className="h-full"
     >
       <Card className="h-full overflow-hidden rounded-2xl border border-slate-200/50 dark:border-white/10 bg-white dark:bg-slate-950 shadow-sm hover:shadow-lg transition-shadow duration-300">
-        <CardContent className="p-6 sm:p-8 flex flex-col justify-between gap-4">
+        <CardContent className="p-6 sm:p-8 flex flex-col">
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white text-logo">
+            {media?.node}
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white text-logo mt-4">
               {title}
             </h3>
             <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300/90">
@@ -122,26 +128,18 @@ function FeatureCard({ feature }: { feature: Feature }) {
 }
 
 /** Placeholder icons */
-function BarPreview() {
-  return (
-    <div className="w-full h-full flex items-center justify-center">
-      <BarChart3 className="w-10 h-10 text-slate-400" />
-    </div>
-  );
+function MaskPreview() {
+  return <VenetianMask className="w-10 h-10 text-slate-400" />;
 }
 
 function LinePreview() {
-  return (
-    <div className="w-full h-full flex items-center justify-center">
-      <LineChart className="w-10 h-10 text-slate-400" />
-    </div>
-  );
+  return <TrendingUp className="w-10 h-10 text-slate-400" />;
 }
 
 function GaugePreview() {
-  return (
-    <div className="w-full h-full flex items-center justify-center">
-      <Gauge className="w-10 h-10 text-slate-400" />
-    </div>
-  );
+  return <Gauge className="w-10 h-10 text-slate-400" />;
+}
+
+function VoicePreview() {
+  return <AudioWaveform className="w-10 h-10 text-slate-400" />;
 }
