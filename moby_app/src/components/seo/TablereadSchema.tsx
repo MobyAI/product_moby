@@ -38,7 +38,7 @@ export const tablereadJsonLd = {
       url: "https://www.tablereadnow.com/logo.svg",
     },
   },
-  features: [
+  featureList: [
     "AI-powered scene partner",
     "Script upload and parsing",
     "Audition tracking",
