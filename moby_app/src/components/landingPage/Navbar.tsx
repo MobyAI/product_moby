@@ -128,7 +128,7 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
               <a
                 href="#main"
                 onClick={(e) => handleNavClick(e, "#main")}
-                className="text-logo-lg tracking-tight"
+                className="font-crimson font-bold text-[2rem] md:text-[2.5rem] leading-[2.5rem] tracking-tight"
               >
                 tableread
               </a>
