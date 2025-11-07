@@ -1,0 +1,31 @@
+import { NextResponse } from "next/server";
+
+export const runtime = "edge";
+
+export async function GET() {
+  const content = `
+  /* TEAM */
+  Alex Hwang — Business & Strategy Co-Founder
+  Jinhoo Bong — Developer & Co-Founder
+  Justin Chun — Developer & Co-Founder
+
+  /* ABOUT */
+  tableread is an AI-powered rehearsal and audition management platform for actors.
+  It helps performers rehearse lines with lifelike AI voices, fine-tune delivery,
+  and organize every audition in one place.
+
+  /* TECHNOLOGY */
+  Built with: Next.js, TypeScript, Firebase, OpenAI, Anthropic, ElevenLabs, Deepgram
+  Hosted on: Vercel
+  Website: https://www.tablereadnow.com
+  Contact: try.tableread@gmail.com
+
+  /* THANKS */
+  Made with love for actors, creators, and storytellers everywhere.
+  `;
+  return new NextResponse(content.trim(), {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+    },
+  });
+}

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export type StepItem = {
@@ -30,11 +30,11 @@ export default function HorizontalStepGuide({
 
   return (
     <section
-      className={`w-full mx-auto py-12 sm:py-16 ${className ?? ""}`}
+      className={`w-[80%] md:w-[75%] mx-auto py-12 sm:py-16 ${className ?? ""}`}
       aria-roledescription="Step by step guide"
     >
       {/* Top: Step Numbers with Titles */}
-      <div className="flex justify-center items-start gap-8 sm:gap-12 md:gap-30 mb-12 sm:mb-16 px-4">
+      <div className="w-full flex justify-between items-start gap-8 sm:gap-12 md:gap-30 mb-12 sm:mb-16 px-4">
         {steps.map((step, index) => {
           const isActive = index === activeIndex;
           const stepNumber = `0${index + 1}.`;
@@ -47,10 +47,10 @@ export default function HorizontalStepGuide({
             >
               {/* Step Number */}
               <span
-                className={`font-inter text-sm sm:text-base transition-colors duration-300 ${
+                className={`text-sm md:text-lg font-semibold transition-colors duration-300 ${
                   isActive
-                    ? "text-slate-900 dark:text-white"
-                    : "text-slate-400 dark:text-slate-500"
+                    ? "text-black"
+                    : "text-black/50"
                 }`}
               >
                 {stepNumber}
@@ -58,10 +58,10 @@ export default function HorizontalStepGuide({
 
               {/* Step Title */}
               <span
-                className={`font-inter text-base sm:text-lg font-medium transition-colors duration-300 ${
+                className={`w-full text-left text-sm md:text-lg font-semibold transition-colors duration-300 ${
                   isActive
-                    ? "text-slate-900 dark:text-white"
-                    : "text-slate-400 dark:text-slate-500"
+                    ? "text-black"
+                    : "text-black/50"
                 }`}
               >
                 {step.title}
@@ -69,7 +69,7 @@ export default function HorizontalStepGuide({
 
               {/* Underline */}
               <motion.div
-                className="h-0.5 bg-slate-900 dark:bg-white absolute -bottom-2 left-0"
+                className="h-0.25 bg-black absolute -top-5 left-0"
                 initial={{ width: 0 }}
                 animate={{ width: isActive ? "100%" : 0 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
@@ -103,7 +103,7 @@ export default function HorizontalStepGuide({
                     loop
                     muted
                     playsInline
-                    className="w-full max-w-5xl h-auto rounded-2xl shadow-2xl"
+                    className="w-full max-w-5xl h-auto rounded-2xl shadow-2xl border-5 border-white/30"
                     variants={slideVariants}
                     initial="initial"
                     animate="animate"
@@ -115,7 +115,7 @@ export default function HorizontalStepGuide({
                     key={`media-${activeIndex}`}
                     src={current.media}
                     alt={current.alt ?? current.title}
-                    className="w-full max-w-5xl h-auto rounded-2xl shadow-2xl"
+                    className="w-full max-w-5xl h-auto rounded-2xl shadow-2xl border-5 border-white/30"
                     variants={slideVariants}
                     initial="initial"
                     animate="animate"

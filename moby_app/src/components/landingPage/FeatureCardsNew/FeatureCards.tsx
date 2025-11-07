@@ -56,46 +56,46 @@ const fallbackFeatures: Feature[] = [
 ];
 
 export default function FeatureShowcase({
-  //   headline = "Practice smarter, perform better",
-  // headline = "Elevate every performance",
   features = fallbackFeatures,
   className,
 }: FeatureShowcaseProps) {
   return (
     <section
-      className={[
-        "w-[85%] min-h-screen",
-        "mx-auto py-16 sm:py-20 lg:py-30",
-        className,
-      ]
+      className={["min-h-screen", "py-16 sm:py-20 lg:py-30", className]
         .filter(Boolean)
         .join(" ")}
     >
-      <div className="px-6 sm:px-10 lg:px-12">
-        {/* Section header - horizontal layout */}
-        <div className="mx-auto flex flex-col lg:flex-row lg:items-start gap-8 lg:gap-16">
-          {/* Headline - left side */}
-          <div className="flex-shrink-0">
-            <h2 className="text-5xl sm:text-6xl lg:text-[125px] font-inter font-[200] tracking-tight text-white">
-              Elevate
-              <br />
-              <span className="ml-8 sm:ml-12 lg:ml-16">every performance</span>
-            </h2>
-          </div>
-
-          {/* Description - right side */}
-          <p className="text-white/90 text-base sm:text-lg lg:text-xl max-w-xl lg:self-end lg:mb-[-5rem]">
-            From rehearsing your lines to mastering delivery and tracking your
-            journey—own every moment on and off the script.
-          </p>
+      {/* Section header - horizontal layout */}
+      <div className="w-[80%] md:w-[75%] mx-auto flex flex-col xl:flex-row xl:items-start xl:justify-between gap-8 lg:gap-16">
+        {/* Headline - left side */}
+        <div className="flex-shrink-0">
+          <h2 className="text-6xl sm:text-7xl lg:text-[125px] font-crimson font-[300] tracking-tight text-black">
+            Elevate
+            <br />
+            performance
+          </h2>
         </div>
 
-        {/* Cards grid */}
-        <div className="mt-[10rem] grid gap-4 sm:gap-6 lg:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {features.map((f) => (
-            <FeatureCard key={f.id} feature={f} />
-          ))}
-        </div>
+        {/* Description - right side */}
+        <p className="text-black text-base font-semibold sm:text-lg lg:text-xl max-w-xl lg:self-end lg:mb-[-2rem]">
+          From rehearsing lines with your own personal scene partner, to
+          tracking each step of your acting career — own every performance from
+          script to stage.
+        </p>
+      </div>
+
+      {/* Cards grid */}
+      <div
+        className="
+          w-[75%] mx-auto mt-[7rem]
+          grid gap-6
+          grid-cols-[repeat(auto-fit,minmax(16rem,1fr))]
+          justify-items-center
+        "
+      >
+        {features.map((f) => (
+          <FeatureCard key={f.id} feature={f} />
+        ))}
       </div>
     </section>
   );
@@ -105,41 +105,41 @@ function FeatureCard({ feature }: { feature: Feature }) {
   const { title, description, media } = feature;
 
   return (
-    <motion.div
+    <motion.article
       whileHover={{ y: -6 }}
       transition={{ type: "spring", stiffness: 250, damping: 24 }}
-      className="h-full"
+      className="h-[20rem] md:h-[22rem] w-full max-w-[20rem]"
     >
-      <Card className="h-full overflow-hidden rounded-2xl border border-slate-200/50 dark:border-white/10 bg-white dark:bg-slate-950 shadow-sm hover:shadow-lg transition-shadow duration-300">
-        <CardContent className="p-6 sm:p-8 flex flex-col">
+      <Card className="h-full overflow-hidden rounded-2xl border-none bg-[#f7f9f4] shadow-sm hover:shadow-lg transition-shadow duration-300">
+        <CardContent className="px-7 h-full flex flex-col items-start justify-start">
           <div className="space-y-2">
             {media?.node}
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white text-logo mt-4">
+            <h3 className="text-md md:text-lg font-semibold text-black text-logo mt-4">
               {title}
             </h3>
-            <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300/90">
+            <p className="text-sm leading-relaxed text-gray-600">
               {description}
             </p>
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </motion.article>
   );
 }
 
 /** Placeholder icons */
 function MaskPreview() {
-  return <VenetianMask className="w-10 h-10 text-slate-400" />;
+  return <VenetianMask className="w-8 h-8 xl:w-10 xl:h-10 text-black" />;
 }
 
 function LinePreview() {
-  return <TrendingUp className="w-10 h-10 text-slate-400" />;
+  return <TrendingUp className="w-8 h-8 xl:w-10 xl:h-10 text-black" />;
 }
 
 function GaugePreview() {
-  return <Gauge className="w-10 h-10 text-slate-400" />;
+  return <Gauge className="w-8 h-8 xl:w-10 xl:h-10 text-black" />;
 }
 
 function VoicePreview() {
-  return <AudioWaveform className="w-10 h-10 text-slate-400" />;
+  return <AudioWaveform className="w-8 h-8 xl:w-10 xl:h-10 text-black" />;
 }
