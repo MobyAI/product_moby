@@ -199,7 +199,10 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
                   Features
                 </span>
               </NavLink>
-              <CTAButton variant="primary" href="#cta">
+              <CTAButton
+                variant="primary"
+                href="https://docs.google.com/forms/d/e/1FAIpQLSe9THykmDJkTY1C2E7sdofD58M3UGKhKHKQQ_gUsoyPBM1jsQ/viewform?usp=dialog"
+              >
                 Get Started
               </CTAButton>
             </nav>

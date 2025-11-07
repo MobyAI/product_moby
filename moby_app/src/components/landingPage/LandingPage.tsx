@@ -137,12 +137,12 @@ const LandingPage = () => {
                   <div className="flex flex-col items-center justify-center py-5 mt-20 text-center">
                     <h1
                       id="hero-heading"
-                      className="font-crimson font-[100] tracking-tight leading-tight text-black text-6xl sm:text-7xl md:text-[100px] max-w-[90%] sm:max-w-[700px] md:max-w-[900px]"
+                      className="font-crimson font-[200] tracking-tight leading-tight text-black text-6xl sm:text-7xl md:text-[100px] max-w-[100%] sm:max-w-[700px] md:max-w-[900px]"
                     >
                       <span className="block mt-2">Stop asking your</span>
                       <span
                         aria-live="polite"
-                        className="w-100 block mt-[-15px] inline-flex items-center justify-center text-center mx-2 rounded-xl px-2"
+                        className="w-60 md:w-100 flex items-center justify-center text-center mx-auto rounded-xl px-2"
                         style={{ backgroundColor: "#7E8E6D" }}
                       >
                         <RotatingText
@@ -168,7 +168,7 @@ const LandingPage = () => {
                           rotationInterval={2000}
                         />
                       </span>
-                      <span className="block mt-[-15px]">
+                      <span className="block mt-[-14px]">
                         to read your lines
                       </span>
                     </h1>
