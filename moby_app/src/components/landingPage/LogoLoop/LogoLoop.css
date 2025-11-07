@@ -83,7 +83,7 @@
 }
 
 .logoloop__link:hover {
-  opacity: 0.8;
+  opacity: 1;
 }
 
 .logoloop__link:focus-visible {

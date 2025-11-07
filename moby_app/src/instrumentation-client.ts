@@ -1,42 +1,40 @@
-// This file configures the initialization of Sentry on the client.
-// The added config here will be used whenever a users loads a page in their browser.
-// https://docs.sentry.io/platforms/javascript/guides/nextjs/
+if (typeof window !== "undefined") {
+  const path = window.location.pathname;
+  const isLanding = path === "/" || path.startsWith("/#");
 
-import * as Sentry from "@sentry/nextjs";
+  if (!isLanding) {
+    window.addEventListener("load", () => {
+      const init = async () => {
+        const Sentry = await import("@sentry/nextjs"); // 🔥 dynamic import here
 
-Sentry.init({
-  dsn: "https://40fcd0bd64e5502763362ab491ef7a32@o4510229131821056.ingest.us.sentry.io/4510229150957568",
+        Sentry.init({
+          dsn: "https://40fcd0bd64e5502763362ab491ef7a32@o4510229131821056.ingest.us.sentry.io/4510229150957568",
+          integrations: [
+            Sentry.replayIntegration(),
+            Sentry.feedbackIntegration({
+              colorScheme: "light",
+              buttonLabel: "Report",
+              submitButtonLabel: "Submit",
+              formTitle: "Submit Report",
+              showBranding: false,
+              triggerLabel: "Report",
+              triggerAriaLabel: "Report",
+            }),
+          ],
+          tracesSampleRate: 1,
+          enableLogs: true,
+          replaysSessionSampleRate: 0.1,
+          replaysOnErrorSampleRate: 1.0,
+          debug: false,
+        });
+      };
 
-  // Add optional integrations for additional features
-  integrations: [
-    Sentry.replayIntegration(),
-    Sentry.feedbackIntegration({
-      // Optional: customize the widget appearance and behavior
-      colorScheme: "light", // "light", "dark", or "system"
-      buttonLabel: "Report",
-      submitButtonLabel: "Submit",
-      formTitle: "Submit Report",
-      showBranding: false,
-      triggerLabel: "Report",
-      triggerAriaLabel: "Report",
-    }),
-  ],
-
-  // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-  tracesSampleRate: 1,
-  // Enable logs to be sent to Sentry
-  enableLogs: true,
-
-  // Define how likely Replay events are sampled.
-  // This sets the sample rate to be 10%. You may want this to be 100% while
-  // in development and sample at a lower rate in production
-  replaysSessionSampleRate: 0.1,
-
-  // Define how likely Replay events are sampled when an error occurs.
-  replaysOnErrorSampleRate: 1.0,
-
-  // Setting this option to true will print useful information to the console while you're setting up Sentry.
-  debug: false,
-});
-
-export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
+      if ("requestIdleCallback" in window) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).requestIdleCallback(init);
+      } else {
+        setTimeout(init, 2000);
+      }
+    });
+  }
+}
