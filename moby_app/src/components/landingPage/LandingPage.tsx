@@ -137,7 +137,7 @@ const LandingPage = () => {
                   <div className="flex flex-col items-center justify-center py-5 mt-20 text-center">
                     <h1
                       id="hero-heading"
-                      className="font-crimson font-[200] tracking-tight leading-tight text-black text-6xl sm:text-7xl md:text-[100px] max-w-[100%] sm:max-w-[700px] md:max-w-[900px]"
+                      className="font-crimson font-[400] md:font-[200] tracking-tight leading-tight text-black text-5xl sm:text-7xl md:text-[100px] max-w-[100%] sm:max-w-[700px] md:max-w-[900px]"
                     >
                       <span className="block mt-2">Stop asking your</span>
                       <span
@@ -168,7 +168,7 @@ const LandingPage = () => {
                           rotationInterval={2000}
                         />
                       </span>
-                      <span className="block mt-[-14px]">
+                      <span className="block mt-[-10px] md:mt-[-15px]">
                         to read your lines
                       </span>
                     </h1>
