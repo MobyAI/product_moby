@@ -425,9 +425,9 @@ const LandingPage = () => {
         >
           {/* Hidden for SEO and screen readers */}
           <div className="sr-only">
-            This describes how to use tableread's key features: uploading your
+            {`This describes how to use tableread's key features: uploading your
             script, fine-tuning delivery of each line, entering the practice
-            room for rehearsal, and tracking progress of your auditions.
+            room for rehearsal, and tracking progress of your auditions.`}
           </div>
 
           {/* Section header - horizontal layout */}
@@ -490,8 +490,8 @@ const LandingPage = () => {
           >
             {/* Hidden for SEO and screen readers */}
             <div className="sr-only">
-              This is tableread's final call to action. Offering a free trial
-              for users who wish to sign up.
+              {`This is tableread's final call to action. Offering a free trial
+              for users who wish to sign up.`}
             </div>
 
             {/* Section header - centered */}
