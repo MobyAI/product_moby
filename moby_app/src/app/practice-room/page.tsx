@@ -2,8 +2,8 @@ import { Metadata } from "next";
 import ScriptsPracticeClient from "./ScriptPracticeClient";
 
 export const metadata: Metadata = {
-  title: "Scripts - Playr",
-  description: "Practice your acting scripts with a scene partner",
+  title: "Practice Room",
+  description: "Practice your acting scripts with your personalized AI scene partner",
 };
 
 export default function PracticePage() {

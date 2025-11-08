@@ -13,11 +13,11 @@ const siteUrl = new URL("https://www.tablereadnow.com");
 
 export const metadata: Metadata = {
   title: {
-    default: "tableread",
+    default: "tableread – AI Scene Reader & Audition Tracker for Actors",
     template: "%s | tableread",
   },
   description:
-    "tableread is an AI-powered scene-reader and audition tracker for actors. Rehearse scripts with your personal scene partner, fine-tune your line delivery, track auditions, organize scenes, and perform with confidence.",
+    "tableread is an AI-powered scene-reader and audition tracker for actors. Rehearse scripts with your own personal scene partner, fine-tune delivery of each line, track auditions, and perform with confidence.",
   metadataBase: siteUrl,
   keywords: [
     "acting audition tracker",

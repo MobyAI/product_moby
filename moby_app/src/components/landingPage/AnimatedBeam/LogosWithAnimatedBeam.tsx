@@ -82,8 +82,10 @@ Circle.displayName = "Circle";
 
 export function AnimatedBeamMultipleOutput({
   className,
+  isVisible = true,
 }: {
   className?: string;
+  isVisible?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const div1Ref = useRef<HTMLDivElement>(null);
@@ -96,8 +98,14 @@ export function AnimatedBeamMultipleOutput({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    if (isVisible) {
+      const timer = setTimeout(() => {
+        setMounted(true);
+      }, 300); // Wait for reveal animation (1000ms) to mostly complete
+
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible]);
 
   return (
     <div

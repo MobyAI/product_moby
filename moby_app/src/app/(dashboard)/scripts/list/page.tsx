@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import ScriptsListClient from './ScriptsListClient';
 
 export const metadata: Metadata = {
-    title: "Scripts - tableread",
+    title: "Scripts",
     description: "View and manage your acting scripts",
 };
 

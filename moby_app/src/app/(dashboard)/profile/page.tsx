@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import ProfilePageClient from './ProfilePageClient';
 
 export const metadata: Metadata = {
-    title: "Profile - tableread",
+    title: "Profile",
     description: "View and manage your profile",
 };
 
