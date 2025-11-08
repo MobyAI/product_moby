@@ -1,0 +1,51 @@
+# tableread
+
+> AI-powered scene partner and audition tracker for professional actors
+
+tableread helps actors rehearse scripts with lifelike AI voices, manage auditions, and track their progress. Upload scripts, practice scenes line-by-line, and stay organized throughout your audition process.
+
+## Core Features
+
+- **AI Scene Partner**: Practice with realistic AI-generated voices that respond to your cues
+- **Script Management**: Automatic parsing and character identification from uploaded scripts
+- **Line Practice**: Fine-tune delivery of individual lines with customizable tone and direction
+- **Audition Tracking**: Organize auditions, materials, and preparation status
+- **Voice Selection**: Choose from multiple AI voices to match your scene partners
+
+## Pages
+
+- [Home](https://www.tablereadnow.com/): Platform overview and getting started
+- [Dashboard](https://www.tablereadnow.com/tracker): Main rehearsal and audition management interface
+- [Sign In](https://www.tablereadnow.com/signin): Access your account
+- [Join Waitlist](https://docs.google.com/forms/d/e/1FAIpQLSe9THykmDJkTY1C2E7sdofD58M3UGKhKHKQQ_gUsoyPBM1jsQ/viewform): Request early access
+
+## Use Cases
+
+**Script Rehearsal**: Actors upload scripts and practice scenes with AI scene partners available 24/7
+
+**Audition Preparation**: Rehearse specific scenes multiple times to perfect timing and delivery
+
+**Line Delivery Refinement**: Practice individual lines with different emphasis and emotion
+
+**Self-Tape Practice**: Run through scenes before recording audition tapes
+
+**Audition Organization**: Track audition progress and stay organized
+
+## Target Audience
+
+Professional actors, theater performers, acting students, and anyone preparing for auditions or performances who needs a reliable rehearsal/scene partner.
+
+## Technical Details
+
+- **Platform**: Web-based application (Next.js, TypeScript, React, Firebase)
+- **Availability**: Free trial available
+- **Operating System**: Web (cross-platform compatible)
+
+## Contact
+
+- **Email**: try.tableread@gmail.com
+- **Website**: https://www.tablereadnow.com
+
+---
+
+*Last updated: 2025-11-07*

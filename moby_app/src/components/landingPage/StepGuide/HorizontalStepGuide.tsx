@@ -30,11 +30,11 @@ export default function HorizontalStepGuide({
 
   return (
     <section
-      className={`w-[80%] md:w-[75%] mx-auto py-12 sm:py-16 ${className ?? ""}`}
+      className={`w-[90%] md:w-[75%] mx-auto py-12 sm:py-16 ${className ?? ""}`}
       aria-roledescription="Step by step guide"
     >
       {/* Top: Step Numbers with Titles */}
-      <div className="w-full flex justify-between items-start gap-8 sm:gap-12 md:gap-30 mb-12 sm:mb-16 px-4">
+      <div className="w-full flex justify-between items-start gap-6 sm:gap-12 md:gap-30 mb-12 sm:mb-16 px-4">
         {steps.map((step, index) => {
           const isActive = index === activeIndex;
           const stepNumber = `0${index + 1}.`;
@@ -80,7 +80,7 @@ export default function HorizontalStepGuide({
       </div>
 
       {/* Bottom: Content Area */}
-      <div className="w-full max-w-7xl mx-auto px-4">
+      <div className="w-full max-w-7xl mx-auto px-0 sm:px-4">
         <AnimatePresence mode="wait">
           <motion.div
             key={`content-${activeIndex}`}

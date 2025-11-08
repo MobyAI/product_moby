@@ -25,7 +25,7 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Smooth scroll behavior for anchor links
+  /// Smooth scroll behavior for anchor links
   const handleNavClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
     targetId: string
@@ -35,8 +35,15 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
 
     // Type guard to check if it's an HTMLElement
     if (section instanceof HTMLElement && lenisInstance) {
-      lenisInstance.scrollTo(section, {
-        offset: 0,
+      const navbarHeight = 90;
+
+      // Get the section's position relative to viewport
+      const rect = section.getBoundingClientRect();
+
+      // Calculate absolute scroll position using window.scrollY
+      const targetPosition = window.scrollY + rect.top - navbarHeight;
+
+      lenisInstance.scrollTo(targetPosition, {
         duration: 1.5,
         easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       });
@@ -76,8 +83,8 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
       <span
         className={`group overflow-hidden relative ${
           variant === "primary"
-            ? "inline-flex items-center gap-2 rounded-full px-7 py-3.5 bg-black text-white border border-black shadow hover:shadow-md transition-shadow text-[17px]"
-            : "inline-flex items-center gap-2 rounded-full px-7 py-3.5 bg-transparent text-black border border-black hover:bg-black hover:text-white transition-all overflow-hidden text-[17px]"
+            ? "inline-flex items-center gap-2 rounded-full px-4 lg:px-7 py-3.5 bg-black text-white border border-black shadow hover:shadow-md transition-shadow text-[15px] lg:text-[17px]"
+            : "inline-flex items-center gap-2 rounded-full px-4 lg:px-7 py-3.5 bg-transparent text-black border border-black hover:bg-black hover:text-white transition-all overflow-hidden text-[15px] lg:text-[17px]"
         }`}
       >
         <span className="invisible">{children}</span>
@@ -96,7 +103,7 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
     href,
   }) => (
     <NavLink href={href}>
-      <span className="inline-flex items-center text-black text-[17px] px-7 py-3.5 rounded-full border border-black group-hover:bg-black group-hover:text-white transition-all overflow-hidden relative group">
+      <span className="inline-flex items-center text-black text-[15px] lg:text-[17px] px-4 lg:px-7 py-3.5 rounded-full border border-black group-hover:bg-black group-hover:text-white transition-all overflow-hidden relative group">
         <span className="invisible">{children}</span>
         <span className="absolute inset-0 flex items-center justify-center transition-transform duration-300 group-hover:-translate-y-full">
           {children}
@@ -119,8 +126,10 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
           <div className="flex items-center justify-between px-4 py-3">
             {/* Left section - Nav Links */}
             <nav className="hidden md:flex items-center gap-4 flex-1">
-              <AnimatedNavButton href="#about">About</AnimatedNavButton>
               <AnimatedNavButton href="#features">Features</AnimatedNavButton>
+              <AnimatedNavButton href="#how-it-works">
+                How it works
+              </AnimatedNavButton>
             </nav>
 
             {/* Center section - Logo */}
@@ -128,7 +137,7 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
               <a
                 href="#main"
                 onClick={(e) => handleNavClick(e, "#main")}
-                className="font-crimson font-bold text-[2rem] md:text-[2.5rem] leading-[2.5rem] tracking-tight"
+                className="font-crimson font-bold text-[2rem] lg:text-[2.5rem] leading-[2.5rem] tracking-tight"
               >
                 tableread
               </a>
@@ -162,7 +171,7 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
 
       {/* Mobile panel (slide-in left) */}
       <div
-        className={`fixed inset-0 z-40 transition-all duration-300 ${
+        className={`fixed inset-0 z-100 transition-all duration-300 ${
           open ? "pointer-events-auto" : "pointer-events-none"
         }`}
       >
@@ -176,11 +185,11 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
 
         {/* Sliding panel */}
         <div
-          className={`absolute top-0 left-0 w-64 bg-[#e1ddcf] shadow-xl border-r border-black/10 transform transition-transform duration-300 ${
+          className={`absolute top-0 left-0 w-74 bg-[#e1ddcf] shadow-xl border-r border-black/10 transform transition-transform duration-300 ${
             open ? "translate-x-0" : "-translate-x-full"
-          } rounded-br-2xl flex flex-col justify-between`}
+          } rounded-br-2xl flex flex-col justify-between pb-10`}
         >
-          <div className="p-8 mt-8 flex flex-col items-center gap-4">
+          <div className="p-8 mt-8 flex flex-col items-center gap-8">
             <div
               className="absolute top-5 left-5 text-black"
               onClick={() => setOpen(false)}
@@ -188,23 +197,35 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
               <X className="h-7 w-7" />
             </div>
 
+            <span className="text-logo pb-4 border-b border-gray-500">tableread</span>
+
             <nav className="flex flex-col items-center gap-3">
-              <NavLink href="#about">
-                <span className="w-35 inline-flex items-center justify-center text-black text-[17px] px-7 py-3 rounded-full border border-black overflow-hidden">
-                  About
-                </span>
-              </NavLink>
               <NavLink href="#features">
-                <span className="w-35 inline-flex items-center justify-center text-black text-[17px] px-7 py-3 rounded-full border border-black overflow-hidden">
+                <span className="w-40 inline-flex items-center justify-center text-black text-[17px] px-7 py-3 rounded-full border border-black overflow-hidden">
                   Features
                 </span>
               </NavLink>
-              <CTAButton
-                variant="primary"
+              <NavLink href="#how-it-works">
+                <span className="w-40 inline-flex items-center justify-center text-black text-[17px] px-7 py-3 rounded-full border border-black overflow-hidden">
+                  How it works
+                </span>
+              </NavLink>
+              <Link
                 href="https://docs.google.com/forms/d/e/1FAIpQLSe9THykmDJkTY1C2E7sdofD58M3UGKhKHKQQ_gUsoyPBM1jsQ/viewform?usp=dialog"
+                scroll={false}
               >
-                Get Started
-              </CTAButton>
+                <span
+                  className={`group overflow-hidden relative inline-flex items-center gap-2 rounded-full w-40 px-4 lg:px-7 py-3.5 bg-black text-white border border-black shadow hover:shadow-md transition-shadow text-[15px] lg:text-[17px]`}
+                >
+                  <span className="invisible">Get Started</span>
+                  <span className="absolute inset-0 flex items-center justify-center transition-transform duration-300 group-hover:-translate-y-full">
+                    Get Started
+                  </span>
+                  <span className="absolute inset-0 flex items-center justify-center translate-y-full transition-transform duration-300 group-hover:translate-y-0">
+                    Get Started
+                  </span>
+                </span>
+              </Link>
             </nav>
           </div>
 
