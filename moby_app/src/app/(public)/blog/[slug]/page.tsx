@@ -12,9 +12,10 @@ export async function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const post = await getBlogPost(params.slug);
+  const { slug } = await params;
+  const post = await getBlogPost(slug);
   const baseUrl = "https://www.tablereadnow.com";
 
   return {
@@ -27,7 +28,7 @@ export async function generateMetadata({
       publishedTime: post.date,
       authors: [post.author],
       images: [`${baseUrl}${post.image}`],
-      url: `${baseUrl}/blog/${post.slug}`,
+      url: `${baseUrl}/blog/${slug}`,
     },
     twitter: {
       card: "summary_large_image",
@@ -36,7 +37,7 @@ export async function generateMetadata({
       images: [`${baseUrl}${post.image}`],
     },
     alternates: {
-      canonical: `${baseUrl}/blog/${post.slug}`,
+      canonical: `${baseUrl}/blog/${slug}`,
     },
   };
 }
@@ -44,8 +45,9 @@ export async function generateMetadata({
 export default async function BlogPost({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const post = await getBlogPost(params.slug);
+  const { slug } = await params;
+  const post = await getBlogPost(slug);
   return <BlogPostClient post={post} />;
 }
