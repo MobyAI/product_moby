@@ -190,7 +190,7 @@ const LandingPage = () => {
           className="relative flex items-center justify-center text-center text-white bg-[#e1ddcf] h-screen"
         >
           <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8 p-6 sm:p-10 lg:p-12">
-            <div className="flex flex-col items-center justify-center text-center py-5 mt-20 mb-30 md:mb-0">
+            <hgroup className="flex flex-col items-center justify-center text-center py-5 mt-20 mb-30 md:mb-0">
               <h1
                 id="hero-heading"
                 className="font-crimson font-[400] md:font-[300] tracking-tight leading-tight text-black text-5xl sm:text-7xl md:text-[100px] max-w-[100%] sm:max-w-[700px] md:max-w-[900px]"
@@ -262,11 +262,11 @@ const LandingPage = () => {
                   <span className="text-[15px] sm:text-[20px] ml-2">🎉</span>
                 </Link>
               </div>
-            </div>
+            </hgroup>
           </div>
 
           {/* Scroll indicator */}
-          <div
+          <aside
             ref={indicatorRef}
             className={`
               ${isIndicatorFixed ? "fixed" : "absolute"}
@@ -279,7 +279,7 @@ const LandingPage = () => {
             }}
           >
             <ChevronsDown className="h-12 w-12 sm:h-20 sm:w-20 animate-bounce" />
-          </div>
+          </aside>
         </section>
 
         <div className="h-[150px] w-screen bg-[#e1ddcf] rounded-b-[75px] sm:rounded-b-[100px] shadow-2xl" />
@@ -314,7 +314,7 @@ const LandingPage = () => {
               technology
             </h2>
           </div>
-          <div className="container mx-auto px-0 sm:px-4 lg:px-8">
+          <figure className="container mx-auto px-0 sm:px-4 lg:px-8">
             {/* <LogoLoop
               logos={imageLogos}
               speed={75}
@@ -328,7 +328,11 @@ const LandingPage = () => {
               ariaLabel="Technology partners"
             /> */}
             <AnimatedBeamMultipleOutput isVisible={partnersReveal.isVisible} />
-          </div>
+            <figcaption className="sr-only">
+              Technology partners powering tableread: ElevenLabs, OpenAI, and
+              Anthropic
+            </figcaption>
+          </figure>
         </section>
 
         <section
@@ -481,15 +485,17 @@ const LandingPage = () => {
           ref={faqReveal.ref}
           id="faq"
           aria-label="Frequently asked questions"
+          itemScope
+          itemType="https://schema.org/FAQPage"
           className={`
-          pb-50
-          transition-all duration-1000 ease-out
-          ${
-            faqReveal.isVisible
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-24"
-          }
-        `}
+            pb-50
+            transition-all duration-1000 ease-out
+            ${
+              faqReveal.isVisible
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 translate-y-24"
+            }
+          `}
         >
           {/* Section header */}
           <div className="w-[80%] md:w-[75%] mx-auto text-center mb-12 sm:mb-16">
@@ -503,27 +509,29 @@ const LandingPage = () => {
           {/* FAQ Items */}
           <div className="w-[80%] md:w-[75%] lg:w-[60%] mx-auto space-y-4">
             <FAQItem
-              question="What is Odee and how does it work?"
-              answer="Odee is your personal AI scene partner for script rehearsal and audition prep. Upload your script, customize how each line is delivered with emotional direction and timing controls, then step into your scene to practice whenever you're ready. Plus, track all your auditions in one organized dashboard so you never miss a beat in your acting career."
+              question="What is tableread and how does it work?"
+              answer="tableread is your personal AI scene partner for script rehearsal and audition prep. Upload your script, customize how each line is delivered with emotional direction and timing controls, then step into your scene to practice whenever you're ready. Plus, track all your auditions in one organized dashboard so you never miss a beat in your acting career."
+              defaultOpen={true}
             />
             <FAQItem
-              question="Do I need any special equipment to use Odee?"
+              question="Do I need any special equipment to use tableread?"
               answer="Not at all! All you need is a microphone and speakers or headphones. If you're on a laptop or desktop, your built-in mic and speakers work great to get started."
+              defaultOpen={true}
             />
             <FAQItem
-              question="Is Odee suitable for beginners or just professional actors?"
-              answer="Odee is perfect for actors at every stage! Whether you're just starting out and building confidence with your lines, or you're a working professional prepping for your next audition, tableread adapts to your needs and helps you grow."
+              question="Is tableread suitable for beginners or just professional actors?"
+              answer="tableread is perfect for actors at every stage! Whether you're just starting out and building confidence with your lines, or you're a working professional prepping for your next audition, tableread adapts to your needs and helps you grow."
             />
             <FAQItem
-              question="Can I use Odee on my phone or tablet?"
-              answer="While Odee works on mobile devices, we recommend using it on a computer or laptop for the best experience. The larger screen and full keyboard make script editing and rehearsal controls much easier to navigate."
+              question="Can I use tableread on my phone or tablet?"
+              answer="While tableread works on mobile devices, we recommend using it on a computer or laptop for the best experience. The larger screen and full keyboard make script editing and rehearsal controls much easier to navigate."
             />
             <FAQItem
               question="What kind of scripts can I upload?"
               answer="You can upload any script in PDF or DOCX format, as long as it's 3MB or smaller. Whether it's a film scene, TV script, theater monologue, or audition sides, tableread is ready to help you rehearse."
             />
             <FAQItem
-              question="Does Odee support multiple languages or accents?"
+              question="Does tableread support multiple languages or accents?"
               answer="Multiple languages and accents aren't available just yet, but they're definitely on our roadmap. We're working to bring these features to you in the future!"
             />
           </div>

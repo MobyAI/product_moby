@@ -71,7 +71,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${crimsonPro.variable} antialiased`}>
+      <body className={`${inter.className} ${inter.variable} ${crimsonPro.variable} antialiased`}>
         {/* JSON-LD schemas */}
         <Script
           id="schema-tableread"
