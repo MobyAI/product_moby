@@ -28,7 +28,7 @@ export default function BlogPageClient({
   }));
 
   return (
-    <div className="min-h-screen bg-primary-light">
+    <div className="min-h-screen bg-primary-light-alt">
       {/* Header */}
       <header>
         <div className="max-w-6xl mx-auto px-5 pb-5 pt-25">
@@ -52,7 +52,7 @@ export default function BlogPageClient({
               className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                 selectedCategory === null
                   ? "bg-black text-white"
-                  : "bg-white text-gray-700 hover:bg-gray-100"
+                  : "bg-primary-light text-gray-700 hover:bg-gray-100"
               }`}
             >
               All Articles ({initialPosts.length})
@@ -68,7 +68,7 @@ export default function BlogPageClient({
                     className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                       selectedCategory === category.id
                         ? "bg-black text-white"
-                        : "bg-white text-gray-700 hover:bg-gray-100"
+                        : "bg-primary-light text-gray-700 hover:bg-gray-100"
                     }`}
                   >
                     {category.label} ({category.count})

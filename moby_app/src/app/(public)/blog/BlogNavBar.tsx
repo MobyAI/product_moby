@@ -27,7 +27,7 @@ export default function BlogNavBar() {
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-shadow duration-200 ${
           isScrolled ? "shadow-[0_4px_12px_rgba(0,0,0,0.09)]" : ""
-        } ${isScrolled ? "bg-white/80 backdrop-blur-xl" : "bg-primary-light"}`}
+        } ${isOnBlogPost ? "bg-primary-light-alt" : "bg-primary-light-alt"}`}
       >
         <div className="max-w-6xl mx-auto py-3 px-5">
           <div className="flex items-center justify-between">

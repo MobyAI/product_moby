@@ -61,14 +61,14 @@ export default function BlogPostClient({ post }: BlogPostProps) {
         }}
       />
 
-      <div className="relative bg-primary-light min-h-screen">
+      <div className="relative bg-primary-light-alt min-h-screen">
         {/* Sticky Title Section - Behind content, fades on scroll */}
         <div
-          className="sticky top-25 z-0 bg-primary-light"
+          className="sticky top-25 z-0"
           style={{ opacity: scrollOpacity }}
         >
           <header>
-            <div className="max-w-6xl mx-auto px-5 mb-35">
+            <div className="max-w-6xl mx-auto px-5 mb-30">
               <h1 className="text-5xl lg:text-8xl font-[300] font-crimson text-black">
                 {post.title}
               </h1>
@@ -115,7 +115,7 @@ export default function BlogPostClient({ post }: BlogPostProps) {
             </div>
 
             {/* Article Content */}
-            <div className="px-5 lg:px-20 pb-20 bg-primary-light">
+            <div className="px-5 lg:px-20 pb-20">
               <div className="max-w-2xl mx-auto">
                 <div
                   className="prose lg:prose-xl prose-headings:font-crimson prose-headings:font-semibold prose-p:text-gray-700 prose-a:text-blue-600 prose-strong:text-black max-w-none"
