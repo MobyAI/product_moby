@@ -13,6 +13,7 @@ import { AnimatedBeamMultipleOutput } from "@/components/landingPage/AnimatedBea
 import ScrollStack, {
   ScrollStackItem,
 } from "@/components/landingPage/ScrollStack";
+import FAQItem from "./FAQItem";
 import {
   Headphones,
   Gauge,
@@ -87,6 +88,7 @@ const LandingPage = () => {
   const partnersReveal = useScrollReveal(0.1);
   const aboutReveal = useScrollReveal(0.1);
   const featuresReveal = useScrollReveal(0.1);
+  const faqReveal = useScrollReveal(0.1);
   const ctaReveal = useScrollReveal(0.1);
 
   // Feature cards data
@@ -176,9 +178,9 @@ const LandingPage = () => {
       </header>
 
       {/* Cursor in background */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
+      {/* <div className="fixed inset-0 z-0 pointer-events-none">
         <SplashCursor />
-      </div>
+      </div> */}
 
       <main id="main" className="flex flex-col z-100">
         {/* HERO */}
@@ -287,7 +289,7 @@ const LandingPage = () => {
           aria-label="Technology stack"
           id="technology"
           className={`
-          min-h-screen flex flex-col justify-center items-center
+          min-h-screen flex flex-col justify-center items-center mb-10 sm:mb-20
           transition-all duration-1000 ease-out
           ${
             partnersReveal.isVisible
@@ -334,7 +336,7 @@ const LandingPage = () => {
           id="features"
           aria-label="App features"
           className={`
-          relative overflow-hidden pt-10 sm:pt-20
+          relative overflow-hidden
           transition-all duration-1000 ease-out
           ${
             aboutReveal.isVisible
@@ -414,7 +416,7 @@ const LandingPage = () => {
           id="how-it-works"
           aria-label="How it works"
           className={`
-          pb-30
+          mb-10 sm:mb-20
           transition-all duration-1000 ease-out
           ${
             featuresReveal.isVisible
@@ -474,7 +476,63 @@ const LandingPage = () => {
           />
         </section>
 
-        <div className="bg-[#e1ddcf] rounded-t-[75px] sm:rounded-t-[100px] mt-[-100px] pt-[100px] pb-10 shadow-2xl">
+        {/* FAQ SECTION */}
+        <section
+          ref={faqReveal.ref}
+          id="faq"
+          aria-label="Frequently asked questions"
+          className={`
+          pb-50
+          transition-all duration-1000 ease-out
+          ${
+            faqReveal.isVisible
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-24"
+          }
+        `}
+        >
+          {/* Section header */}
+          <div className="w-[80%] md:w-[75%] mx-auto text-center mb-12 sm:mb-16">
+            <h2 className="text-6xl sm:text-7xl md:text-8xl lg:text-[125px] font-crimson font-[300] tracking-tight text-black">
+              Questions?
+              <br />
+              We've got answers
+            </h2>
+          </div>
+
+          {/* FAQ Items */}
+          <div className="w-[80%] md:w-[75%] lg:w-[60%] mx-auto space-y-4">
+            <FAQItem
+              question="What is Odee and how does it work?"
+              answer="Odee is your personal AI scene partner for script rehearsal and audition prep. Upload your script, customize how each line is delivered with emotional direction and timing controls, then step into your scene to practice whenever you're ready. Plus, track all your auditions in one organized dashboard so you never miss a beat in your acting career."
+            />
+            <FAQItem
+              question="Do I need any special equipment to use Odee?"
+              answer="Not at all! All you need is a microphone and speakers or headphones. If you're on a laptop or desktop, your built-in mic and speakers work great to get started."
+            />
+            <FAQItem
+              question="Is Odee suitable for beginners or just professional actors?"
+              answer="Odee is perfect for actors at every stage! Whether you're just starting out and building confidence with your lines, or you're a working professional prepping for your next audition, tableread adapts to your needs and helps you grow."
+            />
+            <FAQItem
+              question="Can I use Odee on my phone or tablet?"
+              answer="While Odee works on mobile devices, we recommend using it on a computer or laptop for the best experience. The larger screen and full keyboard make script editing and rehearsal controls much easier to navigate."
+            />
+            <FAQItem
+              question="What kind of scripts can I upload?"
+              answer="You can upload any script in PDF or DOCX format, as long as it's 3MB or smaller. Whether it's a film scene, TV script, theater monologue, or audition sides, tableread is ready to help you rehearse."
+            />
+            <FAQItem
+              question="Does Odee support multiple languages or accents?"
+              answer="Multiple languages and accents aren't available just yet, but they're definitely on our roadmap. We're working to bring these features to you in the future!"
+            />
+          </div>
+        </section>
+
+        <div
+          className="bg-[#e1ddcf] rounded-t-[75px] sm:rounded-t-[100px] mt-[-100px] pt-[100px] pb-10"
+          style={{ filter: "drop-shadow(0 -10px 25px rgba(0, 0, 0, 0.2))" }}
+        >
           <section
             ref={ctaReveal.ref}
             id="cta"
