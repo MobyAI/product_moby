@@ -44,15 +44,15 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
   },
-  // twitter: {
-  //   card: "summary_large_image",
-  //   title: "tableread – AI Scene Reader & Audition Tracker",
-  //   description:
-  //     "Rehearse scenes with your AI scene partner, track auditions and fine-tune your acting delivery. Built for actors by actors.",
-  //   images: [`${siteUrl}/og-image.png`],
-  //   site: "@tablereadapp",
-  //   creator: "@tablereadapp",
-  // },
+  twitter: {
+    card: "summary_large_image",
+    title: "tableread – AI Scene Reader & Audition Tracker",
+    description:
+      "Rehearse scenes with your AI scene partner, track auditions and fine-tune your acting delivery. Built for actors by actors.",
+    images: [`${siteUrl}/og-image.png`],
+    site: "@tablereadapp",
+    creator: "@tablereadapp",
+  },
   robots: {
     index: true,
     follow: true,
