@@ -98,22 +98,22 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
     </Link>
   );
 
-  const AnimatedNavButton: React.FC<{ children: string; href: string }> = ({
-    children,
-    href,
-  }) => (
-    <NavLink href={href}>
-      <span className="inline-flex items-center font-sans text-black text-[15px] lg:text-[17px] px-4 lg:px-7 py-3.5 rounded-full border border-black group-hover:bg-black group-hover:text-white transition-all overflow-hidden relative group">
-        <span className="invisible">{children}</span>
-        <span className="absolute inset-0 flex items-center justify-center transition-transform duration-300 group-hover:-translate-y-full">
-          {children}
-        </span>
-        <span className="absolute inset-0 flex items-center justify-center translate-y-full transition-transform duration-300 group-hover:translate-y-0">
-          {children}
-        </span>
-      </span>
-    </NavLink>
-  );
+  // const AnimatedNavButton: React.FC<{ children: string; href: string }> = ({
+  //   children,
+  //   href,
+  // }) => (
+  //   <NavLink href={href}>
+  //     <span className="inline-flex items-center font-sans text-black text-[15px] lg:text-[17px] px-4 lg:px-7 py-3.5 rounded-full border border-black group-hover:bg-black group-hover:text-white transition-all overflow-hidden relative group">
+  //       <span className="invisible">{children}</span>
+  //       <span className="absolute inset-0 flex items-center justify-center transition-transform duration-300 group-hover:-translate-y-full">
+  //         {children}
+  //       </span>
+  //       <span className="absolute inset-0 flex items-center justify-center translate-y-full transition-transform duration-300 group-hover:translate-y-0">
+  //         {children}
+  //       </span>
+  //     </span>
+  //   </NavLink>
+  // );
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50">

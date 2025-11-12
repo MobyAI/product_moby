@@ -549,9 +549,9 @@ const LandingPage = () => {
           {/* Section header */}
           <div className="landing-section-container text-center mb-12 sm:mb-16">
             <h2 className="landing-section-heading">
-              Questions?
+              {`Questions?`}
               <br />
-              We've got answers
+              {`We've got answers`}
             </h2>
           </div>
 
