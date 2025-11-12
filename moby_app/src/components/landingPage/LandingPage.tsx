@@ -8,7 +8,7 @@ import RotatingText from "@/components/landingPage/RotatingText/RotatingText";
 // import FeatureShowcase from "@/components/landingPage/FeatureCardsNew/FeatureCards";
 import Link from "next/link";
 import HorizontalStepGuide from "@/components/landingPage/StepGuide/HorizontalStepGuide";
-import SplashCursor from "@/components/landingPage/AnimatedCursor";
+// import SplashCursor from "@/components/landingPage/AnimatedCursor";
 import { AnimatedBeamMultipleOutput } from "@/components/landingPage/AnimatedBeam/LogosWithAnimatedBeam";
 import ScrollStack, {
   ScrollStackItem,
@@ -20,6 +20,7 @@ import {
   TrendingUp,
   Sparkles,
   ChevronsDown,
+  Infinity,
 } from "lucide-react";
 import { useScrollReveal } from "@/components/landingPage/useScrollReveal";
 
@@ -255,10 +256,10 @@ const LandingPage = () => {
                   href="https://docs.google.com/forms/d/e/1FAIpQLSe9THykmDJkTY1C2E7sdofD58M3UGKhKHKQQ_gUsoyPBM1jsQ/viewform?usp=dialog"
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label="Request free trial - opens in new tab"
-                  className="inline-flex items-center gap-2 rounded-full px-7 py-2.5 sm:py-3.5 bg-black text-white border border-black hover:scale-103 text-[14px] sm:text-[17px] transition-transform duration-200 ease-in-out"
+                  aria-label="Request early access - opens in new tab"
+                  className="landing-cta-button"
                 >
-                  Request Free Trial{" "}
+                  Request Early Access{" "}
                   <span className="text-[15px] sm:text-[20px] ml-2">🎉</span>
                 </Link>
               </div>
@@ -282,7 +283,8 @@ const LandingPage = () => {
           </aside>
         </section>
 
-        <div className="h-[150px] w-screen bg-[#e1ddcf] rounded-b-[75px] sm:rounded-b-[100px] shadow-2xl" />
+        {/* Rounded bottom */}
+        <div className="h-[150px] w-screen landing-rounded-section-bottom shadow-2xl" />
 
         <section
           ref={partnersReveal.ref}
@@ -290,11 +292,11 @@ const LandingPage = () => {
           id="technology"
           className={`
           min-h-screen flex flex-col justify-center items-center mb-10 sm:mb-20
-          transition-all duration-1000 ease-out
+          landing-scroll-reveal
           ${
             partnersReveal.isVisible
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-24"
+              ? "landing-scroll-reveal-visible"
+              : "landing-scroll-reveal-hidden"
           }
         `}
         >
@@ -306,7 +308,7 @@ const LandingPage = () => {
           </div>
 
           <div className="w-full text-center mb-5 mt-30">
-            <h2 className="text-6xl sm:text-7xl md:text-8xl lg:text-[125px] font-crimson font-[300] tracking-tight text-black">
+            <h2 className="landing-section-heading">
               Powered by
               <br />
               industry-leading
@@ -341,11 +343,11 @@ const LandingPage = () => {
           aria-label="App features"
           className={`
           relative overflow-hidden
-          transition-all duration-1000 ease-out
+          landing-scroll-reveal
           ${
             aboutReveal.isVisible
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-24"
+              ? "landing-scroll-reveal-visible"
+              : "landing-scroll-reveal-hidden"
           }
         `}
         >
@@ -358,10 +360,10 @@ const LandingPage = () => {
           </div>
 
           {/* Section header - horizontal layout */}
-          <div className="w-[80%] md:w-[75%] mx-auto flex flex-col xl:flex-row xl:items-start xl:justify-between gap-8 lg:gap-16">
+          <div className="landing-section-container-flex">
             {/* Headline - left side */}
             <div className="flex-shrink-0">
-              <h2 className="text-6xl sm:text-7xl md:text-8xl lg:text-[125px] font-crimson font-[300] tracking-tight text-black">
+              <h2 className="landing-section-heading">
                 Elevate
                 <br />
                 performance
@@ -369,7 +371,7 @@ const LandingPage = () => {
             </div>
 
             {/* Description - right side */}
-            <p className="text-black text-base font-semibold sm:text-lg lg:text-xl max-w-xl lg:self-end lg:mb-[-2rem]">
+            <p className="landing-section-description lg:self-end lg:mb-[-2rem]">
               From rehearsing lines with your own personal scene partner, to
               tracking each step of your acting career — own every performance
               from script to stage.
@@ -392,7 +394,7 @@ const LandingPage = () => {
 
                   {/* Icon/Media Section */}
                   <div className="flex-shrink-0">
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-25 md:h-25 lg:w-30 lg:h-30 rounded-full bg-gradient-to-tl from-black to-gray-400 flex items-center justify-center shadow-2xl">
+                    <div className="landing-feature-icon">
                       {feature.media?.node}
                     </div>
                   </div>
@@ -400,12 +402,10 @@ const LandingPage = () => {
                   {/* Content Section */}
                   <div className="flex-1 space-y-3 md:space-y-4">
                     {/* Title */}
-                    <h3 className="text-2xl sm:text-3xl lg:text-4xl font-crimson font-bold text-black leading-tight">
-                      {feature.title}
-                    </h3>
+                    <h3 className="landing-feature-title">{feature.title}</h3>
 
                     {/* Description */}
-                    <p className="text-xs sm:text-md lg:text-lg text-gray-600 leading-relaxed">
+                    <p className="landing-feature-body">
                       {feature.description}
                     </p>
                   </div>
@@ -416,16 +416,65 @@ const LandingPage = () => {
         </section>
 
         <section
+          className="bg-black text-white py-20 md:py-28 w-screen relative left-[50%] right-[50%] -mx-[50vw] mb-10 sm:mb-25"
+          aria-label="Platform statistics"
+        >
+          <div className="landing-section-container">
+            {/* Overline for context */}
+            <p className="text-center text-sm md:text-base text-gray-400 uppercase tracking-wider mb-4">
+              Built for serious actors
+            </p>
+
+            <h2 className="text-3xl md:text-5xl font-crimson font-light text-center mb-12 md:mb-16">
+              Why actors choose tableread
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 md:gap-16 text-center">
+              <div className="space-y-3">
+                <p className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-2">
+                  24/7
+                </p>
+                <p className="text-base md:text-lg text-gray-300 leading-relaxed">
+                  Always available scene partner ready whenever you want to
+                  practice
+                </p>
+              </div>
+              <div className="space-y-3">
+                <p className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-2">
+                  100+
+                </p>
+                <p className="text-base md:text-lg text-gray-300 leading-relaxed">
+                  Voice customization options to match any character or scene
+                  requirement
+                </p>
+              </div>
+              <div className="space-y-3">
+                <div className="flex justify-center mb-2">
+                  <Infinity
+                    className="w-12 h-12 md:w-15 md:h-15 lg:w-18 lg:h-18 text-white"
+                    strokeWidth={1.5}
+                  />
+                </div>
+                <p className="text-base md:text-lg text-gray-300 leading-relaxed">
+                  Unlimited rehearsal takes to perfect your performance without
+                  judgment
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
           ref={featuresReveal.ref}
           id="how-it-works"
           aria-label="How it works"
           className={`
           mb-10 sm:mb-20
-          transition-all duration-1000 ease-out
+          landing-scroll-reveal
           ${
             featuresReveal.isVisible
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-24"
+              ? "landing-scroll-reveal-visible"
+              : "landing-scroll-reveal-hidden"
           }
         `}
         >
@@ -437,10 +486,10 @@ const LandingPage = () => {
           </div>
 
           {/* Section header - horizontal layout */}
-          <div className="w-[80%] md:w-[75%] mx-auto mb-[2rem] lg:mb-[5rem] flex flex-col xl:flex-row xl:items-start xl:justify-between gap-8 lg:gap-16">
+          <div className="landing-section-container-flex mb-[2rem] lg:mb-[5rem]">
             {/* Headline - left side */}
             <div className="flex-shrink-0">
-              <h2 className="text-6xl sm:text-7xl md:text-8xl lg:text-[125px] font-crimson font-[300] tracking-tight text-black">
+              <h2 className="landing-section-heading">
                 Explore
                 <br />
                 how it works
@@ -448,7 +497,7 @@ const LandingPage = () => {
             </div>
 
             {/* Description - right side */}
-            <p className="text-black text-base font-semibold sm:text-lg lg:text-xl max-w-xl lg:self-end lg:mb-[-2rem]">
+            <p className="landing-section-description lg:self-end lg:mb-[-2rem]">
               {`Upload your scripts, practice your lines, and track all your auditions
               in one place — designed to help you train smarter, perform
               better, and take control of your acting career.`}
@@ -489,17 +538,17 @@ const LandingPage = () => {
           itemType="https://schema.org/FAQPage"
           className={`
             pb-50
-            transition-all duration-1000 ease-out
+            landing-scroll-reveal
             ${
               faqReveal.isVisible
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 translate-y-24"
+                ? "landing-scroll-reveal-visible"
+                : "landing-scroll-reveal-hidden"
             }
           `}
         >
           {/* Section header */}
-          <div className="w-[80%] md:w-[75%] mx-auto text-center mb-12 sm:mb-16">
-            <h2 className="text-6xl sm:text-7xl md:text-8xl lg:text-[125px] font-crimson font-[300] tracking-tight text-black">
+          <div className="landing-section-container text-center mb-12 sm:mb-16">
+            <h2 className="landing-section-heading">
               Questions?
               <br />
               We've got answers
@@ -507,16 +556,14 @@ const LandingPage = () => {
           </div>
 
           {/* FAQ Items */}
-          <div className="w-[80%] md:w-[75%] lg:w-[60%] mx-auto space-y-4">
+          <div className="landing-section-container lg:w-[60%] space-y-4">
             <FAQItem
               question="What is tableread and how does it work?"
               answer="tableread is your personal AI scene partner for script rehearsal and audition prep. Upload your script, customize how each line is delivered with emotional direction and timing controls, then step into your scene to practice whenever you're ready. Plus, track all your auditions in one organized dashboard so you never miss a beat in your acting career."
-              defaultOpen={true}
             />
             <FAQItem
               question="Do I need any special equipment to use tableread?"
               answer="Not at all! All you need is a microphone and speakers or headphones. If you're on a laptop or desktop, your built-in mic and speakers work great to get started."
-              defaultOpen={true}
             />
             <FAQItem
               question="Is tableread suitable for beginners or just professional actors?"
@@ -537,20 +584,17 @@ const LandingPage = () => {
           </div>
         </section>
 
-        <div
-          className="bg-[#e1ddcf] rounded-t-[75px] sm:rounded-t-[100px] mt-[-100px] pt-[100px] pb-10"
-          style={{ filter: "drop-shadow(0 -10px 25px rgba(0, 0, 0, 0.2))" }}
-        >
+        <div className="landing-rounded-section-top landing-section-shadow mt-[-100px] pt-[100px] pb-10">
           <section
             ref={ctaReveal.ref}
             id="cta"
             className={`
           flex flex-col justify-center items-center py-28 bg-[#e1ddcf]
-          transition-all duration-1000 ease-out
+          landing-scroll-reveal
           ${
             ctaReveal.isVisible
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-24"
+              ? "landing-scroll-reveal-visible"
+              : "landing-scroll-reveal-hidden"
           }
         `}
           >
@@ -562,7 +606,7 @@ const LandingPage = () => {
 
             {/* Section header - centered */}
             <div className="w-full text-center mb-10">
-              <h2 className="text-6xl sm:text-7xl md:text-8xl lg:text-[125px] font-crimson font-[300] tracking-tight text-black">
+              <h2 className="landing-section-heading">
                 Ready
                 <br />
                 to land your
@@ -578,10 +622,10 @@ const LandingPage = () => {
                 }
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Request free trial - opens in new tab"
-                className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 bg-black text-white border border-black hover:scale-103 text-[14px] sm:text-[17px] transition-transform duration-200 ease-in-out"
+                aria-label="Request early access - opens in new tab"
+                className="landing-cta-button"
               >
-                Request Free Trial{" "}
+                Request Early Access{" "}
                 <span className="text-[15px] sm:text-[20px] ml-2">🎉</span>
               </Link>
             </div>
@@ -590,15 +634,113 @@ const LandingPage = () => {
       </main>
 
       <footer className="w-full bg-black">
-        <div className="mx-auto max-w-7xl px-6 sm:px-8 py-8 flex flex-row items-center text-slate-600 text-sm">
-          {/* Left: Branding */}
-          <div className="flex flex-row mx-auto justify-between items-center">
-            <p className="font-semibold text-white text-xs sm:text-md">
-              tableread © {new Date().getFullYear()}
-            </p>
-            <p className="text-white text-xs sm:text-md ml-4">
-              All rights reserved.
-            </p>
+        <div className="mx-auto max-w-7xl px-6 sm:px-8 py-12">
+          {/* Main footer content */}
+          <div className="flex flex-col sm:flex-row justify-between gap-8 mb-8">
+            {/* Company Info */}
+            <div className="max-w-xs">
+              <h3 className="landing-footer-heading">tableread</h3>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                AI-powered scene reader and audition tracker for actors.
+                Practice scripts, track auditions, and perfect your performance.
+              </p>
+            </div>
+
+            {/* Product Links */}
+            <div>
+              <h3 className="landing-footer-heading">Product</h3>
+              <nav aria-label="Product navigation">
+                <ul className="space-y-3">
+                  <li>
+                    <Link href="/#features" className="landing-footer-link">
+                      Features
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/#how-it-works" className="landing-footer-link">
+                      How It Works
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/#faq" className="landing-footer-link">
+                      FAQ
+                    </Link>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+
+            {/* Resources */}
+            <div>
+              <h3 className="landing-footer-heading">Resources</h3>
+              <nav aria-label="Resources navigation">
+                <ul className="space-y-3">
+                  <li>
+                    <Link href="/blog" className="landing-footer-link">
+                      Blog
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="https://docs.google.com/forms/d/e/1FAIpQLSe9THykmDJkTY1C2E7sdofD58M3UGKhKHKQQ_gUsoyPBM1jsQ/viewform"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="landing-footer-link"
+                    >
+                      Request Early Access
+                    </Link>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+
+            {/* Company */}
+            <div>
+              <h3 className="landing-footer-heading">Company</h3>
+              <nav aria-label="Company navigation">
+                <ul className="space-y-3">
+                  <li>
+                    <Link href="/about" className="landing-footer-link">
+                      About Us
+                    </Link>
+                  </li>
+                  <li>
+                    <a
+                      href="mailto:[email protected]"
+                      className="landing-footer-link"
+                    >
+                      Contact
+                    </a>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+          </div>
+
+          {/* Bottom bar */}
+          <div className="pt-8 border-t border-slate-800">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              {/* Copyright */}
+              <p className="text-slate-400 text-xs sm:text-sm">
+                © {new Date().getFullYear()} tableread. All rights reserved.
+              </p>
+
+              {/* Legal links (add when ready) */}
+              <nav aria-label="Legal navigation">
+                <ul className="flex gap-6">
+                  <li>
+                    <Link href="/privacy" className="landing-footer-link">
+                      Privacy Policy
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/terms" className="landing-footer-link">
+                      Terms of Service
+                    </Link>
+                  </li>
+                </ul>
+              </nav>
+            </div>
           </div>
         </div>
       </footer>

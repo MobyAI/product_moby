@@ -26,9 +26,9 @@ export function AccessGateModal() {
     switch (access.reason) {
       case "expired":
         return {
-          title: "Beta Access Expired",
+          title: "Early Access Expired",
           message:
-            "Your beta access period has ended. Upgrade to continue using the app.",
+            "Your access period has ended. Upgrade to continue using the app.",
           actionText: "Upgrade Now",
           actionHref: "/upgrade",
         };
@@ -36,17 +36,17 @@ export function AccessGateModal() {
         return {
           title: "Access Restricted",
           message:
-            "You need a valid beta code or subscription to access this app.",
+            "You need a valid access code or subscription to access this app.",
           actionText: "Enter Beta Code",
-          actionHref: "/beta-code",
+          actionHref: "/access-code",
         };
       default:
         return {
           title: "Access Restricted",
           message:
-            "You need a valid beta code or subscription to access this app.",
+            "You need a valid access code or subscription to access this app.",
           actionText: "Get Access",
-          actionHref: "/beta-code",
+          actionHref: "/access-code",
         };
     }
   };

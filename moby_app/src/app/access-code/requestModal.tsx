@@ -1,4 +1,3 @@
-// components/modals/BetaAccessRequestModal.tsx
 "use client";
 
 import { useState } from "react";
@@ -78,7 +77,7 @@ export default function BetaAccessRequestModal({
                   >
                     {/* Header */}
                     <h2 className="text-header-2 text-primary-dark mb-4">
-                      Request Beta Access?
+                      Request Early Access?
                     </h2>
 
                     {/* Buttons */}

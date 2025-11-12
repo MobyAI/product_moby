@@ -118,7 +118,7 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
       <div
-        className={`transition-all duration-300 py-2 md:py-4 ${
+        className={`transition-all duration-300 py-2 ${
           scrolled ? "bg-white/50 backdrop-blur-sm" : "bg-transparent"
         }`}
       >
@@ -126,10 +126,9 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
           <div className="flex items-center justify-between px-4 py-3">
             {/* Left section - Nav Links */}
             <nav className="hidden md:flex items-center gap-4 flex-1">
-              <AnimatedNavButton href="#features">Features</AnimatedNavButton>
-              <AnimatedNavButton href="#how-it-works">
-                How it works
-              </AnimatedNavButton>
+              <CTAButton variant="ghost" href="/blog">
+                Blog
+              </CTAButton>
             </nav>
 
             {/* Center section - Logo */}
@@ -197,7 +196,9 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
               <X className="h-7 w-7" />
             </div>
 
-            <span className="text-logo pb-4 border-b border-gray-500">tableread</span>
+            <span className="text-logo pb-4 border-b border-gray-500">
+              tableread
+            </span>
 
             <nav className="flex flex-col items-center gap-3">
               <NavLink href="#features">

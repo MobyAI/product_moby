@@ -24,9 +24,9 @@ export default async function ServerAuthProvider({
   }
 
   // 2. Check access level (before profile check)
-  // Users need beta code before they can proceed
+  // Users need access code before they can proceed
   if (requireAccess && !hasAccess(userStatus)) {
-    redirect("/beta-code");
+    redirect("/access-code");
   }
 
   // 3. Check profile completion

@@ -109,17 +109,17 @@ export default function BetaCodePage() {
     <>
       {/* Logo */}
       <h3 className="text-logo text-primary-dark z-50 absolute top-4 left-5">
-        tableread
+        odee
       </h3>
 
       <div className="w-full max-w-md mx-auto space-y-8">
         {/* Header */}
         <div className="text-start space-y-4">
           <h1 className="text-header text-primary-dark">
-            Welcome to our Beta!
+            Welcome to Odee!
           </h1>
           <p className="text-gray-600">
-            Enter your exclusive code to get started
+            Enter your exclusive code to get early access
           </p>
         </div>
 
@@ -127,7 +127,7 @@ export default function BetaCodePage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <input
-              id="beta-code"
+              id="access-code"
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
@@ -150,7 +150,7 @@ export default function BetaCodePage() {
             disabled={loading || code.trim().length < 8}
             className="w-full flex items-center justify-center py-3 rounded-lg bg-primary-dark-alt font-semibold text-white transition-colors hover:opacity-90 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Activate Beta Access
+            Activate
             <MoveRight className="w-5 h-5 ml-2" />
           </button>
         </form>
