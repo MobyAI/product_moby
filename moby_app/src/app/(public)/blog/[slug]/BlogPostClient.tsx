@@ -61,7 +61,7 @@ export default function BlogPostClient({ post }: BlogPostProps) {
         }}
       />
 
-      <div className="relative bg-primary-light-alt min-h-screen">
+      <div className="relative bg-primary-light min-h-screen">
         {/* Sticky Title Section - Behind content, fades on scroll */}
         <div
           className="sticky top-25 z-0"

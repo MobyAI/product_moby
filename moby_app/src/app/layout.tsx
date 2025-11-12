@@ -8,6 +8,7 @@ import {
   websiteJsonLd,
 } from "@/components/seo/TablereadSchema";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
 
 const siteUrl = new URL("https://www.tablereadnow.com");
 
@@ -71,7 +72,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${crimsonPro.variable} antialiased`}>
+      <body
+        className={`${inter.className} ${inter.variable} ${crimsonPro.variable} antialiased`}
+      >
         {/* JSON-LD schemas */}
         <Script
           id="schema-tableread"
@@ -96,6 +99,7 @@ export default function RootLayout({
         />
 
         <TanStackProvider>{children}</TanStackProvider>
+        <Analytics />
       </body>
     </html>
   );

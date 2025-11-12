@@ -59,13 +59,13 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
     href,
     children,
   }) => (
-    <a
+    <Link
       href={href}
       onClick={(e) => handleNavClick(e, href)}
       className="group text-black/90 hover:text-black transition-colors text-md font-medium cursor-pointer"
     >
       {children}
-    </a>
+    </Link>
   );
 
   interface CTAButtonProps {
@@ -81,7 +81,7 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
   }) => (
     <Link href={href} scroll={false}>
       <span
-        className={`group overflow-hidden relative ${
+        className={`group overflow-hidden relative font-sans ${
           variant === "primary"
             ? "inline-flex items-center gap-2 rounded-full px-4 lg:px-7 py-3.5 bg-black text-white border border-black shadow hover:shadow-md transition-shadow text-[15px] lg:text-[17px]"
             : "inline-flex items-center gap-2 rounded-full px-4 lg:px-7 py-3.5 bg-transparent text-black border border-black hover:bg-black hover:text-white transition-all overflow-hidden text-[15px] lg:text-[17px]"
@@ -98,27 +98,27 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
     </Link>
   );
 
-  const AnimatedNavButton: React.FC<{ children: string; href: string }> = ({
-    children,
-    href,
-  }) => (
-    <NavLink href={href}>
-      <span className="inline-flex items-center text-black text-[15px] lg:text-[17px] px-4 lg:px-7 py-3.5 rounded-full border border-black group-hover:bg-black group-hover:text-white transition-all overflow-hidden relative group">
-        <span className="invisible">{children}</span>
-        <span className="absolute inset-0 flex items-center justify-center transition-transform duration-300 group-hover:-translate-y-full">
-          {children}
-        </span>
-        <span className="absolute inset-0 flex items-center justify-center translate-y-full transition-transform duration-300 group-hover:translate-y-0">
-          {children}
-        </span>
-      </span>
-    </NavLink>
-  );
+  // const AnimatedNavButton: React.FC<{ children: string; href: string }> = ({
+  //   children,
+  //   href,
+  // }) => (
+  //   <NavLink href={href}>
+  //     <span className="inline-flex items-center font-sans text-black text-[15px] lg:text-[17px] px-4 lg:px-7 py-3.5 rounded-full border border-black group-hover:bg-black group-hover:text-white transition-all overflow-hidden relative group">
+  //       <span className="invisible">{children}</span>
+  //       <span className="absolute inset-0 flex items-center justify-center transition-transform duration-300 group-hover:-translate-y-full">
+  //         {children}
+  //       </span>
+  //       <span className="absolute inset-0 flex items-center justify-center translate-y-full transition-transform duration-300 group-hover:translate-y-0">
+  //         {children}
+  //       </span>
+  //     </span>
+  //   </NavLink>
+  // );
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
       <div
-        className={`transition-all duration-300 py-2 md:py-4 ${
+        className={`transition-all duration-300 py-2 ${
           scrolled ? "bg-white/50 backdrop-blur-sm" : "bg-transparent"
         }`}
       >
@@ -126,10 +126,9 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
           <div className="flex items-center justify-between px-4 py-3">
             {/* Left section - Nav Links */}
             <nav className="hidden md:flex items-center gap-4 flex-1">
-              <AnimatedNavButton href="#features">Features</AnimatedNavButton>
-              <AnimatedNavButton href="#how-it-works">
-                How it works
-              </AnimatedNavButton>
+              <CTAButton variant="ghost" href="/blog">
+                Blog
+              </CTAButton>
             </nav>
 
             {/* Center section - Logo */}
@@ -197,7 +196,9 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
               <X className="h-7 w-7" />
             </div>
 
-            <span className="text-logo pb-4 border-b border-gray-500">tableread</span>
+            <span className="text-logo pb-4 border-b border-gray-500">
+              tableread
+            </span>
 
             <nav className="flex flex-col items-center gap-3">
               <NavLink href="#features">
