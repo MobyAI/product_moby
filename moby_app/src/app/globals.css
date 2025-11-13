@@ -8,8 +8,9 @@
   /* Main colors */
   --primary-light: #fdfdfd;
   --primary-light-alt: #eeede4;
-  --primary-dark: #2e2e2e;
-  --primary-dark-alt: #363c54;
+  --primary-dark: #000000;
+  --primary-dark-alt: #c45c4c;
+  --primary-accent: #959474;
 
   /* Accent colors */
   --accent-purple: #9369ff;
@@ -74,6 +75,10 @@ body {
 
   .bg-primary-dark-alt {
     background-color: var(--primary-dark-alt);
+  }
+
+  .bg-primary-accent {
+    background-color: var(--primary-accent);
   }
 
   /* Accent Backgrounds */
@@ -217,24 +222,24 @@ body {
   }
 
   .text-header {
-    font-size: 3.2rem;
+    font-size: 2.8rem;
     line-height: 2.5rem;
-    font-weight: 300;
-    font-family: var(--font-comfortaa);
+    font-weight: 600;
+    font-family: var(--font-outfit);
   }
 
   .text-header-2 {
     font-size: 2.3rem;
     line-height: 2.5rem;
-    font-weight: 400;
-    font-family: var(--font-comfortaa);
+    font-weight: 600;
+    font-family: var(--font-outfit);
   }
 
   .text-header-3 {
     font-size: 2rem;
     line-height: 2.5rem;
-    font-weight: 400;
-    font-family: var(--font-comfortaa);
+    font-weight: 600;
+    font-family: var(--font-outfit);
   }
 
   .text-body-large {

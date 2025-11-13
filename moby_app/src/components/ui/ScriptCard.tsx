@@ -24,7 +24,7 @@ interface ScriptCardProps {
   handlePractice: () => void;
   handleTogglePinned: () => void;
   handleEdit: () => void;
-  bgColor: string;
+  classNames: string;
 }
 
 export function ScriptCard({
@@ -37,7 +37,7 @@ export function ScriptCard({
   handlePractice,
   handleTogglePinned,
   handleEdit,
-  bgColor,
+  classNames,
 }: ScriptCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
@@ -131,11 +131,11 @@ export function ScriptCard({
                 setIsMenuOpen(false);
               }}
               disabled={pinnedItemId != null}
-              className="absolute p-3 rounded-full bg-[#363c54] shadow-xl hover:cursor-pointer text-white transition-colors z-10 group"
+              className="absolute p-3 rounded-full bg-primary-dark shadow-xl hover:cursor-pointer text-white transition-colors z-10 group"
               aria-label={pinned ? "Unpin" : "Pin"}
             >
               <PinOff className="w-5 h-5" />
-              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-primary-dark-alt rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-primary-dark rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
                 {pinned ? "Unpin" : "Pin"}
               </span>
             </motion.button>
@@ -157,11 +157,11 @@ export function ScriptCard({
                 handleDelete();
                 setIsMenuOpen(false);
               }}
-              className="absolute p-3 rounded-full bg-[#363c54] shadow-xl hover:cursor-pointer text-white transition-colors z-10 group"
+              className="absolute p-3 rounded-full bg-primary-dark shadow-xl hover:cursor-pointer text-white transition-colors z-10 group"
               aria-label="Delete"
             >
               <Trash className="w-5 h-5" />
-              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-primary-dark-alt rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-primary-dark rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
                 Delete
               </span>
             </motion.button>
@@ -183,11 +183,11 @@ export function ScriptCard({
                 handleEdit();
                 setIsMenuOpen(false);
               }}
-              className="absolute p-3 rounded-full bg-[#363c54] shadow-xl hover:cursor-pointer text-white transition-colors z-10 group"
+              className="absolute p-3 rounded-full bg-primary-dark shadow-xl hover:cursor-pointer text-white transition-colors z-10 group"
               aria-label="Edit"
             >
               <Pencil className="w-5 h-5" />
-              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-primary-dark-alt rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-primary-dark rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
                 Edit
               </span>
             </motion.button>
@@ -199,7 +199,7 @@ export function ScriptCard({
 
   return (
     <div
-      className={`${bgColor} rounded-[20px] py-7 px-8 transition-shadow duration-200
+      className={`${classNames} rounded-[20px] py-7 px-8 transition-shadow duration-200
       w-85 h-55 2xl:w-90 flex flex-col justify-between relative`}
     >
       {/* Expandable menu for star/delete */}
@@ -211,7 +211,7 @@ export function ScriptCard({
             setIsMenuOpen(!isMenuOpen);
           }}
           className={`p-3 rounded-full hover:cursor-pointer transition-colors ${
-            isMenuOpen ? "bg-white text-black" : "text-white hover:bg-white/10"
+            isMenuOpen ? "bg-white text-black" : "text-black hover:bg-white/10"
           }`}
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
         >
@@ -231,14 +231,14 @@ export function ScriptCard({
       <div className="flex-1 flex flex-col gap-3 pr-8">
         {/* Script Name */}
         <h3
-          className="text-2xl font-bold text-white truncate leading-tight"
+          className="text-2xl font-semibold text-black truncate leading-tight"
           title={name}
         >
           {name}
         </h3>
 
         {/* Metadata with icons */}
-        <div className="flex flex-col gap-2 text-white/80">
+        <div className="flex flex-col gap-2 text-black/80">
           {formatted && (
             <div className="flex items-center gap-2 text-sm">
               <span className="flex-shrink-0" title="Upload date">
@@ -261,7 +261,7 @@ export function ScriptCard({
       <Button
         onClick={handlePractice}
         icon={Play}
-        variant="ghost"
+        variant="primary"
         size="md"
         aria-label="Practice script"
         className="w-full h-11"

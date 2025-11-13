@@ -1052,7 +1052,7 @@ export default function ScriptUploadModal({
                     <button
                       onClick={moveToNextStage}
                       disabled={!scriptName}
-                      className="mt-8 w-full bg-primary-dark-alt text-white py-3 rounded-lg hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 transition"
+                      className="mt-8 w-full bg-primary-dark text-white py-3 rounded-lg hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 transition"
                     >
                       Continue
                     </button>
@@ -1141,7 +1141,7 @@ export default function ScriptUploadModal({
 
                               {/* Modal container */}
                               <div className="fixed inset-0 z-60 flex items-center justify-center">
-                                <div className="relative bg-primary-dark-alt rounded-lg py-6 px-10 max-w-sm mx-4">
+                                <div className="relative bg-primary-dark rounded-lg py-6 px-10 max-w-sm mx-4">
                                   <p className="text-white/90 mb-4">
                                     Assign{" "}
                                     <span className="font-medium text-white">
@@ -1383,7 +1383,7 @@ export default function ScriptUploadModal({
                   <button
                     onClick={handleComplete}
                     disabled={!canComplete || scriptSaving}
-                    className="w-full bg-primary-dark-alt text-white px-6 py-3 rounded-lg hover:cursor-pointer transition font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full bg-primary-dark text-white px-6 py-3 rounded-lg hover:cursor-pointer transition font-medium disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {scriptSaving ? "Saving…" : "Save"}
                   </button>
@@ -1400,7 +1400,7 @@ export default function ScriptUploadModal({
               <div
                 key={stage}
                 className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                  currentStage >= stage ? "bg-primary-dark-alt" : "bg-gray-300"
+                  currentStage >= stage ? "bg-primary-dark" : "bg-gray-300"
                 }`}
               />
             ))}
@@ -1644,7 +1644,7 @@ const RoleVoiceAssignment = ({
         flex items-center justify-center gap-2 px-2 py-2 w-[110px] rounded-full transition-all duration-200
         ${
           selectedGender === "female"
-            ? "bg-primary-dark-alt text-white"
+            ? "bg-primary-dark text-white"
             : "text-gray-600 hover:text-gray-900"
         }
       `}
@@ -1658,7 +1658,7 @@ const RoleVoiceAssignment = ({
         flex items-center justify-center gap-2 px-2 py-2 w-[110px] rounded-full transition-all duration-200
         ${
           selectedGender === "male"
-            ? "bg-primary-dark-alt text-white"
+            ? "bg-primary-dark text-white"
             : "text-gray-600 hover:text-gray-900"
         }
       `}
@@ -1672,7 +1672,7 @@ const RoleVoiceAssignment = ({
         flex items-center justify-center gap-2 px-2 py-2 w-[110px] rounded-full transition-all duration-200
         ${
           selectedGender === "non-binary"
-            ? "bg-primary-dark-alt text-white"
+            ? "bg-primary-dark text-white"
             : "text-gray-600 hover:text-gray-900"
         }
       `}
@@ -1741,7 +1741,7 @@ const RoleVoiceAssignment = ({
                   }}
                   className={`
           self-center flex items-center justify-center w-8 h-8 rounded-full cursor-pointer hover:scale-105 active:scale-95
-          transition-all duration-300 text-white font-medium bg-primary-dark-alt shadow-md
+          transition-all duration-300 text-white font-medium bg-primary-dark shadow-md
         `}
                 >
                   {playingUrl === sample.url ? (

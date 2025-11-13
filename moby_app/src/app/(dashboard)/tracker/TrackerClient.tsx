@@ -602,77 +602,81 @@ function TrackerPageContent() {
   }
 
   return (
-    <DashboardLayout maxWidth={96}>
+    <DashboardLayout maxWidth={95}>
       <div className="flex flex-col mx-[0%] min-h-0 flex-1">
-        {/* Right-side controls (search + add button) */}
-        <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
-          {/* Search bar */}
-          <div className="flex items-center">
-            <div
-              className={`flex items-center transition-all duration-300 ease-in-out border rounded-full mr-2 h-12 overflow-hidden ${
-                showSearch
-                  ? "w-60 sm:w-90 border-gray-300 bg-white"
-                  : "w-0 border-transparent bg-transparent"
-              }`}
-            >
-              <div className="relative w-full">
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search auditions"
-                  className={`
-              w-full h-9 px-4 pr-0 text-md bg-transparent
-              focus:outline-none focus:ring-0
-            `}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      setShowSearch(false);
-                      setSearchTerm("");
-                    }
-                  }}
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
+        {/* Header Section */}
+        <div className="flex items-center justify-between px-4">
+          {/* Left spacer for balance */}
+          <div className="flex-1"></div>
+
+          {/* Centered Header */}
+          <h2 className="text-header text-primary-dark text-center">Auditions</h2>
+
+          {/* Right-side controls (search + add button) */}
+          <div className="flex-1 flex items-center justify-end gap-2">
+            {/* Search bar */}
+            <div className="flex items-center">
+              <div
+                className={`flex items-center transition-all duration-300 ease-in-out border rounded-full mr-2 h-12 overflow-hidden ${
+                  showSearch
+                    ? "w-60 sm:w-90 border-gray-300 bg-white"
+                    : "w-0 border-transparent bg-transparent"
+                }`}
+              >
+                <div className="relative w-full">
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search auditions"
+                    className={`
+                w-full h-9 px-4 pr-0 text-md bg-transparent
+                focus:outline-none focus:ring-0
+              `}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setShowSearch(false);
+                        setSearchTerm("");
+                      }
+                    }}
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               </div>
+
+              <Button
+                onClick={() => {
+                  setShowSearch(!showSearch);
+                  if (showSearch) setSearchTerm("");
+                }}
+                variant="primary"
+                size="lg"
+                icon={Search}
+                iconOnly={true}
+                className="h-12 w-12"
+                title="Search Auditions"
+              />
             </div>
 
+            {/* Add Button */}
             <Button
-              onClick={() => {
-                setShowSearch(!showSearch);
-                if (showSearch) setSearchTerm("");
-              }}
-              variant="primary"
+              onClick={() => setIsModalOpen(true)}
+              variant="secondary"
               size="lg"
-              icon={Search}
+              icon={Plus}
               iconOnly={true}
               className="h-12 w-12"
-              title="Search Auditions"
+              title="Add Audition"
             />
           </div>
-
-          {/* Add Button */}
-          <Button
-            onClick={() => setIsModalOpen(true)}
-            variant="primary"
-            size="lg"
-            icon={Plus}
-            iconOnly={true}
-            className="h-12 w-12"
-            title="Add Audition"
-          />
-        </div>
-
-        {/* Centered Header */}
-        <div className="flex items-center justify-center mt-15 sm:mt-10 mb-2">
-          <h2 className="text-header text-center">Audition Tracker</h2>
         </div>
 
         {auditionsData.length === 0 && (

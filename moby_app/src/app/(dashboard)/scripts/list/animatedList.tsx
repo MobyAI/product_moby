@@ -17,6 +17,7 @@ import {
   X,
   Play,
   Calendar,
+  Clock,
 } from "lucide-react";
 
 interface AnimatedItemProps {
@@ -183,19 +184,34 @@ export const AnimatedList: React.FC<AnimatedListProps> = ({
 
     return (
       <div
-        className={`p-4 rounded-lg transition-all bg-primary-light-alt hover:cursor-default ${itemClassName}`}
+        className={`p-4 transition-all border-b border-gray-100/30 hover:cursor-default ${itemClassName}`}
       >
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-primary-dark-alt mb-1">
+            <h3 className="text-lg font-semibold text-primary-light-alt mb-1">
               {item.name}
             </h3>
             <div className="flex items-center gap-2 text-sm">
-              <span className="flex-shrink-0" title="Upload date">
+              <span
+                className="flex-shrink-0 text-primary-light-alt"
+                title="Upload date"
+              >
                 <Calendar className="w-4 h-4" />
               </span>
-              <span className="font-medium text-gray-500">
+              <span className="font-medium text-primary-light-alt">
                 {formatDate(item.createdAt)}
+              </span>
+              <span className="text-primary-light-alt mx-2">|</span>
+              <span
+                className="flex-shrink-0 text-primary-light-alt"
+                title="Last practiced"
+              >
+                <Clock className="w-4 h-4" />
+              </span>
+              <span className="font-medium text-primary-light-alt">
+                {item.lastPracticed
+                  ? formatDate(item.lastPracticed)
+                  : "Not practiced yet"}
               </span>
             </div>
           </div>
@@ -222,7 +238,7 @@ export const AnimatedList: React.FC<AnimatedListProps> = ({
                     className="p-3 rounded-full hover:bg-black/5 transition-colors hover:cursor-pointer"
                     aria-label="Play"
                   >
-                    <Play className="w-5 h-5 text-primary-dark-alt" />
+                    <Play className="w-5 h-5 text-primary-light-alt" />
                   </motion.button>
                   {togglePinned && (
                     <motion.button
@@ -239,7 +255,7 @@ export const AnimatedList: React.FC<AnimatedListProps> = ({
                     >
                       {item.pinned ? (
                         <PinOff
-                          className={`w-5 h-5 text-primary-dark-alt ${
+                          className={`w-5 h-5 text-primary-light-alt ${
                             savingItemId === item.id
                               ? "animate-[bounce_0.5s_ease-in-out_infinite,spin_1s_linear_infinite]"
                               : ""
@@ -247,7 +263,7 @@ export const AnimatedList: React.FC<AnimatedListProps> = ({
                         />
                       ) : (
                         <Pin
-                          className={`w-5 h-5 text-primary-dark-alt ${
+                          className={`w-5 h-5 text-primary-light-alt-alt ${
                             savingItemId === item.id
                               ? "animate-[bounce_0.5s_ease-in-out_infinite,spin_1s_linear_infinite]"
                               : ""
@@ -266,7 +282,7 @@ export const AnimatedList: React.FC<AnimatedListProps> = ({
                         handleEdit(item);
                       }}
                       disabled={deletingItemId != null}
-                      className="p-3 rounded-full hover:bg-black/5 text-primary-dark-alt transition-colors hover:cursor-pointer"
+                      className="p-3 rounded-full hover:bg-black/5 text-primary-light-alt transition-colors hover:cursor-pointer"
                       aria-label="Edit"
                     >
                       <Pencil className="w-5 h-5" />
@@ -282,7 +298,7 @@ export const AnimatedList: React.FC<AnimatedListProps> = ({
                         handleDelete(item.id);
                       }}
                       disabled={deletingItemId != null}
-                      className="p-3 rounded-full hover:bg-red-100 text-red-500 transition-colors hover:cursor-pointer"
+                      className="p-3 rounded-full hover:bg-black/5 text-red-500 transition-colors hover:cursor-pointer"
                       aria-label="Delete"
                     >
                       <Trash className="w-5 h-5" />
@@ -296,7 +312,7 @@ export const AnimatedList: React.FC<AnimatedListProps> = ({
                       e.stopPropagation();
                       setOpenMenuId(null);
                     }}
-                    className="p-3 rounded-full hover:bg-black/5 text-primary-dark-alt transition-colors hover:cursor-pointer"
+                    className="p-3 rounded-full hover:bg-black/5 text-primary-light-alt transition-colors hover:cursor-pointer"
                     aria-label="Close menu"
                   >
                     <X className="w-5 h-5" />
@@ -313,7 +329,7 @@ export const AnimatedList: React.FC<AnimatedListProps> = ({
                     e.stopPropagation();
                     setOpenMenuId(item.id);
                   }}
-                  className="p-3 rounded-full hover:bg-black/5 text-primary-dark-alt transition-colors hover:cursor-pointer"
+                  className="p-3 rounded-full hover:bg-black/5 text-primary-light-alt transition-colors hover:cursor-pointer"
                   aria-label="Open menu"
                 >
                   <MoreVertical className="w-5 h-5" />

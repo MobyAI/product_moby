@@ -43,10 +43,10 @@ export function Button({
 				shadowStyles,
 				{
 					// Primary with gradient overlay
-					"bg-primary-dark-alt text-primary-light before:absolute before:inset-0 before:pointer-events-none hover:bg-btn-primary-hover": variant === "primary",
+					"bg-primary-dark text-white before:absolute before:inset-0 before:pointer-events-none hover:bg-btn-primary-hover": variant === "primary",
 
 					// Secondary with gradient overlay
-					"bg-[#f5d76e] text-black before:absolute before:inset-0 before:pointer-events-none hover:bg-btn-secondary-hover": variant === "secondary",
+					"bg-primary-dark-alt text-white before:absolute before:inset-0 before:pointer-events-none hover:bg-btn-secondary-hover": variant === "secondary",
 
 					// Accent with gradient overlay
 					"bg-btn-accent text-white before:absolute before:inset-0 before:bg-gradient-to-t before:from-white/20 before:to-transparent before:pointer-events-none hover:bg-btn-accent-hover": variant === "accent",

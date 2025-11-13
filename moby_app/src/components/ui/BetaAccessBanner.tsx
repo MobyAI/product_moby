@@ -64,9 +64,9 @@ export default function BetaAccessBanner({
   if (accessLevel !== "beta") return null;
 
   return (
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 lg:bottom-auto lg:top-4 lg:left-4 lg:translate-x-0 z-50 w-[325px] sm:w-[475px] flex items-center justify-between text-sm bg-[#f5d76e] rounded-lg px-4 py-2 shadow-md">
+    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 lg:bottom-auto lg:top-4 lg:left-4 lg:translate-x-0 z-50 w-[325px] sm:w-[460px] flex items-center justify-between text-sm bg-[#f5d76e] rounded-lg px-4 py-2 shadow-md">
       <div className="flex items-center space-x-2">
-        <span className="inline-flex items-center px-2 py-1 rounded-md bg-primary-dark-alt text-white font-medium text-sm">
+        <span className="inline-flex items-center px-2 py-1 rounded-md bg-primary-dark text-white font-medium text-sm">
           EARLY ACCESS
         </span>
         <span className="text-gray-700">

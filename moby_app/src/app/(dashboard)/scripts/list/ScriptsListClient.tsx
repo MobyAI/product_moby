@@ -48,13 +48,6 @@ export interface ScriptData {
   lastPracticed: Timestamp | null;
 }
 
-const bgColors = [
-  "bg-accent-purple",
-  "bg-accent-pink",
-  "bg-accent-orange",
-  "bg-accent-blue",
-];
-
 interface PlaceholderCardProps {
   onClick: () => void;
   disabled?: boolean;
@@ -292,7 +285,7 @@ function ScriptsListContent() {
     const pinnedScripts = allScripts.filter((s) => s.pinned === true);
 
     const cards = pinnedScripts.map((s, index) => {
-      const colorClass = bgColors[index % bgColors.length];
+      const additionalStyles = "bg-[#E1DDCF] rounded-[30px]";
       return (
         <ScriptCard
           key={s.id}
@@ -305,7 +298,7 @@ function ScriptsListContent() {
           handlePractice={() => router.push(`/practice-room?scriptID=${s.id}`)}
           handleTogglePinned={() => handleTogglePinned(s.id)}
           handleEdit={() => handleEditName(s)}
-          bgColor={colorClass}
+          classNames={additionalStyles}
         />
       );
     });
@@ -359,74 +352,80 @@ function ScriptsListContent() {
 
   return (
     <DashboardLayout maxWidth={95}>
-      {/* Right-side controls (search + add) - Positioned at top right */}
-      <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
-        {/* Search input with expand/collapse */}
-        <div className="flex items-center">
-          <div
-            className={`flex items-center transition-all duration-300 ease-in-out border rounded-full mr-2 h-12 overflow-hidden ${
-              showSearch
-                ? "w-60 sm:w-90 border-gray-300 bg-white"
-                : "w-0 border-transparent bg-transparent"
-            }`}
-          >
-            <div className="relative w-full">
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search scripts"
-                className="w-full h-9 px-4 pr-0 text-md bg-transparent focus:outline-none focus:ring-0"
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") {
-                    setShowSearch(false);
-                    setSearchTerm("");
-                  }
-                }}
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
+      {/* Header Section */}
+      <div className="flex items-center justify-between px-4">
+        {/* Left spacer for balance */}
+        <div className="flex-1"></div>
+
+        {/* Centered Header */}
+        <h2 className="text-header text-primary-dark text-center">Scripts</h2>
+
+        {/* Right-side controls (search + add button) */}
+        <div className="flex-1 flex items-center justify-end gap-2">
+          {/* Search bar */}
+          <div className="flex items-center">
+            <div
+              className={`flex items-center transition-all duration-300 ease-in-out border rounded-full mr-2 h-12 overflow-hidden ${
+                showSearch
+                  ? "w-60 sm:w-90 border-gray-300 bg-white"
+                  : "w-0 border-transparent bg-transparent"
+              }`}
+            >
+              <div className="relative w-full">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search scripts"
+                  className={`
+              w-full h-9 px-4 pr-0 text-md bg-transparent
+              focus:outline-none focus:ring-0
+            `}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      setShowSearch(false);
+                      setSearchTerm("");
+                    }
+                  }}
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
+
+            <Button
+              onClick={() => {
+                setShowSearch(!showSearch);
+                if (showSearch) setSearchTerm("");
+                else setTimeout(() => searchInputRef.current?.focus(), 100);
+              }}
+              variant="primary"
+              size="lg"
+              icon={Search}
+              iconOnly={true}
+              className="h-12 w-12"
+              title="Search Scripts"
+            />
           </div>
 
-          {/* Toggle search visibility */}
+          {/* Add Script Button */}
           <Button
-            onClick={() => {
-              setShowSearch(!showSearch);
-              if (showSearch) setSearchTerm("");
-              else setTimeout(() => searchInputRef.current?.focus(), 100);
-            }}
-            variant="primary"
+            onClick={handleFileSelect}
+            variant="secondary"
             size="lg"
-            icon={Search}
+            icon={Plus}
             iconOnly={true}
             className="h-12 w-12"
-            title="Search Scripts"
+            title="Upload Script"
           />
         </div>
-
-        {/* Add Script Button */}
-        <Button
-          onClick={handleFileSelect}
-          variant="primary"
-          size="lg"
-          icon={Plus}
-          iconOnly={true}
-          className="h-12 w-12"
-          title="Upload Script"
-        />
-      </div>
-
-      {/* Centered Header */}
-      <div className="flex items-center justify-center mt-15 sm:mt-10 mb-8">
-        <h2 className="text-header text-primary-dark text-center">Scripts</h2>
       </div>
 
       {/* Empty State - Upload Form */}
@@ -481,7 +480,7 @@ function ScriptsListContent() {
 
       {/* Scripts List */}
       {allScripts.length > 0 && (
-        <div className="flex flex-col mx-[0%] h-full flex-1 overflow-hidden">
+        <div className="flex flex-col mx-[0%] pt-8 h-full flex-1 overflow-hidden">
           {/* Pinned Scripts Carousel */}
           <div className="flex items-center justify-center mb-8 flex-shrink-0">
             <CardCarousel
@@ -492,12 +491,12 @@ function ScriptsListContent() {
             />
           </div>
 
-          {/* Two-column section that fills remaining space */}
-          <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0 overflow-hidden">
-            {/* Left Section - Selected Script Details */}
-            <div className="flex-1 flex flex-col gap-4 min-h-0">
-              <div className="flex-1 bg-white/40 rounded-lg p-5 flex flex-col min-h-0">
-                <h3 className="text-header-3 text-primary-dark mb-2">
+          {/* Single column section that fills remaining space */}
+          <div className="flex-1 flex flex-col min-h-0">
+            {/* Collection - Centered with max width */}
+            <div className="flex-1 flex flex-col gap-4 min-h-0 max-w-2xl mx-auto w-full">
+              <div className="flex-1 bg-primary-accent rounded-[30px] py-8 px-13 flex flex-col min-h-0">
+                <h3 className="text-header-2 text-primary-light-alt mb-4">
                   Your Collection
                 </h3>
                 <div className="flex-1 min-h-0">
@@ -515,115 +514,7 @@ function ScriptsListContent() {
                 </div>
               </div>
             </div>
-
-            {/* Right Section - Collection */}
-            <div className="hidden lg:flex flex-1 flex-col gap-4 min-h-0">
-              {/* Most Recently Practiced Scripts */}
-              <div className="flex-1 bg-white/40 rounded-lg p-5 flex flex-col gap-4 min-h-0">
-                <h3 className="text-header-3 text-primary-dark">
-                  Recently Practiced
-                </h3>
-                <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4">
-                  {(() => {
-                    const recentlyPracticed = allScripts
-                      .filter(
-                        (s) =>
-                          s.lastPracticed !== null &&
-                          s.lastPracticed !== undefined
-                      )
-                      .sort(
-                        (a, b) =>
-                          b.lastPracticed!.toDate().getTime() -
-                          a.lastPracticed!.toDate().getTime()
-                      )
-                      .slice(0, 3);
-
-                    return recentlyPracticed.length > 0 ? (
-                      recentlyPracticed.map((script) => (
-                        <div
-                          key={script.id}
-                          className="bg-primary-light-alt rounded-lg px-6 py-4 flex items-center justify-between flex-shrink-0"
-                        >
-                          <div>
-                            <h4 className="text-xl font-bold text-primary-dark-alt mb-2">
-                              {script.name}
-                            </h4>
-                            <div className="flex items-center gap-2 text-sm">
-                              <span
-                                className="flex-shrink-0"
-                                title="Upload date"
-                              >
-                                <Calendar className="w-4 h-4" />
-                              </span>
-                              <span className="font-medium text-gray-500">
-                                {script.createdAt
-                                  ?.toDate()
-                                  .toLocaleDateString()}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm">
-                              <span
-                                className="flex-shrink-0"
-                                title="Last practiced"
-                              >
-                                <Clock className="w-4 h-4" />
-                              </span>
-                              <span className="font-medium text-gray-500">
-                                {script
-                                  .lastPracticed!.toDate()
-                                  .toLocaleDateString()}
-                              </span>
-                            </div>
-                          </div>
-                          <div>
-                            <Button
-                              onClick={() =>
-                                router.push(
-                                  `/practice-room?scriptID=${script.id}`
-                                )
-                              }
-                              variant="primary"
-                              size="lg"
-                              icon={Play}
-                              iconOnly={true}
-                            />
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="flex-1 flex items-center justify-center">
-                        <h3 className="text-2xl font-crimson text-primary-dark">
-                          Nothing yet. Press play to start practicing! 😎
-                        </h3>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
-            </div>
           </div>
-
-          {/* <div className="flex-1 overflow-y-auto hide-scrollbar mt-6 flex justify-center">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-fit mx-auto px-4">
-              {visibleScripts.map((s, index) => {
-                const colorClass = bgColors[index % bgColors.length];
-                return (
-                  <div key={s.id} className="">
-                    <ScriptCard
-                      name={s.name}
-                      createdAt={s.createdAt}
-                      lastPracticed={s.lastPracticed}
-                      handleDelete={() => handleDeleteClick(s.id)}
-                      handlePractice={() =>
-                        router.push(`/practice-room?scriptID=${s.id}`)
-                      }
-                      bgColor={colorClass}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </div> */}
         </div>
       )}
 
