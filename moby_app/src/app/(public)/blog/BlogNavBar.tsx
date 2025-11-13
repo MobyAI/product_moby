@@ -34,7 +34,7 @@ export default function BlogNavBar() {
             {/* Logo - Left */}
             <div className="flex items-center gap-2">
               <Link href="/blog" className="text-logo font-light">
-                tableread
+                odee
               </Link>
               <span className="text-md font-medium text-gray-600 bg-gray-200 px-2.5 mt-1 rounded-md">
                 Blog

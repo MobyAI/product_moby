@@ -24,7 +24,7 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: "https://www.tablereadnow.com/sitemap.xml",
-    host: "https://www.tablereadnow.com",
+    sitemap: "https://www.odee.io/sitemap.xml",
+    host: "https://www.odee.io",
   };
 }

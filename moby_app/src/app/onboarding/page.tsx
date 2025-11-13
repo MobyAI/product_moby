@@ -562,7 +562,7 @@ function ChatOnboardingContent() {
     <div className="h-screen w-screen bg-primary-light-alt relative flex flex-col">
       {/* Logo */}
       <h3 className="text-logo text-primary-dark z-100 absolute top-0 left-2">
-        tableread
+        odee
       </h3>
 
       {/* Progress Bar */}

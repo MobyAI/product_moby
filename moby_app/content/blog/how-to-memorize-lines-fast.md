@@ -2,7 +2,7 @@
 title: "How to Memorize Lines Fast: 7 Techniques Professional Actors Use"
 description: "Discover proven techniques actors use to memorize scripts quickly. From active recall to the tableread method, master your lines faster and build confidence for your next audition."
 date: "2025-11-01"
-author: "TableRead Team"
+author: "Odee Team"
 category: "acting-techniques"
 tags: ["memorization", "acting techniques", "script work", "rehearsal tips"]
 featured: true
@@ -117,7 +117,7 @@ Benefits include:
 - Get immediate feedback on accuracy
 - Build confidence before working with scene partners
 
-Tools like TableRead allow you to upload your script and practice with AI voices that respond with proper cues, making the memorization process more dynamic and realistic.
+Tools like Odee allow you to upload your script and practice with AI voices that respond with proper cues, making the memorization process more dynamic and realistic.
 
 ## Creating Your Memorization Schedule
 
@@ -183,6 +183,6 @@ Now get to work on those lines. Your next great performance is waiting.
 
 ## Ready to Practice?
 
-TableRead offers AI-powered scene partners that help you rehearse anytime, anywhere. Upload your script, assign voices to characters, and start practicing with immediate feedback. It's like having a scene partner available 24/7.
+Odee offers AI-powered scene partners that help you rehearse anytime, anywhere. Upload your script, assign voices to characters, and start practicing with immediate feedback. It's like having a scene partner available 24/7.
 
-[Start practicing with TableRead →](https://www.tablereadnow.com)
+[Start practicing with Odee →](https://www.odee.io)

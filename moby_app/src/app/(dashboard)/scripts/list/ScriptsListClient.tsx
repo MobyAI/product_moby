@@ -364,12 +364,11 @@ function ScriptsListContent() {
         {/* Search input with expand/collapse */}
         <div className="flex items-center">
           <div
-            className={`flex items-center transition-all duration-300 ease-in-out border rounded-md mr-2 overflow-hidden ${
+            className={`flex items-center transition-all duration-300 ease-in-out border rounded-full mr-2 h-12 overflow-hidden ${
               showSearch
                 ? "w-60 sm:w-90 border-gray-300 bg-white"
                 : "w-0 border-transparent bg-transparent"
             }`}
-            style={{ height: "45px" }}
           >
             <div className="relative w-full">
               <input

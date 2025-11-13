@@ -30,7 +30,7 @@ export function Button({
 	}[size];
 
 	// Base styles with 3D effect
-	const baseStyles = "font-medium rounded-full transition-all inline-flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden transform hover:scale-105 active:scale-95";
+	const baseStyles = "font-medium rounded-full transition-all inline-flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden transform hover:scale-108 active:scale-95";
 
 	// 3D shadow styles
 	const shadowStyles = "shadow-lg hover:shadow-xl";

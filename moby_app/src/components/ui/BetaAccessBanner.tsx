@@ -7,7 +7,7 @@ interface BetaAccessBannerProps {
   accessLevel?: "no_access" | "beta" | "paid" | "expired";
 }
 
-const upgradeEmailUrl = `mailto:try.tableread@gmail.com?subject=${encodeURIComponent(
+const upgradeEmailUrl = `mailto:hello@odee.io?subject=${encodeURIComponent(
   "Request Early Access Extension"
 )}&body=${encodeURIComponent(
   `Hi team,

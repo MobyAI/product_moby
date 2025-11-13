@@ -79,7 +79,7 @@ export default function MobileNavBar() {
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4">
-            <h1 className="text-logo text-primary-dark">tableread</h1>
+            <h1 className="text-logo text-primary-dark">odee</h1>
             <button
               onClick={() => setIsOpen(false)}
               className="p-2 rounded-lg hover:bg-black/5"

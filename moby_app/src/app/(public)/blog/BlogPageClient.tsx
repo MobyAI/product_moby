@@ -33,7 +33,7 @@ export default function BlogPageClient({
       <header>
         <div className="max-w-6xl mx-auto px-5 pb-5 pt-25">
           <h1 className="text-6xl font-[300] font-crimson text-black mb-2">
-            Tableread Blog: Expert Articles on Acting
+            Odee Blog: Expert Articles on Acting
           </h1>
           <p className="text-md text-gray-600 max-w-3xl">
             Expert tips, techniques, and strategies to help you excel in

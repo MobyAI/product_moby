@@ -18,7 +18,7 @@ export default async function AuthLayout({
     <div className="h-screen h-dvh flex flex-col bg-[#EEEDE4]">
       {/* Logo */}
       <div className="pl-5 pt-4">
-        <h1 className="text-logo text-primary-dark">tableread</h1>
+        <h1 className="text-logo text-primary-dark">odee</h1>
       </div>
 
       {/* Main Content */}

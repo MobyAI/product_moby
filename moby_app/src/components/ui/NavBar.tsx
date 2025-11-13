@@ -43,7 +43,7 @@ export default function NavBar() {
 
   // State to control when to show expanded content
   const [showExpandedContent, setShowExpandedContent] = useState(!isCollapsed);
-  const [logoText, setLogoText] = useState(isCollapsed ? "" : "tableread");
+  const [logoText, setLogoText] = useState(isCollapsed ? "" : "odee");
   const [isMobileView, setIsMobileView] = useState(false);
 
   // Auto collapse on smaller screens
@@ -76,7 +76,7 @@ export default function NavBar() {
         setShowExpandedContent(true);
 
         // Typewriter effect for logo
-        const text = "tableread";
+        const text = "odee";
         let currentIndex = 0;
 
         const typeTimer = setInterval(() => {
@@ -146,13 +146,13 @@ export default function NavBar() {
               <h1 className="text-logo text-primary-dark">
                 <span>{logoText}</span>
                 {/* Blinking cursor during typing */}
-                {logoText.length < 9 && (
+                {logoText.length < 3 && (
                   <span className="animate-pulse">|</span>
                 )}
               </h1>
             ) : (
               <h1 className="text-4xl text-center">
-                <span className="text-logo text-primary-dark">tr</span>
+                <span className="text-logo text-primary-dark">o</span>
               </h1>
             )}
           </div>
