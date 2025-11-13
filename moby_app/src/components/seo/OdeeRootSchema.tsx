@@ -2,7 +2,8 @@ export const odeeJsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   name: "odee",
-  alternateName: "odee – AI-Powered Scene Partner and Audition Tracker for Actors",
+  alternateName:
+    "odee – AI-Powered Scene Partner and Audition Tracker for Actors",
   url: "https://www.odee.io",
   image: "https://www.odee.io/icon.png",
   // screenshot: "https://odee.io/screenshot.png",
@@ -44,6 +45,9 @@ export const odeeJsonLd = {
     "Audition tracking",
     "Line delivery practice",
     "Progress monitoring",
+    "24/7 AI-powered scene partner available anytime",
+    "100+ voice customization options for character matching",
+    "Unlimited rehearsal takes without judgment",
   ],
 };
 

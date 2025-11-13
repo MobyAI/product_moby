@@ -251,7 +251,7 @@ const LandingPage = () => {
                 Jumpstart your acting career now!
               </p>
 
-              <div className="mt-15 md:mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+              <div className="mt-15 md:mt-10 flex flex-col sm:flex-row gap-3 justify-center">
                 <Link
                   href="https://docs.google.com/forms/d/e/1FAIpQLSe9THykmDJkTY1C2E7sdofD58M3UGKhKHKQQ_gUsoyPBM1jsQ/viewform?usp=dialog"
                   target="_blank"
@@ -416,17 +416,17 @@ const LandingPage = () => {
         </section>
 
         <section
-          className="bg-black text-white py-20 md:py-28 w-screen relative left-[50%] right-[50%] -mx-[50vw] mb-10 sm:mb-25"
+          className="bg-black text-white py-30 md:py-40 w-screen mb-30"
           aria-label="Platform statistics"
         >
-          <div className="landing-section-container">
+          <div className="landing-section-container h-full flex flex-col justify-center">
             {/* Overline for context */}
-            <p className="text-center text-sm md:text-base text-gray-400 uppercase tracking-wider mb-4">
+            <p className="text-center text-lg md:text-xl text-gray-400 uppercase tracking-wider mb-4">
               Built for serious actors
             </p>
 
-            <h2 className="text-3xl md:text-5xl font-outfit font-light text-center mb-12 md:mb-16">
-              Why actors choose Odee
+            <h2 className="text-5xl md:text-7xl font-outfit font-light text-center mb-15 md:mb-20">
+              Why users choose Odee
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 md:gap-16 text-center">
@@ -435,8 +435,8 @@ const LandingPage = () => {
                   24/7
                 </p>
                 <p className="text-base md:text-lg text-gray-300 leading-relaxed">
-                  Always available scene partner ready whenever you want to
-                  practice
+                  Always available scene partner ready to practice with you
+                  whenever, wherever you want
                 </p>
               </div>
               <div className="space-y-3">
@@ -444,7 +444,7 @@ const LandingPage = () => {
                   100+
                 </p>
                 <p className="text-base md:text-lg text-gray-300 leading-relaxed">
-                  Voice customization options to match any character or scene
+                  Voice customization options to match each character or scene
                   requirement
                 </p>
               </div>
@@ -456,8 +456,8 @@ const LandingPage = () => {
                   />
                 </div>
                 <p className="text-base md:text-lg text-gray-300 leading-relaxed">
-                  Unlimited rehearsal takes to perfect your performance without
-                  judgment
+                  Unlimited rehearsal takes to practice and perfect your
+                  performance without judgment
                 </p>
               </div>
             </div>

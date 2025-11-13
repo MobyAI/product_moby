@@ -37,11 +37,11 @@ export default function BlogPostClient({ post }: BlogPostProps) {
       {/* Sticky Title Section - Behind content, fades on scroll */}
       <div className="sticky top-25 z-0" style={{ opacity: scrollOpacity }}>
         <header>
-          <div className="max-w-6xl mx-auto px-5 mb-30">
-            <h1 className="text-5xl lg:text-8xl font-[300] font-crimson text-black">
+          <div className="max-w-6xl mx-auto px-5 mb-28">
+            <h1 className="text-5xl sm:text-6xl md:text-7xl font-[400] text-black">
               {post.title}
             </h1>
-            <div className="flex flex-wrap items-center gap-2 text-lg text-gray-600 font-crimson mt-14">
+            <div className="flex flex-wrap items-center gap-2 text-lg text-black mt-10 lg:mt-14">
               <span>Written by</span>
               <span className="font-bold">{post.author}</span>
               <span>|</span>
@@ -66,7 +66,7 @@ export default function BlogPostClient({ post }: BlogPostProps) {
         <div className="relative">
           {/* Landscape Image & Description Container */}
           <div className="max-w-6xl mx-auto mb-15 px-5">
-            <div className="relative h-[300px] lg:h-[500px] mb-2">
+            <div className="relative h-[400px] lg:h-[500px] mb-2">
               <Image
                 src={post.image}
                 alt={post.title}
@@ -78,7 +78,7 @@ export default function BlogPostClient({ post }: BlogPostProps) {
             </div>
 
             {/* Description */}
-            <p className="text-md lg:text-lg text-gray-700 font-crimson font-medium">
+            <p className="text-md lg:text-lg text-gray-700 font-medium">
               {post.description}
             </p>
           </div>

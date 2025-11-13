@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Copy, Check, Mail, X } from "lucide-react";
 
 export default function BlogNavBar() {
@@ -33,10 +34,17 @@ export default function BlogNavBar() {
           <div className="flex items-center justify-between">
             {/* Logo - Left */}
             <div className="flex items-center gap-2">
-              <Link href="/blog" className="text-logo font-light">
+              <Link href="/blog" className="text-logo font-light flex items-center gap-0.5">
+                <Image
+                  src="/icon-black-variant.svg"
+                  alt="odee logo black variant"
+                  width={48}
+                  height={48}
+                  className="w-8 h-8"
+                />
                 odee
               </Link>
-              <span className="text-md font-medium text-gray-600 bg-gray-200 px-2.5 mt-1 rounded-md">
+              <span className="text-md font-medium text-gray-600 bg-gray-200 px-2.5 mt-0.5 rounded-md">
                 Blog
               </span>
             </div>

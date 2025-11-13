@@ -492,13 +492,13 @@ body {
   }
 
   .landing-cta-button:hover {
-    transform: scale(1.03);
+    transform: scale(1.05);
   }
 
   @media (min-width: 640px) {
     .landing-cta-button {
       padding: 0.875rem 1.75rem;
-      font-size: 17px;
+      font-size: 20px;
     }
   }
 

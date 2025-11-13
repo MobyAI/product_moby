@@ -31,13 +31,15 @@ export default function BlogPageClient({
     <div className="min-h-screen bg-primary-light">
       {/* Header */}
       <header>
-        <div className="max-w-6xl mx-auto px-5 pb-5 pt-25">
-          <h1 className="text-6xl font-[300] font-crimson text-black mb-2">
-            Odee Blog: Expert Articles on Acting
+        <div className="max-w-6xl mx-auto px-5 pb-5 pt-20">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-[400] text-black mb-2">
+            Master Your Craft:
+            <br />
+            Blog For Aspiring Actors
           </h1>
-          <p className="text-md text-gray-600 max-w-3xl">
-            Expert tips, techniques, and strategies to help you excel in
-            auditions, master your craft, and advance your acting career.
+          <p className="text-sm sm:text-base md:text-lg text-gray-600 max-w-3xl">
+            Proven techniques, audition strategies, and insider tips to help you
+            book more roles and build a sustainable career.
           </p>
         </div>
       </header>
@@ -191,7 +193,7 @@ function RegularPostCard({ post }: { post: BlogPostPreview }) {
   const category = getCategoryById(post.category);
 
   return (
-    <article className="group bg-[#e1ddcf] rounded-lg transition-colors overflow-hidden">
+    <article className="group bg-[#f7f6f5] hover:bg-[#eeeded] rounded-lg transition-colors overflow-hidden">
       <Link
         href={`/blog/${post.slug}`}
         className="flex flex-col md:flex-row md:items-stretch"
@@ -224,7 +226,9 @@ function RegularPostCard({ post }: { post: BlogPostPreview }) {
             </h3>
 
             {/* Description */}
-            <p className="text-md text-gray-600 line-clamp-2">{post.description}</p>
+            <p className="text-md text-gray-600 line-clamp-2">
+              {post.description}
+            </p>
           </div>
         </div>
 
