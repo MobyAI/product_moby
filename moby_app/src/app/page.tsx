@@ -4,9 +4,9 @@ import LandingPage from "@/components/landingPage/LandingPage";
 const siteUrl = new URL("https://www.odee.io");
 
 export const metadata: Metadata = {
-  title: "odee – AI-Powered Scene Reader & Audition Tracker for Actors",
+  title: "Odee — Audition & Rehearsal Platform Built for Actors",
   description:
-    "Odee is an AI-powered scene-reader and audition tracker for actors. Rehearse scripts with your own personal scene partner, fine-tune delivery of each line, track auditions, and perform with confidence.",
+    "AI-powered scene reader and audition tracker. Rehearse scripts with your own personal scene partner, fine-tune delivery of each line, and track auditions all in one place.",
   metadataBase: siteUrl,
   keywords: [
     "acting audition tracker",
@@ -17,19 +17,19 @@ export const metadata: Metadata = {
     "audition management software",
   ],
   openGraph: {
-    title: "odee – AI-Powered Scene Reader & Audition Tracker for Actors",
+    title: "Odee — Audition & Rehearsal Platform Built for Actors",
     description:
-      "Rehearse scripts with your own personal scene partner, fine-tune your delivery, track auditions and organize scenes — designed for actors by actors.",
+      "Rehearse scripts with your own personal scene partner, fine-tune your delivery, and track auditions all in one place — designed for actors by actors.",
     url: siteUrl.toString(),
-    siteName: "odee",
+    siteName: "Odee",
     type: "website",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "odee – AI-Powered Scene Reader & Audition Tracker",
+    title: "Odee — Audition & Rehearsal Platform Built for Actors",
     description:
-      "Rehearse scripts with your own personal scene partner, fine-tune your delivery, track auditions and organize scenes — designed for actors by actors.",
+      "Rehearse scripts with your own personal scene partner, fine-tune your delivery, and track auditions all in one place — designed for actors by actors.",
     site: "@odee_io",
   },
   robots: {

@@ -639,7 +639,7 @@ const LandingPage = () => {
           <div className="flex flex-col sm:flex-row justify-between gap-8 mb-8">
             {/* Company Info */}
             <div className="max-w-xs">
-              <h3 className="landing-footer-heading">odee</h3>
+              <h3 className="landing-footer-heading">Odee</h3>
               <p className="text-slate-400 text-sm leading-relaxed">
                 AI-powered scene reader and audition tracker for actors.
                 Practice scripts, track auditions, and perfect your performance.
@@ -722,7 +722,7 @@ const LandingPage = () => {
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
               {/* Copyright */}
               <p className="text-slate-400 text-xs sm:text-sm">
-                © {new Date().getFullYear()} odee. All rights reserved.
+                © {new Date().getFullYear()} Odee. All rights reserved.
               </p>
 
               {/* Legal links (add when ready) */}

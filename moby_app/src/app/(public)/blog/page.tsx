@@ -3,11 +3,11 @@ import { Metadata } from "next";
 import BlogPageClient from "./BlogPageClient";
 
 export const metadata: Metadata = {
-  title: "Acting Blog - Tips, Techniques & Audition Strategies",
+  title: "Acting Blog: Tips, Techniques & Audition Strategies",
   description:
     "Expert acting tips, audition preparation guides, and rehearsal techniques. Learn from professionals and improve your craft with Odee's comprehensive blog.",
   openGraph: {
-    title: "Acting Blog - Tips & Audition Strategies",
+    title: "Acting Blog: Tips, Techniques & Audition Strategies",
     description:
       "Expert acting tips, audition preparation guides, and rehearsal techniques for actors.",
     type: "website",
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Acting Blog - Tips & Audition Strategies",
+    title: "Acting Blog: Tips, Techniques & Audition Strategies",
     description:
       "Expert acting tips, audition preparation guides, and rehearsal techniques for actors.",
     site: "@odee_io",

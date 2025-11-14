@@ -3,14 +3,14 @@ export const odeeJsonLd = {
   "@type": "SoftwareApplication",
   name: "odee",
   alternateName:
-    "odee – AI-Powered Scene Partner and Audition Tracker for Actors",
+    "Odee — Audition & Rehearsal Platform Built for Actors",
   url: "https://www.odee.io",
   image: "https://www.odee.io/icon.png",
   // screenshot: "https://odee.io/screenshot.png",
   operatingSystem: "Web",
   applicationCategory: "MultimediaApplication",
   description:
-    "Odee is an AI-powered rehearsal and audition management platform for actors. Upload scripts, rehearse lines with lifelike AI voices, and track your auditions all in one place.",
+    "AI-powered scene reader and audition tracker. Rehearse scripts with your own personal scene partner, fine-tune delivery of each line, and track auditions all in one place.",
   softwareVersion: process.env.NEXT_PUBLIC_APP_VERSION || "1.0.0",
   // aggregateRating: {
   //   "@type": "AggregateRating",
