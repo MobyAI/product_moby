@@ -34,8 +34,8 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({ duration, onComp
 
     return (
         <div className={`flex items-center text-sm px-3 py-1.5 rounded shadow-md ${isDarkMode
-                ? "text-primary-dark-alt bg-primary-light"
-                : "bg-primary-dark-alt text-primary-light"
+                ? "text-primary-dark bg-primary-light"
+                : "bg-primary-dark text-primary-light"
             }`}>
             <span className="font-semibold">
                 {displayTime()}

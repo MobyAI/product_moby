@@ -71,7 +71,6 @@ function TrackerPageContent() {
   const [showTypeFilter, setShowTypeFilter] = useState<boolean>(false);
   const [showStatusFilter, setShowStatusFilter] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [showSearch, setShowSearch] = useState(false);
 
   const [formData, setFormData] = useState({
     date: "",
@@ -229,39 +228,44 @@ function TrackerPageContent() {
   // Status type config
   const statusConfig: Record<
     string,
-    { label: string; bgColor: string; textColor: string }
+    { label: string; bgColor: string; textColor: string; borderColor: string }
   > = {
     completed: {
       label: "Completed",
       bgColor: "bg-purple-100",
       textColor: "text-purple-800",
+      borderColor: "border border-purple-800",
     },
     declined: {
       label: "Declined",
       bgColor: "bg-red-100",
       textColor: "text-red-800",
+      borderColor: "border border-red-800",
     },
     callback: {
       label: "Callback",
       bgColor: "bg-blue-100",
       textColor: "text-blue-800",
+      borderColor: "border border-blue-800",
     },
     hold: {
       label: "Hold",
       bgColor: "bg-yellow-100",
       textColor: "text-yellow-800",
+      borderColor: "border border-yellow-800",
     },
     booked: {
       label: "Booked",
       bgColor: "bg-green-100",
       textColor: "text-green-800",
+      borderColor: "border border-green-800",
     },
   };
 
   const getStatusStyle = (status: string) => {
     const config = statusConfig[status];
     return config
-      ? `${config.bgColor} ${config.textColor}`
+      ? `${config.bgColor} ${config.textColor} ${config.borderColor}`
       : "bg-gray-100 text-gray-800";
   };
 
@@ -449,7 +453,7 @@ function TrackerPageContent() {
     other: { label: "Other", icon: <Video className="w-4 h-4" /> },
   };
 
-  // Mobile view card
+  // Mobile view card - Improved
   function AuditionCard({
     audition,
     onEdit,
@@ -466,12 +470,11 @@ function TrackerPageContent() {
     isDeleting: boolean;
   }) {
     return (
-      <div className="p-5 mb-4 relative border-b border-gray-300 group">
-        {/* Header Row with Date and Menu */}
-        <div className="flex justify-between items-start mb-4">
-          {/* Date Badge */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 text-primary rounded-lg text-sm font-medium border border-primary/10">
-            <Calendar className="w-4 h-4" />
+      <div className="bg-white/50 rounded-2xl p-8 mb-4 shadow-md">
+        {/* Header: Date & Actions */}
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-black/5 text-gray-600 rounded-lg text-sm font-medium">
+            <Calendar className="w-3.5 h-3.5" />
             {new Date(audition.date).toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",
@@ -479,112 +482,116 @@ function TrackerPageContent() {
             })}
           </div>
 
-          {/* Action Menu */}
-          <div className="flex items-center">
-            <AnimatePresence mode="wait">
-              {openMenuId === audition.id ? (
-                <motion.div
-                  key="menu-open"
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  className="flex items-center gap-1 bg-gray-300 rounded-xl p-1"
+          {/* Action Menu - Always visible on mobile */}
+          <AnimatePresence mode="wait">
+            {openMenuId === audition.id ? (
+              <motion.div
+                key="menu-open"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center gap-1 bg-black/5 rounded-xl p-1"
+              >
+                <button
+                  onClick={onEdit}
+                  className="p-2.5 rounded-lg hover:bg-white active:scale-95 text-gray-700 transition-all duration-200"
+                  aria-label="Edit audition"
                 >
-                  <button
-                    onClick={onEdit}
-                    className="p-2 rounded-lg hover:bg-white hover:shadow-sm text-gray-700 transition-all duration-200"
-                    aria-label="Edit audition"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button
-                    disabled={isDeleting}
-                    onClick={onDelete}
-                    className="p-2 rounded-lg hover:bg-red-50 text-red-600 transition-all duration-200 disabled:opacity-50"
-                    aria-label="Delete audition"
-                  >
-                    <Trash className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setOpenMenuId(null)}
-                    className="p-2 rounded-lg hover:bg-white hover:shadow-sm text-gray-500 transition-all duration-200"
-                    aria-label="Close menu"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </motion.div>
-              ) : (
-                <motion.button
-                  key="menu-button"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  onClick={() => setOpenMenuId(audition.id)}
-                  className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all duration-200 opacity-0 group-hover:opacity-100"
-                  aria-label="Open menu"
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  disabled={isDeleting}
+                  onClick={onDelete}
+                  className="p-2.5 rounded-lg hover:bg-red-50 active:scale-95 text-red-600 transition-all duration-200 disabled:opacity-50"
+                  aria-label="Delete audition"
                 >
-                  <EllipsisVertical className="w-5 h-5" />
-                </motion.button>
-              )}
-            </AnimatePresence>
-          </div>
+                  <Trash className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setOpenMenuId(null)}
+                  className="p-2.5 rounded-lg hover:bg-white active:scale-95 text-gray-500 transition-all duration-200"
+                  aria-label="Close menu"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </motion.div>
+            ) : (
+              <motion.button
+                key="menu-button"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                onClick={() => setOpenMenuId(audition.id)}
+                className="p-2.5 rounded-lg hover:bg-gray-100 active:scale-95 text-gray-400 transition-all duration-200"
+                aria-label="Open menu"
+              >
+                <EllipsisVertical className="w-5 h-5" />
+              </motion.button>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Project Title - Most Important */}
-        <h3 className="font-bold text-xl text-gray-900 mb-3 line-clamp-2 leading-tight">
+        {/* Project Title - Hero Element */}
+        <h3 className="font-bold text-2xl text-gray-900 mb-3 line-clamp-2 leading-tight">
           {audition.projectTitle}
         </h3>
 
+        {/* Status Badge - Prominent placement */}
+        <div className="mb-4">
+          <span
+            className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 capitalize ${getStatusStyle(
+              audition.status
+            )}`}
+          >
+            {audition.status || "No Status"}
+          </span>
+        </div>
+
         {/* Type and Billing Row */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-300 text-gray-700 rounded-lg text-sm font-medium capitalize">
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-black/5 text-gray-700 rounded-lg text-sm font-medium capitalize">
             {getProjectIcon(audition.auditionType)}
             <span>{audition.auditionType}</span>
           </div>
           {audition.billing && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-300 text-gray-700 rounded-lg text-sm font-medium capitalize">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-black/5 text-gray-700 rounded-lg text-sm font-medium capitalize">
               {getBillingIcon(audition.billing)}
               <span>{audition.billing}</span>
             </div>
           )}
         </div>
 
-        {/* Details Grid */}
-        <div className="space-y-2.5 text-sm mb-4">
+        {/* Divider */}
+        {(audition.auditionRole ||
+          audition.castingDirector ||
+          audition.source) && <div className="border-t border-gray-100 my-4" />}
+
+        {/* Details Section - Cleaner layout */}
+        <div className="space-y-3 text-sm">
           {audition.auditionRole && (
-            <div className="flex items-start gap-2 text-gray-700">
-              <span className="font-semibold text-gray-900 min-w-[70px]">
-                Role:
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold text-gray-500 text-xs uppercase tracking-wide">
+                Role
               </span>
-              <span className="flex-1">{audition.auditionRole}</span>
+              <span className="text-gray-900">{audition.auditionRole}</span>
             </div>
           )}
           {audition.castingDirector && (
-            <div className="flex items-start gap-2 text-gray-700">
-              <span className="font-semibold text-gray-900 min-w-[70px]">
-                Casting:
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold text-gray-500 text-xs uppercase tracking-wide">
+                Casting Director
               </span>
-              <span className="flex-1">{audition.castingDirector}</span>
+              <span className="text-gray-900">{audition.castingDirector}</span>
             </div>
           )}
           {audition.source && (
-            <div className="flex items-start gap-2 text-gray-700">
-              <span className="font-semibold text-gray-900 min-w-[70px]">
-                Source:
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold text-gray-500 text-xs uppercase tracking-wide">
+                Source
               </span>
-              <span className="flex-1">{audition.source}</span>
+              <span className="text-gray-900">{audition.source}</span>
             </div>
           )}
-        </div>
-
-        {/* Status Badge - Footer */}
-        <div className="pt-3 capitalize">
-          <span
-            className={`inline-flex items-center px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${getStatusStyle(
-              audition.status
-            )}`}
-          >
-            {audition.status || "No Status"}
-          </span>
         </div>
       </div>
     );
@@ -602,78 +609,58 @@ function TrackerPageContent() {
   }
 
   return (
-    <DashboardLayout maxWidth={96}>
+    <DashboardLayout maxWidth={95}>
       <div className="flex flex-col mx-[0%] min-h-0 flex-1">
-        {/* Right-side controls (search + add button) */}
-        <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
-          {/* Search bar */}
-          <div className="flex items-center">
-            <div
-              className={`flex items-center transition-all duration-300 ease-in-out border rounded-md mr-2 overflow-hidden ${
-                showSearch
-                  ? "w-60 sm:w-90 border-gray-300 bg-white"
-                  : "w-0 border-transparent bg-transparent"
-              }`}
-              style={{ height: "45px" }}
-            >
-              <div className="relative w-full">
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search auditions"
-                  className={`
-              w-full h-9 px-4 pr-0 text-md bg-transparent
-              focus:outline-none focus:ring-0
-            `}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      setShowSearch(false);
-                      setSearchTerm("");
-                    }
-                  }}
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
+        {/* Header Section */}
+        <div className="flex items-center justify-end md:justify-between px-2 pb-3">
+          {/* Left-aligned Header */}
+          <h2 className="hidden md:inline text-header-2 text-primary-dark">
+            Auditions
+          </h2>
+
+          {/* Right-side controls (search + add button) */}
+          <div className="flex items-center justify-end gap-2 flex-1">
+            {/* Search bar */}
+            <div className="flex items-center max-w-xl w-full md:ml-6">
+              <div className="flex items-center transition-all duration-300 ease-in-out border rounded-full h-11 sm:h-13 overflow-hidden w-full border-gray-300 bg-white">
+                <div className="relative w-full flex items-center">
+                  <Search className="w-5 h-5 absolute left-4 text-gray-400" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search auditions"
+                    className="w-full h-9 pl-11 pr-8 text-md sm:text-lg bg-transparent focus:outline-none focus:ring-0"
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setSearchTerm("");
+                      }
+                    }}
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
+            {/* Add Button */}
             <Button
-              onClick={() => {
-                setShowSearch(!showSearch);
-                if (showSearch) setSearchTerm("");
-              }}
-              variant="primary"
-              size="lg"
-              icon={Search}
+              onClick={() => setIsModalOpen(true)}
+              variant="secondary"
+              size="xl"
+              icon={Plus}
               iconOnly={true}
-              className="h-12 w-12"
-              title="Search Auditions"
+              className="h-11 w-11 sm:h-13 sm:w-13 flex-shrink-0"
+              title="Add Audition"
             />
           </div>
-
-          {/* Add Button */}
-          <Button
-            onClick={() => setIsModalOpen(true)}
-            variant="primary"
-            size="lg"
-            icon={Plus}
-            iconOnly={true}
-            className="h-12 w-12"
-            title="Add Audition"
-          />
-        </div>
-
-        {/* Centered Header */}
-        <div className="flex items-center justify-center mt-15 sm:mt-10 mb-2">
-          <h2 className="text-header text-center">Audition Tracker</h2>
         </div>
 
         {auditionsData.length === 0 && (
@@ -774,13 +761,13 @@ function TrackerPageContent() {
             ) : null}
 
             {/* Main Content: Audition Table */}
-            <div className="flex-1 flex flex-col bg-[#F7F6F2] rounded-[30px] shadow-xl mt-6 mb-15 min-h-0">
+            <div className="flex-1 flex flex-col bg-transparent mt-3 min-h-0">
               {/* Scrollable Container for Header + Body */}
               <div className="hidden sm:block overflow-x-auto hide-scrollbar flex-1 min-h-0">
                 <div className="min-w-[1024px] h-full flex flex-col">
                   {/* Fixed Table Header */}
-                  <div className="sticky top-0 z-10 bg-[#F7F6F2] border-b border-gray-200 rounded-t-[30px]">
-                    <div className="flex pl-8 pr-8 py-5 text-left text-[13px] font-semibold text-primary-dark uppercase tracking-wider">
+                  <div className="sticky top-0 z-10 bg-[#E1DDCF] rounded-md">
+                    <div className="flex pl-8 pr-8 py-6 text-left text-[13px] font-semibold text-primary-dark uppercase tracking-wider">
                       <div
                         onClick={() => handleSort("date")}
                         className="flex-1 w-32 flex items-center gap-1 cursor-pointer hover:text-gray-700"
@@ -963,7 +950,7 @@ function TrackerPageContent() {
                                 transform: `translateY(${virtualRow.start}px)`,
                               }}
                             >
-                              <div className="flex items-center pl-8 pr-8 py-4 border-b border-gray-200 hover:bg-gray-200 transition-colors text-sm h-15 group">
+                              <div className="flex items-center pl-8 pr-8 py-4 border-b border-gray-300 hover:bg-black/5 transition-colors text-sm h-15 group">
                                 <motion.div
                                   className="flex items-center flex-1 min-w-0"
                                   // onClick={() => openModalWithData(audition)}
@@ -1132,7 +1119,7 @@ function TrackerPageContent() {
               </div>
 
               {/* Mobile cards */}
-              <div className="block sm:hidden overflow-y-auto px-4 pb-6 mt-6 hide-scrollbar">
+              <div className="block sm:hidden overflow-y-auto px-2 pb-6 hide-scrollbar">
                 {filteredAndSortedAuditions.map((audition) => (
                   <AuditionCard
                     key={audition.id}
@@ -1147,7 +1134,7 @@ function TrackerPageContent() {
               </div>
 
               {/* Footer */}
-              <div className="px-8 py-4 bg-[#F7F6F2] rounded-b-[30px] border-t border-gray-300 text-sm text-primary-dark text-center">
+              <div className="pb-10 pt-4 bg-transparent text-sm text-primary-dark text-center">
                 Currently tracking:
                 <span className="font-semibold ml-1.5">
                   {filteredAndSortedAuditions.length} total auditions

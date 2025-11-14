@@ -194,7 +194,7 @@ const LandingPage = () => {
             <hgroup className="flex flex-col items-center justify-center text-center py-5 mt-20 mb-30 md:mb-0">
               <h1
                 id="hero-heading"
-                className="font-crimson font-[400] md:font-[300] tracking-tight leading-tight text-black text-5xl sm:text-7xl md:text-[100px] max-w-[100%] sm:max-w-[700px] md:max-w-[900px]"
+                className="font-outfit font-[400] tracking-tight leading-tight text-black text-5xl sm:text-6xl md:text-7xl lg:text-8xl max-w-[100%] sm:max-w-[700px] md:max-w-[900px]"
               >
                 {/* Hidden for SEO and screen readers */}
                 <span className="sr-only">
@@ -206,7 +206,7 @@ const LandingPage = () => {
                   <span className="block mt-2">Stop asking your</span>
                   <span
                     aria-live="polite"
-                    className="w-60 md:w-100 flex items-center justify-center text-center mx-auto rounded-xl px-2"
+                    className="w-70 md:w-100 flex items-center justify-center text-center mx-auto rounded-xl px-2"
                     style={{ backgroundColor: "#7E8E6D" }}
                   >
                     <RotatingText
@@ -232,7 +232,7 @@ const LandingPage = () => {
                 </span>
               </h1>
 
-              <h2 className="mt-6 text-black font-inter text-xs sm:text-sm md:text-lg lg:text-lg text-center leading-tight">
+              <h2 className="mt-6 text-black font-outfit text-md sm:text-lg md:text-xl lg:text-2xl max-w-[90%] sm:max-w-[100%] text-center leading-tight">
                 <Highlighter action="underline" color="#FF9800">
                   Upload scripts
                 </Highlighter>
@@ -247,11 +247,11 @@ const LandingPage = () => {
                 all in one place.
               </h2>
 
-              <p className="mt-1 text-black text-xs font-inter sm:text-sm md:text-lg lg:text-lg max-w-[55%] leading-relaxed text-center break-words whitespace-normal">
+              <p className="mt-1 text-black font-outfit text-md sm:text-lg md:text-xl lg:text-2xl max-w-[55%] leading-relaxed text-center break-words whitespace-normal">
                 Jumpstart your acting career now!
               </p>
 
-              <div className="mt-15 md:mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+              <div className="mt-15 md:mt-10 flex flex-col sm:flex-row gap-3 justify-center">
                 <Link
                   href="https://docs.google.com/forms/d/e/1FAIpQLSe9THykmDJkTY1C2E7sdofD58M3UGKhKHKQQ_gUsoyPBM1jsQ/viewform?usp=dialog"
                   target="_blank"
@@ -302,8 +302,8 @@ const LandingPage = () => {
         >
           {/* Hidden for SEO and screen readers */}
           <div className="sr-only">
-            tableread is powered by industry-leading technology to power the AI
-            scene reader for life-life voices, smart script parsing, as well as
+            Odee is powered by industry-leading technology to power the AI scene
+            reader for life-life voices, smart script parsing, as well as
             audition tracking.
           </div>
 
@@ -331,8 +331,8 @@ const LandingPage = () => {
             /> */}
             <AnimatedBeamMultipleOutput isVisible={partnersReveal.isVisible} />
             <figcaption className="sr-only">
-              Technology partners powering tableread: ElevenLabs, OpenAI, and
-              Anthropic
+              Technology partners powering odee: ElevenLabs, OpenAI, Anthropic,
+              and Deepgram.
             </figcaption>
           </figure>
         </section>
@@ -353,7 +353,7 @@ const LandingPage = () => {
         >
           {/* Hidden for SEO and screen readers */}
           <div className="sr-only">
-            tableread offers four key features: practice anytime with AI scene
+            Odee offers four key features: practice anytime with AI scene
             partners, bring lines to life with emotional direction, command
             every moment with timing controls, and stay organized with audition
             tracking.
@@ -416,17 +416,17 @@ const LandingPage = () => {
         </section>
 
         <section
-          className="bg-black text-white py-20 md:py-28 w-screen relative left-[50%] right-[50%] -mx-[50vw] mb-10 sm:mb-25"
+          className="bg-black text-white py-30 md:py-40 w-screen mb-30"
           aria-label="Platform statistics"
         >
-          <div className="landing-section-container">
+          <div className="landing-section-container h-full flex flex-col justify-center">
             {/* Overline for context */}
-            <p className="text-center text-sm md:text-base text-gray-400 uppercase tracking-wider mb-4">
+            <p className="text-center text-lg md:text-xl text-gray-400 uppercase tracking-wider mb-4">
               Built for serious actors
             </p>
 
-            <h2 className="text-3xl md:text-5xl font-crimson font-light text-center mb-12 md:mb-16">
-              Why actors choose tableread
+            <h2 className="text-5xl md:text-7xl font-outfit font-light text-center mb-15 md:mb-20">
+              Why actors choose Odee
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 md:gap-16 text-center">
@@ -435,8 +435,8 @@ const LandingPage = () => {
                   24/7
                 </p>
                 <p className="text-base md:text-lg text-gray-300 leading-relaxed">
-                  Always available scene partner ready whenever you want to
-                  practice
+                  Always available scene partner ready to practice with you
+                  whenever, wherever you want
                 </p>
               </div>
               <div className="space-y-3">
@@ -444,7 +444,7 @@ const LandingPage = () => {
                   100+
                 </p>
                 <p className="text-base md:text-lg text-gray-300 leading-relaxed">
-                  Voice customization options to match any character or scene
+                  Voice customization options to match each character or scene
                   requirement
                 </p>
               </div>
@@ -456,8 +456,8 @@ const LandingPage = () => {
                   />
                 </div>
                 <p className="text-base md:text-lg text-gray-300 leading-relaxed">
-                  Unlimited rehearsal takes to perfect your performance without
-                  judgment
+                  Unlimited rehearsal takes to practice and perfect your
+                  performance without judgment
                 </p>
               </div>
             </div>
@@ -480,7 +480,7 @@ const LandingPage = () => {
         >
           {/* Hidden for SEO and screen readers */}
           <div className="sr-only">
-            {`This describes how to use tableread's key features: uploading your
+            {`This describes how to use Odee's key features: uploading your
             script, fine-tuning delivery of each line, entering the practice
             room for rehearsal, and tracking progress of your auditions.`}
           </div>
@@ -558,27 +558,27 @@ const LandingPage = () => {
           {/* FAQ Items */}
           <div className="landing-section-container lg:w-[60%] space-y-4">
             <FAQItem
-              question="What is tableread and how does it work?"
-              answer="tableread is your personal AI scene partner for script rehearsal and audition prep. Upload your script, customize how each line is delivered with emotional direction and timing controls, then step into your scene to practice whenever you're ready. Plus, track all your auditions in one organized dashboard so you never miss a beat in your acting career."
+              question="What is Odee and how does it work?"
+              answer="Odee is your personal AI scene partner for script rehearsal and audition prep. Upload your script, customize how each line is delivered with emotional direction and timing controls, then step into your scene to practice whenever you're ready. Plus, track all your auditions in one organized dashboard so you never miss a beat in your acting career."
             />
             <FAQItem
-              question="Do I need any special equipment to use tableread?"
+              question="Do I need any special equipment to use Odee?"
               answer="Not at all! All you need is a microphone and speakers or headphones. If you're on a laptop or desktop, your built-in mic and speakers work great to get started."
             />
             <FAQItem
-              question="Is tableread suitable for beginners or just professional actors?"
-              answer="tableread is perfect for actors at every stage! Whether you're just starting out and building confidence with your lines, or you're a working professional prepping for your next audition, tableread adapts to your needs and helps you grow."
+              question="Is Odee suitable for beginners or just professional actors?"
+              answer="Odee is perfect for actors at every stage! Whether you're just starting out and building confidence with your lines, or you're a working professional prepping for your next audition, ODee adapts to your needs and helps you grow."
             />
             <FAQItem
-              question="Can I use tableread on my phone or tablet?"
-              answer="While tableread works on mobile devices, we recommend using it on a computer or laptop for the best experience. The larger screen and full keyboard make script editing and rehearsal controls much easier to navigate."
+              question="Can I use Odee on my phone or tablet?"
+              answer="While Odee works on mobile devices, we recommend using it on a computer or laptop for the best experience. The larger screen and full keyboard make script editing and rehearsal controls much easier to navigate."
             />
             <FAQItem
               question="What kind of scripts can I upload?"
-              answer="You can upload any script in PDF or DOCX format, as long as it's 3MB or smaller. Whether it's a film scene, TV script, theater monologue, or audition sides, tableread is ready to help you rehearse."
+              answer="You can upload any script in PDF or DOCX format, as long as it's 3MB or smaller. Whether it's a film scene, TV script, theater monologue, or audition sides, Odee is ready to help you rehearse."
             />
             <FAQItem
-              question="Does tableread support multiple languages or accents?"
+              question="Does Odee support multiple languages or accents?"
               answer="Multiple languages and accents aren't available just yet, but they're definitely on our roadmap. We're working to bring these features to you in the future!"
             />
           </div>
@@ -600,7 +600,7 @@ const LandingPage = () => {
           >
             {/* Hidden for SEO and screen readers */}
             <div className="sr-only">
-              {`This is tableread's final call to action. Offering a free trial
+              {`This is Odee's final call to action. Offering a free trial
               for users who wish to sign up.`}
             </div>
 
@@ -639,7 +639,7 @@ const LandingPage = () => {
           <div className="flex flex-col sm:flex-row justify-between gap-8 mb-8">
             {/* Company Info */}
             <div className="max-w-xs">
-              <h3 className="landing-footer-heading">tableread</h3>
+              <h3 className="landing-footer-heading">odee</h3>
               <p className="text-slate-400 text-sm leading-relaxed">
                 AI-powered scene reader and audition tracker for actors.
                 Practice scripts, track auditions, and perfect your performance.
@@ -706,7 +706,7 @@ const LandingPage = () => {
                   </li>
                   <li>
                     <a
-                      href="mailto:[email protected]"
+                      href="mailto:hello@odee.io"
                       className="landing-footer-link"
                     >
                       Contact
@@ -722,7 +722,7 @@ const LandingPage = () => {
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
               {/* Copyright */}
               <p className="text-slate-400 text-xs sm:text-sm">
-                © {new Date().getFullYear()} tableread. All rights reserved.
+                © {new Date().getFullYear()} odee. All rights reserved.
               </p>
 
               {/* Legal links (add when ready) */}

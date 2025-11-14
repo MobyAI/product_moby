@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0.00 0.00 1024.00 1024.00">
-<rect width="1024" height="1024" fill="#000000"/>
-<path fill="#959474" d="
+<path fill="#000000" d="
   M 634.58 431.76
   Q 576.21 458.77 523.62 489.63
   Q 459.99 526.97 447.49 534.26
@@ -35,7 +34,7 @@
   Q 670.67 415.06 634.58 431.76
   Z"
 />
-<path fill="#c45c4c" d="
+<path fill="#000000" d="
   M 624.67 903.74
   Q 619.71 902.50 610.26 899.26
   Q 560.76 882.31 523.96 845.83
@@ -61,7 +60,7 @@
   Q 633.81 906.03 624.67 903.74
   Z"
 />
-<path fill="#f1e6d7" d="
+<path fill="#000000" d="
   M 423.74 813.32
   C 407.39 855.49 371.86 888.16 329.46 903.44
   Q 313.51 909.19 293.39 911.38

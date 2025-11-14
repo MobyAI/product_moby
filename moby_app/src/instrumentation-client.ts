@@ -1,8 +1,12 @@
 if (typeof window !== "undefined") {
   const path = window.location.pathname;
-  const isLanding = path === "/" || path.startsWith("/#");
+  const isExcluded =
+    path === "/" ||
+    path.startsWith("/#") ||
+    path === "/blog" ||
+    path.startsWith("/blog/");
 
-  if (!isLanding) {
+  if (!isExcluded) {
     window.addEventListener("load", () => {
       const init = async () => {
         const Sentry = await import("@sentry/nextjs"); // 🔥 dynamic import here

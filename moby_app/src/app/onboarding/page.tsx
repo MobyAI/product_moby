@@ -7,6 +7,7 @@ import { uploadHeadshot, uploadResume } from "@/lib/firebase/client/media";
 import { addUser } from "@/lib/firebase/client/user";
 import { auth } from "@/lib/firebase/client/config/app";
 import { UserProfile, ethnicities } from "@/types/profile";
+import LogoIcon from "@/components/ui/LogoIcon";
 import Image from "next/image";
 import ProgressBar from "./progressBar";
 import { motion } from "framer-motion";
@@ -50,7 +51,7 @@ const TypewriterText = ({
       {displayedText}
       {currentIndex < text.length && (
         <span
-          className="inline-block w-[2px] h-[1.2em] bg-primary-dark-alt ml-[1px] animate-blink absolute top-0"
+          className="inline-block w-[2px] h-[1.2em] bg-primary-dark ml-[1px] animate-blink absolute top-0"
           style={{ left: "100%" }}
         ></span>
       )}
@@ -561,9 +562,10 @@ function ChatOnboardingContent() {
   return (
     <div className="h-screen w-screen bg-primary-light-alt relative flex flex-col">
       {/* Logo */}
-      <h3 className="text-logo text-primary-dark z-100 absolute top-0 left-2">
-        tableread
-      </h3>
+      <h1 className="text-logo text-primary-dark z-100 absolute top-0 left-2 w-full flex items-center gap-2">
+        <LogoIcon variant="large" />
+        odee
+      </h1>
 
       {/* Progress Bar */}
       <ProgressBar
@@ -583,7 +585,7 @@ function ChatOnboardingContent() {
             <div ref={contentRef}>
               {/* Header as first message */}
               <div className="mb-8">
-                <div className="text-header-3 text-primary-dark-alt mb-2">
+                <div className="text-header-3 text-primary-dark mb-2">
                   {`Welcome! Let's get you set up.`}
                 </div>
               </div>
@@ -732,7 +734,7 @@ function ChatOnboardingContent() {
                                       !firstNameValue.trim() ||
                                       !lastNameValue.trim()
                                     }
-                                    className="px-5 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="px-5 py-3 bg-primary-dark text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                   >
                                     <ArrowRight className="w-5 h-5" />
                                   </button>
@@ -764,7 +766,7 @@ function ChatOnboardingContent() {
                                   <button
                                     onClick={handleSubmit}
                                     disabled={!inputValue.trim()}
-                                    className="px-5 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="px-5 py-3 bg-primary-dark text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                   >
                                     <ArrowRight className="w-5 h-5" />
                                   </button>
@@ -796,7 +798,7 @@ function ChatOnboardingContent() {
                                   <button
                                     onClick={handleSubmit}
                                     disabled={!inputValue.trim()}
-                                    className="px-5 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="px-5 py-3 bg-primary-dark text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                   >
                                     <ArrowRight className="w-5 h-5" />
                                   </button>
@@ -869,7 +871,7 @@ function ChatOnboardingContent() {
                                       parseInt(heightInches) < 0 ||
                                       parseInt(heightInches) >= 12
                                     }
-                                    className="px-5 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="px-5 py-3 bg-primary-dark text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                   >
                                     <ArrowRight className="w-5 h-5" />
                                   </button>
@@ -911,7 +913,7 @@ function ChatOnboardingContent() {
                                   <button
                                     onClick={handleEthnicitySubmit}
                                     disabled={selectedEthnicities.length === 0}
-                                    className="flex-1 flex items-center justify-center px-5 py-3 bg-primary-dark-alt text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="flex-1 flex items-center justify-center px-5 py-3 bg-primary-dark text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                   >
                                     <ArrowRight className="w-5 h-5" />
                                   </button>
@@ -971,7 +973,7 @@ function ChatOnboardingContent() {
                                           )
                                             handleBack();
                                         }}
-                                        className="flex-1 px-6 py-3 bg-primary-dark-alt text-white font-semibold rounded-lg hover:opacity-80 transition-colors"
+                                        className="flex-1 px-6 py-3 bg-primary-dark text-white font-semibold rounded-lg hover:opacity-80 transition-colors"
                                       >
                                         Skip for now
                                       </button>

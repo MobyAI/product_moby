@@ -140,8 +140,8 @@ export const DelaySelector: React.FC<DelaySelectorProps> = ({
                 }}
                 onBlur={() => setShowDelayDropdown(false)}
                 className={`cursor-pointer flex items-center text-sm px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all duration-200 ${isDarkMode
-                        ? "text-primary-dark-alt bg-primary-light"
-                        : "bg-primary-dark-alt text-primary-light"
+                        ? "text-primary-dark bg-primary-light"
+                        : "bg-primary-dark text-primary-light"
                     }`}
                 title="Add Delay"
                 disabled={updating}

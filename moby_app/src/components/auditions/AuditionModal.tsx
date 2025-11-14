@@ -469,13 +469,13 @@ const AuditionModal: React.FC<AuditionModalProps> = ({
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="flex-1 px-6 py-3 border border-bg-primary-dark-alt text-primary-dark-alt rounded-lg font-medium hover:cursor-pointer"
+                  className="flex-1 px-6 py-3 border border-bg-primary-dark text-primary-dark rounded-lg font-medium hover:cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-primary-dark-alt text-white px-6 py-3 rounded-lg font-medium hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex-1 bg-primary-dark text-white px-6 py-3 rounded-lg font-medium hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Update Audition
                 </button>
@@ -484,7 +484,7 @@ const AuditionModal: React.FC<AuditionModalProps> = ({
               <button
                 type="submit"
                 disabled={!requiredComplete}
-                className="flex-1 bg-primary-dark-alt text-white px-6 py-3 rounded-lg font-medium hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex-1 bg-primary-dark text-white px-6 py-3 rounded-lg font-medium hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Continue
               </button>
@@ -492,14 +492,14 @@ const AuditionModal: React.FC<AuditionModalProps> = ({
               <>
                 <button
                   type="submit"
-                  className="flex-1 w-[30%] px-6 py-3 border border-bg-primary-dark-alt text-primary-dark-alt rounded-lg font-medium hover:cursor-pointer"
+                  className="flex-1 w-[30%] px-6 py-3 border border-bg-primary-dark text-primary-dark rounded-lg font-medium hover:cursor-pointer"
                 >
                   Skip
                 </button>
                 <button
                   type="submit"
                   disabled={!hasAnyOptionalField}
-                  className="flex-1 w-[70%] bg-primary-dark-alt text-white px-6 py-3 rounded-lg font-medium hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex-1 w-[70%] bg-primary-dark text-white px-6 py-3 rounded-lg font-medium hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Save Audition
                 </button>
@@ -512,12 +512,12 @@ const AuditionModal: React.FC<AuditionModalProps> = ({
             <div className="flex justify-between items-center gap-2 mt-8 px-1">
               <div
                 className={`h-1 flex-1 transition-all duration-300 ${
-                  currentStage === 0 ? "bg-primary-dark-alt" : "bg-gray-300"
+                  currentStage === 0 ? "bg-primary-dark" : "bg-gray-300"
                 }`}
               />
               <div
                 className={`h-1 flex-1 transition-all duration-300 ${
-                  currentStage === 1 ? "bg-primary-dark-alt" : "bg-gray-300"
+                  currentStage === 1 ? "bg-primary-dark" : "bg-gray-300"
                 }`}
               />
             </div>

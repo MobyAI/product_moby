@@ -2,7 +2,7 @@
 title: "Cold Reading 101: Master the Art of Sight Reading Scripts"
 description: "Learn essential cold reading techniques that help you deliver confident auditions with minimal preparation time. Professional tips for thinking on your feet and making strong choices quickly."
 date: "2025-11-05"
-author: "TableRead Team"
+author: "Odee Team"
 category: "acting-techniques"
 tags: ["cold reading", "audition skills", "sight reading", "acting tips"]
 featured: false
@@ -435,7 +435,7 @@ This skill improves dramatically with practice. Here's your training plan:
 - AI scene partners can read opposite you instantly
 - Practice with different scene types and genres
 - Build confidence with unlimited rehearsal opportunities
-- Tools like TableRead let you upload any script and practice immediately
+- Tools like Odee let you upload any script and practice immediately
 
 **Record and review:**
 
@@ -550,6 +550,6 @@ Now go practice. Your next cold read opportunity is waiting.
 
 ## Build Your Cold Reading Skills
 
-TableRead helps you practice cold reading by letting you rehearse scripts with AI scene partners anytime. Upload new sides, practice sight reading with immediate feedback, and build confidence for any audition situation.
+Odee helps you practice cold reading by letting you rehearse scripts with AI scene partners anytime. Upload new sides, practice sight reading with immediate feedback, and build confidence for any audition situation.
 
-[Start practicing with TableRead →](https://www.tablereadnow.com)
+[Start practicing with Odee →](https://www.odee.io)

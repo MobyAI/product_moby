@@ -2,7 +2,7 @@ import { MetadataRoute } from "next";
 import { getAllBlogPosts } from "@/lib/blog";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://www.tablereadnow.com";
+  const baseUrl = "https://www.odee.io";
 
   const posts = getAllBlogPosts();
 

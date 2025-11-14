@@ -1,8 +1,8 @@
-# tableread
+# odee
 
 > AI-powered scene partner and audition tracker for professional actors
 
-tableread helps actors rehearse scripts with lifelike AI voices, manage auditions, and track their progress. Upload scripts, practice scenes line-by-line, and stay organized throughout your audition process.
+Odee helps actors rehearse scripts with lifelike AI voices, manage auditions, and track their progress. Upload scripts, practice scenes line-by-line, and stay organized throughout your audition process.
 
 ## Core Features
 
@@ -14,9 +14,9 @@ tableread helps actors rehearse scripts with lifelike AI voices, manage audition
 
 ## Pages
 
-- [Home](https://www.tablereadnow.com/): Platform overview and getting started
-- [Dashboard](https://www.tablereadnow.com/tracker): Main rehearsal and audition management interface
-- [Sign In](https://www.tablereadnow.com/signin): Access your account
+- [Home](https://www.odee.io/): Platform overview and getting started
+- [Dashboard](https://www.odee.io/tracker): Main rehearsal and audition management interface
+- [Sign In](https://www.odee.io/signin): Access your account
 - [Join Waitlist](https://docs.google.com/forms/d/e/1FAIpQLSe9THykmDJkTY1C2E7sdofD58M3UGKhKHKQQ_gUsoyPBM1jsQ/viewform): Request early access
 
 ## Use Cases
@@ -43,9 +43,9 @@ Professional actors, theater performers, acting students, and anyone preparing f
 
 ## Contact
 
-- **Email**: try.tableread@gmail.com
-- **Website**: https://www.tablereadnow.com
+- **Email**: hello@odee.io
+- **Website**: https://www.odee.io
 
 ---
 
-*Last updated: 2025-11-07*
+*Last updated: 2025-11-13*

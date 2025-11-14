@@ -15,6 +15,7 @@ import {
 import { handleLogout } from "@/lib/api/auth";
 import { auth } from "@/lib/firebase/client/config/app";
 import { useNavBarContext } from "@/components/layouts/NavBarShell";
+import LogoIcon from "./LogoIcon";
 
 type IconType = React.ComponentType<React.SVGProps<SVGSVGElement>>;
 
@@ -43,7 +44,7 @@ export default function NavBar() {
 
   // State to control when to show expanded content
   const [showExpandedContent, setShowExpandedContent] = useState(!isCollapsed);
-  const [logoText, setLogoText] = useState(isCollapsed ? "" : "tableread");
+  const [logoText, setLogoText] = useState(isCollapsed ? "" : "odee");
   const [isMobileView, setIsMobileView] = useState(false);
 
   // Auto collapse on smaller screens
@@ -76,7 +77,7 @@ export default function NavBar() {
         setShowExpandedContent(true);
 
         // Typewriter effect for logo
-        const text = "tableread";
+        const text = "odee";
         let currentIndex = 0;
 
         const typeTimer = setInterval(() => {
@@ -138,30 +139,34 @@ export default function NavBar() {
         <div className="flex flex-col w-full">
           {/* Logo */}
           <div
-            className={["mb-8", isCollapsed ? "px-2 text-center" : "pl-3"].join(
+            className={["mb-8", isCollapsed ? "px-2 text-center" : "pl-4"].join(
               " "
             )}
           >
-            {!isCollapsed ? (
-              <h1 className="text-logo text-primary-dark">
-                <span>{logoText}</span>
-                {/* Blinking cursor during typing */}
-                {logoText.length < 9 && (
-                  <span className="animate-pulse">|</span>
-                )}
-              </h1>
-            ) : (
-              <h1 className="text-4xl text-center">
-                <span className="text-logo text-primary-dark">tr</span>
-              </h1>
-            )}
+            <div
+              className={[
+                "flex items-center",
+                isCollapsed ? "justify-center" : "gap-2",
+              ].join(" ")}
+            >
+              <LogoIcon variant="regular" />
+              {!isCollapsed && (
+                <h1 className="text-logo text-black mt-1.5">
+                  <span>{logoText}</span>
+                  {/* Blinking cursor during typing */}
+                  {logoText.length < 4 && (
+                    <span className="animate-pulse">|</span>
+                  )}
+                </h1>
+              )}
+            </div>
           </div>
 
           {/* Navigation Links */}
           <nav
             className={[
-              "flex flex-col gap-1 w-full",
-              isCollapsed ? "px-2" : "pl-3 pr-3",
+              "flex flex-col gap-3 w-full",
+              isCollapsed ? "px-3" : "pl-3 pr-3",
             ].join(" ")}
           >
             {routes.map(({ href, label, icon: Icon }) => {
@@ -178,8 +183,8 @@ export default function NavBar() {
                   className={[
                     "group relative flex items-center gap-3 rounded-xl transition-all",
                     "w-full",
-                    isCollapsed ? "justify-center px-2 py-3" : "px-2 py-3",
-                    active ? "bg-primary-dark-alt" : "hover:bg-black/5",
+                    isCollapsed ? "justify-center px-2 py-3" : "px-3 py-3",
+                    active ? "bg-primary-dark" : "hover:bg-black/5",
                   ].join(" ")}
                 >
                   {/* Icon */}
@@ -196,7 +201,7 @@ export default function NavBar() {
                   {!isCollapsed && (
                     <span
                       className={[
-                        "font-medium text-base transition-opacity duration-150",
+                        "font-medium text-lg transition-opacity duration-150",
                         active
                           ? "text-primary-light"
                           : "text-black/80 group-hover:text-black",

@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { verifySession } from "@/lib/firebase/admin/auth/verifySession";
+import LogoIcon from "@/components/ui/LogoIcon";
 
 export default async function AuthLayout({
   children,
@@ -17,8 +18,9 @@ export default async function AuthLayout({
   return (
     <div className="h-screen h-dvh flex flex-col bg-[#EEEDE4]">
       {/* Logo */}
-      <div className="pl-5 pt-4">
-        <h1 className="text-logo text-primary-dark">tableread</h1>
+      <div className="pl-5 pt-4 w-full flex items-center gap-2">
+        <LogoIcon variant="large" />
+        <h1 className="text-logo-lg text-primary-dark mt-1.5">odee</h1>
       </div>
 
       {/* Main Content */}

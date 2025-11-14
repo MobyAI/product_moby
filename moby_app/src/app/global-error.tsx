@@ -5,7 +5,7 @@ import { useEffect } from "react";
 
 export default function GlobalError({
   error,
-  reset
+  reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
@@ -55,26 +55,13 @@ export default function GlobalError({
               fontSize: "0.95rem",
             }}
           >
-            {"We encountered an unexpected error. The issue has been reported and we'll look into it."}
+            {
+              "We encountered an unexpected error. The issue has been reported and we'll look into it."
+            }
           </p>
           <button
             onClick={() => reset()}
-            style={{
-              backgroundColor: "#8B8FC7",
-              color: "white",
-              border: "none",
-              padding: "0.75rem 2rem",
-              borderRadius: "6px",
-              fontSize: "1rem",
-              cursor: "pointer",
-              transition: "background-color 0.2s",
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = "#7B7FB7";
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.backgroundColor = "#8B8FC7";
-            }}
+            className="bg-black text-white py-3 px-8 rounded-md text-base cursor-pointer transition-colors hover:opacity-80"
           >
             Try Again
           </button>

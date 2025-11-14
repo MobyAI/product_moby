@@ -8,8 +8,9 @@
   /* Main colors */
   --primary-light: #fdfdfd;
   --primary-light-alt: #eeede4;
-  --primary-dark: #2e2e2e;
-  --primary-dark-alt: #363c54;
+  --primary-dark: #000000;
+  --primary-dark-alt: #c45c4c;
+  --primary-accent: #959474;
 
   /* Accent colors */
   --accent-purple: #9369ff;
@@ -23,6 +24,8 @@
   --color-foreground: var(--foreground);
   --font-inter: "Inter", sans-serif;
   --font-crimson: "Crimson Pro", serif;
+  --font-comfortaa: "Comfortaa", cursive;
+  --font-outfit: "Outfit", sans-serif;
 }
 
 html {
@@ -72,6 +75,10 @@ body {
 
   .bg-primary-dark-alt {
     background-color: var(--primary-dark-alt);
+  }
+
+  .bg-primary-accent {
+    background-color: var(--primary-accent);
   }
 
   /* Accent Backgrounds */
@@ -201,56 +208,56 @@ body {
 
   /* Typography - keeping your existing structure */
   .text-logo {
-    font-size: 2rem;
+    font-size: 2.2rem;
     line-height: 2.5rem;
     font-weight: 700;
-    font-family: var(--font-crimson);
+    font-family: var(--font-comfortaa);
   }
 
   .text-logo-lg {
     font-size: 2.5rem;
     line-height: 2.5rem;
     font-weight: 700;
-    font-family: var(--font-crimson);
+    font-family: var(--font-comfortaa);
   }
 
   .text-header {
-    font-size: 3.2rem;
+    font-size: 2.8rem;
     line-height: 2.5rem;
-    font-weight: 300;
-    font-family: var(--font-crimson);
+    font-weight: 600;
+    font-family: var(--font-outfit);
   }
 
   .text-header-2 {
     font-size: 2.3rem;
     line-height: 2.5rem;
-    font-weight: 400;
-    font-family: var(--font-crimson);
+    font-weight: 600;
+    font-family: var(--font-outfit);
   }
 
   .text-header-3 {
     font-size: 2rem;
     line-height: 2.5rem;
-    font-weight: 400;
-    font-family: var(--font-crimson);
+    font-weight: 600;
+    font-family: var(--font-outfit);
   }
 
   .text-body-large {
     font-size: 1.125rem;
     line-height: 1.75rem;
-    font-family: var(--font-crimson);
+    font-family: var(--font-outfit);
   }
 
   .text-body {
     font-size: 1rem;
     line-height: 1.5rem;
-    font-family: var(--font-crimson);
+    font-family: var(--font-outfit);
   }
 
   .text-body-small {
     font-size: 0.875rem;
     line-height: 1.25rem;
-    font-family: var(--font-crimson);
+    font-family: var(--font-outfit);
   }
 }
 
@@ -338,7 +345,7 @@ body {
   .landing-section-heading {
     font-size: 3.75rem; /* 60px */
     line-height: 1;
-    font-family: var(--font-crimson);
+    font-family: var(--font-outfit);
     font-weight: 300;
     letter-spacing: -0.025em;
     color: #000;
@@ -401,8 +408,8 @@ body {
 
   .landing-feature-title {
     font-size: 1.5rem;
-    font-family: var(--font-crimson);
-    font-weight: 700;
+    font-family: var(--font-outfit);
+    font-weight: 500;
     color: #000;
     line-height: 1.25;
   }
@@ -490,13 +497,13 @@ body {
   }
 
   .landing-cta-button:hover {
-    transform: scale(1.03);
+    transform: scale(1.05);
   }
 
   @media (min-width: 640px) {
     .landing-cta-button {
       padding: 0.875rem 1.75rem;
-      font-size: 17px;
+      font-size: 20px;
     }
   }
 

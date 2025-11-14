@@ -2,7 +2,7 @@
 title: "Audition Preparation Checklist: What Casting Directors Really Want to See"
 description: "Master your audition preparation with this comprehensive checklist. Learn what casting directors look for and how to stand out in the audition room with confidence and professionalism."
 date: "2025-11-03"
-author: "TableRead Team"
+author: "Odee Team"
 category: "audition-tips"
 tags: ["auditions", "casting", "preparation", "acting career"]
 featured: true
@@ -416,6 +416,6 @@ Now go book that job.
 
 ## Practice Your Audition Skills
 
-TableRead helps you prepare for auditions by letting you rehearse with AI scene partners anytime. Upload your sides, practice with realistic voices, and build confidence before the big day.
+Odee helps you prepare for auditions by letting you rehearse with AI scene partners anytime. Upload your sides, practice with realistic voices, and build confidence before the big day.
 
-[Start preparing with TableRead →](https://www.tablereadnow.com)
+[Start preparing with Odee →](https://www.odee.io)
