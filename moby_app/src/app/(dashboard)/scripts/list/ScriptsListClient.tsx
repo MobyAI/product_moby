@@ -26,11 +26,8 @@ import {
   RotateCcw,
   Search,
   X,
-  Play,
   Sparkles,
   Pin,
-  Calendar,
-  Clock,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Sentry from "@sentry/nextjs";
@@ -86,7 +83,6 @@ function ScriptsListContent() {
   const [isDragging, setIsDragging] = useState(false);
 
   // Search
-  const [showSearch, setShowSearch] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -284,7 +280,7 @@ function ScriptsListContent() {
   const pinnedScriptCards = useMemo(() => {
     const pinnedScripts = allScripts.filter((s) => s.pinned === true);
 
-    const cards = pinnedScripts.map((s, index) => {
+    const cards = pinnedScripts.map((s) => {
       const additionalStyles = "bg-[#E1DDCF] rounded-[30px]";
       return (
         <ScriptCard
@@ -353,38 +349,28 @@ function ScriptsListContent() {
   return (
     <DashboardLayout maxWidth={95}>
       {/* Header Section */}
-      <div className="flex items-center justify-between px-4">
-        {/* Left spacer for balance */}
-        <div className="flex-1"></div>
-
-        {/* Centered Header */}
-        <h2 className="text-header text-primary-dark text-center">Scripts</h2>
+      <div className="flex items-center justify-end md:justify-between px-2 pb-3">
+        {/* Left-aligned Header */}
+        <h2 className="hidden md:inline text-header-2 text-primary-dark">
+          Scripts
+        </h2>
 
         {/* Right-side controls (search + add button) */}
-        <div className="flex-1 flex items-center justify-end gap-2">
+        <div className="flex items-center justify-end gap-2 flex-1">
           {/* Search bar */}
-          <div className="flex items-center">
-            <div
-              className={`flex items-center transition-all duration-300 ease-in-out border rounded-full mr-2 h-12 overflow-hidden ${
-                showSearch
-                  ? "w-60 sm:w-90 border-gray-300 bg-white"
-                  : "w-0 border-transparent bg-transparent"
-              }`}
-            >
-              <div className="relative w-full">
+          <div className="flex items-center max-w-xl w-full md:ml-6">
+            <div className="flex items-center transition-all duration-300 ease-in-out border rounded-full h-11 sm:h-13 overflow-hidden w-full border-gray-300 bg-white">
+              <div className="relative w-full flex items-center">
+                <Search className="w-5 h-5 absolute left-4 text-gray-400" />
                 <input
                   ref={searchInputRef}
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search scripts"
-                  className={`
-              w-full h-9 px-4 pr-0 text-md bg-transparent
-              focus:outline-none focus:ring-0
-            `}
+                  className="w-full h-9 pl-11 pr-8 text-md sm:text-lg bg-transparent focus:outline-none focus:ring-0"
                   onKeyDown={(e) => {
                     if (e.key === "Escape") {
-                      setShowSearch(false);
                       setSearchTerm("");
                     }
                   }}
@@ -392,37 +378,23 @@ function ScriptsListContent() {
                 {searchTerm && (
                   <button
                     onClick={() => setSearchTerm("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-5 h-5" />
                   </button>
                 )}
               </div>
             </div>
-
-            <Button
-              onClick={() => {
-                setShowSearch(!showSearch);
-                if (showSearch) setSearchTerm("");
-                else setTimeout(() => searchInputRef.current?.focus(), 100);
-              }}
-              variant="primary"
-              size="lg"
-              icon={Search}
-              iconOnly={true}
-              className="h-12 w-12"
-              title="Search Scripts"
-            />
           </div>
 
           {/* Add Script Button */}
           <Button
             onClick={handleFileSelect}
             variant="secondary"
-            size="lg"
+            size="xl"
             icon={Plus}
             iconOnly={true}
-            className="h-12 w-12"
+            className="h-11 w-11 sm:h-13 sm:w-13 flex-shrink-0"
             title="Upload Script"
           />
         </div>
@@ -492,14 +464,13 @@ function ScriptsListContent() {
           </div>
 
           {/* Single column section that fills remaining space */}
-          <div className="flex-1 flex flex-col min-h-0">
-            {/* Collection - Centered with max width */}
-            <div className="flex-1 flex flex-col gap-4 min-h-0 max-w-2xl mx-auto w-full">
-              <div className="flex-1 bg-primary-accent rounded-[30px] py-8 px-13 flex flex-col min-h-0">
-                <h3 className="text-header-2 text-primary-light-alt mb-4">
-                  Your Collection
-                </h3>
-                <div className="flex-1 min-h-0">
+          <div className="flex-1 flex flex-col min-h-0 max-w-2xl mx-auto w-full">
+            <div className="flex-1 bg-primary-accent rounded-[30px] py-8 px-8 lg:px-13 flex flex-col min-h-0">
+              <h3 className="text-header-3 text-primary-light-alt mb-4">
+                {searchTerm.length > 0 ? "Search Results" : "Your Collection"}
+              </h3>
+              <div className="flex-1 min-h-0">
+                {visibleScripts.length > 0 ? (
                   <AnimatedList
                     items={visibleScripts}
                     handleDelete={handleDeleteClick}
@@ -511,7 +482,13 @@ function ScriptsListContent() {
                     savingItemId={pinnedItemId}
                     deletingItemId={deletingItemId}
                   />
-                </div>
+                ) : (
+                  <div className="h-full flex items-center justify-center">
+                    <p className="text-2xl font-semibold text-primary-light-alt">
+                      Nothing found... 😵‍💫
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

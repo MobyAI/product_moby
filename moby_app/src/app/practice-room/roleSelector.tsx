@@ -122,12 +122,12 @@ export function RoleSelector({
       <div className="space-y-3">
         {/* Current Role Display */}
         <div className="text-sm text-gray-200 flex flex-col items-start flex-wrap gap-2">
-          <span className="text-sm text-gray-600 font-semibold">
-            Role Selection:
+          <span className="text-primary-dark font-semibold">
+            Your Selection:
           </span>
           {currentUserRoles.length > 0 ? (
             <>
-              <span className="text-gray-600">
+              <span className="text-primary-dark">
                 {"You are reading for: "}
                 <br />
                 <span className="font-semibold text-blue-500">
@@ -136,7 +136,7 @@ export function RoleSelector({
               </span>
             </>
           ) : (
-            <span className="text-gray-600">You are not reading any roles</span>
+            <span className="text-primary-dark">You are not reading any roles</span>
           )}
         </div>
 
@@ -144,7 +144,7 @@ export function RoleSelector({
         <button
           onClick={() => setIsEditing(true)}
           disabled={disabled}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-sm text-gray-200 rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2 bg-primary-dark hover:opacity-90 text-sm text-gray-200 rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Edit2 className="w-4 h-4" />
           Change Roles
@@ -157,9 +157,9 @@ export function RoleSelector({
     <div className="space-y-4">
       {/* Edit Mode Header */}
       <div className="flex items-start gap-2">
-        <AlertCircle className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+        <AlertCircle className="w-4 h-4 text-primary-dark mt-0.5 flex-shrink-0" />
         <div className="text-sm text-gray-300">
-          <p className="font-semibold text-yellow-500">Select Your Roles</p>
+          <p className="font-semibold text-primary-dark">Select Your Roles</p>
         </div>
       </div>
 
@@ -179,7 +179,7 @@ export function RoleSelector({
                 disabled:opacity-50 disabled:cursor-not-allowed
                 ${
                     isSelected
-                    ? "bg-blue-600 text-white"
+                    ? "bg-blue-300 text-white"
                     : "bg-white text-gray-700 hover:bg-gray-100"
                 }
                 ${!isLast ? "border-b border-gray-200" : ""}
@@ -193,12 +193,12 @@ export function RoleSelector({
 
       {/* Preview of Changes */}
       {hasChanges && (
-        <div className="text-sm text-gray-600 rounded p-2">
+        <div className="text-sm text-primary-dark rounded p-2">
           {pendingUserRoles.length > 0 ? (
             <>
               You will read for:
               <br />
-              <span className="font-semibold text-blue-500">
+              <span className="font-semibold text-blue-400">
                 {pendingUserRoles.join(", ")}
               </span>
             </>
@@ -213,7 +213,7 @@ export function RoleSelector({
         <button
           onClick={handleConfirm}
           disabled={isSaving || !hasChanges}
-          className="flex-1 flex items-center justify-center gap-2 px-8 py-2 bg-gray-700 hover:bg-green-700 disabled:bg-gray-700 text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 flex items-center justify-center gap-2 px-8 py-2 bg-primary-dark hover:opacity-90 disabled:bg-primary-dark text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? (
             <>
@@ -231,7 +231,7 @@ export function RoleSelector({
         <button
           onClick={handleCancel}
           disabled={isSaving}
-          className="flex-1 flex items-center justify-center px-2 py-2 bg-gray-700 hover:bg-red-400 text-gray-200 rounded-lg transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 flex items-center justify-center px-2 py-2 bg-primary-dark hover:opacity-90 text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <X className="w-4 h-4" />
         </button>

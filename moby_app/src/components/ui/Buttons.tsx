@@ -4,7 +4,7 @@ import { LucideIcon } from "lucide-react";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 	variant?: "primary" | "secondary" | "accent" | "danger" | "ghost";
-	size?: "sm" | "md" | "lg";
+	size?: "sm" | "md" | "lg" | "xl";
 	children?: ReactNode;
 	icon?: LucideIcon;
 	iconPosition?: "left" | "right";
@@ -26,11 +26,12 @@ export function Button({
 	const iconSize = {
 		sm: "h-4 w-4",
 		md: "h-4.5 w-4.5",
-		lg: "h-5 w-5"
+		lg: "h-5 w-5",
+		xl: "h-6 w-6",
 	}[size];
 
 	// Base styles with 3D effect
-	const baseStyles = "font-medium rounded-full transition-all inline-flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden transform hover:scale-108 active:scale-95";
+	const baseStyles = "font-medium rounded-full transition-all inline-flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden transform hover:scale-105 active:scale-95";
 
 	// 3D shadow styles
 	const shadowStyles = "shadow-lg hover:shadow-xl";

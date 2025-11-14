@@ -15,6 +15,7 @@ import {
 import { handleLogout } from "@/lib/api/auth";
 import { auth } from "@/lib/firebase/client/config/app";
 import { useNavBarContext } from "@/components/layouts/NavBarShell";
+import LogoIcon from "./LogoIcon";
 
 type IconType = React.ComponentType<React.SVGProps<SVGSVGElement>>;
 
@@ -148,18 +149,9 @@ export default function NavBar() {
                 isCollapsed ? "justify-center" : "gap-2",
               ].join(" ")}
             >
-              <div className="bg-black rounded-lg w-12 h-12 flex items-center justify-center">
-                <Image
-                  src="/icon.svg"
-                  alt="Odee Logo"
-                  width={45}
-                  height={45}
-                  className="flex-shrink-0 rounded-xl"
-                  priority
-                />
-              </div>
+              <LogoIcon variant="regular" />
               {!isCollapsed && (
-                <h1 className="text-logo-lg text-black mt-1.5">
+                <h1 className="text-logo text-black mt-1.5">
                   <span>{logoText}</span>
                   {/* Blinking cursor during typing */}
                   {logoText.length < 4 && (

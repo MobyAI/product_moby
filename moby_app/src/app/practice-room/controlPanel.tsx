@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import type { ScriptElement } from "@/types/script";
 import { RoleSelector } from "./roleSelector";
+import LogoIcon from "@/components/ui/LogoIcon";
 
 type PanelType = "auto" | "roles" | "mode" | "fullscreen" | "drag" | null;
 
@@ -55,20 +56,18 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     <div className="flex h-screen bg-transparent relative">
       {/* Left Navigation Bar - Always visible */}
       <div className="w-20 bg-[#e1ddcf] border-r border-gray-200 flex flex-col items-center py-4 space-y-6 z-20">
-        <div className="text-logo text-[#363c54] cursor-default">
-          tr
-        </div>
+        <LogoIcon variant="regular" />
 
         <button
           onClick={() => handleNavClick("auto")}
           className={`p-2 rounded-lg transition-colors group relative
-            hover:bg-gray-200
-            ${activePanel === "auto" ? "bg-gray-200" : ""}
+            hover:bg-black/5
+            ${activePanel === "auto" ? "bg-black/5" : ""}
             `}
         >
-          <Clock className="w-5 h-5 text-gray-600 group-hover:text-gray-800" />
+          <Clock className="w-5 h-5 text-primary-dark group-hover:text-gray-800" />
           {!activePanel && (
-            <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-primary-dark-alt text-primary-light text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50">
+            <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-primary-dark text-primary-light text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50">
               Auto Advance
             </span>
           )}
@@ -77,13 +76,13 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         <button
           onClick={() => handleNavClick("roles")}
           className={`p-2 rounded-lg transition-colors group relative
-            hover:bg-gray-200
-            ${activePanel === "roles" ? "bg-gray-200" : ""}
+            hover:bg-black/5
+            ${activePanel === "roles" ? "bg-black/5" : ""}
             `}
         >
-          <User className="w-5 h-5 text-gray-600 group-hover:text-gray-800" />
+          <User className="w-5 h-5 text-primary-dark group-hover:text-gray-800" />
           {!activePanel && (
-            <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-primary-dark-alt text-primary-light text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50">
+            <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-primary-dark text-primary-light text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50">
               Role Change
             </span>
           )}
@@ -91,15 +90,15 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
         <button
           onClick={onToggleTheme}
-          className="p-2 rounded-lg hover:bg-gray-200 transition-colors group relative"
+          className="p-2 rounded-lg hover:bg-black/5 transition-colors group relative"
         >
           {isDarkMode ? (
-            <Moon className="w-5 h-5 text-gray-600 group-hover:text-gray-800" />
+            <Moon className="w-5 h-5 text-primary-dark group-hover:text-gray-800" />
           ) : (
-            <Sun className="w-5 h-5 text-gray-600 group-hover:text-gray-800" />
+            <Sun className="w-5 h-5 text-primary-dark group-hover:text-gray-800" />
           )}
           {!activePanel && (
-            <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-primary-dark-alt text-primary-light text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50">
+            <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-primary-dark text-primary-light text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50">
               {isDarkMode ? "Toggle Light Mode" : "Toggle Dark Mode"}
             </span>
           )}
@@ -107,11 +106,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
         <button
           onClick={onToggleFullscreen}
-          className="p-2 rounded-lg hover:bg-gray-200 transition-colors group relative"
+          className="p-2 rounded-lg hover:bg-black/5 transition-colors group relative"
         >
-          <Expand className="w-5 h-5 text-gray-600 group-hover:text-gray-800" />
+          <Expand className="w-5 h-5 text-primary-dark group-hover:text-gray-800" />
           {!activePanel && (
-            <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-primary-dark-alt text-primary-light text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50">
+            <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-primary-dark text-primary-light text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50">
               Fullscreen Mode
             </span>
           )}
@@ -119,11 +118,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
         <button
           onClick={onResetDrag}
-          className="p-2 rounded-lg hover:bg-gray-200 transition-colors group relative"
+          className="p-2 rounded-lg hover:bg-black/5 transition-colors group relative"
         >
-          <ListRestart className="w-5 h-5 text-gray-600 group-hover:text-gray-800" />
+          <ListRestart className="w-5 h-5 text-primary-dark group-hover:text-gray-800" />
           {!activePanel && (
-            <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-primary-dark-alt text-primary-light text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50">
+            <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-primary-dark text-primary-light text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50">
               Reset Custom Start/End
             </span>
           )}
@@ -131,11 +130,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
         <button
           onClick={onGoBack}
-          className="p-2 rounded-lg hover:bg-gray-200 transition-colors group relative"
+          className="p-2 rounded-lg hover:bg-black/5 transition-colors group relative"
         >
-          <DoorOpen className="w-5 h-5 text-gray-600 group-hover:text-gray-800" />
+          <DoorOpen className="w-5 h-5 text-primary-dark group-hover:text-gray-800" />
           {!activePanel && (
-            <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-primary-dark-alt text-primary-light text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50">
+            <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-primary-dark text-primary-light text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50">
               Exit
             </span>
           )}
@@ -152,16 +151,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       >
         {activePanel && (
           <>
-            <div className="flex items-center justify-between border-b border-gray-200 pb-4 mb-4">
-              <h3 className="text-sm font-medium text-gray-700">
+            <div className="flex items-center justify-between border-b border-gray-300 pb-4 mb-4">
+              <h3 className="text-lg font-base text-primary-dark">
                 {activePanel === "auto" && "Auto Advance"}
                 {activePanel === "roles" && "Role Selector"}
               </h3>
               <button
                 onClick={() => setActivePanel(null)}
-                className="p-1 hover:bg-gray-100 rounded"
+                className="p-1 hover:bg-black/5 rounded"
               >
-                <X className="w-4 h-4 text-gray-500" />
+                <X className="w-4 h-4 text-primary-dark" />
               </button>
             </div>
 
@@ -180,13 +179,13 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
             {/* Auto Advance Panel Content */}
             {activePanel === "auto" && (
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-primary-dark">
                 <label htmlFor="skipMs" className="sr-only">
                   Skip to next line delay
                 </label>
-                <div className="text-sm flex items-center flex-wrap gap-2">
+                <div className="text-sm text-primary-dark flex items-center flex-wrap gap-2">
                   <span className="font-semibold">Silence Detection:</span>
-                  <span className="text-gray-500">Auto advance after</span>
+                  <span>Auto advance after</span>
                   <select
                     id="skipMs"
                     value={skipMs}
@@ -200,7 +199,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     <option value={8000}>8s</option>
                     <option value={10000}>10s</option>
                   </select>
-                  <span className="text-gray-500">of silence.</span>
+                  <span className="text-primary-dark">of silence.</span>
                 </div>
               </div>
             )}

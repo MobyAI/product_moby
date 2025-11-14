@@ -4,7 +4,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { Menu, X } from "lucide-react";
 import type Lenis from "lenis";
-import LogoIcon from "@/app/icon.svg";
 
 // Adjustable scroll threshold (in pixels)
 const SCROLL_THRESHOLD: number = 50;
@@ -132,7 +131,7 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
                   }`}
                 >
                   <Image
-                    src={LogoIcon}
+                    src="/icon.svg"
                     alt="odee logo"
                     width={48}
                     height={48}

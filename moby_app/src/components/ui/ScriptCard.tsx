@@ -211,7 +211,7 @@ export function ScriptCard({
             setIsMenuOpen(!isMenuOpen);
           }}
           className={`p-3 rounded-full hover:cursor-pointer transition-colors ${
-            isMenuOpen ? "bg-white text-black" : "text-black hover:bg-white/10"
+            isMenuOpen ? "bg-white text-black" : "text-black hover:bg-black/5"
           }`}
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
         >
@@ -242,7 +242,7 @@ export function ScriptCard({
           {formatted && (
             <div className="flex items-center gap-2 text-sm">
               <span className="flex-shrink-0" title="Upload date">
-                <Calendar className="w-4 h-4" />
+                <Calendar className="w-4 h-4 text-primary-dark-alt" />
               </span>
               <span className="font-medium">{formatted}</span>
             </div>
@@ -250,7 +250,7 @@ export function ScriptCard({
 
           <div className="flex items-center gap-2 text-sm">
             <span className="flex-shrink-0" title="Last practiced">
-              <Clock className="w-4 h-4" />
+              <Clock className="w-4 h-4 text-primary-dark-alt" />
             </span>
             <span className="font-medium">{formattedLastPracticed ? formattedLastPracticed : "Not practiced yet"}</span>
           </div>

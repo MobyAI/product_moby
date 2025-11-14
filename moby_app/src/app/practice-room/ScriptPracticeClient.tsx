@@ -1825,8 +1825,8 @@ function RehearsalRoomContent() {
                     setEditingDirectionIndex(element.index);
                   }}
                   className={getThemeClass(
-                    "cursor-pointer text-sm bg-primary-dark-alt text-primary-light px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all",
-                    "cursor-pointer text-sm text-primary-dark-alt bg-primary-light px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all"
+                    "cursor-pointer text-sm bg-primary-dark text-primary-light px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all",
+                    "cursor-pointer text-sm text-primary-dark bg-primary-light px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all"
                   )}
                   title="Edit Line"
                 >
@@ -2044,8 +2044,8 @@ function RehearsalRoomContent() {
                         setEditingLineIndex(element.index);
                       }}
                       className={getThemeClass(
-                        "cursor-pointer text-sm bg-primary-dark-alt text-primary-light px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all",
-                        "cursor-pointer text-sm text-primary-dark-alt bg-primary-light px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all"
+                        "cursor-pointer text-sm bg-primary-dark text-primary-light px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all",
+                        "cursor-pointer text-sm text-primary-dark bg-primary-light px-3 py-1.5 rounded shadow-md hover:shadow-lg transition-all"
                       )}
                       title="Edit Line"
                     >
@@ -2178,7 +2178,7 @@ function RehearsalRoomContent() {
       <div
         className={getThemeClass(
           "h-[100%] flex relative bg-primary-light p-2",
-          "h-[100%] flex relative bg-primary-dark p-2"
+          "h-[100%] flex relative bg-[#2e2e2e] p-2"
         )}
       >
         {/* Left Control Panel - Floating/Absolute */}
@@ -2295,7 +2295,7 @@ function RehearsalRoomContent() {
           ref={contentAreaRef}
           className={`relative flex-1 flex flex-col overflow-hidden ${getThemeClass(
             "bg-primary-light",
-            "bg-primary-dark"
+            "bg-[#2e2e2e]"
           )}`}
         >
           <div className="max-w-4xl mx-auto h-full flex flex-col">

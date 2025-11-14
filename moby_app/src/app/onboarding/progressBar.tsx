@@ -66,7 +66,7 @@ export default function ProgressBar({
                       {isCurrent && !completed && (
                         <motion.div
                           key={`ring-${index}`}
-                          className="absolute w-3 h-3 rounded-full border-[3px] border-primary-dark-alt z-100"
+                          className="absolute w-3 h-3 rounded-full border-[3px] border-primary-dark z-100"
                         />
                       )}
                     </AnimatePresence>
@@ -80,7 +80,7 @@ export default function ProgressBar({
                         animate={{
                           borderColor:
                             isCompleted || isCurrent
-                              ? "rgb(54,60,84)"
+                              ? "rgb(0,0,0)"
                               : "rgba(153, 153, 153, 1)",
                         }}
                         transition={{
@@ -92,7 +92,7 @@ export default function ProgressBar({
                       {/* Fill circle */}
                       {isPast && (
                         <motion.div
-                          className="absolute inset-0 rounded-full bg-primary-dark-alt"
+                          className="absolute inset-0 rounded-full bg-primary-dark"
                           initial={{ scale: hasBeenAnimated ? 1 : 0 }}
                           animate={{ scale: 1 }}
                           transition={{
@@ -101,7 +101,7 @@ export default function ProgressBar({
                             ease: "easeOut",
                           }}
                           style={{
-                            backgroundColor: "rgb(54,60,84)",
+                            backgroundColor: "rgb(0,0,0)",
                             transformOrigin: "center",
                           }}
                         />

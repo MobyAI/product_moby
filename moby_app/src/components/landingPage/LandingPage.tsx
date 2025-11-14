@@ -426,7 +426,7 @@ const LandingPage = () => {
             </p>
 
             <h2 className="text-5xl md:text-7xl font-outfit font-light text-center mb-15 md:mb-20">
-              Why users choose Odee
+              Why actors choose Odee
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 md:gap-16 text-center">
