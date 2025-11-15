@@ -409,7 +409,7 @@ function ScriptsListContent() {
               <h3 className="text-header-2 text-primary-dark mb-3">
                 1. Upload Your First Script
               </h3>
-              <p className="text-primary-dark-alt mb-6">
+              <p className="text-primary-dark mb-6">
                 Get started by uploading a script to begin your rehearsal
                 journey.
               </p>
@@ -428,7 +428,7 @@ function ScriptsListContent() {
               <h3 className="text-header-2 text-primary-dark mb-3">
                 2. Start Rehearsing
               </h3>
-              <p className="text-primary-dark-alt">
+              <p className="text-primary-dark">
                 Once uploaded, press the play button to begin rehearsing your
                 script with our interactive practice tools and your personalized
                 scene partner.
@@ -440,7 +440,7 @@ function ScriptsListContent() {
               <h3 className="text-header-2 text-primary-dark mb-3">
                 3. Pin Your Favorites
               </h3>
-              <p className="text-primary-dark-alt">
+              <p className="text-primary-dark">
                 {`Pin scripts you're currently practicing or have upcoming
                 auditions for to keep them at the top of your collection for
                 easy access.`}

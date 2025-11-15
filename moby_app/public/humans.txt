@@ -11,7 +11,7 @@ and organize every audition in one place.
 /* TECHNOLOGY */
 Built with: Next.js, TypeScript, Firebase, OpenAI, Anthropic, ElevenLabs, Deepgram
 Hosted on: Vercel
-Website: https://www.odee.io
+Website: https://odee.io
 Contact: hello@odee.io
 
 /* THANKS */

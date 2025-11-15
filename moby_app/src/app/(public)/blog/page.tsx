@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     description:
       "Expert acting tips, audition preparation guides, and rehearsal techniques for actors.",
     type: "website",
-    url: "https://www.odee.io/blog",
+    url: "https://odee.io/blog",
   },
   twitter: {
     card: "summary_large_image",
@@ -21,13 +21,13 @@ export const metadata: Metadata = {
     site: "@odee_io",
   },
   alternates: {
-    canonical: "https://www.odee.io/blog",
+    canonical: "https://odee.io/blog",
   },
 };
 
 export default function BlogPage() {
   const posts = getAllBlogPosts();
-  const baseUrl = "https://www.odee.io";
+  const baseUrl = "https://odee.io";
 
   // Blog Schema
   const blogSchema = {

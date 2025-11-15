@@ -4,8 +4,8 @@ export const odeeJsonLd = {
   name: "odee",
   alternateName:
     "Odee — Audition & Rehearsal Platform Built for Actors",
-  url: "https://www.odee.io",
-  image: "https://www.odee.io/icon.png",
+  url: "https://odee.io",
+  image: "https://odee.io/icon.png",
   // screenshot: "https://odee.io/screenshot.png",
   operatingSystem: "Web",
   applicationCategory: "MultimediaApplication",
@@ -28,15 +28,15 @@ export const odeeJsonLd = {
   author: {
     "@type": "Organization",
     name: "Odee",
-    url: "https://www.odee.io",
+    url: "https://odee.io",
   },
   publisher: {
     "@type": "Organization",
-    "@id": "https://www.odee.io#organization",
+    "@id": "https://odee.io#organization",
     name: "Odee",
     logo: {
       "@type": "ImageObject",
-      url: "https://www.odee.io/icon.png",
+      url: "https://odee.io/icon.png",
     },
   },
   featureList: [
@@ -54,12 +54,12 @@ export const odeeJsonLd = {
 export const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  "@id": "https://www.odee.io#organization",
+  "@id": "https://odee.io#organization",
   name: "Odee",
-  url: "https://www.odee.io",
+  url: "https://odee.io",
   logo: {
     "@type": "ImageObject",
-    url: "https://www.odee.io/icon.png",
+    url: "https://odee.io/icon.png",
     width: 512,
     height: 512,
   },
@@ -81,20 +81,20 @@ export const organizationJsonLd = {
 export const websiteJsonLd = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  "@id": "https://www.odee.io#website",
-  url: "https://www.odee.io",
+  "@id": "https://odee.io#website",
+  url: "https://odee.io",
   name: "Odee",
   description:
     "AI-powered rehearsal and audition management platform for actors",
   publisher: {
-    "@id": "https://www.odee.io#organization",
+    "@id": "https://odee.io#organization",
   },
   inLanguage: "en-US",
   // potentialAction: {
   //   "@type": "SearchAction",
   //   target: {
   //     "@type": "EntryPoint",
-  //     urlTemplate: "https://www.odee.io/search?q={search_term_string}",
+  //     urlTemplate: "https://odee.io/search?q={search_term_string}",
   //   },
   //   "query-input": "required name=search_term_string",
   // },

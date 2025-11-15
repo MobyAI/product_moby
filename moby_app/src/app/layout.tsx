@@ -10,7 +10,7 @@ import {
 import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.odee.io"),
+  metadataBase: new URL("https://odee.io"),
   title: {
     template: "%s — Odee",
     default: "Odee",

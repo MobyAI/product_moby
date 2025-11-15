@@ -190,7 +190,7 @@ export default function SignupPage() {
               <button
                 onClick={handleEmailSubmit}
                 disabled={loading}
-                className="w-full py-3 rounded-lg bg-primary-dark-alt font-semibold text-white transition-colors flex items-center justify-center space-x-2 hover:opacity-90"
+                className="w-full py-3 rounded-lg bg-primary-dark font-semibold text-white transition-colors flex items-center justify-center space-x-2 hover:opacity-90"
               >
                 <span>Continue with Email</span>
                 <ArrowRight className="w-5 h-5" />
@@ -389,7 +389,7 @@ export default function SignupPage() {
             <button
               onClick={handlePasswordSubmit}
               disabled={loading || !isPasswordValid}
-              className="w-full py-3 rounded-lg bg-primary-dark-alt font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 rounded-lg bg-primary-dark font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Create Account
             </button>

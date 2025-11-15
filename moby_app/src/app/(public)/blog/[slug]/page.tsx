@@ -2,7 +2,7 @@ import { getBlogPost, getAllBlogPosts } from "@/lib/blog";
 import { Metadata } from "next";
 import BlogPostClient from "./BlogPostClient";
 
-const baseUrl = "https://www.odee.io";
+const baseUrl = "https://odee.io";
 
 export async function generateStaticParams() {
   const posts = getAllBlogPosts();
