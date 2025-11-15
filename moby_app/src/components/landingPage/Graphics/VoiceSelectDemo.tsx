@@ -51,7 +51,8 @@ export default function VoiceSelectionDemo() {
         setIsTyping(true);
       }
     }
-  }, [displayedText, isTyping, currentNameIndex, characterNames]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayedText, isTyping, currentNameIndex]);
 
   useEffect(() => {
     audioRef.current = new Audio("/jessica.mp3");

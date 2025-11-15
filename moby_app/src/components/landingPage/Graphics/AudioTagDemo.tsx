@@ -143,6 +143,7 @@ export default function AudioTagDemo() {
       isCancelled = true;
       isAnimatingRef.current = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [animationKey]);
 
   return (
@@ -182,7 +183,7 @@ export default function AudioTagDemo() {
             </motion.div>
           </div>
           <p className="text-xs text-primary-dark/60 mt-2">
-            Add "audio tags" to fine-tune the delivery of each line
+            {`Add "audio tags" to fine-tune the delivery of each line`}
           </p>
         </div>
       </div>

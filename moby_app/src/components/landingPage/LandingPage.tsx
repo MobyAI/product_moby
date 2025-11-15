@@ -19,10 +19,6 @@ import VoiceSelectDemo from "./Graphics/VoiceSelectDemo";
 import AudioTagDemo from "./Graphics/AudioTagDemo";
 import AuditionTrackerDemo from "./Graphics/AuditionTrackerDemo";
 import {
-  Headphones,
-  Gauge,
-  TrendingUp,
-  Sparkles,
   ChevronsDown,
   Infinity,
 } from "lucide-react";

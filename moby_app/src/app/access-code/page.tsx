@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { auth } from "@/lib/firebase/client/config/app";
 import { sendSessionLogin, handleLogout } from "@/lib/api/auth";
-import { DivideCircle, MoveRight } from "lucide-react";
+import { MoveRight } from "lucide-react";
 import BetaAccessRequestModal from "./requestModal";
 import LogoIcon from "@/components/ui/LogoIcon";
 
