@@ -17,7 +17,7 @@ const FAQItem = ({
       itemScope
       itemProp="mainEntity"
       itemType="https://schema.org/Question"
-      className="border-b border-black pb-4"
+      className="border-b border-white/30 pb-4"
     >
       <details open={isOpen}>
         <summary
@@ -30,18 +30,18 @@ const FAQItem = ({
         >
           <h3
             itemProp="name"
-            className="text-lg sm:text-xl lg:text-2xl font-outfit font-semibold text-black"
+            className="text-lg sm:text-xl lg:text-2xl font-outfit font-semibold text-white"
           >
             {question}
           </h3>
           <div className="flex-shrink-0 relative w-6 h-6">
             <Plus
-              className={`absolute inset-0 w-6 h-6 text-black transition-all duration-300 ${
+              className={`absolute inset-0 w-6 h-6 text-white transition-all duration-300 ${
                 isOpen ? "rotate-90 opacity-0" : "rotate-0 opacity-100"
               }`}
             />
             <Minus
-              className={`absolute inset-0 w-6 h-6 text-black transition-all duration-300 ${
+              className={`absolute inset-0 w-6 h-6 text-white transition-all duration-300 ${
                 isOpen ? "rotate-0 opacity-100" : "rotate-90 opacity-0"
               }`}
             />
@@ -57,7 +57,7 @@ const FAQItem = ({
         >
           <p
             itemProp="text"
-            className="text-sm sm:text-base lg:text-lg text-black leading-relaxed pt-2 pb-4"
+            className="text-sm sm:text-base lg:text-lg text-white leading-relaxed pt-2 pb-4"
           >
             {answer}
           </p>

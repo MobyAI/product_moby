@@ -126,22 +126,22 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
                 <div
                   className={`transition-all duration-500 ease-out rounded-xl overflow-hidden ${
                     scrolled
-                      ? "translate-x-16 lg:translate-x-24 delay-500"
+                      ? "translate-x-14 lg:translate-x-18 delay-500"
                       : "translate-x-0 delay-0"
                   }`}
                 >
                   <Image
                     src="/icon.svg"
                     alt="odee logo"
-                    width={48}
-                    height={48}
-                    className="w-12 h-12 lg:w-16 lg:h-16"
+                    width={45}
+                    height={45}
+                    className="w-12 h-12 lg:w-14 lg:h-14"
                   />
                 </div>
 
                 {/* Text - fades out and shifts up when scrolled */}
                 <span
-                  className={`font-comfortaa font-extrabold text-[2.5rem] lg:text-[3.75rem] leading-tight tracking-tight transition-all duration-500 ease-out ${
+                  className={`font-comfortaa font-bold text-primary-dark text-[2.5rem] lg:text-[3.25rem] mt-1 leading-tight tracking-tight transition-all duration-500 ease-out ${
                     scrolled
                       ? "opacity-0 -translate-y-3 pointer-events-none"
                       : "opacity-100 translate-y-0 delay-300"
@@ -160,12 +160,12 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
 
             {/* Right section - Login Button */}
             <nav className="hidden md:flex items-center justify-end gap-4 flex-1">
-              <AnimatedButton variant="ghost" href="/signup">
+              <AnimatedButton variant="ghost" href="/login">
                 Login
               </AnimatedButton>
               <AnimatedButton
                 variant="primary"
-                href="https://docs.google.com/forms/d/e/1FAIpQLSe9THykmDJkTY1C2E7sdofD58M3UGKhKHKQQ_gUsoyPBM1jsQ/viewform?usp=dialog"
+                href="/signup"
               >
                 Get Started
               </AnimatedButton>

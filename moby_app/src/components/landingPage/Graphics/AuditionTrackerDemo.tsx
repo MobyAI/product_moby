@@ -91,12 +91,12 @@ export default function AuditionTrackerDemo() {
   };
 
   return (
-    <div className="w-full max-w-xl aspect-[2.5/1] bg-primary-light-alt rounded-xl overflow-hidden relative">
+    <div className="w-full max-w-md xl:max-w-lg aspect-[1.5/1] xl:aspect-[2/1] bg-primary-light-alt rounded-xl overflow-hidden relative">
       {/* Container with padding */}
       <div className="h-full flex flex-col justify-center relative px-8 py-6 gap-4">
         {/* Header */}
-        <h3 className="text-2xl font-semibold text-primary-dark ml-1">
-          Track Your Auditions
+        <h3 className="hidden sm:inline text-2xl font-semibold text-primary-dark ml-1">
+          Audition Tracker
         </h3>
 
         {/* Mini Table */}

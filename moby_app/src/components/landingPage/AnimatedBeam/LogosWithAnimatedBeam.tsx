@@ -23,7 +23,7 @@ const Circle = forwardRef<
     <motion.div
       ref={ref}
       className={cn(
-        "flex items-center justify-center border-2 border-black bg-white shadow-[0_15px_40px_-15px_rgba(0,0,0,1)] relative overflow-visible origin-center",
+        "flex items-center justify-center border-2 border-black bg-primary-light-alt shadow-[0_15px_40px_-15px_rgba(0,0,0,1)] relative overflow-visible origin-center",
         className
       )}
       style={{

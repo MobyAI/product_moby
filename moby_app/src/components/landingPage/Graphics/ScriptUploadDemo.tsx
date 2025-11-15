@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import { motion, useAnimation } from "framer-motion";
-import { Pointer, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 
 export default function ScriptUploadDemo() {
   const fileDragControls = useAnimation();
@@ -88,7 +89,7 @@ export default function ScriptUploadDemo() {
   }, [animationKey, fileDragControls, scriptBounceControls]);
 
   return (
-    <div className="w-full max-w-xl aspect-[2.5/1] bg-primary-light-alt rounded-xl overflow-hidden relative">
+    <div className="w-full max-w-md xl:max-w-lg aspect-[1.5/1] xl:aspect-[2/1] bg-primary-light-alt rounded-xl overflow-hidden relative">
       {/* Container with padding */}
       <div className="h-full flex flex-col items-center justify-center relative">
         {/* Upload Drop Zone */}
@@ -138,10 +139,12 @@ export default function ScriptUploadDemo() {
                   />
                 </svg>
                 {/* Pointer hand cursor - white filled with black stroke */}
-                <Pointer
-                  className="absolute bottom-0 right-0 translate-x-1/3 translate-y-1/3 fill-white stroke-gray-900"
-                  size={36}
-                  strokeWidth={2}
+                <Image
+                  src="/cursor-pointer.png"
+                  alt="Cursor pointer"
+                  width={36}
+                  height={36}
+                  className="absolute bottom-0 right-0 translate-x-1/3 translate-y-1/3"
                 />
               </motion.div>
             </div>
@@ -151,7 +154,7 @@ export default function ScriptUploadDemo() {
               <motion.div animate={scriptBounceControls}>
                 <div className="relative">
                   {/* Script icon with filled background - smaller */}
-                  <svg className="w-20 h-20" viewBox="0 0 24 24" fill="none">
+                  <svg className="w-16 h-16" viewBox="0 0 24 24" fill="none">
                     <rect
                       x="4"
                       y="2"
