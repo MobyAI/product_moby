@@ -672,10 +672,10 @@ function TrackerPageContent() {
                   <h3 className="text-header-2 text-primary-dark mb-3">
                     1. Add New Audition
                   </h3>
-                  <p className="text-primary-dark-alt">
+                  <p className="text-primary-dark">
                     Start tracking your auditions by adding your first entry.
                   </p>
-                  <p className="text-primary-dark-alt mb-6">
+                  <p className="text-primary-dark mb-6">
                     Record important details and keep everything organized in
                     one place.
                   </p>
@@ -694,7 +694,7 @@ function TrackerPageContent() {
                   <h3 className="text-header-2 text-primary-dark mb-3">
                     2. View & Organize
                   </h3>
-                  <p className="text-primary-dark-alt">
+                  <p className="text-primary-dark">
                     All your auditions are displayed in an easy-to-read table.
                     Use the filter options to narrow down by type or status,
                     sort by date or project, and quickly search to find exactly
@@ -707,7 +707,7 @@ function TrackerPageContent() {
                   <h3 className="text-header-2 text-primary-dark mb-3">
                     3. Track Your Progress
                   </h3>
-                  <p className="text-primary-dark-alt">
+                  <p className="text-primary-dark">
                     Click any audition to view full details and update its
                     status as you move through the process—from submitted to
                     booked! Stay on top of every opportunity and never miss a

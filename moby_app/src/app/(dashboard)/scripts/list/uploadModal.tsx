@@ -1708,14 +1708,14 @@ const RoleVoiceAssignment = ({
                 key={sample.voiceId}
                 onClick={() => handleSelectVoice(sample)}
                 className={`
-        w-55 h-50 p-5 rounded-2xl cursor-pointer transition-all duration-300
-        bg-[#A8A8A8]/10 hover:bg-[#A8A8A8]/20 flex flex-col justify-between
-        ${
-          selectedVoiceId === sample.voiceId
-            ? "ring-2 ring-primary-dark-alt"
-            : ""
-        }
-      `}
+                  w-55 h-50 p-5 rounded-2xl cursor-pointer transition-all duration-300
+                  bg-[#A8A8A8]/10 hover:bg-[#A8A8A8]/20 flex flex-col justify-between
+                  ${
+                    selectedVoiceId === sample.voiceId
+                      ? "ring-2 ring-primary-dark-alt"
+                      : ""
+                  }
+                `}
               >
                 {/* Top section: Name + Description */}
                 <div>
@@ -1740,9 +1740,9 @@ const RoleVoiceAssignment = ({
                     handlePlay(sample.url, e);
                   }}
                   className={`
-          self-center flex items-center justify-center w-8 h-8 rounded-full cursor-pointer hover:scale-105 active:scale-95
-          transition-all duration-300 text-white font-medium bg-primary-dark shadow-md
-        `}
+                    self-center flex items-center justify-center w-8 h-8 rounded-full cursor-pointer hover:scale-105 active:scale-95
+                    transition-all duration-300 text-white font-medium bg-primary-dark shadow-md
+                  `}
                 >
                   {playingUrl === sample.url ? (
                     <Pause className="w-3.5 h-3.5" />

@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import LandingPage from "@/components/landingPage/LandingPage";
 
-const siteUrl = new URL("https://www.odee.io");
+const siteUrl = new URL("https://odee.io");
 
 export const metadata: Metadata = {
   title: "Odee — Audition & Rehearsal Platform Built for Actors",
   description:
     "AI-powered scene reader and audition tracker. Rehearse scripts with your own personal scene partner, fine-tune delivery of each line, and track auditions all in one place.",
   metadataBase: siteUrl,
+  alternates: {
+    canonical: "https://odee.io",
+  },
   keywords: [
     "acting audition tracker",
     "scene reader AI",

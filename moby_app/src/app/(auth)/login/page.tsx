@@ -220,7 +220,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-lg bg-primary-dark-alt font-semibold text-white transition-colors hover:opacity-90"
+            className="w-full py-3 rounded-lg bg-primary-dark font-semibold text-white transition-colors hover:opacity-90"
           >
             Set Password
           </button>
@@ -292,7 +292,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 mt-2 rounded-lg bg-primary-dark-alt font-semibold text-white transition-colors hover:opacity-90"
+            className="w-full py-3 mt-2 rounded-lg bg-primary-dark font-semibold text-white transition-colors hover:opacity-90"
           >
             Sign In
           </button>

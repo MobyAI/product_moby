@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { auth } from "@/lib/firebase/client/config/app";
 import { sendSessionLogin, handleLogout } from "@/lib/api/auth";
-import { MoveRight } from "lucide-react";
+import { DivideCircle, MoveRight } from "lucide-react";
 import BetaAccessRequestModal from "./requestModal";
+import LogoIcon from "@/components/ui/LogoIcon";
 
 interface RedeemBetaCodeResult {
   success: boolean;
@@ -108,16 +109,15 @@ export default function BetaCodePage() {
   return (
     <>
       {/* Logo */}
-      <h3 className="text-logo text-primary-dark z-50 absolute top-4 left-5">
+      <div className="text-logo text-primary-dark z-100 absolute top-0 left-2 w-full flex items-center gap-2">
+        <LogoIcon variant="large" />
         odee
-      </h3>
+      </div>
 
       <div className="w-full max-w-md mx-auto space-y-8">
         {/* Header */}
         <div className="text-start space-y-4">
-          <h1 className="text-header text-primary-dark">
-            Welcome to Odee!
-          </h1>
+          <h1 className="text-header text-primary-dark">Welcome to Odee!</h1>
           <p className="text-gray-600">
             Enter your exclusive code to get early access
           </p>

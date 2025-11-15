@@ -13,7 +13,11 @@ import { AnimatedBeamMultipleOutput } from "@/components/landingPage/AnimatedBea
 import ScrollStack, {
   ScrollStackItem,
 } from "@/components/landingPage/ScrollStack";
-import FAQItem from "./FAQItem";
+import FAQItem from "@/components/landingPage/FAQItem";
+import ScriptUploadDemo from "./Graphics/ScriptUploadDemo";
+import VoiceSelectDemo from "./Graphics/VoiceSelectDemo";
+import AudioTagDemo from "./Graphics/AudioTagDemo";
+import AuditionTrackerDemo from "./Graphics/AuditionTrackerDemo";
 import {
   Headphones,
   Gauge,
@@ -97,7 +101,7 @@ const LandingPage = () => {
     {
       id: "practice",
       media: {
-        node: <Headphones className="w-8 h-8 xl:w-10 xl:h-10 text-white" />,
+        node: <ScriptUploadDemo />,
       },
       title: "Practice anytime, anywhere",
       description:
@@ -106,7 +110,7 @@ const LandingPage = () => {
     {
       id: "speech",
       media: {
-        node: <Sparkles className="w-8 h-8 xl:w-10 xl:h-10 text-white" />,
+        node: <VoiceSelectDemo />,
       },
       title: "Bring every line to life",
       description:
@@ -114,7 +118,7 @@ const LandingPage = () => {
     },
     {
       id: "control",
-      media: { node: <Gauge className="w-8 h-8 xl:w-10 xl:h-10 text-white" /> },
+      media: { node: <AudioTagDemo /> },
       title: "Command every moment",
       description:
         "Shape every detail of your scene with professional-level control. Adjust pauses, pacing, and dialogue delivery down to the second for flawless, personalized rehearsals. Practice your timing and perfect your reactions, and build chemistry with your virtual scene partner for audition-ready performances.",
@@ -122,7 +126,7 @@ const LandingPage = () => {
     {
       id: "track",
       media: {
-        node: <TrendingUp className="w-8 h-8 xl:w-10 xl:h-10 text-white" />,
+        node: <AuditionTrackerDemo />,
       },
       title: "Stay organized, stay ahead",
       description:
@@ -385,7 +389,10 @@ const LandingPage = () => {
             stackPosition="30%"
           >
             {features.map((feature) => (
-              <ScrollStackItem key={feature.id} itemClassName="bg-white">
+              <ScrollStackItem
+                key={feature.id}
+                itemClassName="bg-primary-light-alt"
+              >
                 <article className="flex flex-col md:flex-row md:items-center gap-6 md:gap-10 lg:gap-14 h-full">
                   {/* Hidden description for SEO */}
                   <span className="sr-only">
@@ -393,11 +400,13 @@ const LandingPage = () => {
                   </span>
 
                   {/* Icon/Media Section */}
-                  <div className="flex-shrink-0">
+                  {/* <div className="flex-shrink-0">
                     <div className="landing-feature-icon">
                       {feature.media?.node}
                     </div>
-                  </div>
+                  </div> */}
+
+                  {feature.media?.node}
 
                   {/* Content Section */}
                   <div className="flex-1 space-y-3 md:space-y-4">
