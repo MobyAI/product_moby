@@ -7,7 +7,7 @@ import { Highlighter } from "@/components/ui/highlighter";
 import RotatingText from "@/components/landingPage/RotatingText/RotatingText";
 // import FeatureShowcase from "@/components/landingPage/FeatureCardsNew/FeatureCards";
 import Link from "next/link";
-import HorizontalStepGuide from "@/components/landingPage/StepGuide/HorizontalStepGuide";
+// import HorizontalStepGuide from "@/components/landingPage/StepGuide/HorizontalStepGuide";
 // import SplashCursor from "@/components/landingPage/AnimatedCursor";
 import { AnimatedBeamMultipleOutput } from "@/components/landingPage/AnimatedBeam/LogosWithAnimatedBeam";
 import ScrollStack, {
@@ -18,10 +18,7 @@ import ScriptUploadDemo from "./Graphics/ScriptUploadDemo";
 import VoiceSelectDemo from "./Graphics/VoiceSelectDemo";
 import AudioTagDemo from "./Graphics/AudioTagDemo";
 import AuditionTrackerDemo from "./Graphics/AuditionTrackerDemo";
-import {
-  ChevronsDown,
-  Infinity,
-} from "lucide-react";
+import { ChevronsDown, Infinity } from "lucide-react";
 import { useScrollReveal } from "@/components/landingPage/useScrollReveal";
 
 export type Feature = {
@@ -88,9 +85,11 @@ const LandingPage = () => {
   // Scroll reveal hook settings
   const partnersReveal = useScrollReveal(0.1);
   const aboutReveal = useScrollReveal(0.1);
-  const featuresReveal = useScrollReveal(0.1);
+  // const featuresReveal = useScrollReveal(0.1);
   const faqReveal = useScrollReveal(0.1);
   const ctaReveal = useScrollReveal(0.1);
+  const founderMessageReveal = useScrollReveal(0.1);
+  const statisticsReveal = useScrollReveal(0.1);
 
   // Feature cards data
   const features: Feature[] = [
@@ -101,7 +100,7 @@ const LandingPage = () => {
       },
       title: "Practice anytime, anywhere",
       description:
-        "Upload your script and step right into your scene. Rehearse on demand with a life-like AI reader that's always ready when you are. Great for last-minute audition prep, script memorization, or developing monologues and characters at your own speed. Practice whenever, wherever.",
+        "Upload any script in PDF or DOCX format and our intelligent parsing technology automatically understands the structure and content, creating a rehearsal-ready version for you all on its own. Step into your scene with an AI partner that's always ready. Perfect for last-minute audition prep, script memorization, or developing your character at your own pace.",
     },
     {
       id: "speech",
@@ -110,14 +109,14 @@ const LandingPage = () => {
       },
       title: "Bring every line to life",
       description:
-        "Become the director and tell your personal scene partner exactly what you want. Add emotional direction to any line — from whispered intensity to angry outbursts. Your AI reader will deliver your lines consistently every single take, no matter how many times you want to run the scene.",
+        "Roles are automatically identified from your script, and you can select the perfect voice for each character from our extensive voice library. Your AI scene partner delivers their lines consistently every single time, and works tirelessly with you until you perfect your performance — no matter how long it takes.",
     },
     {
       id: "control",
       media: { node: <AudioTagDemo /> },
       title: "Command every moment",
       description:
-        "Shape every detail of your scene with professional-level control. Adjust pauses, pacing, and dialogue delivery down to the second for flawless, personalized rehearsals. Practice your timing and perfect your reactions, and build chemistry with your virtual scene partner for audition-ready performances.",
+        "Shape every detail of your scene with professional-level control. Add emotive descriptions and actions inside audio tags to fine-tune each line's delivery. Even insert custom pauses between lines, so the scene flows perfectly every single time. We handle the rest so that you can fully focus on practicing your lines.",
     },
     {
       id: "track",
@@ -126,7 +125,7 @@ const LandingPage = () => {
       },
       title: "Stay organized, stay ahead",
       description:
-        "Track every audition and callback in one centralized dashboard. Monitor your casting submissions and rehearsal progress all in one place so you're always prepared. Manage your entire audition pipeline from script breakdown to final performance, so you never miss an opportunity.",
+        "Add, organize, and track all your auditions in one centralized dashboard. Monitor the progress of each casting submission and never miss important dates or callbacks. Stay organized and stay prepared — when you manage your opportunities well, you set yourself up for success. Every audition is a chance to shine!",
     },
   ];
 
@@ -389,7 +388,7 @@ const LandingPage = () => {
                 key={feature.id}
                 itemClassName="bg-primary-light-alt"
               >
-                <article className="flex flex-col md:flex-row md:items-center gap-6 md:gap-10 lg:gap-14 h-full">
+                <article className="flex flex-col lg:flex-row items-center gap-6 md:gap-10 h-full">
                   {/* Hidden description for SEO */}
                   <span className="sr-only">
                     Feature: {feature.title} - {feature.description}
@@ -405,7 +404,7 @@ const LandingPage = () => {
                   {feature.media?.node}
 
                   {/* Content Section */}
-                  <div className="flex-1 space-y-3 md:space-y-4">
+                  <div className="flex-1 space-y-3 md:space-y-4 mr-4">
                     {/* Title */}
                     <h3 className="landing-feature-title">{feature.title}</h3>
 
@@ -420,128 +419,156 @@ const LandingPage = () => {
           </ScrollStack>
         </section>
 
-        <section
-          className="bg-black text-white py-30 md:py-40 w-screen mb-30"
-          aria-label="Platform statistics"
-        >
-          <div className="landing-section-container h-full flex flex-col justify-center">
-            {/* Overline for context */}
-            <p className="text-center text-lg md:text-xl text-gray-400 uppercase tracking-wider mb-4">
-              Built for serious actors
-            </p>
+        <div className="bg-black w-screen">
+          <section
+            ref={statisticsReveal.ref}
+            id="platform-statistics"
+            className={`bg-black text-white pb-20 pt-40 w-screen ${
+              statisticsReveal.isVisible
+                ? "landing-scroll-reveal-visible"
+                : "landing-scroll-reveal-hidden"
+            }`}
+            aria-label="Platform statistics"
+          >
+            <div className="landing-section-container h-full flex flex-col justify-center">
+              {/* Overline for context */}
+              <p className="text-center text-lg md:text-xl text-gray-400 uppercase tracking-wider mb-4">
+                Built for serious actors
+              </p>
 
-            <h2 className="text-5xl md:text-7xl font-outfit font-light text-center mb-15 md:mb-20">
-              Why actors choose Odee
-            </h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 md:gap-16 text-center">
-              <div className="space-y-3">
-                <p className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-2">
-                  24/7
-                </p>
-                <p className="text-base md:text-lg text-gray-300 leading-relaxed">
-                  Always available scene partner ready to practice with you
-                  whenever, wherever you want
-                </p>
-              </div>
-              <div className="space-y-3">
-                <p className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-2">
-                  100+
-                </p>
-                <p className="text-base md:text-lg text-gray-300 leading-relaxed">
-                  Voice customization options to match each character or scene
-                  requirement
-                </p>
-              </div>
-              <div className="space-y-3">
-                <div className="flex justify-center mb-2">
-                  <Infinity
-                    className="w-12 h-12 md:w-15 md:h-15 lg:w-18 lg:h-18 text-white"
-                    strokeWidth={1.5}
-                  />
-                </div>
-                <p className="text-base md:text-lg text-gray-300 leading-relaxed">
-                  Unlimited rehearsal takes to practice and perfect your
-                  performance without judgment
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section
-          ref={featuresReveal.ref}
-          id="how-it-works"
-          aria-label="How it works"
-          className={`
-          mb-10 sm:mb-20
-          landing-scroll-reveal
-          ${
-            featuresReveal.isVisible
-              ? "landing-scroll-reveal-visible"
-              : "landing-scroll-reveal-hidden"
-          }
-        `}
-        >
-          {/* Hidden for SEO and screen readers */}
-          <div className="sr-only">
-            {`This describes how to use Odee's key features: uploading your
-            script, fine-tuning delivery of each line, entering the practice
-            room for rehearsal, and tracking progress of your auditions.`}
-          </div>
-
-          {/* Section header - horizontal layout */}
-          <div className="landing-section-container-flex mb-[2rem] lg:mb-[5rem]">
-            {/* Headline - left side */}
-            <div className="flex-shrink-0">
-              <h2 className="landing-section-heading">
-                Explore
-                <br />
-                how it works
+              <h2 className="text-5xl md:text-7xl font-outfit font-light text-center mb-15 md:mb-20">
+                Why actors choose Odee
               </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 md:gap-16 text-center">
+                <div className="space-y-3">
+                  <p className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-2">
+                    24/7
+                  </p>
+                  <p className="text-base md:text-lg text-gray-300 leading-relaxed">
+                    Always available scene partner ready to practice with you
+                    whenever, wherever you want
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <p className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-2">
+                    100+
+                  </p>
+                  <p className="text-base md:text-lg text-gray-300 leading-relaxed">
+                    Voice customization options to match each character or scene
+                    requirement
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-center mb-2">
+                    <Infinity
+                      className="w-12 h-12 md:w-15 md:h-15 lg:w-18 lg:h-18 text-white"
+                      strokeWidth={1.5}
+                    />
+                  </div>
+                  <p className="text-base md:text-lg text-gray-300 leading-relaxed">
+                    Unlimited rehearsal takes to practice and perfect your
+                    performance without judgment
+                  </p>
+                </div>
+              </div>
             </div>
+          </section>
 
-            {/* Description - right side */}
-            <p className="landing-section-description lg:self-end lg:mb-[-2rem]">
-              {`Upload your scripts, practice your lines, and track all your auditions
-              in one place — designed to help you train smarter, perform
-              better, and take control of your acting career.`}
-            </p>
-          </div>
-          <HorizontalStepGuide
-            steps={[
-              {
-                title: "Upload your script",
-                body: "Enter scene info, character notes, or anything else to help shape your performance setup.",
-                media: "/assets/fill.mp4",
-              },
-              {
-                title: "Fine-tune the delivery",
-                body: "Refine each line with emotive tags and timing tweaks so the reader performs exactly how   you imagine.",
-                media: "/assets/Finetune.mp4",
-              },
-              {
-                title: "Rehearse and refine",
-                body: "Step into your scene and start practicing. Adjust as you go until every line feels perfect.",
-                media: "/assets/Practice.mp4",
-              },
-              {
-                title: "Track your auditions",
-                body: "Organize and track the progress of all your auditions in one place.",
-                media: "/assets/Tracker.mp4",
-              },
-            ]}
-          />
-        </section>
+          <section
+            ref={founderMessageReveal.ref}
+            id="our-story"
+            aria-label="Message from founders"
+            itemScope
+            itemType="https://schema.org/Article"
+            className={`
+            py-30 md:py-40 bg-black
+            landing-scroll-reveal
+            ${
+              founderMessageReveal.isVisible
+                ? "landing-scroll-reveal-visible"
+                : "landing-scroll-reveal-hidden"
+            }
+          `}
+          >
+            <div className="landing-section-container">
+              {/* Section header */}
+              <div className="text-center mb-12 md:mb-16">
+                <h2
+                  className="landing-section-heading text-white"
+                  itemProp="headline"
+                >
+                  A Message from
+                  <br />
+                  Fellow Actors
+                </h2>
+              </div>
 
-        {/* FAQ SECTION */}
-        <section
-          ref={faqReveal.ref}
-          id="faq"
-          aria-label="Frequently asked questions"
-          itemScope
-          itemType="https://schema.org/FAQPage"
-          className={`
+              {/* Message content */}
+              <article className="max-w-3xl mx-auto space-y-6 text-center">
+                <div
+                  className="space-y-6 text-lg md:text-xl text-white leading-relaxed"
+                  itemProp="articleBody"
+                >
+                  <p>
+                    {`The acting industry in 2025 isn't easy. Auditions are
+                    scarce, the work is unpredictable, and the grind is
+                    relentless. But through it all, one thing remains constant:`}
+                  </p>
+
+                  <p className="text-2xl md:text-4xl font-crimson font-light italic text-white my-8">
+                    {`Our craft demands relentless preparation.`}
+                  </p>
+
+                  <p>
+                    {`We built Odee because we've lived this reality. We know what
+                    it's like to get your sides at 9 PM for a 10 AM audition,
+                    frantically texting everyone you know.`}
+                  </p>
+
+                  <p>
+                    {`We built Odee because we want every actor to have access to
+                    a scene partner who's always ready — whether it's late at
+                    night before an important callback, or during the few hours
+                    you have between your day job and rehearsal. We want to see
+                    every actor reach their full potential and find fullfilment
+                    in their careers.`}
+                  </p>
+
+                  <p className="text-2xl md:text-4xl font-crimson font-light italic text-white my-8">
+                    {`The industry may be unpredictable, but your preparation
+                    doesn't have to be.`}
+                  </p>
+
+                  <p>
+                    {`Built for actors, by actors. Because we're in this together.`}
+                  </p>
+                </div>
+
+                {/* Attribution */}
+                <footer
+                  className="pt-2"
+                  itemProp="author"
+                  itemScope
+                  itemType="https://schema.org/Organization"
+                >
+                  <p className="text-lg md:text-xl text-white" itemProp="name">
+                    — The Odee Team
+                  </p>
+                  <meta itemProp="url" content="https://odee.io" />
+                </footer>
+              </article>
+            </div>
+          </section>
+
+          {/* FAQ SECTION */}
+          <section
+            ref={faqReveal.ref}
+            id="faq"
+            aria-label="Frequently asked questions"
+            itemScope
+            itemType="https://schema.org/FAQPage"
+            className={`
             pb-50
             landing-scroll-reveal
             ${
@@ -550,44 +577,45 @@ const LandingPage = () => {
                 : "landing-scroll-reveal-hidden"
             }
           `}
-        >
-          {/* Section header */}
-          <div className="landing-section-container text-center mb-12 sm:mb-16">
-            <h2 className="landing-section-heading">
-              {`Questions?`}
-              <br />
-              {`We've got answers`}
-            </h2>
-          </div>
+          >
+            {/* Section header */}
+            <div className="landing-section-container text-center mb-12 sm:mb-16">
+              <h2 className="landing-section-heading text-white">
+                {`Questions?`}
+                <br />
+                {`We've got answers`}
+              </h2>
+            </div>
 
-          {/* FAQ Items */}
-          <div className="landing-section-container lg:w-[60%] space-y-4">
-            <FAQItem
-              question="What is Odee and how does it work?"
-              answer="Odee is your personal AI scene partner for script rehearsal and audition prep. Upload your script, customize how each line is delivered with emotional direction and timing controls, then step into your scene to practice whenever you're ready. Plus, track all your auditions in one organized dashboard so you never miss a beat in your acting career."
-            />
-            <FAQItem
-              question="Do I need any special equipment to use Odee?"
-              answer="Not at all! All you need is a microphone and speakers or headphones. If you're on a laptop or desktop, your built-in mic and speakers work great to get started."
-            />
-            <FAQItem
-              question="Is Odee suitable for beginners or just professional actors?"
-              answer="Odee is perfect for actors at every stage! Whether you're just starting out and building confidence with your lines, or you're a working professional prepping for your next audition, ODee adapts to your needs and helps you grow."
-            />
-            <FAQItem
-              question="Can I use Odee on my phone or tablet?"
-              answer="While Odee works on mobile devices, we recommend using it on a computer or laptop for the best experience. The larger screen and full keyboard make script editing and rehearsal controls much easier to navigate."
-            />
-            <FAQItem
-              question="What kind of scripts can I upload?"
-              answer="You can upload any script in PDF or DOCX format, as long as it's 3MB or smaller. Whether it's a film scene, TV script, theater monologue, or audition sides, Odee is ready to help you rehearse."
-            />
-            <FAQItem
-              question="Does Odee support multiple languages or accents?"
-              answer="Multiple languages and accents aren't available just yet, but they're definitely on our roadmap. We're working to bring these features to you in the future!"
-            />
-          </div>
-        </section>
+            {/* FAQ Items */}
+            <div className="landing-section-container lg:w-[60%] space-y-4">
+              <FAQItem
+                question="What is Odee and how does it work?"
+                answer="Odee is your personal AI scene partner for script rehearsal and audition prep. Upload your script, customize how each line is delivered with emotional direction and timing controls, then step into your scene to practice whenever you're ready. Plus, track all your auditions in one organized dashboard so you never miss a beat in your acting career."
+              />
+              <FAQItem
+                question="Do I need any special equipment to use Odee?"
+                answer="Not at all! All you need is a microphone and speakers or headphones. If you're on a laptop or desktop, your built-in mic and speakers work great to get started."
+              />
+              <FAQItem
+                question="Is Odee suitable for beginners or just professional actors?"
+                answer="Odee is perfect for actors at every stage! Whether you're just starting out and building confidence with your lines, or you're a working professional prepping for your next audition, ODee adapts to your needs and helps you grow."
+              />
+              <FAQItem
+                question="Can I use Odee on my phone or tablet?"
+                answer="While Odee works on mobile devices, we recommend using it on a computer or laptop for the best experience. The larger screen and full keyboard make script editing and rehearsal controls much easier to navigate."
+              />
+              <FAQItem
+                question="What kind of scripts can I upload?"
+                answer="You can upload any script in PDF or DOCX format, as long as it's 3MB or smaller. Whether it's a film scene, TV script, theater monologue, or audition sides, Odee is ready to help you rehearse."
+              />
+              <FAQItem
+                question="Does Odee support multiple languages or accents?"
+                answer="Multiple languages and accents aren't available just yet, but they're definitely on our roadmap. We're working to bring these features to you in the future!"
+              />
+            </div>
+          </section>
+        </div>
 
         <div className="landing-rounded-section-top landing-section-shadow mt-[-100px] pt-[100px] pb-10">
           <section
@@ -662,11 +690,6 @@ const LandingPage = () => {
                     </Link>
                   </li>
                   <li>
-                    <Link href="/#how-it-works" className="landing-footer-link">
-                      How It Works
-                    </Link>
-                  </li>
-                  <li>
                     <Link href="/#faq" className="landing-footer-link">
                       FAQ
                     </Link>
@@ -705,7 +728,7 @@ const LandingPage = () => {
               <nav aria-label="Company navigation">
                 <ul className="space-y-3">
                   <li>
-                    <Link href="/about" className="landing-footer-link">
+                    <Link href="/#our-story" className="landing-footer-link">
                       About Us
                     </Link>
                   </li>

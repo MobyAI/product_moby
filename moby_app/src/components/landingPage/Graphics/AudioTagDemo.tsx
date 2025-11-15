@@ -147,11 +147,11 @@ export default function AudioTagDemo() {
   }, [animationKey]);
 
   return (
-    <div className="w-full max-w-xl aspect-[2.5/1] bg-primary-light-alt rounded-xl overflow-hidden relative">
+    <div className="w-full max-w-md xl:max-w-lg aspect-[1.5/1] xl:aspect-[2/1] bg-primary-light-alt rounded-xl overflow-hidden relative">
       {/* Container with padding */}
       <div className="h-full flex flex-col justify-center relative px-12 py-6 gap-4">
         {/* Header */}
-        <h3 className="text-2xl font-semibold text-primary-dark ml-1">
+        <h3 className="text-lg sm:text-2xl font-semibold text-primary-dark ml-1">
           Edit Line:
         </h3>
 
@@ -160,7 +160,7 @@ export default function AudioTagDemo() {
           <div className="relative bg-white/70 backdrop-blur-sm rounded-lg px-4 py-3 border-2 border-gray-300 focus-within:border-purple-400 transition-colors min-h-[80px] flex items-center">
             <motion.div
               animate={textControls}
-              className="flex flex-wrap items-center gap-2 text-lg text-primary-dark"
+              className="flex flex-wrap items-center gap-2 text-xs sm:text-lg text-primary-dark"
               style={{ willChange: "contents" }}
             >
               {!showPill ? (
@@ -170,7 +170,7 @@ export default function AudioTagDemo() {
                   {textBefore && <span>{textBefore} </span>}
                   <motion.span
                     animate={pillControls}
-                    className="inline-flex items-center px-3 py-1 rounded-full bg-purple-500 text-white text-sm font-medium shadow-md"
+                    className="inline-flex items-center px-3 py-1 rounded-full bg-purple-500 text-white text-xs sm:text-sm font-medium shadow-md"
                   >
                     {tagText}
                   </motion.span>

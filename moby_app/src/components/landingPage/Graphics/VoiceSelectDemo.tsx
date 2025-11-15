@@ -84,7 +84,7 @@ export default function VoiceSelectionDemo() {
   };
 
   return (
-    <div className="w-full max-w-xl aspect-[2.5/1] bg-primary-light-alt rounded-xl overflow-hidden relative">
+    <div className="w-full max-w-md xl:max-w-lg aspect-[1.5/1] xl:aspect-[2/1] bg-primary-light-alt rounded-xl overflow-hidden relative">
       <style>{`
         @keyframes blink {
           0%, 49% { opacity: 1; }
@@ -97,7 +97,7 @@ export default function VoiceSelectionDemo() {
       {/* Container with padding */}
       <div className="h-full flex flex-col items-start justify-center relative px-12 py-6 gap-4">
         {/* Header */}
-        <h3 className="text-2xl font-semibold text-primary-dark ml-1">
+        <h3 className="text-lg sm:text-2xl font-semibold text-primary-dark ml-1">
           Assign Voice for:{" "}
           <span className="text-blue-300 ml-0.5">
             {displayedText}
@@ -106,17 +106,17 @@ export default function VoiceSelectionDemo() {
         </h3>
 
         {/* Voice Card - more horizontal */}
-        <div className="w-full max-w-lg h-32 px-6 py-4 rounded-2xl cursor-pointer transition-all duration-300 bg-[#A8A8A8]/10 hover:bg-[#A8A8A8]/20 flex items-center justify-between gap-6">
+        <div className="w-full max-w-lg h-32 px-6 py-4 rounded-2xl cursor-pointer transition-all duration-300 bg-[#A8A8A8]/10 hover:bg-[#A8A8A8]/20 flex flex-col sm:flex-row items-center justify-between gap-1 sm:gap-6">
           {/* Left section: Name + Description */}
           <div className="flex-1">
-            <h4 className="font-semibold text-primary-dark text-lg">
+            <h4 className="font-semibold text-primary-dark text-sm sm:text-lg">
               Jessica
-              <span className="text-base text-yellow-500 font-normal ml-1">
+              <span className="text-xs sm:text-base text-yellow-500 font-normal ml-1">
                 (crowd favorite)
               </span>
             </h4>
 
-            <p className="text-md text-primary-dark/80 mt-2 line-clamp-2 leading-relaxed">
+            <p className="text-xs sm:text-md text-primary-dark/80 mt-2 line-clamp-2 leading-relaxed">
               Young, popular, animated, playful female
             </p>
           </div>
@@ -125,12 +125,12 @@ export default function VoiceSelectionDemo() {
           <div className="relative group">
             <button
               onClick={handlePlay}
-              className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-full cursor-pointer hover:scale-110 active:scale-95 transition-all duration-300 text-white font-medium bg-primary-dark shadow-md"
+              className="flex-shrink-0 flex items-center justify-center w-8 h-8 sm:w-12 sm:h-12 rounded-full cursor-pointer hover:scale-110 active:scale-95 transition-all duration-300 text-white font-medium bg-primary-dark shadow-md"
             >
               {isPlaying ? (
-                <Pause className="w-6 h-6" />
+                <Pause className="w-4 h-4 sm:w-6 sm:h-6" />
               ) : (
-                <Play className="w-6 h-6" />
+                <Play className="w-4 h-4 sm:w-6 sm:h-6" />
               )}
             </button>
             {/* Tooltip */}
