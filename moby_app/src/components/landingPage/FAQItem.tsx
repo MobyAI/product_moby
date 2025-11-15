@@ -30,7 +30,7 @@ const FAQItem = ({
         >
           <h3
             itemProp="name"
-            className="text-lg sm:text-xl lg:text-2xl font-outfit font-semibold text-white"
+            className="text-lg sm:text-xl lg:text-xl font-outfit font-semibold text-white"
           >
             {question}
           </h3>

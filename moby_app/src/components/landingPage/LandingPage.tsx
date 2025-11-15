@@ -7,7 +7,7 @@ import { Highlighter } from "@/components/ui/highlighter";
 import RotatingText from "@/components/landingPage/RotatingText/RotatingText";
 // import FeatureShowcase from "@/components/landingPage/FeatureCardsNew/FeatureCards";
 import Link from "next/link";
-import HorizontalStepGuide from "@/components/landingPage/StepGuide/HorizontalStepGuide";
+// import HorizontalStepGuide from "@/components/landingPage/StepGuide/HorizontalStepGuide";
 // import SplashCursor from "@/components/landingPage/AnimatedCursor";
 import { AnimatedBeamMultipleOutput } from "@/components/landingPage/AnimatedBeam/LogosWithAnimatedBeam";
 import ScrollStack, {
@@ -85,7 +85,7 @@ const LandingPage = () => {
   // Scroll reveal hook settings
   const partnersReveal = useScrollReveal(0.1);
   const aboutReveal = useScrollReveal(0.1);
-  const featuresReveal = useScrollReveal(0.1);
+  // const featuresReveal = useScrollReveal(0.1);
   const faqReveal = useScrollReveal(0.1);
   const ctaReveal = useScrollReveal(0.1);
   const founderMessageReveal = useScrollReveal(0.1);
@@ -511,37 +511,37 @@ const LandingPage = () => {
                   itemProp="articleBody"
                 >
                   <p>
-                    The acting industry in 2025 isn't easy. Auditions are
+                    {`The acting industry in 2025 isn't easy. Auditions are
                     scarce, the work is unpredictable, and the grind is
-                    relentless. But through it all, one thing remains constant:
+                    relentless. But through it all, one thing remains constant:`}
                   </p>
 
                   <p className="text-2xl md:text-4xl font-crimson font-light italic text-white my-8">
-                    Our craft demands relentless preparation.
+                    {`Our craft demands relentless preparation.`}
                   </p>
 
                   <p>
-                    We built Odee because we've lived this reality. We know what
+                    {`We built Odee because we've lived this reality. We know what
                     it's like to get your sides at 9 PM for a 10 AM audition,
-                    frantically texting everyone you know.
+                    frantically texting everyone you know.`}
                   </p>
 
                   <p>
-                    We built Odee because we want every actor to have access to
+                    {`We built Odee because we want every actor to have access to
                     a scene partner who's always ready — whether it's late at
                     night before an important callback, or during the few hours
                     you have between your day job and rehearsal. We want to see
                     every actor reach their full potential and find fullfilment
-                    in their careers.
+                    in their careers.`}
                   </p>
 
                   <p className="text-2xl md:text-4xl font-crimson font-light italic text-white my-8">
-                    The industry may be unpredictable, but your preparation
-                    doesn't have to be.
+                    {`The industry may be unpredictable, but your preparation
+                    doesn't have to be.`}
                   </p>
 
                   <p>
-                    Built for actors, by actors. Because we're in this together.
+                    {`Built for actors, by actors. Because we're in this together.`}
                   </p>
                 </div>
 
