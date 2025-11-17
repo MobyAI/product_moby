@@ -2,6 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import TableOfContents from "../TableOfContents";
+
+interface TocItem {
+  id: string;
+  title: string;
+  level: number;
+}
 
 interface BlogPostProps {
   post: {
@@ -12,11 +19,18 @@ interface BlogPostProps {
     author: string;
     slug: string;
   };
+  tocItems: TocItem[];
   children: React.ReactNode;
 }
 
-export default function BlogPostClient({ post, children }: BlogPostProps) {
+export default function BlogPostClient({
+  post,
+  tocItems,
+  children,
+}: BlogPostProps) {
   const [scrollOpacity, setScrollOpacity] = useState(1);
+  const [showToc, setShowToc] = useState(false);
+  const [mountToc, setMountToc] = useState(false);
 
   useEffect(() => {
     const calculateOpacity = () => {
@@ -26,16 +40,33 @@ export default function BlogPostClient({ post, children }: BlogPostProps) {
       setScrollOpacity(opacity);
     };
 
-    // Calculate opacity immediately on mount (handles navigation back)
+    const checkTocVisibility = () => {
+      const scrolled = window.scrollY;
+      const threshold = 700;
+      const shouldShow = scrolled > threshold;
+
+      if (shouldShow && !mountToc) {
+        // Mount first, then fade in
+        setMountToc(true);
+        setTimeout(() => setShowToc(true), 10);
+      } else if (!shouldShow && mountToc) {
+        // Fade out first, then unmount
+        setShowToc(false);
+        setTimeout(() => setMountToc(false), 500);
+      }
+    };
+
     calculateOpacity();
+    checkTocVisibility();
 
     const handleScroll = () => {
       calculateOpacity();
+      checkTocVisibility();
     };
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [mountToc]);
 
   return (
     <div className="relative bg-primary-light min-h-screen">
@@ -88,9 +119,27 @@ export default function BlogPostClient({ post, children }: BlogPostProps) {
             </p>
           </div>
 
-          {/* Article Content */}
-          <div className="px-5 lg:px-20 pb-20">
-            <div className="max-w-2xl mx-auto">{children}</div>
+          {/* Two Column Layout: TOC + Article Content */}
+          <div className="max-w-6xl mx-auto px-5 pb-20">
+            <div
+              className={`flex gap-8 lg:gap-20 transition-all duration-500 ${
+                mountToc ? "justify-between" : "justify-center"
+              }`}
+            >
+              {/* Table of Contents Column */}
+              {mountToc && (
+                <div
+                  className={`hidden lg:block w-64 flex-shrink-0 transition-opacity duration-500 ${
+                    showToc ? "opacity-100" : "opacity-0"
+                  }`}
+                >
+                  <TableOfContents items={tocItems} />
+                </div>
+              )}
+
+              {/* Article Content Column */}
+              <div className="flex-1 max-w-2xl">{children}</div>
+            </div>
           </div>
         </div>
       </article>
