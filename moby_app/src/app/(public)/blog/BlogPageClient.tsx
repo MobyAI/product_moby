@@ -153,7 +153,7 @@ function FeaturedPostCard({ post }: { post: BlogPostPreview }) {
           {/* Category Badge - Top Left */}
           <div className="absolute top-4 left-4">
             <span className="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-900 px-3 py-1 rounded-full text-sm font-medium">
-              <span className="w-2 h-2 rounded-full bg-red-500"></span>
+              <span className="w-2 h-2 rounded-full bg-gray-500"></span>
               {category?.label || post.category}
             </span>
           </div>
@@ -177,7 +177,7 @@ function FeaturedPostCard({ post }: { post: BlogPostPreview }) {
               </h3>
 
               {/* Custom Tooltip */}
-              <div className="absolute left-0 bottom-full mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg opacity-0 pointer-events-none group-hover/title:opacity-100 group-hover/title:pointer-events-auto w-max max-w-xs z-10">
+              <div className="absolute left-0 bottom-full mb-2 px-3 py-2 bg-primary-dark text-white text-sm rounded-lg shadow-lg opacity-0 pointer-events-none group-hover/title:opacity-100 group-hover/title:pointer-events-auto w-max max-w-xs z-10">
                 {post.title}
               </div>
             </div>
@@ -204,7 +204,7 @@ function RegularPostCard({ post }: { post: BlogPostPreview }) {
           <div className="flex items-start justify-between mb-auto">
             {/* Category Badge */}
             <span className="inline-flex items-center gap-1 text-gray-600 text-sm">
-              <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+              <span className="w-2 h-2 rounded-full bg-gray-500"></span>
               {category?.label || post.category}
             </span>
 
