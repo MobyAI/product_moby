@@ -74,7 +74,7 @@ export default function TableOfContents({ items }: TableOfContentsProps) {
               ${
                 activeId === item.id
                   ? "text-primary font-semibold"
-                  : "text-gray-600 hover:text-gray-900"
+                  : "text-gray-500 hover:text-gray-900"
               }
             `}
           >

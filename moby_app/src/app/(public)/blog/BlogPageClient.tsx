@@ -28,7 +28,7 @@ export default function BlogPageClient({
   }));
 
   return (
-    <div className="min-h-screen bg-primary-light">
+    <div className="min-h-screen bg-primary-light pb-10">
       {/* Header */}
       <header>
         <div className="max-w-6xl mx-auto px-5 pb-5 pt-20">
