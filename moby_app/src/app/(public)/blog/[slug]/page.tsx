@@ -1,5 +1,6 @@
 import { getBlogPost, getAllBlogPosts } from "@/lib/blog";
 import { Metadata } from "next";
+import { MDXRemote } from "next-mdx-remote/rsc";
 import BlogPostClient from "./BlogPostClient";
 
 const baseUrl = "https://odee.io";
@@ -117,7 +118,20 @@ export default async function BlogPost({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
-      <BlogPostClient post={post} />
+      <BlogPostClient
+        post={{
+          title: post.title,
+          description: post.description,
+          image: post.image,
+          date: post.date,
+          author: post.author,
+          slug: post.slug,
+        }}
+      >
+        <div className="blog-content max-w-2xl mx-auto">
+          <MDXRemote source={post.content} />
+        </div>
+      </BlogPostClient>
     </>
   );
 }

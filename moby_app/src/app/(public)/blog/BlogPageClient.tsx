@@ -153,7 +153,6 @@ function FeaturedPostCard({ post }: { post: BlogPostPreview }) {
           {/* Category Badge - Top Left */}
           <div className="absolute top-4 left-4">
             <span className="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm text-gray-900 px-3 py-1 rounded-full text-sm font-medium">
-              <span className="w-2 h-2 rounded-full bg-gray-500"></span>
               {category?.label || post.category}
             </span>
           </div>
@@ -204,7 +203,6 @@ function RegularPostCard({ post }: { post: BlogPostPreview }) {
           <div className="flex items-start justify-between mb-auto">
             {/* Category Badge */}
             <span className="inline-flex items-center gap-1 text-gray-600 text-sm">
-              <span className="w-2 h-2 rounded-full bg-gray-500"></span>
               {category?.label || post.category}
             </span>
 

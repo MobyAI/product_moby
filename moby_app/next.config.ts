@@ -1,9 +1,7 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
-import createMDX from "@next/mdx";
 
 const nextConfig: NextConfig = {
-  pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx"],
   compiler: {
     ...(process.env.NODE_ENV === "production"
       ? {
@@ -48,16 +46,7 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Configure MDX
-const withMDX = createMDX({
-  // Add markdown plugins here, as desired
-  options: {
-    remarkPlugins: [],
-    rehypePlugins: [],
-  },
-});
-
-export default withSentryConfig(withMDX(nextConfig), {
+export default withSentryConfig(nextConfig, {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 

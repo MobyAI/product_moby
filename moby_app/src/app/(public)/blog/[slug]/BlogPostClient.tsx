@@ -10,22 +10,27 @@ interface BlogPostProps {
     image: string;
     date: string;
     author: string;
-    contentHtml: string;
     slug: string;
   };
+  children: React.ReactNode;
 }
 
-export default function BlogPostClient({ post }: BlogPostProps) {
+export default function BlogPostClient({ post, children }: BlogPostProps) {
   const [scrollOpacity, setScrollOpacity] = useState(1);
 
   useEffect(() => {
-    const handleScroll = () => {
-      // Calculate opacity based on scroll position
-      // Fade out completely by 150px of scrolling (faster/more sensitive)
+    const calculateOpacity = () => {
       const scrolled = window.scrollY;
       const fadeDistance = 350;
       const opacity = Math.max(0, 1 - scrolled / fadeDistance);
       setScrollOpacity(opacity);
+    };
+
+    // Calculate opacity immediately on mount (handles navigation back)
+    calculateOpacity();
+
+    const handleScroll = () => {
+      calculateOpacity();
     };
 
     window.addEventListener("scroll", handleScroll);
@@ -85,12 +90,7 @@ export default function BlogPostClient({ post }: BlogPostProps) {
 
           {/* Article Content */}
           <div className="px-5 lg:px-20 pb-20">
-            <div className="max-w-2xl mx-auto">
-              <div
-                className="prose lg:prose-xl prose-headings:font-crimson prose-headings:font-semibold prose-p:text-gray-700 prose-a:text-blue-600 prose-strong:text-black max-w-none"
-                dangerouslySetInnerHTML={{ __html: post.contentHtml }}
-              />
-            </div>
+            <div className="max-w-2xl mx-auto">{children}</div>
           </div>
         </div>
       </article>

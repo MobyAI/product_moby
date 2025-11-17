@@ -34,7 +34,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
-  ],
+, "content/blog/mastering-self-tape-auditions.mdx"  ],
   "exclude": [
     "node_modules",
     "stt-server"
