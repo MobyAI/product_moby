@@ -88,8 +88,8 @@ export async function POST(request: Request) {
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
-        <body style="margin: 0; padding: 0; background-color: #eeede4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #eeede4; padding: 40px 20px;">
+        <body style="margin: 0; padding: 0; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff; padding: 40px 20px;">
             <tr>
             <td align="center">
                 
@@ -106,7 +106,7 @@ export async function POST(request: Request) {
                 
                 <!-- Body -->
                 <tr>
-                    <td style="padding: 48px 40px;">
+                    <td style="background-color: #eeede4; padding: 48px 40px;">
                     <p style="margin: 0 0 24px 0; font-size: 18px; line-height: 1.8; color: #1a1a1a;">
                         Thanks for subscribing!
                     </p>
@@ -120,7 +120,7 @@ export async function POST(request: Request) {
                     </p>
                     
                     <!-- Simple divider -->
-                    <div style="margin: 40px 0; padding: 24px; background-color: #eeede4; border-radius: 8px; border-left: 4px solid #c45c4c;">
+                    <div style="margin: 40px 0; padding: 24px; background-color: #ffffff; border-radius: 8px; border-left: 4px solid #c45c4c;">
                         <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #4a4a4a;">
                         💡 <strong style="color: #c45c4c;">Pro tip:</strong> Add newsletter@odee.io to your contacts so our emails don't end up in spam.
                         </p>
@@ -138,8 +138,8 @@ export async function POST(request: Request) {
                 
                 <!-- Footer -->
                 <tr>
-                    <td style="padding: 32px 40px; background-color: #ffffff; border-top: 1px solid #d5d4ca;">
-                    <p style="margin: 0 0 8px 0; font-size: 12px; color: #6a6a5a; text-align: center;">
+                    <td style="padding: 32px 40px; background-color: #c45c4c; border-top: 1px solid #d5d4ca;">
+                    <p style="margin: 0 0 8px 0; font-size: 12px; color: #ffffff; text-align: center;">
                         Sent to ${email}
                     </p>
                     </td>
