@@ -217,14 +217,9 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
             </span>
 
             <nav className="flex flex-col items-center gap-3">
-              <NavLink href="#features">
+              <NavLink href="/blog">
                 <span className="w-40 inline-flex items-center justify-center text-black text-[17px] px-7 py-3 rounded-full border border-black overflow-hidden">
-                  Features
-                </span>
-              </NavLink>
-              <NavLink href="#how-it-works">
-                <span className="w-40 inline-flex items-center justify-center text-black text-[17px] px-7 py-3 rounded-full border border-black overflow-hidden">
-                  How it works
+                  Blog
                 </span>
               </NavLink>
               <Link

@@ -1,8 +1,6 @@
-// lib/blog.ts
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
-import { marked } from "marked";
 import { isValidCategory } from "./categories";
 
 const postsDirectory = path.join(process.cwd(), "content/blog");
@@ -20,7 +18,7 @@ export interface BlogPostMetadata {
 
 export interface BlogPost extends BlogPostMetadata {
   slug: string;
-  contentHtml: string;
+  content: string;
 }
 
 export interface BlogPostPreview extends BlogPostMetadata {
@@ -28,7 +26,7 @@ export interface BlogPostPreview extends BlogPostMetadata {
 }
 
 export async function getBlogPost(slug: string): Promise<BlogPost> {
-  const fullPath = path.join(postsDirectory, `${slug}.md`);
+  const fullPath = path.join(postsDirectory, `${slug}.mdx`);
   const fileContents = fs.readFileSync(fullPath, "utf8");
   const { data, content } = matter(fileContents);
 
@@ -40,11 +38,9 @@ export async function getBlogPost(slug: string): Promise<BlogPost> {
     data.category = "acting-techniques";
   }
 
-  const contentHtml = await marked(content);
-
   return {
     slug,
-    contentHtml,
+    content,
     ...(data as BlogPostMetadata),
   };
 }
@@ -52,7 +48,7 @@ export async function getBlogPost(slug: string): Promise<BlogPost> {
 export function getAllBlogPosts(): BlogPostPreview[] {
   const fileNames = fs.readdirSync(postsDirectory);
   const allPostsData = fileNames
-    .filter((fileName) => fileName.endsWith(".md"))
+    .filter((fileName) => fileName.endsWith(".mdx"))
     .map((fileName) => {
       const slug = fileName.replace(/\.md$/, "");
       const fullPath = path.join(postsDirectory, fileName);

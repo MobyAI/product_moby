@@ -83,7 +83,7 @@ export default function BetaAccessBanner({
         href={upgradeEmailUrl}
         className="text-gray-600 hover:text-gray-900 underline hidden sm:inline"
       >
-        Extend Access? 🥳
+        Extend Access 🥳
       </a>
     </div>
   );

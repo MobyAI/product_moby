@@ -1,5 +1,7 @@
 import { getBlogPost, getAllBlogPosts } from "@/lib/blog";
+import { extractTableOfContents } from "@/lib/blog/extractTOC";
 import { Metadata } from "next";
+import { MDXRemote } from "next-mdx-remote/rsc";
 import BlogPostClient from "./BlogPostClient";
 
 const baseUrl = "https://odee.io";
@@ -51,6 +53,7 @@ export default async function BlogPost({
 }) {
   const { slug } = await params;
   const post = await getBlogPost(slug);
+  const tocItems = extractTableOfContents(post.content);
 
   // Article Schema for SEO
   const articleSchema = {
@@ -105,6 +108,27 @@ export default async function BlogPost({
     ],
   };
 
+  // Helper function to generate slug from text
+  function generateSlug(text: string): string {
+    return text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+  }
+
+  // Custom heading components
+  const components = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    h2: ({ children, ...props }: any) => {
+      const id = generateSlug(children?.toString() || "");
+      return (
+        <h2 id={id} className="scroll-mt-24" {...props}>
+          {children}
+        </h2>
+      );
+    },
+  };
+
   return (
     <>
       {/* Article Schema */}
@@ -117,7 +141,21 @@ export default async function BlogPost({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
-      <BlogPostClient post={post} />
+      <BlogPostClient
+        post={{
+          title: post.title,
+          description: post.description,
+          image: post.image,
+          date: post.date,
+          author: post.author,
+          slug: post.slug,
+        }}
+        tocItems={tocItems}
+      >
+        <div className="blog-content max-w-2xl mx-auto">
+          <MDXRemote source={post.content} components={components} />
+        </div>
+      </BlogPostClient>
     </>
   );
 }
