@@ -324,7 +324,7 @@ const ScriptListItem = ({
                         />
                       ) : (
                         <Pin
-                          className={`w-5 h-5 text-primary-light-alt-alt ${
+                          className={`w-5 h-5 text-primary-light-alt ${
                             savingItemId === item.id
                               ? "animate-[bounce_0.5s_ease-in-out_infinite,spin_1s_linear_infinite]"
                               : ""

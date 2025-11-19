@@ -18,7 +18,7 @@ import ScriptUploadDemo from "./Graphics/ScriptUploadDemo";
 import VoiceSelectDemo from "./Graphics/VoiceSelectDemo";
 import AudioTagDemo from "./Graphics/AudioTagDemo";
 import AuditionTrackerDemo from "./Graphics/AuditionTrackerDemo";
-import { ChevronsDown, Infinity } from "lucide-react";
+import { ChevronsDown, Infinity, X } from "lucide-react";
 import { useScrollReveal } from "@/components/landingPage/useScrollReveal";
 
 export type Feature = {
@@ -30,57 +30,17 @@ export type Feature = {
   cta?: { label: string; onClick?: () => void; href?: string };
 };
 
-// const imageLogos = [
-//   {
-//     src: "/assets/elevenlabs-logo-black.png",
-//     alt: "ElevenLabs",
-//     href: "https://elevenlabs.io/",
-//   },
-//   {
-//     src: "/assets/OpenAI-black-wordmark.png",
-//     alt: "OpenAI",
-//     href: "https://openai.com/",
-//     scale: 3,
-//   },
-//   {
-//     src: "assets/Anthropic-Logo-Black.png",
-//     alt: "Anthropic",
-//     href: "https://www.anthropic.com/",
-//   },
-// ];
-
-// const menuItems = [
-//   {
-//     text: "Life-like AI Voices",
-//     logo: "/assets/elevenlabs-logo.svg",
-//     symbol: "/assets/elevenlabs-symbol.svg",
-//     link: "https://elevenlabs.io/",
-//     width: "max-w-[240px]",
-//     height: "h-[8vh]",
-//   },
-//   {
-//     text: "Smart Script Parsing",
-//     logo: "/assets/openai-logo.svg",
-//     symbol: "/assets/openai-symbol.svg",
-//     link: "https://openai.com/",
-//     width: "max-w-[150px]",
-//     height: "h-[10vh]",
-//   },
-//   {
-//     text: "Smart Script Parsing",
-//     logo: "assets/anthropic-logo.svg",
-//     symbol: "/assets/anthropic-symbol.svg",
-//     link: "https://www.anthropic.com/",
-//     width: "max-w-[240px]",
-//     height: "h-[8vh]",
-//   },
-// ];
-
 const LandingPage = () => {
   const heroRef = useRef<HTMLElement>(null);
   const indicatorRef = useRef<HTMLDivElement>(null);
   const [isIndicatorFixed, setIsIndicatorFixed] = useState(true);
   const [lenisInstance, setLenisInstance] = useState<Lenis | null>(null);
+
+  // Newsletter banner state
+  const [showBanner, setShowBanner] = useState(true);
+  const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState("");
 
   // Scroll reveal hook settings
   const partnersReveal = useScrollReveal(0.1);
@@ -170,8 +130,113 @@ const LandingPage = () => {
     };
   }, []);
 
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitMessage("");
+
+    try {
+      const response = await fetch("/api/newsletter/launch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSubmitMessage("🎉 You're on the list!");
+        setEmail("");
+        // Auto-close banner after 3 seconds
+        setTimeout(() => {
+          setShowBanner(false);
+        }, 3000);
+      } else {
+        setSubmitMessage(data.error || "Something went wrong");
+        // Clear error message after 3 seconds
+        setTimeout(() => {
+          setSubmitMessage("");
+        }, 3000);
+      }
+    } catch (error) {
+      setSubmitMessage("Something went wrong. Please try again.");
+      setTimeout(() => {
+        setSubmitMessage("");
+      }, 3000);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col text-slate-900 antialiased bg-[#7E8E6D] overflow-x-clip">
+      {/* Newsletter Banner */}
+      {showBanner && (
+        <div className="fixed bottom-0 left-0 right-0 z-[300] bg-black text-white shadow-lg">
+          <div className="max-w-screen mx-auto px-4 py-3">
+            <div className="flex items-center justify-between gap-2 md:gap-4">
+              {/* Left side - Message or Close */}
+              <div className="flex items-center gap-2 md:gap-3">
+                <button
+                  onClick={() => setShowBanner(false)}
+                  className="p-1 hover:bg-white/20 rounded transition-colors flex-shrink-0"
+                  aria-label="Close banner"
+                >
+                  <X className="w-2 h-2 md:w-4 md:h-4 sm:w-5 sm:h-5" />
+                </button>
+              </div>
+
+              {/* Center - Message */}
+              {!submitMessage && (
+                <div className="flex-1 text-start lg:absolute lg:left-1/2 lg:-translate-x-1/2 lg:pointer-events-none">
+                  <p className="text-sm md:text-base font-medium">
+                    <span className="md:hidden">🚀 Get launch updates!</span>
+                    <span className="hidden md:inline">
+                      🚀 Don't miss our launch! Stay up to date with news updates.
+                    </span>
+                  </p>
+                </div>
+              )}
+
+              {/* Right - Form with success message above it */}
+              <div className="relative flex-shrink-0">
+                {/* Success message - positioned above the form */}
+                {submitMessage && (
+                  <div className="absolute bottom-full right-0 mb-5 animate-slide-up">
+                    <div className="bg-white text-black px-4 py-2 rounded shadow-lg text-sm font-medium whitespace-nowrap">
+                      {submitMessage}
+                    </div>
+                  </div>
+                )}
+
+                {/* Form */}
+                <form
+                  onSubmit={handleNewsletterSubmit}
+                  className="flex w-[280px] gap-2"
+                >
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    required
+                    disabled={isSubmitting}
+                    className="flex-1 px-3 py-1.5 rounded bg-white text-xs sm:text-sm text-black focus:outline-none focus:ring-2 focus:ring-white disabled:opacity-50 min-w-0"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-3 sm:px-4 py-1.5 bg-white text-black rounded text-xs sm:text-sm font-medium hover:bg-gray-100 transition-colors disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {isSubmitting ? "..." : "Notify Me"}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Global navbar */}
       <header className="z-200">
         <Navbar lenisInstance={lenisInstance} />
@@ -275,7 +340,7 @@ const LandingPage = () => {
               flex flex-col items-center gap-2 text-black
             `}
             style={{
-              bottom: isIndicatorFixed ? "40px" : "-110px",
+              bottom: isIndicatorFixed ? "50px" : "-100px",
             }}
           >
             <ChevronsDown className="h-12 w-12 sm:h-20 sm:w-20 animate-bounce" />
@@ -393,13 +458,6 @@ const LandingPage = () => {
                   <span className="sr-only">
                     Feature: {feature.title} - {feature.description}
                   </span>
-
-                  {/* Icon/Media Section */}
-                  {/* <div className="flex-shrink-0">
-                    <div className="landing-feature-icon">
-                      {feature.media?.node}
-                    </div>
-                  </div> */}
 
                   {feature.media?.node}
 
