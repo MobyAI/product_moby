@@ -158,7 +158,7 @@ const LandingPage = () => {
           setSubmitMessage("");
         }, 3000);
       }
-    } catch (error) {
+    } catch {
       setSubmitMessage("Something went wrong. Please try again.");
       setTimeout(() => {
         setSubmitMessage("");
@@ -192,7 +192,7 @@ const LandingPage = () => {
                   <p className="text-sm md:text-base font-medium">
                     <span className="md:hidden">🚀 Get launch updates!</span>
                     <span className="hidden md:inline">
-                      🚀 Don't miss our launch! Stay up to date with news updates.
+                      {`🚀 Don't miss our launch! Stay up to date with news updates.`}
                     </span>
                   </p>
                 </div>

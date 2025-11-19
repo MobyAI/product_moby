@@ -118,6 +118,7 @@ export default async function BlogPost({
 
   // Custom heading components
   const components = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     h2: ({ children, ...props }: any) => {
       const id = generateSlug(children?.toString() || "");
       return (

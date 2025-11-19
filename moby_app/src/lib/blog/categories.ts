@@ -29,6 +29,11 @@ export const BLOG_CATEGORIES = [
     label: "Technology for Actors",
     description: "AI tools and tech for modern performers",
   },
+  {
+    id: "health-&-wellness",
+    label: "Health & Wellness",
+    description: "Taking care of your health and wellbeing",
+  },
 ] as const;
 
 // Type-safe category IDs
