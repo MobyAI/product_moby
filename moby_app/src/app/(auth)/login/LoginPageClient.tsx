@@ -2,17 +2,17 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { Check, ArrowLeft } from "lucide-react";
 import {
   handleEmailPasswordLogin,
   handleGoogleLogin,
   sendSessionLogin,
 } from "@/lib/api/auth";
 import { checkUserProfileExists } from "@/lib/firebase/client/user";
-import { updatePassword } from "firebase/auth";
+import { updatePassword, sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/config/app";
 
-type Step = "login" | "password-setup";
+type Step = "login" | "password-setup" | "forgot-password";
 
 export default function LoginPageClient() {
   const search = useSearchParams();
@@ -25,6 +25,7 @@ export default function LoginPageClient() {
   const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [resetEmailSent, setResetEmailSent] = useState(false);
 
   async function handleSuccessfulLogin() {
     const hasProfile = await checkUserProfileExists();
@@ -146,7 +147,46 @@ export default function LoginPageClient() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (!email || !email.includes("@")) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      await sendPasswordResetEmail(auth, email, {
+        url: window.location.origin + "/login",
+      });
+
+      setResetEmailSent(true);
+    } catch (err: any) {
+      console.error("Password reset error:", err);
+
+      if (err.code === "auth/user-not-found") {
+        setError("No account found with this email address");
+      } else if (err.code === "auth/too-many-requests") {
+        setError("Too many requests. Please try again later.");
+      } else {
+        setError("Failed to send reset email. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
+    const loadingMessage =
+      step === "password-setup"
+        ? "Setting up your account!"
+        : step === "forgot-password"
+        ? "Sending reset link..."
+        : "Signing you in!";
+
     return (
       <div className="flex flex-col items-center justify-center space-y-4 py-12">
         {/* Animated Logo/Icon */}
@@ -158,7 +198,108 @@ export default function LoginPageClient() {
             style={{ animationDuration: "1.5s" }}
           ></div>
         </div>
-        <p className="text-header-2 text-primary-dark">Signing you in!</p>
+        <p className="text-header-2 text-primary-dark">{loadingMessage}</p>
+      </div>
+    );
+  }
+
+  if (step === "forgot-password") {
+    if (resetEmailSent) {
+      return (
+        <div className="w-full max-w-md mx-auto space-y-8">
+          {/* Success State */}
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+                <Check className="w-12 h-12 text-green-600" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h1 className="text-header-2 text-primary-dark">
+                Check Your Email
+              </h1>
+              <p className="text-gray-600">
+                We sent a password reset link to{" "}
+                <span className="font-medium">{email}</span>
+              </p>
+              <p className="text-gray-600 text-sm">
+                Click the link in the email to reset your password.
+              </p>
+            </div>
+
+            <div className="pt-4">
+              <button
+                onClick={() => {
+                  setStep("login");
+                  setResetEmailSent(false);
+                  setEmail("");
+                }}
+                className="text-sm text-primary-dark hover:underline"
+              >
+                Back to Login
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-full max-w-md mx-auto space-y-8">
+        {/* Header */}
+        <div className="space-y-4">
+          <button
+            onClick={() => {
+              setStep("login");
+              setError("");
+            }}
+            className="text-gray-600 hover:text-gray-900 flex items-center space-x-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Back to Login</span>
+          </button>
+
+          <div className="space-y-2">
+            <h1 className="text-header text-primary-dark">Reset Password</h1>
+            <p className="text-gray-600">
+              Enter your email address and we'll send you a link to reset your
+              password.
+            </p>
+          </div>
+        </div>
+
+        {/* Forgot Password Form */}
+        <form onSubmit={handleForgotPassword} className="space-y-6">
+          <div>
+            <label
+              htmlFor="reset-email"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Email
+            </label>
+            <input
+              id="reset-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              className="w-full px-4 py-3 rounded-lg bg-white border-0 border-gray-300 focus:border-primary-dark focus:outline-none text-gray-900 placeholder-gray-400"
+              autoComplete="email"
+              autoFocus
+            />
+          </div>
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 rounded-lg bg-primary-dark font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-50"
+          >
+            {loading ? "Sending..." : "Send Reset Link"}
+          </button>
+        </form>
       </div>
     );
   }
@@ -297,12 +438,13 @@ export default function LoginPageClient() {
           </button>
 
           <div className="text-center">
-            <a
-              href="/forgot-password"
+            <button
+              type="button"
+              onClick={() => setStep("forgot-password")}
               className="text-sm text-gray-600 underline hover:text-gray-900"
             >
               Forgot password?
-            </a>
+            </button>
           </div>
         </form>
 
