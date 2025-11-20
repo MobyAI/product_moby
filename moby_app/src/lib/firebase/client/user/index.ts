@@ -42,7 +42,7 @@ export type UserData = UserProfile & {
  * Adds or updates user profile data in Firestore
  * Should be called after successful authentication
  */
-export async function addUser(profile: UserProfile) {
+export async function addUser(profile: UserProfile, isOnboarding: boolean = false) {
   try {
     // Get the currently authenticated user
     const user = auth.currentUser;
@@ -93,6 +93,17 @@ export async function addUser(profile: UserProfile) {
     });
 
     console.log("User profile saved successfully:", user.uid);
+
+    // Send welcome email only during onboarding
+    if (isOnboarding) {
+      fetch("/api/emails/welcome", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ firstName: profile.firstName }),
+      }).catch((err) => {
+        console.error("Welcome email failed:", err);
+      });
+    }
 
     return {
       success: true,

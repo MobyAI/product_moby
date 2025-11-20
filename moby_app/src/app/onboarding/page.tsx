@@ -521,7 +521,7 @@ function ChatOnboardingContent() {
 
     try {
       setLoading("profile");
-      const res = await addUser(profile);
+      const res = await addUser(profile, true);
       if (res.success) {
         setTimeout(() => router.replace(finalDestination), 1500);
       } else {

@@ -114,6 +114,10 @@ export async function POST(request: Request) {
                       <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 1.8; color: #4a4a4a;">
                         You're now on the inside track for everything Odee. We'll keep you posted on all updates, added features, and news leading up to our official launch.
                       </p>
+
+                      <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 1.8; color: #4a4a4a;">
+                        If you have any questions, please don't hesitate to reach out! You can simply respond to this email, or email us at hello@odee.io.
+                      </p>
                       
                       <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 1.8; color: #4a4a4a;">
                         No spam, no fluff. Just the updates that matter.
@@ -138,8 +142,16 @@ export async function POST(request: Request) {
                   
                   <!-- Footer -->
                   <tr>
-                    <td style="padding: 32px 40px; background-color: #c45c4c; border-top: 1px solid #d5d4ca;">
-                      <p style="margin: 0 0 8px 0; font-size: 12px; color: #ffffff; text-align: center;">
+                    <td style="padding: 32px 40px; background-color: #eeede4;">
+                      <!-- Logo -->
+                      <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 20px 0;">
+                          <tr>
+                          <td align="center">
+                              <img src="https://odee.io/icon.png" alt="Odee Logo" width="50" height="50" style="display: block; margin: 0 auto; opacity: 0.8;" />
+                          </td>
+                          </tr>
+                      </table>
+                      <p style="margin: 0 0 8px 0; font-size: 12px; color: #4a4a4a; text-align: center;">
                         Sent to ${email}
                       </p>
                     </td>
