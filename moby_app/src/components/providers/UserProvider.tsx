@@ -7,7 +7,7 @@ import * as Sentry from "@sentry/nextjs";
 
 export interface AuthUser {
   uid: string;
-  email?: string;
+  email: string;
   displayName?: string;
   photoURL?: string;
 }
@@ -23,7 +23,7 @@ type AuthContextValue = {
   user: AuthUser | null;
   clientReady: boolean;
   initiallyAuthed: boolean;
-  accessStatus: AccessStatus | null; // NEW
+  accessStatus: AccessStatus | null;
 };
 
 const UserContext = createContext<AuthContextValue | null>(null);
@@ -46,7 +46,7 @@ export function UserProvider({
       u
         ? {
             uid: u.uid,
-            email: u.email ?? undefined,
+            email: u.email ?? "",
             displayName: u.displayName ?? undefined,
             photoURL: u.photoURL ?? undefined,
           }

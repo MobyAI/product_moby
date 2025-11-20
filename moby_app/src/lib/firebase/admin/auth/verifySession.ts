@@ -10,6 +10,8 @@ export type UserInfoStatus =
       authenticated: true;
       hasProfile: false;
       uid: string;
+      email: string;
+      emailVerified: boolean;
       accessLevel?: "no_access" | "beta" | "paid" | "expired";
       betaExpiresAt?: number;
       admin?: boolean;
@@ -18,6 +20,8 @@ export type UserInfoStatus =
       authenticated: true;
       hasProfile: true;
       uid: string;
+      email: string;
+      emailVerified: boolean;
       accessLevel?: "no_access" | "beta" | "paid" | "expired";
       betaExpiresAt?: number;
       admin?: boolean;
@@ -55,6 +59,9 @@ export async function verifyUserInfo(): Promise<UserInfoStatus> {
       sessionCookie,
       true
     );
+
+    // Get the actual user record to check email verification
+    const userRecord = await adminAuth.getUser(decodedClaims.uid);
 
     // Extract access level from custom claims
     const accessLevel = decodedClaims.accessLevel as
@@ -96,6 +103,8 @@ export async function verifyUserInfo(): Promise<UserInfoStatus> {
           authenticated: true,
           hasProfile: true,
           uid: decodedClaims.uid,
+          email: userRecord.email ?? "",
+          emailVerified: userRecord.emailVerified,
           accessLevel,
           betaExpiresAt,
           admin,
@@ -108,6 +117,8 @@ export async function verifyUserInfo(): Promise<UserInfoStatus> {
       authenticated: true,
       hasProfile: false,
       uid: decodedClaims.uid,
+      email: userRecord.email ?? "",
+      emailVerified: userRecord.emailVerified,
       accessLevel,
       betaExpiresAt,
       admin,
@@ -124,15 +135,21 @@ export function isAuthenticated(status: UserInfoStatus): status is
       authenticated: true;
       hasProfile: false;
       uid: string;
+      email: string;
+      emailVerified: boolean;
       accessLevel?: "no_access" | "beta" | "paid" | "expired";
       betaExpiresAt?: number;
+      admin?: boolean;
     }
   | {
       authenticated: true;
       hasProfile: true;
       uid: string;
+      email: string;
+      emailVerified: boolean;
       accessLevel?: "no_access" | "beta" | "paid" | "expired";
       betaExpiresAt?: number;
+      admin?: boolean;
     } {
   return status.authenticated === true;
 }
@@ -141,10 +158,19 @@ export function hasProfile(status: UserInfoStatus): status is {
   authenticated: true;
   hasProfile: true;
   uid: string;
+  email: string;
+  emailVerified: boolean;
   accessLevel?: "no_access" | "beta" | "paid" | "expired";
   betaExpiresAt?: number;
+  admin?: boolean;
 } {
   return status.authenticated === true && status.hasProfile === true;
+}
+
+// Check if email is verified
+export function isEmailVerified(status: UserInfoStatus): boolean {
+  if (!isAuthenticated(status)) return false;
+  return status.emailVerified === true;
 }
 
 // Check if user has active access (beta or paid)

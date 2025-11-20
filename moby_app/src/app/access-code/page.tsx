@@ -109,7 +109,7 @@ export default function BetaCodePage() {
   return (
     <>
       {/* Logo */}
-      <div className="text-logo text-primary-dark z-100 absolute top-0 left-2 w-full flex items-center gap-2">
+      <div className="text-logo text-primary-dark z-100 absolute top-4 left-4 w-full flex items-center gap-2">
         <LogoIcon variant="large" />
         odee
       </div>
