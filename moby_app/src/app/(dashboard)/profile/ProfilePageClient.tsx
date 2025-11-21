@@ -42,6 +42,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Sentry from "@sentry/nextjs";
 import { useToast } from "@/components/providers/ToastProvider";
 import { motion, AnimatePresence } from "framer-motion";
+import { sendEmailVerification } from "firebase/auth";
 
 const ethnicityLabels = Object.fromEntries(
   ethnicities.map((eth) => [eth.value, eth.label])
@@ -56,6 +57,8 @@ function ProfilePageContent() {
   const [showHeadshotUploadModal, setShowHeadshotUploadModal] = useState(false);
   const [showResumeUploadModal, setShowResumeUploadModal] = useState(false);
   const [selectedHeadshotIndex, setSelectedHeadshotIndex] = useState(0);
+  const [sendingVerification, setSendingVerification] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(true);
 
   // Animated menu button setup
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -112,6 +115,70 @@ function ProfilePageContent() {
       setEditedProfile(profile);
     }
   }, [profile]);
+
+  useEffect(() => {
+    const checkEmailVerification = () => {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        setEmailVerified(currentUser.emailVerified);
+      }
+    };
+
+    checkEmailVerification();
+
+    // Listen for auth state changes
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setEmailVerified(user.emailVerified);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Add handler for sending verification email
+  const handleSendVerificationEmail = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    try {
+      setSendingVerification(true);
+
+      await sendEmailVerification(currentUser, {
+        url: window.location.origin + "/tracker",
+      });
+
+      showToast({
+        header: "Verification email sent!",
+        line1: "Check your inbox",
+        type: "success",
+      });
+
+      // Redirect to verification page
+      router.push("/verify-email");
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error("Send verification error:", error);
+      Sentry.captureException(error);
+
+      if (error.code === "auth/too-many-requests") {
+        showToast({
+          header: "Too many requests",
+          line1: "Please wait a moment and try again",
+          type: "danger",
+        });
+      } else {
+        showToast({
+          header: "Failed to send email",
+          line1: "Please try again",
+          type: "danger",
+        });
+      }
+    } finally {
+      setSendingVerification(false);
+    }
+  };
 
   // Combined loading state
   const loading = profileLoading || headshotsLoading || resumeLoading;
@@ -308,11 +375,11 @@ function ProfilePageContent() {
                   "noopener,noreferrer"
                 )
               }
-              className="absolute p-3 rounded-full bg-[#363c54] shadow-xl hover:cursor-pointer text-white transition-colors z-10 group"
+              className="absolute p-3 rounded-full bg-primary-dark shadow-xl hover:cursor-pointer text-white transition-colors z-10 group"
               aria-label={"View Fullsize"}
             >
               <ExternalLink className="w-5 h-5" />
-              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-primary-dark-alt rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-primary-dark rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
                 {"Fullsize"}
               </span>
             </motion.button>
@@ -332,11 +399,11 @@ function ProfilePageContent() {
               onClick={() =>
                 handleDeleteHeadshot(headshots[selectedHeadshotIndex].id)
               }
-              className="absolute p-3 rounded-full bg-[#363c54] shadow-xl hover:cursor-pointer text-white transition-colors z-10 group"
+              className="absolute p-3 rounded-full bg-primary-dark shadow-xl hover:cursor-pointer text-white transition-colors z-10 group"
               aria-label="Delete"
             >
               <Trash className="w-5 h-5" />
-              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-primary-dark-alt rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-primary-dark rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
                 Delete
               </span>
             </motion.button>
@@ -358,7 +425,7 @@ function ProfilePageContent() {
                   headshots[selectedHeadshotIndex].thumbnailUrl
                 )
               }
-              className="absolute p-3 rounded-full bg-[#363c54] shadow-xl hover:cursor-pointer hover:bg-[#454d6b] text-white transition-colors z-10 group"
+              className="absolute p-3 rounded-full bg-primary-dark shadow-xl hover:cursor-pointer text-white transition-colors z-10 group"
               aria-label="Set Profile Picture"
             >
               <Star
@@ -370,7 +437,7 @@ function ProfilePageContent() {
                     : "text-white"
                 }`}
               />
-              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-primary-dark-alt rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-primary-dark rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
                 {userPhotoURL &&
                 headshots[selectedHeadshotIndex]?.thumbnailUrl === userPhotoURL
                   ? "Current Profile Picture"
@@ -422,7 +489,7 @@ function ProfilePageContent() {
       </div>
 
       {/* Main Content - Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-[35%_65%] gap-9">
+      <div className="grid grid-cols-1 xl:grid-cols-[35%_65%] pb-20 xl:pb-0 gap-9">
         {/* Left Column - Profile Picture & Headshots */}
         <div className="bg- relative">
           <div className="flex flex-col items-center mt-8">
@@ -506,8 +573,8 @@ function ProfilePageContent() {
             {headshots.length < 3 && (
               <Button
                 onClick={() => setShowHeadshotUploadModal(true)}
-                size="sm"
-                className="bg-blue-500 text-white hover:bg-blue-700 before:content-none shadow-md hover:shadow-lg"
+                size="md"
+                className="bg-primary-dark text-white hover:opacity-80 before:content-none shadow-md hover:shadow-lg"
                 icon={Upload}
               >
                 Upload Headshot
@@ -534,7 +601,7 @@ function ProfilePageContent() {
         </div>
 
         {/* Right Column - User Info & Demographics */}
-        <div className="bg-transparent rounded-xl max-w-xl relative">
+        <div className="bg-transparent rounded-xl w-[90%] xl:max-w-xl mx-auto relative">
           {/* Edit Button */}
           <div className="absolute top-0 right-0">
             {!editMode ? (
@@ -543,7 +610,7 @@ function ProfilePageContent() {
                   setEditedProfile(profile);
                   setEditMode(true);
                 }}
-                size="sm"
+                size="md"
                 variant="primary"
                 icon={Edit2}
                 iconOnly={true}
@@ -552,14 +619,14 @@ function ProfilePageContent() {
               <div className="flex gap-2">
                 <Button
                   onClick={handleCancel}
-                  size="sm"
+                  size="md"
                   variant="danger"
                   icon={X}
                   iconOnly={true}
                 />
                 <Button
                   onClick={handleSave}
-                  size="sm"
+                  size="md"
                   className="bg-green-600 text-white hover:bg-green-800 before:content-none shadow-md hover:shadow-lg"
                   icon={Save}
                   iconOnly={true}
@@ -614,7 +681,18 @@ function ProfilePageContent() {
                 <Mail className="w-4 h-4" />
                 Email
               </label>
-              <p className="text-gray-900">{profile.email}</p>
+              <div className="flex items-center gap-3">
+                <p className="text-gray-900">{profile.email}</p>
+                {!emailVerified && (
+                  <button
+                    onClick={handleSendVerificationEmail}
+                    disabled={sendingVerification}
+                    className="px-3 py-1 bg-primary-dark-alt text-white text-sm rounded hover:opacity-80 hover:cursor-pointer transition-opacity disabled:opacity-50"
+                  >
+                    {sendingVerification ? "Sending..." : "Needs Verification"}
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="border-t border-gray-500/50 pt-6">
@@ -801,9 +879,9 @@ function ProfilePageContent() {
                             "noopener,noreferrer"
                           )
                         }
-                        size="sm"
+                        size="md"
                         icon={Download}
-                        className="bg-blue-500 text-white hover:bg-blue-700 before:content-none shadow-md hover:shadow-lg"
+                        className="bg-primary-dark text-white hover:opacity-80 before:content-none shadow-md hover:shadow-lg"
                       >
                         Download Resume
                       </Button>
@@ -813,13 +891,14 @@ function ProfilePageContent() {
                         size="md"
                         variant="danger"
                         icon={Trash}
+                        className="w-12 h-12"
                       />
                     </>
                   ) : (
                     <Button
                       onClick={() => setShowResumeUploadModal(true)}
-                      size="sm"
-                      className="bg-blue-500 text-white hover:bg-blue-700 before:content-none shadow-md hover:shadow-lg"
+                      size="md"
+                      className="bg-primary-dark text-white hover:opacity-80 before:content-none shadow-md hover:shadow-lg"
                       icon={Upload}
                     >
                       Upload Resume

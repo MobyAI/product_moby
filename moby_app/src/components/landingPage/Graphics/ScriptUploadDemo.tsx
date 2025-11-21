@@ -86,7 +86,9 @@ export default function ScriptUploadDemo() {
     };
 
     runAnimation();
-  }, [animationKey, fileDragControls, scriptBounceControls]);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [animationKey]);
 
   return (
     <div className="w-full max-w-md xl:max-w-lg aspect-[1.5/1] xl:aspect-[2/1] bg-primary-light-alt rounded-xl overflow-hidden relative">

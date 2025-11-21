@@ -896,6 +896,103 @@ export const getAllBetaUsers = onCall(
 );
 
 // ============================================================================
+// FUNCTION 9: Get All Users (Admin Only)
+// ============================================================================
+
+interface FirebaseAuthUser {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  emailVerified: boolean;
+  phoneNumber: string | null;
+  disabled: boolean;
+  metadata: {
+    creationTime: string;
+    lastSignInTime: string;
+  };
+  providerData: Array<{
+    providerId: string;
+    uid: string;
+    displayName: string | null;
+    email: string | null;
+    phoneNumber: string | null;
+    photoURL: string | null;
+  }>;
+  customClaims?: Record<string, any>;
+}
+
+interface GetAllUsersResult {
+  success: boolean;
+  users: FirebaseAuthUser[];
+}
+
+export const getAllUsers = onCall(
+  async (request): Promise<GetAllUsersResult> => {
+    // 1. AUTHENTICATION CHECK
+    if (!request.auth) {
+      throw new HttpsError(
+        "unauthenticated",
+        "You must be logged in to view users"
+      );
+    }
+
+    // 2. ADMIN AUTHORIZATION CHECK
+    const userClaims = request.auth.token as CustomClaims;
+    if (!userClaims.admin) {
+      throw new HttpsError(
+        "permission-denied",
+        "Only admins can view all users"
+      );
+    }
+
+    try {
+      // 3. GET ALL FIREBASE AUTH USERS
+      const listUsersResult = await admin.auth().listUsers(1000);
+
+      const users: FirebaseAuthUser[] = listUsersResult.users.map(
+        (userRecord) => ({
+          uid: userRecord.uid,
+          email: userRecord.email || null,
+          displayName: userRecord.displayName || null,
+          photoURL: userRecord.photoURL || null,
+          emailVerified: userRecord.emailVerified,
+          phoneNumber: userRecord.phoneNumber || null,
+          disabled: userRecord.disabled,
+          metadata: {
+            creationTime: userRecord.metadata.creationTime,
+            lastSignInTime: userRecord.metadata.lastSignInTime,
+          },
+          providerData: userRecord.providerData.map((provider) => ({
+            providerId: provider.providerId,
+            uid: provider.uid,
+            displayName: provider.displayName || null,
+            email: provider.email || null,
+            phoneNumber: provider.phoneNumber || null,
+            photoURL: provider.photoURL || null,
+          })),
+          customClaims: userRecord.customClaims || {},
+        })
+      );
+
+      console.log(`✅ Retrieved ${users.length} Firebase Auth users`);
+
+      return {
+        success: true,
+        users,
+      };
+    } catch (error) {
+      console.error("❌ Error fetching users:", error);
+
+      throw new HttpsError(
+        "internal",
+        "Failed to fetch users. Please try again."
+      );
+    }
+  }
+);
+
+// ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 

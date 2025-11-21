@@ -6,15 +6,18 @@ export default async function AuthShell({
   children,
   requireProfile = true,
   requireAccess = true,
+  requireVerification = false,
 }: {
   children: ReactNode;
   requireProfile?: boolean;
   requireAccess?: boolean;
+  requireVerification?: boolean;
 }) {
   return (
     <ServerAuthProvider
       requireProfile={requireProfile}
       requireAccess={requireAccess}
+      requireVerification={requireVerification}
     >
       <ClientAuthProvider>{children}</ClientAuthProvider>
     </ServerAuthProvider>

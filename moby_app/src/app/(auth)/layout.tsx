@@ -3,8 +3,6 @@ export const revalidate = 0;
 
 import type { ReactNode } from "react";
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
-import { verifySession } from "@/lib/firebase/admin/auth/verifySession";
 import LogoIcon from "@/components/ui/LogoIcon";
 
 export default async function AuthLayout({
@@ -12,9 +10,6 @@ export default async function AuthLayout({
 }: {
   children: ReactNode;
 }) {
-  const user = await verifySession();
-  if (user) redirect("/tracker");
-
   return (
     <div className="h-screen h-dvh flex flex-col bg-[#EEEDE4]">
       {/* Logo */}
