@@ -117,6 +117,7 @@ export async function POST(req: NextRequest) {
       success: true,
       remaining: emailResult.remaining,
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("Password reset error:", error);
 

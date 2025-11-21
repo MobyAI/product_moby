@@ -9,7 +9,7 @@ import {
   sendSessionLogin,
 } from "@/lib/api/auth";
 import { checkUserProfileExists } from "@/lib/firebase/client/user";
-import { updatePassword, sendPasswordResetEmail } from "firebase/auth";
+import { updatePassword } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/config/app";
 
 type Step = "login" | "password-setup" | "forgot-password";
@@ -237,6 +237,7 @@ export default function LoginPageClient() {
       }
 
       setResetEmailSent(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error("Password reset error:", err);
       setError(err.message || "Failed to send reset email. Please try again.");

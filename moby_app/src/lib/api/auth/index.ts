@@ -4,7 +4,6 @@ import {
   registerWithEmailPassword,
   logout as firebaseLogout,
 } from "@/lib/firebase/client/auth";
-import { sendEmailVerification } from "firebase/auth";
 
 type AuthResult = { success: true } | { success: false; error: string };
 

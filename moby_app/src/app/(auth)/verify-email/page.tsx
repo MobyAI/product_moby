@@ -103,6 +103,7 @@ export default function VerifyEmailNoticePage() {
       }
 
       setMessage("✅ Verification email sent! Check your inbox.");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Resend email error:", error);
       setMessage(error.message || "Failed to send email. Please try again.");
