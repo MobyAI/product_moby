@@ -136,7 +136,7 @@ const LandingPage = () => {
     setSubmitMessage("");
 
     try {
-      const response = await fetch("/api/newsletter/launch", {
+      const response = await fetch("/api/email/newsletter/general", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

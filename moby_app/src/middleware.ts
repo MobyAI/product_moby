@@ -16,8 +16,11 @@ export function middleware(req: NextRequest) {
         '/api/sessionLogin',
         '/api/sessionCheck',
         '/api/sessionLogout',
-        '/api/newsletter/launch',
-        '/api/newsletter/blog',
+        '/api/email/newsletter/launch',
+        '/api/email/newsletter/blog',
+        '/api/email/welcome',
+        '/api/email/password-reset',
+        '/api/email/verification',
     ];
 
     if (publicApiRoutes.some(route => pathname.startsWith(route))) {

@@ -1,8 +1,8 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useState } from "react";
-import { Check, ArrowLeft } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Check, ArrowLeft, Clock } from "lucide-react";
 import {
   handleEmailPasswordLogin,
   handleGoogleLogin,
@@ -13,6 +13,11 @@ import { updatePassword, sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/config/app";
 
 type Step = "login" | "password-setup" | "forgot-password";
+
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email) && email.length < 255;
+}
 
 export default function LoginPageClient() {
   const search = useSearchParams();
@@ -26,6 +31,8 @@ export default function LoginPageClient() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [retryAfter, setRetryAfter] = useState<number | null>(null);
+  const [countdown, setCountdown] = useState<number>(0);
 
   async function handleSuccessfulLogin() {
     const hasProfile = await checkUserProfileExists();
@@ -147,34 +154,92 @@ export default function LoginPageClient() {
     }
   };
 
+  // Countdown timer effect
+  useEffect(() => {
+    if (retryAfter && retryAfter > 0) {
+      setCountdown(retryAfter);
+
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            setRetryAfter(null);
+            setError("");
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [retryAfter]);
+
+  // Format seconds into readable time
+  const formatTime = (seconds: number): string => {
+    if (seconds >= 3600) {
+      const hours = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      return `${hours} hour${hours > 1 ? "s" : ""}${
+        mins > 0 ? ` ${mins} min` : ""
+      }`;
+    } else if (seconds >= 60) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins} min${mins > 1 ? "s" : ""} ${secs} sec`;
+    } else {
+      return `${seconds} second${seconds !== 1 ? "s" : ""}`;
+    }
+  };
+
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (!email || !email.includes("@")) {
+    // Enhanced validation with isValidEmail
+    if (!email || !isValidEmail(email)) {
       setError("Please enter a valid email address");
+      return;
+    }
+
+    // Don't allow submission if rate limited
+    if (retryAfter && retryAfter > 0) {
       return;
     }
 
     try {
       setLoading(true);
 
-      await sendPasswordResetEmail(auth, email, {
-        url: window.location.origin + "/login",
+      const response = await fetch("/api/email/password-reset", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
       });
 
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle rate limit specifically
+        if (response.status === 429) {
+          const retrySeconds = data.retryAfter || 900; // Default to 15 minutes if not provided
+          setRetryAfter(retrySeconds);
+          setError(
+            `Too many attempts. Please try again in ${formatTime(
+              retrySeconds
+            )}.`
+          );
+        } else {
+          throw new Error(data.error || "Failed to send reset email");
+        }
+        return;
+      }
+
       setResetEmailSent(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error("Password reset error:", err);
-
-      if (err.code === "auth/user-not-found") {
-        setError("No account found with this email address");
-      } else if (err.code === "auth/too-many-requests") {
-        setError("Too many requests. Please try again later.");
-      } else {
-        setError("Failed to send reset email. Please try again.");
-      }
+      setError(err.message || "Failed to send reset email. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -254,6 +319,8 @@ export default function LoginPageClient() {
             onClick={() => {
               setStep("login");
               setError("");
+              setRetryAfter(null);
+              setCountdown(0);
             }}
             className="text-gray-600 hover:text-gray-900 flex items-center space-x-2"
           >
@@ -264,11 +331,33 @@ export default function LoginPageClient() {
           <div className="space-y-2">
             <h1 className="text-header text-primary-dark">Reset Password</h1>
             <p className="text-gray-600">
-              {`Enter your email address and we'll send you a link to reset your
-              password.`}
+              {`Enter your email address and we'll send you a link to reset your password.`}
             </p>
           </div>
         </div>
+
+        {/* Rate Limit Banner */}
+        {retryAfter && retryAfter > 0 && (
+          <div className="rounded-lg border-2 border-red-200 bg-red-50 p-4">
+            <div className="flex items-start space-x-3">
+              <Clock className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-orange-900 mb-1">
+                  Too Many Attempts
+                </h3>
+                <p className="text-sm text-red-800 mb-2">
+                  For security reasons, please wait before trying again.
+                </p>
+                <div className="flex items-center space-x-2">
+                  <div className="text-base font-bold text-red-900 tabular-nums">
+                    {formatTime(countdown)}
+                  </div>
+                  <span className="text-sm text-red-700">remaining</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Forgot Password Form */}
         <form onSubmit={handleForgotPassword} className="space-y-6">
@@ -288,18 +377,34 @@ export default function LoginPageClient() {
               className="w-full px-4 py-3 rounded-lg bg-white border-0 border-gray-300 focus:border-primary-dark focus:outline-none text-gray-900 placeholder-gray-400"
               autoComplete="email"
               autoFocus
+              disabled={retryAfter !== null && retryAfter > 0}
             />
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && !retryAfter && (
+            <p className="text-sm text-red-600">{error}</p>
+          )}
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full py-3 rounded-lg bg-primary-dark font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-50"
+            disabled={loading || (retryAfter !== null && retryAfter > 0)}
+            className="w-full py-3 rounded-lg bg-primary-dark font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Sending..." : "Send Reset Link"}
           </button>
+
+          {/* Help text */}
+          {retryAfter && retryAfter > 0 && (
+            <p className="text-sm text-center text-gray-600">
+              Need immediate help?{" "}
+              <a
+                href="mailto:support@odee.io"
+                className="text-primary-dark underline font-medium"
+              >
+                Contact support
+              </a>
+            </p>
+          )}
         </form>
       </div>
     );

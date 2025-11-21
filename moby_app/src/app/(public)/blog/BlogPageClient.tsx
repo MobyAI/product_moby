@@ -37,7 +37,7 @@ export default function BlogPageClient({
     setSubmitMessage("");
 
     try {
-      const response = await fetch("/api/newsletter/blog", {
+      const response = await fetch("/api/email/newsletter/blog", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
