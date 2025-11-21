@@ -4,7 +4,6 @@ import {
   registerWithEmailPassword,
   logout as firebaseLogout,
 } from "@/lib/firebase/client/auth";
-import { sendEmailVerification } from "firebase/auth";
 
 type AuthResult = { success: true } | { success: false; error: string };
 
@@ -77,9 +76,17 @@ export async function handleEmailPasswordRegister(
   try {
     const result = await registerWithEmailPassword(email, password);
 
-    await sendEmailVerification(result.user, {
-      url: window.location.origin + "/tracker",
+    const response = await fetch("/api/email/verification", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email }),
     });
+
+    if (!response.ok) {
+      console.error("Failed to send verification email");
+    }
 
     const idToken = await result.user.getIdToken(true);
 

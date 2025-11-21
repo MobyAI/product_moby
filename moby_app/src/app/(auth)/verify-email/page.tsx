@@ -3,9 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase/client/config/app";
-import { sendEmailVerification } from "firebase/auth";
 import { handleLogout, sendSessionLogin } from "@/lib/api/auth";
-import { Mail, RefreshCw } from "lucide-react";
+import { Mail, RefreshCw, Clock } from "lucide-react";
 
 export default function VerifyEmailNoticePage() {
   const router = useRouter();
@@ -13,18 +12,18 @@ export default function VerifyEmailNoticePage() {
   const [checking, setChecking] = useState(false);
   const [message, setMessage] = useState("");
   const [user, setUser] = useState(auth.currentUser);
+  const [retryAfter, setRetryAfter] = useState<number | null>(null);
+  const [countdown, setCountdown] = useState<number>(0);
 
   // Update user state when auth changes
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
       setUser(currentUser);
 
-      // If no user, redirect to login
       if (!currentUser) {
         router.push("/login");
       }
 
-      // If email verified, redirect to tracker
       if (currentUser?.emailVerified) {
         router.push("/tracker");
       }
@@ -33,27 +32,81 @@ export default function VerifyEmailNoticePage() {
     return () => unsubscribe();
   }, [router]);
 
+  // Countdown timer effect
+  useEffect(() => {
+    if (retryAfter && retryAfter > 0) {
+      setCountdown(retryAfter);
+
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            setRetryAfter(null);
+            setMessage("");
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [retryAfter]);
+
+  // Format seconds into readable time
+  const formatTime = (seconds: number): string => {
+    if (seconds >= 3600) {
+      const hours = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      return `${hours} hour${hours > 1 ? "s" : ""}${
+        mins > 0 ? ` ${mins} min` : ""
+      }`;
+    } else if (seconds >= 60) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins} min${mins > 1 ? "s" : ""} ${secs} sec`;
+    } else {
+      return `${seconds} second${seconds !== 1 ? "s" : ""}`;
+    }
+  };
+
   const handleResendEmail = async () => {
-    if (!user) return;
+    if (!user || (retryAfter && retryAfter > 0)) return;
 
     try {
       setSending(true);
       setMessage("");
 
-      await sendEmailVerification(user, {
-        url: window.location.origin + "/tracker",
+      const response = await fetch("/api/email/verification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: user.email }),
       });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          const retrySeconds = data.retryAfter || 900;
+          setRetryAfter(retrySeconds);
+          setMessage(
+            `Too many attempts. Please try again in ${formatTime(
+              retrySeconds
+            )}.`
+          );
+        } else {
+          throw new Error(data.error || "Failed to send verification email");
+        }
+        return;
+      }
 
       setMessage("✅ Verification email sent! Check your inbox.");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Resend email error:", error);
-
-      if (error.code === "auth/too-many-requests") {
-        setMessage("Too many requests. Please wait a moment and try again.");
-      } else {
-        setMessage("Failed to send email. Please try again.");
-      }
+      setMessage(error.message || "Failed to send email. Please try again.");
     } finally {
       setSending(false);
     }
@@ -66,16 +119,13 @@ export default function VerifyEmailNoticePage() {
       setChecking(true);
       setMessage("");
 
-      // Reload user to get fresh verification status
       await user.reload();
 
       if (user.emailVerified) {
-        // Refresh the session using existing helper
         const idToken = await user.getIdToken(true);
         const result = await sendSessionLogin(idToken);
 
         if (result.success) {
-          // Session refreshed, redirect to tracker
           router.push("/tracker");
         } else {
           setMessage("Error updating session. Please try again.");
@@ -103,7 +153,6 @@ export default function VerifyEmailNoticePage() {
     }
   };
 
-  // Show loading if no user yet
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center space-y-4 py-12">
@@ -142,9 +191,34 @@ export default function VerifyEmailNoticePage() {
           </p>
         </div>
 
+        {/* Rate Limit Banner */}
+        {retryAfter && retryAfter > 0 && (
+          <div className="rounded-lg border-2 border-red-200 bg-red-50 p-4">
+            <div className="flex items-start space-x-3">
+              <Clock className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 text-left">
+                <h3 className="text-sm font-semibold text-orange-900 mb-1">
+                  Too Many Attempts
+                </h3>
+                <p className="text-sm text-red-800 mb-2">
+                  For security reasons, please wait before trying again.
+                </p>
+                <div className="flex items-center space-x-2">
+                  <div className="text-base font-bold text-red-900 tabular-nums">
+                    {formatTime(countdown)}
+                  </div>
+                  <span className="text-sm text-red-700">remaining</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Message */}
-        {message && (
-          <div className={`p-4 rounded-lg text-sm bg-gray-200 text-gray-700`}>
+        {message && !retryAfter && (
+          <div
+            className={`p-4 rounded-lg text-sm bg-gray-200 text-gray-700 text-left`}
+          >
             <p>{message}</p>
           </div>
         )}
@@ -171,23 +245,35 @@ export default function VerifyEmailNoticePage() {
 
           <button
             onClick={handleResendEmail}
-            disabled={sending}
+            disabled={sending || (retryAfter !== null && retryAfter > 0)}
             className="w-full py-3 rounded-lg border-2 border-gray-300 font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {sending ? "Sending..." : "Resend Verification Email"}
           </button>
+
+          {/* Help text when rate limited */}
+          {retryAfter && retryAfter > 0 && (
+            <p className="text-sm text-center text-gray-600">
+              Need immediate help?{" "}
+              <a
+                href="mailto:support@odee.io"
+                className="text-primary-dark underline font-medium"
+              >
+                Contact support
+              </a>
+            </p>
+          )}
         </div>
 
         {/* Help Text */}
         <div className="pt-4 border-t border-gray-200 space-y-4">
-          <p className="text-sm text-gray-500">
-            {`Can't find the email? Check your spam folder or request a new one
-            above.`}
+          <p className="text-sm text-gray-600">
+            {`Can't find the email? Check your spam folder or request a new one above.`}
           </p>
 
           <button
             onClick={handleSignOut}
-            className="text-sm text-primary-dark hover:underline"
+            className="text-sm text-primary-dark font-medium underline hover:cursor-pointer"
           >
             Sign out and use a different email
           </button>

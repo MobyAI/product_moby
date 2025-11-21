@@ -96,7 +96,7 @@ export async function addUser(profile: UserProfile, isOnboarding: boolean = fals
 
     // Send welcome email only during onboarding
     if (isOnboarding) {
-      fetch("/api/emails/welcome", {
+      fetch("/api/email/welcome", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ firstName: profile.firstName }),
