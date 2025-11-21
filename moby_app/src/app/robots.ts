@@ -8,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
         allow: ["/"],
         disallow: [
           "/api/",
-          "/beta-control",
+          "/access-control",
           "/voice-samples",
           "/login",
           "/signup",
@@ -21,6 +21,8 @@ export default function robots(): MetadataRoute.Robots {
           "/tracker",
           "/dashboard",
           "/settings",
+          "/verify-email",
+          "/action",
         ],
       },
     ],

@@ -9,12 +9,15 @@ if (typeof window !== "undefined") {
   if (!isExcluded) {
     window.addEventListener("load", () => {
       const init = async () => {
-        const Sentry = await import("@sentry/nextjs"); // 🔥 dynamic import here
+        const Sentry = await import("@sentry/nextjs");
 
         Sentry.init({
           dsn: "https://40fcd0bd64e5502763362ab491ef7a32@o4510229131821056.ingest.us.sentry.io/4510229150957568",
           integrations: [
-            Sentry.replayIntegration(),
+            Sentry.replayIntegration({
+              unblock: [".sentry-unblock, [data-sentry-unblock]"],
+              unmask: [".sentry-unmask, [data-sentry-unmask]"],
+            }),
             Sentry.feedbackIntegration({
               colorScheme: "light",
               buttonLabel: "Did something go wrong?",
