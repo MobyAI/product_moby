@@ -164,6 +164,7 @@ export default function LoginPageClient() {
       });
 
       setResetEmailSent(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error("Password reset error:", err);
 
@@ -263,8 +264,8 @@ export default function LoginPageClient() {
           <div className="space-y-2">
             <h1 className="text-header text-primary-dark">Reset Password</h1>
             <p className="text-gray-600">
-              Enter your email address and we'll send you a link to reset your
-              password.
+              {`Enter your email address and we'll send you a link to reset your
+              password.`}
             </p>
           </div>
         </div>

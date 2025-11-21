@@ -45,6 +45,7 @@ export default function VerifyEmailNoticePage() {
       });
 
       setMessage("✅ Verification email sent! Check your inbox.");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Resend email error:", error);
 
@@ -163,7 +164,7 @@ export default function VerifyEmailNoticePage() {
             ) : (
               <>
                 <RefreshCw className="w-5 h-5" />
-                <span>I've Verified My Email</span>
+                <span>{`I've Verified My Email`}</span>
               </>
             )}
           </button>
@@ -180,8 +181,8 @@ export default function VerifyEmailNoticePage() {
         {/* Help Text */}
         <div className="pt-4 border-t border-gray-200 space-y-4">
           <p className="text-sm text-gray-500">
-            Can't find the email? Check your spam folder or request a new one
-            above.
+            {`Can't find the email? Check your spam folder or request a new one
+            above.`}
           </p>
 
           <button

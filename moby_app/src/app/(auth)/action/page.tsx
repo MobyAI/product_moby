@@ -68,6 +68,7 @@ export default function AuthActionHandler() {
       setTimeout(() => {
         router.push(continueUrl || "/tracker");
       }, 2000);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       setStatus("error");
       if (error.code === "auth/invalid-action-code") {
@@ -92,6 +93,7 @@ export default function AuthActionHandler() {
       const userEmail = await verifyPasswordResetCode(auth, oobCode);
       setEmail(userEmail);
       setStatus("form");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       setStatus("error");
       if (error.code === "auth/invalid-action-code") {
@@ -132,6 +134,7 @@ export default function AuthActionHandler() {
       setTimeout(() => {
         router.push("/login");
       }, 2000);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       setStatus("form");
       if (error.code === "auth/weak-password") {
@@ -164,6 +167,7 @@ export default function AuthActionHandler() {
       setStatus("error");
       setError("Unknown action type");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, oobCode]);
 
   // Loading State

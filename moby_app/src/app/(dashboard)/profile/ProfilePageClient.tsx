@@ -156,6 +156,8 @@ function ProfilePageContent() {
 
       // Redirect to verification page
       router.push("/verify-email");
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Send verification error:", error);
       Sentry.captureException(error);
