@@ -19,8 +19,11 @@ if (typeof window !== "undefined") {
       dsn: "https://40fcd0bd64e5502763362ab491ef7a32@o4510229131821056.ingest.us.sentry.io/4510229150957568",
       integrations: [
         Sentry.replayIntegration({
-          unblock: [".sentry-unblock, [data-sentry-unblock]"],
-          unmask: [".sentry-unmask, [data-sentry-unmask]"],
+          // unblock: [".sentry-unblock, [data-sentry-unblock]"],
+          // unmask: [".sentry-unmask, [data-sentry-unmask]"],
+          // NOTE: This will disable built-in masking. Only use this if your site has no sensitive data, or if you've already set up other options for masking or blocking relevant data, such as 'ignore', 'block', 'mask' and 'maskFn'.
+          maskAllText: false,
+          blockAllMedia: false,
         }),
         Sentry.feedbackIntegration({
           colorScheme: "light",
