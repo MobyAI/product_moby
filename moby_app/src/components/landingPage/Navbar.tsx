@@ -163,10 +163,7 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
               <AnimatedButton variant="ghost" href="/login">
                 Login
               </AnimatedButton>
-              <AnimatedButton
-                variant="primary"
-                href="/signup"
-              >
+              <AnimatedButton variant="primary" href="/signup">
                 Get Started
               </AnimatedButton>
             </nav>
@@ -222,10 +219,7 @@ const Navbar: React.FC<NavbarProps> = ({ lenisInstance }) => {
                   Blog
                 </span>
               </NavLink>
-              <Link
-                href="https://docs.google.com/forms/d/e/1FAIpQLSe9THykmDJkTY1C2E7sdofD58M3UGKhKHKQQ_gUsoyPBM1jsQ/viewform?usp=dialog"
-                scroll={false}
-              >
+              <Link href="/signup" scroll={false}>
                 <span
                   className={`group overflow-hidden relative inline-flex items-center gap-2 rounded-full w-40 px-4 lg:px-7 py-3.5 bg-black text-white border border-black shadow hover:shadow-md transition-shadow text-[15px] lg:text-[17px]`}
                 >
